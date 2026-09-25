@@ -12,7 +12,10 @@
 <h1>Glossary</h1>
 <p class="prose meta">Terms used across the site, in plain language. Each module links here the first time it uses a term.</p>
 <dl class="gloss">
+<dt id="api-key">API key</dt><dd>A credential issued to an application for API access. In this course, it is a secret bearer value checked against a server-side record.</dd>
 <dt id="asymmetric-signature">Asymmetric signature</dt><dd>A signature made with a private key and checked with the matching public key. Knowing the public key lets you verify, not sign, so the verifier can't forge signatures.</dd>
+<dt id="authentication">Authentication</dt><dd>Checking a claimed identity using evidence such as a credential. Possession of a stolen credential can pass that check.</dd>
+<dt id="authorization">Authorization</dt><dd>Deciding whether an identity may perform an action on a resource.</dd>
 <dt id="bearer-credential">Bearer credential</dt><dd>A credential that grants access to whoever presents it, like an API key or most access tokens. If it's stolen, the thief can use it.</dd>
 <dt id="canonical-string">Canonical string</dt><dd>An agreed, exact text description of a request that both sides build the same way before signing. Any difference in bytes produces a different signature.</dd>
 <dt id="constant-time-comparison">Constant-time comparison</dt><dd>A comparison that takes the same time whether values differ at the first byte or the last. Ordinary string comparison stops at the first difference, which can leak information through timing.</dd>
@@ -23,6 +26,7 @@
 <dt id="keyid">keyId</dt><dd>An identifier sent with a signed request telling the receiver which key to verify with. It must never be the key itself.</dd>
 <dt id="mtls">mTLS</dt><dd>Mutual TLS. Both client and server present certificates, so each proves its identity to the other when the connection opens.</dd>
 <dt id="nonce">Nonce</dt><dd>A value used once. The receiver remembers nonces it has seen for a limited time and rejects repeats.</dd>
+<dt id="query-string">Query string</dt><dd>The part of a URL after the question mark and before any fragment. It often contains named parameters and may be recorded in request logs.</dd>
 <dt id="replay-attack">Replay attack</dt><dd>Resending a captured, valid request unchanged. The signature is still correct, so only freshness and nonce checks stop it.</dd>
 <dt id="shared-secret">Shared secret</dt><dd>A key known to both parties. Either party can create a valid signature, which is why a shared secret can't prove which one did.</dd>
 <dt id="signature">Signature</dt><dd>A value computed from data and a key that lets a receiver check the data wasn't changed and came from a key holder.</dd>
