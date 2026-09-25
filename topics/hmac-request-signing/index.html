@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HMAC request signing | API security learning path</title>
+<link rel="stylesheet" href="../../assets/site.css">
+</head>
+<body>
+<nav class="site-nav" aria-label="Site"><div><a class="home" href="../../index.html">API security learning path</a><a href="../../index.html#path">Modules</a><a href="../../checklist/index.html">Checklist</a><a href="../../glossary/index.html">Glossary</a></div></nav>
+<main>
+<p class="kicker">Part 1: Proving who is calling &middot; Module 2</p>
+<h1>HMAC request signing</h1>
+<p class="meta">Last reviewed 2026-09-24 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+
+<div class="prose">
+<p><strong>Objective.</strong> After this module you can explain what an HMAC signature proves and what it doesn't, build a correct canonical string, verify a request in the right order, and say when to use asymmetric signatures instead.</p>
+<p><strong>Before you start.</strong> You should know what a <a href="../../glossary/index.html#hash">hash</a> is and why a <a href="../../glossary/index.html#bearer-credential">bearer credential</a> like an API key is risky. Module 1 covers API keys.</p>
+</div>
+
+<span class="layer" id="learn">Learn</span>
+
+<h2>1. The attack</h2>
+<div class="prose">
+<p>Running example: a customer moves 10,000 airline miles into their hotel rewards account. ExampleAir's server sends the transfer to ExampleHotels' API. Company names are fictional.</p>
+<p>With a plain API key, the key travels in every request. Anyone who captures one request, from a log, a proxy, or a debugging tool, has the key and can send any request they like. HMAC signing fixes that, but each partial version of it leaves a different attack open:</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>Attacker has captured one request and tries to</th><th>API key</th><th>HMAC only</th><th>HMAC + timestamp</th><th>HMAC + timestamp + nonce</th></tr></thead>
+<tbody>
+<tr><td>Send a different request with the stolen credential</td><td class="yes">Works</td><td class="no">Blocked</td><td class="no">Blocked</td><td class="no">Blocked</td></tr>
+<tr><td>Change the amount in the captured request</td><td class="yes">Works</td><td class="no">Blocked</td><td class="no">Blocked</td><td class="no">Blocked</td></tr>
+<tr><td>Resend it unchanged a week later</td><td class="yes">Works</td><td class="yes">Works</td><td class="no">Blocked</td><td class="no">Blocked</td></tr>
+<tr><td>Resend it unchanged 10 seconds later</td><td class="yes">Works</td><td class="yes">Works</td><td class="yes">Works</td><td class="no">Blocked</td></tr>
+<tr><td>Steal the key from the receiver and sign new requests</td><td class="yes">Works</td><td class="yes">Works</td><td class="yes">Works</td><td class="yes">Works</td></tr>
+</tbody></table></div>
+<p class="prose">The last row never turns green. That's the built-in limit of a shared secret, covered in section 5.</p>
+
+<h2>2. Why it works</h2>
+<div class="prose">
+<p>An <a href="../../glossary/index.html#hmac">HMAC</a> is a hash computed with a secret key mixed in. Only someone holding the key can produce the right value, and anyone holding the key can check it. The sender computes an HMAC over a description of the request and sends the result, the <a href="../../glossary/index.html#signature">signature</a>, instead of the key.</p>
+<p>Three broken assumptions cause most HMAC failures:</p>
+<ul>
+<li><strong>"A valid signature means a new request."</strong> It doesn't. A signature stays valid forever unless the signed data includes something that expires (a timestamp) and something that can only be used once (a <a href="../../glossary/index.html#nonce">nonce</a>).</li>
+<li><strong>"Both sides will describe the request the same way."</strong> Only if they agree on exact bytes. <code>"miles":10000</code> and <code>"miles": 10000</code> are the same JSON but different bytes, so they produce different signatures.</li>
+<li><strong>"The signature proves the sender."</strong> It proves the sender holds the key. The receiver holds the same key, so it could have produced the signature too.</li>
+</ul>
+</div>
+
+<h2>3. The control</h2>
+<h3>What gets signed</h3>
+<div class="prose"><p>Both sides build the same <a href="../../glossary/index.html#canonical-string">canonical string</a>: fixed fields, fixed order, one per line. The body is represented by the SHA-256 hash of its exact bytes.</p></div>
+<pre><code>POST                       method
+api.hotel.example          host: blocks replay against another environment
+/v2/transfer               path
+                           query string (empty here, but always present)
+1716307200                 timestamp: limits how long the signature is valid
+a1b2c3d4-5678              nonce: makes each request unique
+application/json           content type
+bb4cc23e...b7a85c78        SHA-256 of the raw body bytes</code></pre>
+<p class="meta">The right-hand notes are for this page only. They are not part of the string.</p>
+
+<h3>How the receiver verifies</h3>
+<ol class="steps prose">
+<li>Look up the key by <code>keyId</code>. Unknown or retired key: reject.</li>
+<li>Check the timestamp is within the allowed window of server time. Outside it: reject.</li>
+<li>Hash the raw body bytes <em>as received</em>. Never re-serialize parsed JSON, and never trust a hash the caller sent.</li>
+<li>Rebuild the canonical string from the received request, compute the HMAC, and compare with a <a href="../../glossary/index.html#constant-time-comparison">constant-time comparison</a>.</li>
+<li>Only then record the nonce, using an atomic "set if absent". Already present: reject. Recording it after the signature check stops forged requests from filling the cache.</li>
+<li>Pass the request to authorization and business logic. A valid signature says who sent it, not whether they're allowed to do it.</li>
+</ol>
+
+<h3>The whole system</h3>
+<div class="diagram">
+<svg viewBox="0 0 1100 500" width="100%" style="min-width:900px" role="img">
+<title>Architecture of an HMAC-signed points transfer</title>
+<desc>Setup band: customer links accounts through hotel sign-in, creating a link record, and both companies store the shared secret. Per-request band: the customer app calls the partner transfer service, which signs with a key from its secrets manager and sends over HTTPS to the hotel API gateway, verifier, transfer service, and points ledger. The verifier uses the hotel secrets manager and replay cache; the transfer service uses an idempotency store; the ledger writes an audit log. Failed checks go to a reject box.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+<rect class="zone" x="20" y="16" width="1060" height="118" rx="12"/>
+<text class="lab" x="36" y="38">Setup, done once</text>
+<g class="g"><rect x="40" y="58" width="200" height="56" rx="8"/><text class="th" x="140" y="80" text-anchor="middle">Customer</text><text class="ts" x="140" y="100" text-anchor="middle">Chooses "link accounts"</text></g>
+<g class="h"><rect x="300" y="58" width="240" height="56" rx="8"/><text class="th" x="420" y="80" text-anchor="middle">Hotel sign-in and consent</text><text class="ts" x="420" y="100" text-anchor="middle">Proves they own the account</text></g>
+<g class="s"><rect x="600" y="58" width="200" height="56" rx="8"/><text class="th" x="700" y="80" text-anchor="middle">Link registry</text><text class="ts" x="700" y="100" text-anchor="middle">linkId to member, partner</text></g>
+<g class="s"><rect x="860" y="58" width="200" height="56" rx="8"/><text class="th" x="960" y="80" text-anchor="middle">Key exchange</text><text class="ts" x="960" y="100" text-anchor="middle">Secret in both vaults</text></g>
+<line class="arr" x1="240" y1="86" x2="296" y2="86" marker-end="url(#a)"/>
+<line class="arr" x1="540" y1="86" x2="596" y2="86" marker-end="url(#a)"/>
+
+<text class="lab" x="36" y="168">Each transfer request</text>
+<rect class="zone" x="20" y="180" width="330" height="300" rx="12"/>
+<text class="lab" x="36" y="202">ExampleAir (caller)</text>
+<g class="p"><rect x="40" y="218" width="290" height="56" rx="8"/><text class="th" x="185" y="240" text-anchor="middle">Customer app</text><text class="ts" x="185" y="260" text-anchor="middle">Transfer 10,000 miles</text></g>
+<g class="p"><rect x="40" y="306" width="290" height="56" rx="8"/><text class="th" x="185" y="328" text-anchor="middle">Partner transfer service</text><text class="ts" x="185" y="348" text-anchor="middle">Hashes body, builds string, signs</text></g>
+<g class="s"><rect x="40" y="398" width="290" height="56" rx="8"/><text class="th" x="185" y="420" text-anchor="middle">Partner secrets manager</text><text class="ts" x="185" y="440" text-anchor="middle">keyId exa-2026-09</text></g>
+<line class="arr" x1="185" y1="274" x2="185" y2="302" marker-end="url(#a)"/>
+<line class="arr" x1="185" y1="398" x2="185" y2="366" marker-end="url(#a)"/>
+
+<g class="g"><rect x="365" y="306" width="110" height="56" rx="8"/><text class="th" x="420" y="328" text-anchor="middle">HTTPS</text><text class="ts" x="420" y="348" text-anchor="middle">TLS 1.2 or later</text></g>
+<line class="arr" x1="330" y1="334" x2="361" y2="334" marker-end="url(#a)"/>
+<line class="arr" x1="475" y1="334" x2="506" y2="334" marker-end="url(#a)"/>
+
+<rect class="zone" x="490" y="180" width="590" height="300" rx="12"/>
+<text class="lab" x="506" y="202">ExampleHotels (receiver)</text>
+<g class="r"><rect x="651" y="218" width="266" height="50" rx="8"/><text class="th" x="784" y="238" text-anchor="middle">Reject and log</text><text class="ts" x="784" y="256" text-anchor="middle">401 auth, 403 link or limits</text></g>
+<g class="h"><rect x="510" y="306" width="125" height="56" rx="8"/><text class="th" x="572" y="328" text-anchor="middle">API gateway</text><text class="ts" x="572" y="348" text-anchor="middle">Raw bytes intact</text></g>
+<g class="h"><rect x="651" y="306" width="125" height="56" rx="8"/><text class="th" x="713" y="328" text-anchor="middle">Verifier</text><text class="ts" x="713" y="348" text-anchor="middle">Is it authentic?</text></g>
+<g class="h"><rect x="792" y="306" width="125" height="56" rx="8"/><text class="th" x="854" y="328" text-anchor="middle">Transfers</text><text class="ts" x="854" y="348" text-anchor="middle">Is it allowed?</text></g>
+<g class="h"><rect x="933" y="306" width="125" height="56" rx="8"/><text class="th" x="995" y="328" text-anchor="middle">Points ledger</text><text class="ts" x="995" y="348" text-anchor="middle">Credits member</text></g>
+<line class="arr" x1="635" y1="334" x2="647" y2="334" marker-end="url(#a)"/>
+<line class="arr" x1="776" y1="334" x2="788" y2="334" marker-end="url(#a)"/>
+<line class="arr" x1="917" y1="334" x2="929" y2="334" marker-end="url(#a)"/>
+<line class="rej" x1="713" y1="306" x2="713" y2="272" marker-end="url(#a)"/>
+<line class="rej" x1="854" y1="306" x2="854" y2="272" marker-end="url(#a)"/>
+<g class="s"><rect x="651" y="404" width="125" height="56" rx="8"/><text class="th" x="713" y="426" text-anchor="middle">Secrets, nonces</text><text class="ts" x="713" y="446" text-anchor="middle">Key, replay cache</text></g>
+<g class="s"><rect x="792" y="404" width="125" height="56" rx="8"/><text class="th" x="854" y="426" text-anchor="middle">Idempotency</text><text class="ts" x="854" y="446" text-anchor="middle">Past txn results</text></g>
+<g class="s"><rect x="933" y="404" width="125" height="56" rx="8"/><text class="th" x="995" y="426" text-anchor="middle">Audit log</text><text class="ts" x="995" y="446" text-anchor="middle">Every decision</text></g>
+<line class="leader" x1="713" y1="362" x2="713" y2="404"/>
+<line class="leader" x1="854" y1="362" x2="854" y2="404"/>
+<line class="leader" x1="995" y1="362" x2="995" y2="404"/>
+</svg>
+<div class="legend"><span class="lg-p">Caller systems</span><span class="lg-h">Receiver systems</span><span class="lg-s">Stored state and secrets</span><span class="lg-r">Rejection path</span></div>
+</div>
+<p class="prose meta">The setup band and the link check belong to authorization (Part 2). They're shown so you can see where signing stops and authorization starts.</p>
+
+<h2>4. Defaults and when to change them</h2>
+<div class="wrap"><table>
+<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>
+<tbody>
+<tr><td>Algorithm</td><td>HMAC-SHA256</td><td>Your platform or a partner standard mandates another approved hash.</td></tr>
+<tr><td>Key</td><td>32 random bytes per partner, from a secrets manager</td><td>Never shorter. RFC 2104 strongly discourages keys shorter than the hash output.</td></tr>
+<tr><td>Time window</td><td>5 minutes either side of server time</td><td>Tighten if clocks are well synchronized and replay is costly. Widen only with a matching nonce TTL.</td></tr>
+<tr><td>Nonce storage</td><td>Shared store, entries expire after the window</td><td>Skip only if every operation is idempotent by design.</td></tr>
+<tr><td>Format</td><td>A documented format both sides test against</td><td>Prefer RFC 9421 over a custom header when starting fresh. It defines an HMAC-SHA256 option and the canonicalization rules for you.</td></tr>
+<tr><td>Symmetric or asymmetric</td><td>HMAC between two parties who both run their systems well</td><td>Switch to asymmetric signatures if the receiver must not be able to forge, there are many receivers, or you need proof of origin in a dispute.</td></tr>
+</tbody></table></div>
+
+<h2>5. What it proves, and what it doesn't</h2>
+<div class="prose">
+<p><strong>Proves:</strong> the request came from a holder of the key, the signed fields weren't changed, and, with timestamp and nonce checks, it is recent and new.</p>
+<p><strong>Doesn't prove:</strong> which of the two key holders created it. It doesn't prove the sender is allowed to perform the action. And it proves nothing once the key leaks from either side.</p>
+<div class="callout warn"><strong>Replay protection is not idempotency.</strong> The nonce cache blocks the <em>same</em> request twice. If the caller times out and legitimately retries with a new nonce, the receiver sees a new, valid request. Operations that move money or points also need an idempotency key, such as the caller's transaction ID, stored durably. That's covered in module 11.</div>
+</div>
+
+<h2>6. Prove it</h2>
+<div class="prose">
+<p>A working implementation must reject every one of these. If any is accepted, the control is broken:</p>
+<ul>
+<li>A body with one character changed, including added whitespace.</li>
+<li>The same request sent to a different host or path.</li>
+<li>A signature made with a different key, or a retired key after the rotation overlap ends.</li>
+<li>A timestamp outside the window, in either direction.</li>
+<li>An exact resend inside the window.</li>
+<li>A valid signature copied onto a request with a different nonce.</li>
+</ul>
+</div>
+
+<h2>7. Lab</h2>
+<div class="prose">
+<p>Download <a href="../../labs/hmac_lab.py"><code>labs/hmac_lab.py</code></a> and run it with Python 3. It needs no packages beyond the standard library, and no key is written in it.</p>
+</div>
+<pre><code>$ python3 hmac_lab.py
+key source: random, this run only
+
+Part A: integrity. Each attempt uses a fresh verifier.
+1. original request              accept
+2. one digit changed             reject: bad signature
+3. spaces added to JSON          reject: bad signature
+4. sent to another host          reject: bad signature
+5. signed with the wrong key     reject: bad signature
+
+Part B: freshness and replay. One verifier sees every attempt.
+6. first delivery                accept
+7. exact replay 10s later        reject: replayed nonce
+8. replay 10 minutes later       reject: outside time window
+9. new nonce, old signature      reject: bad signature</code></pre>
+<div class="prose">
+<p><strong>Try next:</strong></p>
+<ul>
+<li>In <code>Verifier.verify</code>, move the nonce check above the signature check. Which attack now fills the cache?</li>
+<li>Remove <code>host</code> from <code>canonical_string</code>. Which line changes?</li>
+</ul>
+</div>
+
+<h2>8. Check your understanding</h2>
+<details><summary>Why is the body hash computed from raw bytes rather than the parsed JSON?</summary><p>Parsing and re-serializing can change whitespace, key order, or number formatting. The signature covers exact bytes, so the receiver must hash exactly what arrived.</p></details>
+<details><summary>An attacker captures a request and resends it 10 seconds later. Which check stops it?</summary><p>The nonce check. The timestamp is still inside the window, and the signature is still valid.</p></details>
+<details><summary>ExampleHotels is breached and the shared key leaks. What can the attacker do, and what would have prevented it?</summary><p>They can sign new requests as ExampleAir, because HMAC gives both sides the same signing power. Asymmetric signatures prevent this: the receiver holds only a public key, which can verify but not sign.</p></details>
+
+<span class="layer" id="reference" style="margin-top:3rem">Reference</span>
+<h2 style="border-top:none;margin-top:.5rem">Controls</h2>
+<p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
+<ul class="controls">
+<li><span class="label std">Standard</span>Use HMAC as specified in RFC 2104 and FIPS 198-1, with an approved hash function such as SHA-256.</li>
+<li><span class="label std">Standard</span>Don't use keys shorter than the hash output, which is 32 bytes for SHA-256. RFC 2104 strongly discourages shorter keys.</li>
+<li><span class="label std">Standard</span>Compare signatures with a constant-time function, such as Python's <code>hmac.compare_digest</code>.</li>
+<li><span class="label base">Baseline</span>Sign method, host, path, query, timestamp, nonce, content type, and the SHA-256 of the raw body, in a documented fixed order.</li>
+<li><span class="label base">Baseline</span>Verify in this order: key lookup, time window, body hash, signature, nonce record. Record the nonce only after the signature verifies.</li>
+<li><span class="label base">Baseline</span>Accept timestamps within 5 minutes of server time. Keep nonces for at least the same period. Keep clocks synchronized.</li>
+<li><span class="label base">Baseline</span>Store keys in a secrets manager on both sides, versioned. Rotate with a short overlap in which both versions verify, then retire the old one.</li>
+<li><span class="label base">Baseline</span>Ensure proxies and gateways pass signed components through unchanged, or verify at the edge.</li>
+<li><span class="label opt">Option</span>Use RFC 9421 HTTP Message Signatures, with the <code>content-digest</code> field from RFC 9530, instead of a custom format.</li>
+<li><span class="label opt">Option</span>Use asymmetric signatures when the receiver must not be able to forge caller requests.</li>
+</ul>
+
+<h2>Review checklist items</h2>
+<p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
+<ul class="checks">
+<li data-check="hmac-01" data-severity="Critical"><strong>Signed M2M requests cover method, host, path, query, timestamp, nonce, and the raw body hash</strong> <span>The canonical format is documented, and both parties test against shared examples.</span></li>
+<li data-check="hmac-02" data-severity="Critical"><strong>The receiver hashes the raw body bytes it received</strong> <span>It never re-serializes parsed JSON, and never trusts a caller-supplied hash.</span></li>
+<li data-check="hmac-03" data-severity="High"><strong>Timestamps are bounded and nonces are rejected on reuse</strong> <span>The nonce is recorded only after the signature verifies. The cache TTL is at least the time window.</span></li>
+<li data-check="hmac-04" data-severity="High"><strong>Signatures are compared in constant time</strong> <span>Use a library function built for this, not string equality.</span></li>
+<li data-check="hmac-05" data-severity="High"><strong>Keys are per partner, at least 32 bytes, and rotated with an overlap</strong> <span>Both sides store keys in a secrets manager. Retired keys are rejected after the overlap ends.</span></li>
+<li data-check="hmac-06" data-severity="Medium"><strong>Intermediaries do not alter signed components</strong> <span>Gateway and proxy behavior is tested with signed requests end to end.</span></li>
+<li data-check="hmac-07" data-severity="Medium"><strong>The shared-secret limitation is accepted in the threat model</strong> <span>Otherwise use asymmetric request signatures.</span></li>
+</ul>
+
+<h2>Sources</h2>
+<ul class="prose">
+<li><a href="https://www.rfc-editor.org/rfc/rfc2104">RFC 2104: HMAC: Keyed-Hashing for Message Authentication</a></li>
+<li><a href="https://doi.org/10.6028/NIST.FIPS.198-1">NIST FIPS 198-1: The Keyed-Hash Message Authentication Code (HMAC)</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9421">RFC 9421: HTTP Message Signatures</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9530">RFC 9530: Digest Fields</a></li>
+<li><a href="https://docs.python.org/3/library/hmac.html">Python documentation: hmac module</a></li>
+</ul>
+</main>
+<footer>Part of the API security learning path. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
+</body>
+</html>

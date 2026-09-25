@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API security learning path</title>
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<nav class="site-nav" aria-label="Site"><div><a class="home" href="index.html">API security learning path</a><a href="#path">Modules</a><a href="checklist/index.html">Checklist</a><a href="glossary/index.html">Glossary</a></div></nav>
+<main>
+<h1>API security learning path</h1>
+<div class="prose">
+<p>For new security engineers. Each module starts with a real attack, shows why it works, teaches the control that stops it, and ends with a test you can run. The second half of each page is a reference you can use in design reviews.</p>
+<p class="meta">Work through the modules in order. Each one assumes the ones before it. Labs need Python 3 and nothing else.</p>
+</div>
+<h2 id="path">Modules</h2>
+<p class="meta">Module 2 is published. The others are planned.</p>
+<h3>Primer</h3>
+<ul class="path"><li><span class="num">0</span><span class="planned">Hashes, HMACs, signatures, TLS, authentication vs authorization, trust boundaries</span></li></ul>
+<h3>Part 1: Proving who is calling</h3>
+<ul class="path">
+<li><span class="num">1</span><span class="planned">API keys</span></li>
+<li><span class="num">2</span><a href="topics/hmac-request-signing/index.html">HMAC request signing</a></li>
+<li><span class="num">3</span><span class="planned">Asymmetric request signing</span></li>
+<li><span class="num">4</span><span class="planned">OAuth basics</span></li>
+<li><span class="num">5</span><span class="planned">JWT validation</span></li>
+<li><span class="num">6</span><span class="planned">JWKS, revocation, and introspection</span></li>
+<li><span class="num">7</span><span class="planned">Sender-constrained tokens: mTLS and DPoP</span></li>
+<li><span class="num">8</span><span class="planned">Workload and agent identity lifecycle</span></li>
+</ul>
+<h3>Part 2: Deciding what they may do</h3>
+<ul class="path">
+<li><span class="num">9</span><span class="planned">Object-level authorization</span></li>
+<li><span class="num">10</span><span class="planned">Property and function authorization</span></li>
+<li><span class="num">11</span><span class="planned">Business flows and idempotency</span></li>
+</ul>
+<h3>Part 3: Edges and boundaries</h3>
+<ul class="path">
+<li><span class="num">12</span><span class="planned">Gateway enforcement</span></li>
+<li><span class="num">13</span><span class="planned">Request and response contracts</span></li>
+<li><span class="num">14</span><span class="planned">SSRF and unsafe consumption of APIs</span></li>
+<li><span class="num">15</span><span class="planned">Rate limiting and cost controls</span></li>
+<li><span class="num">16</span><span class="planned">Webhooks</span></li>
+<li><span class="num">17</span><span class="planned">CORS</span></li>
+<li><span class="num">18</span><span class="planned">Versioning and deprecation</span></li>
+</ul>
+<h3>Part 4: AI and agents</h3>
+<ul class="path">
+<li><span class="num">19</span><span class="planned">Delegation and token exchange</span></li>
+<li><span class="num">20</span><span class="planned">MCP</span></li>
+<li><span class="num">21</span><span class="planned">Agent-to-agent (A2A)</span></li>
+<li><span class="num">22</span><span class="planned">Prompt injection and output handling</span></li>
+<li><span class="num">23</span><span class="planned">Agent authority and approvals</span></li>
+<li><span class="num">24</span><span class="planned">Data in model context</span></li>
+<li><span class="num">25</span><span class="planned">Supply chain, retrieval, and memory</span></li>
+</ul>
+<h3>Capstone</h3>
+<ul class="path"><li><span class="num">26</span><span class="planned">Design review of a sample architecture using the checklist</span></li></ul>
+</main>
+<footer>Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
+</body>
+</html>
