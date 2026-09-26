@@ -3,25 +3,31 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>API security learning path</title>
+<title>API Security in the Age of AI</title>
 <link rel="stylesheet" href="assets/site.css">
+<script src="assets/course.js" defer></script>
 </head>
 <body>
-<nav class="site-nav" aria-label="Site"><div><a class="home" href="index.html">API security learning path</a><a href="#path">Modules</a><a href="checklist/index.html">Checklist</a><a href="glossary/index.html">Glossary</a></div></nav>
+<nav class="site-nav" aria-label="Site"><div><a class="home" href="index.html">API Security in the Age of AI</a><a href="#course">Course</a><a href="#path">Modules</a><a href="checklist/index.html">Checklist</a><a href="glossary/index.html">Glossary</a></div></nav>
 <main>
-<h1>API security learning path</h1>
+<section class="course-hero" id="course" data-course-dashboard>
+<p class="kicker">Interactive learning course</p>
+<h1>API Security in the Age of AI</h1>
 <div class="prose">
 <p>For new security engineers. Each module starts with a real attack, shows why it works, teaches the control that stops it, and ends with a test you can run. The second half of each page is a reference you can use in design reviews.</p>
-<p class="meta">Work through the modules in order. Each one assumes the ones before it. Labs need Python 3 and nothing else.</p>
+<p class="meta">Work through the modules in order. Each one assumes the ones before it. Labs need Python 3 and nothing else. Progress is stored only in this browser.</p>
 </div>
+<div class="course-progress" aria-label="Course progress"><p data-course-progress>0 of 2 published lessons complete</p><div class="progress-track" role="progressbar" aria-label="Published lesson progress" aria-valuemin="0" aria-valuemax="100"><span data-course-progress-bar></span></div></div>
+<div class="course-actions"><a class="button" href="topics/api-keys/index.html">Start module 1</a><button class="button secondary" type="button" data-reset-progress>Reset progress</button></div>
+</section>
 <h2 id="path">Modules</h2>
-<p class="meta">Modules 1 and 2 are published. The others are planned.</p>
+<p class="meta">Modules 1 and 2 are ready now. The remaining modules are planned and are not presented as completed course material.</p>
 <h3>Primer</h3>
 <ul class="path"><li><span class="num">0</span><span class="planned">Hashes, HMACs, signatures, TLS, authentication vs authorization, trust boundaries</span></li></ul>
 <h3>Part 1: Proving who is calling</h3>
 <ul class="path">
-<li><span class="num">1</span><a href="topics/api-keys/index.html">API keys</a></li>
-<li><span class="num">2</span><a href="topics/hmac-request-signing/index.html">HMAC request signing</a></li>
+<li data-course-lesson="api-keys"><span class="num">1</span><span><a href="topics/api-keys/index.html">API keys</a><span class="course-state" data-course-state>Ready</span></span></li>
+<li data-course-lesson="hmac-request-signing"><span class="num">2</span><span><a href="topics/hmac-request-signing/index.html">HMAC request signing</a><span class="course-state" data-course-state>Ready</span></span></li>
 <li><span class="num">3</span><span class="planned">Asymmetric request signing</span></li>
 <li><span class="num">4</span><span class="planned">OAuth basics</span></li>
 <li><span class="num">5</span><span class="planned">JWT validation</span></li>
@@ -58,6 +64,6 @@
 <h3>Capstone</h3>
 <ul class="path"><li><span class="num">26</span><span class="planned">Design review of a sample architecture using the checklist</span></li></ul>
 </main>
-<footer>Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
+<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
 </body>
 </html>
