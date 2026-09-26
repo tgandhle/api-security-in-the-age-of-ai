@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HMAC request signing | API security learning path</title>
+<title>HMAC request signing | API Security in the Age of AI</title>
 <link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/course.js" defer></script>
 </head>
-<body>
-<nav class="site-nav" aria-label="Site"><div><a class="home" href="../../index.html">API security learning path</a><a href="../../index.html#path">Modules</a><a href="../../checklist/index.html">Checklist</a><a href="../../glossary/index.html">Glossary</a></div></nav>
+<body data-course-lesson="hmac-request-signing">
+<nav class="site-nav" aria-label="Site"><div><a class="home" href="../../index.html">API Security in the Age of AI</a><a href="../../index.html#course">Course</a><a href="../../index.html#path">Modules</a><a href="../../checklist/index.html">Checklist</a><a href="../../glossary/index.html">Glossary</a></div></nav>
 <main>
 <p class="kicker">Part 1: Proving who is calling &middot; Module 2</p>
 <h1>HMAC request signing</h1>
@@ -17,6 +18,7 @@
 <p><strong>Objective.</strong> After this module you can explain what an HMAC signature proves and what it doesn't, build a correct canonical string, verify a request in the right order, and say when to use asymmetric signatures instead.</p>
 <p><strong>Before you start.</strong> You should know what a <a href="../../glossary/index.html#hash">hash</a> is and why a <a href="../../glossary/index.html#bearer-credential">bearer credential</a> like an API key is risky. Module 1 covers API keys.</p>
 </div>
+<section class="lesson-status" aria-label="Lesson progress"><div><strong>Module 2 of 2</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
 
 <span class="layer" id="learn">Learn</span>
 
@@ -186,6 +188,17 @@ Part B: freshness and replay. One verifier sees every attempt.
 <details><summary>An attacker captures a request and resends it 10 seconds later. Which check stops it?</summary><p>The nonce check. The timestamp is still inside the window, and the signature is still valid.</p></details>
 <details><summary>ExampleHotels is breached and the shared key leaks. What can the attacker do, and what would have prevented it?</summary><p>They can sign new requests as ExampleAir, because HMAC gives both sides the same signing power. Asymmetric signatures prevent this: the receiver holds only a public key, which can verify but not sign.</p></details>
 
+<section class="course-quiz" data-quiz data-correct-feedback="Correct. The timestamp still permits a recent request. Recording the nonce after signature verification blocks the exact replay." data-incorrect-feedback="Not quite. A valid signed request can still be recent. The nonce check is the control that rejects a repeat inside the timestamp window.">
+<p class="kicker">Quick check</p>
+<h2>Stop a recent replay</h2>
+<fieldset><legend>An attacker resends a captured, valid signed request 10 seconds later. Which check rejects that replay?</legend>
+<label><input type="radio" name="hmac-replay" value="body"> Recompute the body hash.</label>
+<label><input type="radio" name="hmac-replay" value="nonce" data-correct="true"> Reject the already-recorded nonce.</label>
+<label><input type="radio" name="hmac-replay" value="key"> Look up the key again.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+</section>
+<p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
 <span class="layer" id="reference" style="margin-top:3rem">Reference</span>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
 <p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
@@ -223,6 +236,6 @@ Part B: freshness and replay. One verifier sees every attempt.
 <li><a href="https://docs.python.org/3/library/hmac.html">Python documentation: hmac module</a></li>
 </ul>
 </main>
-<footer>Part of the API security learning path. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
+<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
 </body>
 </html>

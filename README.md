@@ -1,4 +1,4 @@
-# API security learning path
+# API Security in the Age of AI
 
 ## Start learning
 

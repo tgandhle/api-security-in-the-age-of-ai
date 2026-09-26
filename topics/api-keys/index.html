@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>API keys | API security learning path</title>
+<title>API keys | API Security in the Age of AI</title>
 <link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/course.js" defer></script>
 </head>
-<body>
-<nav class="site-nav" aria-label="Site"><div><a class="home" href="../../index.html">API security learning path</a><a href="../../index.html#path">Modules</a><a href="../../checklist/index.html">Checklist</a><a href="../../glossary/index.html">Glossary</a></div></nav>
+<body data-course-lesson="api-keys">
+<nav class="site-nav" aria-label="Site"><div><a class="home" href="../../index.html">API Security in the Age of AI</a><a href="../../index.html#course">Course</a><a href="../../index.html#path">Modules</a><a href="../../checklist/index.html">Checklist</a><a href="../../glossary/index.html">Glossary</a></div></nav>
 <main>
 <p class="kicker">Part 1: Proving who is calling &middot; Module 1</p>
 <h1>API keys</h1>
@@ -16,6 +17,7 @@
 <p><strong>Objective.</strong> Find an API key leak in a request log, explain why someone can reuse the key, and test both prevention and recovery.</p>
 <p><strong>Before you start.</strong> You should be able to read a URL and a Python function. An <a href="../../glossary/index.html#api-key">API key</a> is a credential issued to an application. Here it is a <a href="../../glossary/index.html#bearer-credential">bearer credential</a>: whoever presents it can act within its assigned permissions.</p>
 </div>
+<section class="lesson-status" aria-label="Lesson progress"><div><strong>Module 1 of 2</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
 <span class="layer" id="learn">Learn</span>
 <h2>1. The attack</h2>
 <div class="prose">
@@ -108,6 +110,17 @@ all lab checks passed</code></pre>
 <details><summary>Does HTTPS stop the attack in check 3?</summary><p>No. The attacker reads the receiver's log after transport protection has ended. Keeping the key out of that log prevents this disclosure.</p></details>
 <details><summary>Why does the stolen key still work in check 8?</summary><p>The receiver still accepts its value. A header-only rule changes where credentials are read, not who can possess them. Revocation disables the compromised credential.</p></details>
 <details><summary>The scanner finds zero keys. Is the service secure?</summary><p>No. It checks one parameter name in one log format. It says nothing about header traces, authorization, TLS configuration, or logs outside this model.</p></details>
+<section class="course-quiz" data-quiz data-correct-feedback="Correct. Preventing new log exposure is important, but revocation is what stops reuse of a key that was already stolen." data-incorrect-feedback="Not quite. A header-only rule prevents a new query-string leak. It does not invalidate a key that an attacker already copied.">
+<p class="kicker">Quick check</p>
+<h2>Recover from a leaked key</h2>
+<fieldset><legend>A key was already copied from an old request log. Which action stops the attacker from reusing that copied value?</legend>
+<label><input type="radio" name="api-key-recovery" value="header"> Move the key to a request header.</label>
+<label><input type="radio" name="api-key-recovery" value="revocation" data-correct="true"> Revoke the exposed key and issue a replacement.</label>
+<label><input type="radio" name="api-key-recovery" value="length"> Make future keys longer.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+</section>
+<p class="course-next"><strong>Next:</strong> continue to <a href="../hmac-request-signing/index.html">module 2, HMAC request signing</a>.</p>
 <span class="layer" id="reference" style="margin-top:3rem">Reference</span>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
 <p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model. This module assigns no Standard labels: its controls are project defaults, not a universal API-key protocol.</p>
@@ -135,6 +148,6 @@ all lab checks passed</code></pre>
 <li id="source-python"><a href="https://docs.python.org/3.14/library/secrets.html">Python 3.14 secrets documentation</a>: token generation and compare_digest, reviewed 2026-09-24. Library documentation, not an API-key specification.</li>
 </ul>
 </main>
-<footer>Part of the API security learning path. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
+<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
 </body>
 </html>
