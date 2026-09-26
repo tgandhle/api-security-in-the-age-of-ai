@@ -8,7 +8,7 @@
     } catch (error) {
       // Progress controls still work for this page if browser storage is unavailable.
     }
-    return { completed: [] };
+    return { completed: [], quizzes: [] };
   }
 
   function saveProgress(progress) {
@@ -20,9 +20,14 @@
   }
 
   let progress = loadProgress();
+  if (!Array.isArray(progress.quizzes)) progress.quizzes = [];
 
   function isComplete(lesson) {
     return progress.completed.includes(lesson);
+  }
+
+  function isQuizPassed(quiz) {
+    return progress.quizzes.includes(quiz);
   }
 
   function renderProgress() {
@@ -30,12 +35,16 @@
     const available = [...new Set(lessonCards.map((card) => card.dataset.courseLesson))];
     const completeCount = available.filter(isComplete).length;
     const percent = available.length ? Math.round((completeCount / available.length) * 100) : 0;
+    const quizIds = [...new Set(lessonCards.map((card) => card.dataset.courseQuiz).filter(Boolean))];
+    const passedQuizCount = quizIds.filter(isQuizPassed).length;
 
     lessonCards.forEach((card) => {
       const complete = isComplete(card.dataset.courseLesson);
       card.classList.toggle("is-complete", complete);
       const state = card.querySelector("[data-course-state]");
       if (state) state.textContent = complete ? "Complete" : "Ready";
+      const assessment = card.querySelector("[data-course-assessment]");
+      if (assessment) assessment.textContent = isQuizPassed(card.dataset.courseQuiz) ? "Quick check passed" : "Quick check required";
     });
 
     document.querySelectorAll("[data-course-progress]").forEach((element) => {
@@ -44,6 +53,9 @@
     document.querySelectorAll("[data-course-progress-bar]").forEach((element) => {
       element.style.width = `${percent}%`;
       element.setAttribute("aria-valuenow", String(percent));
+    });
+    document.querySelectorAll("[data-course-assessment-progress]").forEach((element) => {
+      element.textContent = `${passedQuizCount} of ${quizIds.length} published quick checks passed`;
     });
 
     const lesson = document.body.dataset.courseLesson;
@@ -71,7 +83,7 @@
 
     const resetButton = event.target.closest("[data-reset-progress]");
     if (resetButton && window.confirm("Reset saved progress for this course in this browser?")) {
-      progress = { completed: [] };
+      progress = { completed: [], quizzes: [] };
       saveProgress(progress);
       renderProgress();
       return;
@@ -92,6 +104,11 @@
     }
 
     const correct = selected.dataset.correct === "true";
+    if (correct && quiz.dataset.quizId && !isQuizPassed(quiz.dataset.quizId)) {
+      progress.quizzes.push(quiz.dataset.quizId);
+      saveProgress(progress);
+      renderProgress();
+    }
     feedback.textContent = correct ? quiz.dataset.correctFeedback : quiz.dataset.incorrectFeedback;
     feedback.className = correct ? "quiz-feedback is-correct" : "quiz-feedback is-incorrect";
   });

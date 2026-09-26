@@ -188,7 +188,7 @@ Part B: freshness and replay. One verifier sees every attempt.
 <details><summary>An attacker captures a request and resends it 10 seconds later. Which check stops it?</summary><p>The nonce check. The timestamp is still inside the window, and the signature is still valid.</p></details>
 <details><summary>ExampleHotels is breached and the shared key leaks. What can the attacker do, and what would have prevented it?</summary><p>They can sign new requests as ExampleAir, because HMAC gives both sides the same signing power. Asymmetric signatures prevent this: the receiver holds only a public key, which can verify but not sign.</p></details>
 
-<section class="course-quiz" data-quiz data-correct-feedback="Correct. The timestamp still permits a recent request. Recording the nonce after signature verification blocks the exact replay." data-incorrect-feedback="Not quite. A valid signed request can still be recent. The nonce check is the control that rejects a repeat inside the timestamp window.">
+<section class="course-quiz" data-quiz data-quiz-id="hmac-request-signing-check" data-correct-feedback="Correct. The timestamp still permits a recent request. Recording the nonce after signature verification blocks the exact replay." data-incorrect-feedback="Not quite. A valid signed request can still be recent. The nonce check is the control that rejects a repeat inside the timestamp window.">
 <p class="kicker">Quick check</p>
 <h2>Stop a recent replay</h2>
 <fieldset><legend>An attacker resends a captured, valid signed request 10 seconds later. Which check rejects that replay?</legend>

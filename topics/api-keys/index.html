@@ -110,7 +110,7 @@ all lab checks passed</code></pre>
 <details><summary>Does HTTPS stop the attack in check 3?</summary><p>No. The attacker reads the receiver's log after transport protection has ended. Keeping the key out of that log prevents this disclosure.</p></details>
 <details><summary>Why does the stolen key still work in check 8?</summary><p>The receiver still accepts its value. A header-only rule changes where credentials are read, not who can possess them. Revocation disables the compromised credential.</p></details>
 <details><summary>The scanner finds zero keys. Is the service secure?</summary><p>No. It checks one parameter name in one log format. It says nothing about header traces, authorization, TLS configuration, or logs outside this model.</p></details>
-<section class="course-quiz" data-quiz data-correct-feedback="Correct. Preventing new log exposure is important, but revocation is what stops reuse of a key that was already stolen." data-incorrect-feedback="Not quite. A header-only rule prevents a new query-string leak. It does not invalidate a key that an attacker already copied.">
+<section class="course-quiz" data-quiz data-quiz-id="api-keys-check" data-correct-feedback="Correct. Preventing new log exposure is important, but revocation is what stops reuse of a key that was already stolen." data-incorrect-feedback="Not quite. A header-only rule prevents a new query-string leak. It does not invalidate a key that an attacker already copied.">
 <p class="kicker">Quick check</p>
 <h2>Recover from a leaked key</h2>
 <fieldset><legend>A key was already copied from an old request log. Which action stops the attacker from reusing that copied value?</legend>
