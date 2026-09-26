@@ -11,7 +11,7 @@ Work through the published modules in order. Each lesson includes an attack exam
 
 [Full module plan](index.html#path) · [Glossary](glossary/index.html) · [Review checklist](checklist/index.html)
 
-**Reading the lessons:** GitHub shows these HTML files as source code. To read the formatted lessons, choose **Code > Download ZIP**, extract the archive, and open `index.html` in your browser. Then click a module. No installation or build is needed. A hosted lesson website is not available yet.
+**Reading the lessons:** Open the [hosted learning site](https://tgandhle.github.io/api-security-learning-path/) in a browser. You can also choose **Code > Download ZIP**, extract the archive, and open `index.html` locally. No installation or build is needed.
 
 The lab links open Python source files. Download the project and run a lab with Python as described below.
 
