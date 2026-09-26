@@ -8,7 +8,7 @@
 <script src="assets/course.js" defer></script>
 </head>
 <body>
-<nav class="site-nav" aria-label="Site"><div><a class="home" href="index.html">API Security in the Age of AI</a><a href="#course">Course</a><a href="#path">Modules</a><a href="checklist/index.html">Checklist</a><a href="glossary/index.html">Glossary</a></div></nav>
+<nav class="site-nav" aria-label="Site"><div><a class="home" href="index.html">API Security in the Age of AI</a><a href="#course">Course</a><a href="#path">Modules</a><a href="roadmap/index.html">Roadmap</a><a href="checklist/index.html">Checklist</a><a href="glossary/index.html">Glossary</a></div></nav>
 <main>
 <section class="course-hero" id="course" data-course-dashboard>
 <p class="kicker">Interactive learning course</p>
@@ -21,48 +21,48 @@
 <div class="course-actions"><a class="button" href="topics/api-keys/index.html">Start module 1</a><button class="button secondary" type="button" data-reset-progress>Reset progress</button></div>
 </section>
 <h2 id="path">Modules</h2>
-<p class="meta">Modules 1 and 2 are ready now. The remaining modules are planned and are not presented as completed course material.</p>
+<p class="meta">Modules 1 and 2 are ready now. Every upcoming chapter opens a roadmap entry with its learning goal and current status. Only published modules contain complete lessons and labs.</p>
 <h3>Primer</h3>
-<ul class="path"><li><span class="num">0</span><span class="planned">Hashes, HMACs, signatures, TLS, authentication vs authorization, trust boundaries</span></li></ul>
+<ul class="path"><li><span class="num">0</span><a class="planned" href="roadmap/index.html#module-0">Hashes, HMACs, signatures, TLS, authentication vs authorization, trust boundaries</a></li></ul>
 <h3>Part 1: Proving who is calling</h3>
 <ul class="path">
 <li data-course-lesson="api-keys"><span class="num">1</span><span><a href="topics/api-keys/index.html">API keys</a><span class="course-state" data-course-state>Ready</span></span></li>
 <li data-course-lesson="hmac-request-signing"><span class="num">2</span><span><a href="topics/hmac-request-signing/index.html">HMAC request signing</a><span class="course-state" data-course-state>Ready</span></span></li>
-<li><span class="num">3</span><span class="planned">Asymmetric request signing</span></li>
-<li><span class="num">4</span><span class="planned">OAuth basics</span></li>
-<li><span class="num">5</span><span class="planned">JWT validation</span></li>
-<li><span class="num">6</span><span class="planned">JWKS, revocation, and introspection</span></li>
-<li><span class="num">7</span><span class="planned">Sender-constrained tokens: mTLS and DPoP</span></li>
-<li><span class="num">8</span><span class="planned">Workload and agent identity lifecycle</span></li>
+<li><span class="num">3</span><a class="planned" href="roadmap/index.html#module-3">Asymmetric request signing</a></li>
+<li><span class="num">4</span><a class="planned" href="roadmap/index.html#module-4">OAuth basics</a></li>
+<li><span class="num">5</span><a class="planned" href="roadmap/index.html#module-5">JWT validation</a></li>
+<li><span class="num">6</span><a class="planned" href="roadmap/index.html#module-6">JWKS, revocation, and introspection</a></li>
+<li><span class="num">7</span><a class="planned" href="roadmap/index.html#module-7">Sender-constrained tokens: mTLS and DPoP</a></li>
+<li><span class="num">8</span><a class="planned" href="roadmap/index.html#module-8">Workload and agent identity lifecycle</a></li>
 </ul>
 <h3>Part 2: Deciding what they may do</h3>
 <ul class="path">
-<li><span class="num">9</span><span class="planned">Object-level authorization</span></li>
-<li><span class="num">10</span><span class="planned">Property and function authorization</span></li>
-<li><span class="num">11</span><span class="planned">Business flows and idempotency</span></li>
+<li><span class="num">9</span><a class="planned" href="roadmap/index.html#module-9">Object-level authorization</a></li>
+<li><span class="num">10</span><a class="planned" href="roadmap/index.html#module-10">Property and function authorization</a></li>
+<li><span class="num">11</span><a class="planned" href="roadmap/index.html#module-11">Business flows and idempotency</a></li>
 </ul>
 <h3>Part 3: Edges and boundaries</h3>
 <ul class="path">
-<li><span class="num">12</span><span class="planned">Gateway enforcement</span></li>
-<li><span class="num">13</span><span class="planned">Request and response contracts</span></li>
-<li><span class="num">14</span><span class="planned">SSRF and unsafe consumption of APIs</span></li>
-<li><span class="num">15</span><span class="planned">Rate limiting and cost controls</span></li>
-<li><span class="num">16</span><span class="planned">Webhooks</span></li>
-<li><span class="num">17</span><span class="planned">CORS</span></li>
-<li><span class="num">18</span><span class="planned">Versioning and deprecation</span></li>
+<li><span class="num">12</span><a class="planned" href="roadmap/index.html#module-12">Gateway enforcement</a></li>
+<li><span class="num">13</span><a class="planned" href="roadmap/index.html#module-13">Request and response contracts</a></li>
+<li><span class="num">14</span><a class="planned" href="roadmap/index.html#module-14">SSRF and unsafe consumption of APIs</a></li>
+<li><span class="num">15</span><a class="planned" href="roadmap/index.html#module-15">Rate limiting and cost controls</a></li>
+<li><span class="num">16</span><a class="planned" href="roadmap/index.html#module-16">Webhooks</a></li>
+<li><span class="num">17</span><a class="planned" href="roadmap/index.html#module-17">CORS</a></li>
+<li><span class="num">18</span><a class="planned" href="roadmap/index.html#module-18">Versioning and deprecation</a></li>
 </ul>
 <h3>Part 4: AI and agents</h3>
 <ul class="path">
-<li><span class="num">19</span><span class="planned">Delegation and token exchange</span></li>
-<li><span class="num">20</span><span class="planned">MCP</span></li>
-<li><span class="num">21</span><span class="planned">Agent-to-agent (A2A)</span></li>
-<li><span class="num">22</span><span class="planned">Prompt injection and output handling</span></li>
-<li><span class="num">23</span><span class="planned">Agent authority and approvals</span></li>
-<li><span class="num">24</span><span class="planned">Data in model context</span></li>
-<li><span class="num">25</span><span class="planned">Supply chain, retrieval, and memory</span></li>
+<li><span class="num">19</span><a class="planned" href="roadmap/index.html#module-19">Delegation and token exchange</a></li>
+<li><span class="num">20</span><a class="planned" href="roadmap/index.html#module-20">MCP</a></li>
+<li><span class="num">21</span><a class="planned" href="roadmap/index.html#module-21">Agent-to-agent (A2A)</a></li>
+<li><span class="num">22</span><a class="planned" href="roadmap/index.html#module-22">Prompt injection and output handling</a></li>
+<li><span class="num">23</span><a class="planned" href="roadmap/index.html#module-23">Agent authority and approvals</a></li>
+<li><span class="num">24</span><a class="planned" href="roadmap/index.html#module-24">Data in model context</a></li>
+<li><span class="num">25</span><a class="planned" href="roadmap/index.html#module-25">Supply chain, retrieval, and memory</a></li>
 </ul>
 <h3>Capstone</h3>
-<ul class="path"><li><span class="num">26</span><span class="planned">Design review of a sample architecture using the checklist</span></li></ul>
+<ul class="path"><li><span class="num">26</span><a class="planned" href="roadmap/index.html#module-26">Design review of a sample architecture using the checklist</a></li></ul>
 </main>
 <footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
 </body>
