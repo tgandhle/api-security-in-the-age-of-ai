@@ -14,6 +14,7 @@
 <dl class="gloss">
 <dt id="access-token">Access token</dt><dd>A credential a client presents to a resource server for access the resource owner granted. In OAuth it carries authorization, not identity, and it is usually a bearer credential.</dd>
 <dt id="algorithm-confusion">Algorithm confusion</dt><dd>An attack that changes which algorithm a verifier uses, so a value the attacker knows becomes the verifying key. The classic case swaps RS256 for HS256 and signs with the issuer's public key.</dd>
+<dt id="api-gateway">API gateway</dt><dd>A component every request is meant to pass through, applying checks that need only the request. It is a control while it is the only path to the service, which is a property of the network rather than of the gateway.</dd>
 <dt id="api-key">API key</dt><dd>A credential issued to an application for API access. In this course, it is a secret bearer value checked against a server-side record.</dd>
 <dt id="asymmetric-signature">Asymmetric signature</dt><dd>A signature made with a private key and checked with the matching public key. Knowing the public key lets you verify, not sign, so the verifier can't forge signatures.</dd>
 <dt id="authentication">Authentication</dt><dd>Checking a claimed identity using evidence such as a credential. Possession of a stolen credential can pass that check.</dd>
