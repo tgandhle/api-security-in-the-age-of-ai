@@ -18,7 +18,7 @@
 <p><strong>Objective.</strong> After this module you can explain how two parsers reading the same bytes reach different answers and what that costs you, name the values a JSON parser accepts that no contract describes, and place limits in the only order that works: before the parser, not in the schema.</p>
 <p><strong>Before you start.</strong> Every check in this course so far ran on a parsed request. This module is the step before that, and it is the step where the object those checks inspect gets decided.</p>
 </div>
-<section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 14 of 14</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
+<section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 14 of 15</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
 
 <span class="layer" id="learn">Learn</span>
 
@@ -97,7 +97,7 @@
 <li><strong>Configure the parser to refuse what the format forbids.</strong> <code>NaN</code> and <code>Infinity</code> are not JSON. Most libraries accept them and most offer a setting that does not.</li>
 <li><strong>Bound number range and literal length</strong> at the parser or immediately after, since the grammar bounds neither.</li>
 <li><strong>Then validate against the schema</strong>, on the object you now have, for types, required fields, ranges and formats.</li>
-<li><strong>Apply the same discipline to responses.</strong> A response you consume from another service is somebody else's request body arriving at your parser, which is <a href="../../roadmap/index.html#module-14">module 14</a>.</li>
+<li><strong>Apply the same discipline to responses.</strong> A response you consume from another service is somebody else's request body arriving at your parser, which is <a href="../ssrf-and-unsafe-consumption/index.html">module 14</a>.</li>
 </ol>
 
 <h2>4. Defaults and when to change them</h2>
