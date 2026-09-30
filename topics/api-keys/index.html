@@ -82,7 +82,7 @@
 </div>
 <h2>7. Lab</h2>
 <div class="prose">
-<p>Download <a href="../../labs/api_keys_lab.py"><code>labs/api_keys_lab.py</code></a>. From the project root, run it with Python 3. It uses only the standard library. Credentials and the deliberately vulnerable log remain in memory; generated values are never printed or saved. No server is started.</p>
+<p>Download <a href="../../labs/api_keys_lab.py"><code>labs/api_keys_lab.py</code></a>. From the project root, run it with Python 3. It uses only the standard library. Credentials and the deliberately vulnerable log remain in memory; generated values are never printed or saved. No server is started. On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>.</p>
 <p>The scanner parses this lab's request-target strings and recognizes the decoded, case-sensitive name <code>api_key</code>. It is not a general log scanner: other field names, log formats, and header leaks need their own tests. Safe logging uses a fixed route label so it also avoids reflecting an arbitrary path.</p>
 </div>
 <pre><code>$ python3 labs/api_keys_lab.py

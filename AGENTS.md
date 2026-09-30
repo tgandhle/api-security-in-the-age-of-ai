@@ -9,7 +9,7 @@ A static learning site that teaches API security to new security engineers. Each
 - Audience: new security engineers. Assume they can read Python and HTTP. Do not assume they know the vocabulary.
 - Format: hand-written HTML and one shared stylesheet, `assets/site.css`. No site generator, no framework, no JavaScript build. This applies to every published page and to `assets/`.
 - Exception, `react-poc/`: an isolated Vite and React experiment asking whether a framework would pay for itself across 27 modules. It is not published, not deployed, and not checked by `tools/check_site.py`. It is not the source of truth for any lesson. Never author or correct lesson content there first, and never copy content out of it into a published page. If its copy of a lesson drifts from the HTML, delete the copy rather than reconcile it. Its existing dependencies (React, React DOM, Vite, oxlint, `@types/*`) are already in the lockfile; rule 7 still applies to anything new.
-- Labs: Python 3, standard library only. Modules 3, 5, 6 and 7 may also use `cryptography==50.0.1`, because Python has no asymmetric primitives. Those labs must exit with a clear message rather than a traceback when it is absent, and their page must say a package is needed.
+- Labs: Python 3, standard library only. Commands are written as `python3`, which is correct on macOS and Linux; Windows readers are told once per page to use `py -3` instead. Modules 3, 5, 6 and 7 may also use `cryptography==50.0.1`, because Python has no asymmetric primitives. Those labs must exit with a clear message rather than a traceback when it is absent, and their page must say a package is needed.
 - The site must work when opened from local files (`file://`) as well as on GitHub Pages. Use relative links only.
 
 ## Current state
@@ -82,6 +82,7 @@ Work on one module per task unless told otherwise.
    - The Learn layer has eight numbered sections: attack, why it works, control, defaults, what it proves, prove it, lab, check your understanding.
    - The Reference layer has controls, checklist items, and sources.
    - Include "Last reviewed YYYY-MM-DD" with today's date.
+   - In the Lab section, carry the Windows note verbatim: `On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>.` A default Windows install has no `python3` command, and the audience includes Windows users.
    - Link glossary terms on first use, and add any missing terms to `glossary/index.html`. Keep the glossary alphabetical, and give each term an `id` in lowercase with hyphens.
 5. **Checklist items** use this exact markup, with ids prefixed by the topic, for example `jwt-01`:
    ```html
