@@ -23,12 +23,15 @@
 <dt id="back-channel">Back channel</dt><dd>A direct server-to-server request that does not pass through the user's browser. Values sent here are not exposed to browser history or to anything on the redirect path.</dd>
 <dt id="bearer-credential">Bearer credential</dt><dd>A credential that grants access to whoever presents it, like an API key or most access tokens. If it's stolen, the thief can use it.</dd>
 <dt id="canonical-string">Canonical string</dt><dd>An agreed, exact text description of a request that both sides build the same way before signing. Any difference in bytes produces a different signature.</dd>
+<dt id="certificate-binding">Certificate binding</dt><dd>Tying an access token to the client certificate used on the TLS connection, so the token only works from a connection presenting that certificate. RFC 8705.</dd>
 <dt id="claim">Claim</dt><dd>A name and value inside a token payload, such as <code>iss</code>, <code>aud</code> or <code>exp</code>. In plain JWT every registered claim is optional, so which ones must be present is decided by the profile you verify against.</dd>
 <dt id="client-credentials-grant">Client credentials grant</dt><dd>The OAuth grant a service uses to obtain a token for itself, with no user involved. The client authenticates and receives a scoped token.</dd>
 <dt id="code-challenge">Code challenge</dt><dd>The value a client sends in the authorization request to commit to a verifier it has not yet revealed. With the S256 method it is the base64url-encoded SHA-256 hash of the verifier.</dd>
 <dt id="code-verifier">Code verifier</dt><dd>A high-entropy random string the client keeps to itself and presents only on the back channel, proving it started the flow. RFC 7636 requires 43 to 128 unreserved characters.</dd>
 <dt id="confidential-client">Confidential client</dt><dd>A client that can keep a secret, such as a server-side application. It authenticates to the authorization server in its own right.</dd>
+<dt id="confirmation-claim">Confirmation claim</dt><dd>The <code>cnf</code> claim in a token, naming a key its holder must be able to use. It turns a bearer token into one that also requires proof of possession.</dd>
 <dt id="constant-time-comparison">Constant-time comparison</dt><dd>A comparison that takes the same time whether values differ at the first byte or the last. Ordinary string comparison stops at the first difference, which can leak information through timing.</dd>
+<dt id="dpop">DPoP</dt><dd>Demonstrating Proof of Possession. The client signs a small JWT per request with a key it holds, and the access token names that key, so a stolen token alone is not enough. RFC 9449.</dd>
 <dt id="front-channel">Front channel</dt><dd>A request or response that travels through the user's browser, usually as a redirect. Anything in a front-channel URL may reach browser history, referrer headers, proxy logs, and other apps on the device.</dd>
 <dt id="hash">Hash</dt><dd>A fixed-length fingerprint of data, such as SHA-256. Anyone can compute it, and changing one byte of input changes the output completely. A hash alone proves nothing about who made it.</dd>
 <dt id="hmac">HMAC</dt><dd>Hash-based message authentication code. A hash computed with a secret key mixed in, so only key holders can produce or check it.</dd>
@@ -49,6 +52,7 @@
 <dt id="resource-server">Resource server</dt><dd>The server hosting the protected API. It validates the access token, including that the token was issued for it and that the scope covers the operation.</dd>
 <dt id="revocation">Revocation</dt><dd>Withdrawing a grant before its token expires. A self-contained token does not change when this happens, so a resource server only notices if it consults current state.</dd>
 <dt id="scope">Scope</dt><dd>The set of permissions a client requests and the resource owner grants. A scope limits what a token can do; it does not decide who may act on a specific object.</dd>
+<dt id="sender-constrained-token">Sender-constrained token</dt><dd>A token that only works for a holder who can prove possession of a particular key, through a client certificate or a per-request proof.</dd>
 <dt id="shared-secret">Shared secret</dt><dd>A key known to both parties. Either party can create a valid signature, which is why a shared secret can't prove which one did.</dd>
 <dt id="signature">Signature</dt><dd>A value computed from data and a key that lets a receiver check the data wasn't changed and came from a key holder.</dd>
 <dt id="tls">TLS</dt><dd>Transport Layer Security. Encrypts a connection and proves the server's identity to the client. It protects data in transit, not after it arrives.</dd>
