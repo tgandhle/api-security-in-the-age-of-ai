@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Request and response contracts | API Security in the Age of AI</title>
+<link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/course.js" defer></script>
+</head>
+<body data-course-lesson="request-and-response-contracts">
+<nav class="site-nav" aria-label="Site"><div><a class="home" href="../../index.html">API Security in the Age of AI</a><a href="../../index.html#course">Course</a><a href="../../index.html#path">Modules</a><a href="../../roadmap/index.html">Roadmap</a><a href="../../checklist/index.html">Checklist</a><a href="../../glossary/index.html">Glossary</a></div></nav>
+<main>
+<p class="kicker">Part 3: Edges and boundaries &middot; Module 13</p>
+<h1>Request and response contracts</h1>
+<p class="meta">Last reviewed 2026-09-30 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+
+<div class="prose">
+<p><strong>Objective.</strong> After this module you can explain how two parsers reading the same bytes reach different answers and what that costs you, name the values a JSON parser accepts that no contract describes, and place limits in the only order that works: before the parser, not in the schema.</p>
+<p><strong>Before you start.</strong> Every check in this course so far ran on a parsed request. This module is the step before that, and it is the step where the object those checks inspect gets decided.</p>
+</div>
+<section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 14 of 14</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
+
+<span class="layer" id="learn">Learn</span>
+
+<h2>1. The attack</h2>
+<div class="prose">
+<p>Running example: ExampleAir's partner transfer endpoint, taking a JSON body with a transaction identifier and a number of miles. Company names are fictional. Authentication passes, the object and property checks pass, and the schema validator approves the body.</p>
+<p>The body is <code>{"partnerTxnId": "EXA-42", "miles": 10, "miles": 90000}</code>.</p>
+<p>The validator read <code>miles</code> as 10 and approved it. The handler read <code>miles</code> as 90000 and credited it. Both were correct, in the sense that neither did anything its library does not do by default, and both reported success. Nothing logged an error, because from each component's point of view nothing went wrong.</p>
+<p>That is one of three ways the parsing step betrays the checks built on top of it. The second is values the parser will hand you that your contract never described. The third is inputs whose cost lands during parsing, before any validator exists to refuse them.</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>The body contains</th><th>Schema validation only</th><th>With limits before the parser</th></tr></thead>
+<tbody>
+<tr><td>A repeated name with two values</td><td class="yes">Approved as one value, handled as another</td><td class="no">Rejected: the name appears twice</td></tr>
+<tr><td><code>NaN</code> or <code>Infinity</code></td><td class="yes">Parsed, though neither is valid JSON</td><td class="no">Rejected by the parser's own settings</td></tr>
+<tr><td><code>1e400</code> where a total was expected</td><td class="yes">Becomes infinity, and passes "greater than zero"</td><td class="no">Rejected: outside the declared range</td></tr>
+<tr><td>A 10000-digit integer</td><td class="yes">The parser raises, which is a crash rather than a rejection</td><td class="no">Rejected: literal too long</td></tr>
+<tr><td>100000 levels of nesting</td><td class="yes">The parser exhausts the stack before the schema runs</td><td class="no">Rejected: too deeply nested</td></tr>
+<tr><td>64 KiB compressed, megabytes decoded</td><td class="yes">Decoded in full, then validated, then discarded</td><td class="no">Rejected while decoding, at the limit</td></tr>
+<tr><td>Exactly what the contract describes</td><td class="no">Approved</td><td class="no">Approved</td></tr>
+</tbody></table></div>
+<p class="prose">Five of these reach the schema in a state the schema cannot describe, and one of them never reaches it at all. That is the shape of the module: a contract is a statement about a parsed object, and most of these problems are decided before there is one.</p>
+
+<h2>2. Why it works</h2>
+<h3>The same bytes, two objects</h3>
+<div class="prose">
+<p>RFC 8259 is unusually direct about the repeated-name case. It says "the names within an object SHOULD be unique", which is a recommendation rather than a requirement, and then describes what actually happens when they are not: "Many implementations report the last name/value pair only. Other implementations report an error or fail to parse the object, and some implementations report all of the name/value pairs, including duplicates."</p>
+<p>Three behaviours, all conformant. So the question "what does this body mean" has no single answer, and any two components that parse it separately can disagree. The exposure is largest wherever a request is parsed more than once: a gateway and a service, a validator and a handler, a service written in one language calling one written in another. The attacker does not need to know which parser does what. Sending both values and seeing which one takes effect is one request.</p>
+</div>
+
+<h3>Values with no place in the contract</h3>
+<div class="prose">
+<p>RFC 8259 section 6 is equally clear that "numeric values that cannot be represented in the grammar below (such as Infinity and NaN) are not permitted", and Python's <code>json</code> module parses both by default. It is not alone in this, and the reason is compatibility with what other implementations emit. The result is that a field your contract says is a positive number can arrive as infinity and satisfy a check for being greater than zero.</p>
+<p>The range problem is next to it. JSON's grammar puts no limit on the magnitude of a number, and section 6 notes only that "good interoperability can be achieved by implementations that expect no more precision or range than" an IEEE 754 double provides. So <code>1e400</code> is valid JSON, and what your parser gives you for it is a decision your parser made, not one the format made. Python gives you infinity.</p>
+</div>
+
+<h3>Cost that lands before any check</h3>
+<div class="prose">
+<p>Section 9 requires that "a JSON parser MUST accept all texts that conform to the JSON grammar", and then says the thing that makes this tractable: an implementation "may set limits on the size of texts that it accepts", "may set limits on the maximum depth of nesting", and "may set limits on the range and precision of numbers". The specification anticipates exactly the defence this module is about, and it is the API's job to set those limits because the format will not.</p>
+<p>The reason they have to come first is mechanical. Deeply nested input costs you during parsing, so a schema validator that runs on the parsed object never executes. A compressed body costs you during decoding, so a size check on the decoded object happens after you already paid. OWASP's API4:2023 puts the instruction plainly: "define and enforce a maximum size of data on all incoming parameters and payloads, such as maximum length for strings, maximum number of elements in arrays, and maximum upload file size".</p>
+</div>
+
+<h3>The whole system</h3>
+<div class="diagram">
+<svg viewBox="0 0 1100 360" width="100%" style="min-width:900px" role="img">
+<title>Where each contract check can run, relative to parsing</title>
+<desc>A request passes through four stages. First the raw bytes, where a size limit and a decoded-size limit during decompression can be applied. Second a pre-parse inspection of the text, where nesting depth and repeated names can be rejected without building an object. Third the parser, configured to refuse non-JSON constants and out-of-range numbers. Fourth the schema, which checks types and required fields on the object that now exists. A note records that a deeply nested body never reaches the fourth stage because the third one fails first.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+<text class="lab" x="36" y="28">In this order, and only in this order.</text>
+<g class="p"><rect x="20" y="52" width="250" height="88" rx="8"/><text class="th" x="145" y="78" text-anchor="middle">1. Raw bytes</text><text class="ts" x="145" y="99" text-anchor="middle">declared size limit</text><text class="ts" x="145" y="117" text-anchor="middle">decoded size limit while</text><text class="ts" x="145" y="133" text-anchor="middle">decompressing</text></g>
+<g class="h"><rect x="300" y="52" width="250" height="88" rx="8"/><text class="th" x="425" y="78" text-anchor="middle">2. The text</text><text class="ts" x="425" y="99" text-anchor="middle">nesting depth</text><text class="ts" x="425" y="117" text-anchor="middle">repeated names</text><text class="ts" x="425" y="133" text-anchor="middle">literal lengths</text></g>
+<g class="s"><rect x="580" y="52" width="250" height="88" rx="8"/><text class="th" x="705" y="78" text-anchor="middle">3. The parser</text><text class="ts" x="705" y="99" text-anchor="middle">refuse NaN and Infinity</text><text class="ts" x="705" y="117" text-anchor="middle">refuse out-of-range</text><text class="ts" x="705" y="133" text-anchor="middle">numbers</text></g>
+<g class="g"><rect x="860" y="52" width="220" height="88" rx="8"/><text class="th" x="970" y="78" text-anchor="middle">4. The schema</text><text class="ts" x="970" y="99" text-anchor="middle">types, required fields,</text><text class="ts" x="970" y="117" text-anchor="middle">ranges, formats</text><text class="ts" x="970" y="133" text-anchor="middle">on an object</text></g>
+<line class="arr" x1="270" y1="96" x2="296" y2="96" marker-end="url(#a)"/>
+<line class="arr" x1="550" y1="96" x2="576" y2="96" marker-end="url(#a)"/>
+<line class="arr" x1="830" y1="96" x2="856" y2="96" marker-end="url(#a)"/>
+
+<rect class="zone" x="20" y="176" width="1060" height="72" rx="12"/>
+<text class="lab" x="550" y="204" text-anchor="middle">What each stage can still see</text>
+<text class="ts" x="145" y="230" text-anchor="middle">length, encoding</text>
+<text class="ts" x="425" y="230" text-anchor="middle">shape, repetition</text>
+<text class="ts" x="705" y="230" text-anchor="middle">values, as parsed</text>
+<text class="ts" x="970" y="230" text-anchor="middle">an object, if one exists</text>
+
+<g class="r"><rect x="200" y="272" width="700" height="62" rx="8"/><text class="th" x="550" y="296" text-anchor="middle">A deeply nested body never reaches stage 4</text><text class="ts" x="550" y="317" text-anchor="middle">stage 3 exhausts the stack, so the schema that would have refused it never runs</text></g>
+</svg>
+<div class="legend"><span class="lg-p">Bytes</span><span class="lg-h">Text</span><span class="lg-s">Parser</span><span class="lg-r">What order buys you</span></div>
+</div>
+
+<h2>3. The control</h2>
+<ol class="steps prose">
+<li><strong>Limit the declared size, and the decoded size while decoding.</strong> Not after. A body that expands from kilobytes to megabytes has already cost you by the time you can measure the result.</li>
+<li><strong>Inspect the text before building an object.</strong> Nesting depth and repeated names are both visible in the bytes, and both are cheap to measure without a parser.</li>
+<li><strong>Reject repeated names outright.</strong> Not last-wins, not first-wins: rejected. Any resolution you choose is a resolution some other component will choose differently.</li>
+<li><strong>Configure the parser to refuse what the format forbids.</strong> <code>NaN</code> and <code>Infinity</code> are not JSON. Most libraries accept them and most offer a setting that does not.</li>
+<li><strong>Bound number range and literal length</strong> at the parser or immediately after, since the grammar bounds neither.</li>
+<li><strong>Then validate against the schema</strong>, on the object you now have, for types, required fields, ranges and formats.</li>
+<li><strong>Apply the same discipline to responses.</strong> A response you consume from another service is somebody else's request body arriving at your parser, which is <a href="../../roadmap/index.html#module-14">module 14</a>.</li>
+</ol>
+
+<h2>4. Defaults and when to change them</h2>
+<div class="wrap"><table>
+<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>
+<tbody>
+<tr><td>Maximum request body</td><td>A number, stated in the contract, enforced at the edge and in the service</td><td>Raise it per endpoint where the work genuinely needs it, never globally to accommodate one upload.</td></tr>
+<tr><td>Compressed bodies</td><td>A decoded-size limit enforced during decompression, and a maximum expansion ratio</td><td>If you accept compressed request bodies at all. Not accepting them is also an answer.</td></tr>
+<tr><td>Nesting depth</td><td>64, measured before parsing</td><td>Raise it only against a real document that needs more, and then only for that endpoint.</td></tr>
+<tr><td>Repeated names</td><td>Reject the request</td><td>Never resolve them silently. RFC 8259 documents three conformant behaviours, so silence means disagreement.</td></tr>
+<tr><td><code>NaN</code> and <code>Infinity</code></td><td>Refuse them in the parser's configuration</td><td>They are not valid JSON. If a partner emits them, that is a conversation, not a parser setting.</td></tr>
+<tr><td>Number range</td><td>Bound each numeric field explicitly in the schema, and reject literals longer than the field needs</td><td>The grammar bounds neither magnitude nor digits, so every bound is yours.</td></tr>
+<tr><td>Array and string lengths</td><td>A maximum per field, from OWASP's guidance, not a global one</td><td>A global limit large enough for your biggest field is no limit for the others.</td></tr>
+<tr><td>Where limits run</td><td>Before the parser</td><td>Never only in the schema. A schema runs on an object, and the expensive inputs are the ones that prevent an object existing.</td></tr>
+<tr><td>Rejections</td><td>One status and a stable error shape, naming the rule not the value</td><td>Echoing the offending value back puts attacker-controlled bytes in your logs and responses.</td></tr>
+</tbody></table></div>
+
+<h2>5. What it proves, and what it doesn't</h2>
+<div class="prose">
+<p><strong>Proves:</strong> that the object your handler received is the object your validator approved, that it contains only values the format permits, and that producing it cost a bounded amount.</p>
+<p><strong>Doesn't prove:</strong> anything about whether the request should be allowed. A perfectly formed body from a caller who may not make this call is what Parts 1 and 2 are for. This module only makes sure those checks are looking at the same thing the handler will act on.</p>
+<div class="callout warn"><strong>A schema is not a limit.</strong> It is a description of an object, evaluated once the object exists. Everything that stops an object existing, or makes existing expensive, happens earlier and has to be configured somewhere the schema cannot reach. Teams that adopt a schema often believe they have adopted input limits, and the two lists barely overlap.</div>
+</div>
+
+<h2>6. Prove it</h2>
+<div class="prose">
+<p>For each endpoint that accepts a body:</p>
+<ul>
+<li>A body with a repeated name is rejected, not resolved.</li>
+<li>Two components that parse the same request agree, or only one of them parses it.</li>
+<li><code>NaN</code>, <code>Infinity</code> and <code>-Infinity</code> are rejected.</li>
+<li>A number outside the field's declared range is rejected, including one that becomes infinity.</li>
+<li>A body nested past the limit is rejected without a stack trace and without the parser running to exhaustion.</li>
+<li>A compressed body that decodes past the limit is rejected during decoding, measured by the bytes produced.</li>
+<li>Every string and array field has a maximum length, and it is not one global number.</li>
+<li>The rejection names the rule rather than echoing the value.</li>
+<li>All of the above are tested, and the tests are in the build.</li>
+</ul>
+</div>
+
+<h2>7. Lab</h2>
+<div class="prose">
+<p>Download <a href="../../labs/contracts_lab.py"><code>labs/contracts_lab.py</code></a>. It needs nothing beyond Python 3.</p>
+</div>
+<pre><code>Windows              macOS and Linux
+py -3 labs/contracts_lab.py    python3 labs/contracts_lab.py</code></pre>
+<div class="prose">
+<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. Everything in this lab is real behaviour of Python's own <code>json</code> module on the machine you run it on. Nothing is simulated, which also means the two crash checks describe CPython: the checks compare the kind of failure rather than its message, because messages change between versions, but a different Python or a different runtime could in principle fail differently. If a check does not match on your machine, that is the lab telling you something true about your parser.</p>
+</div>
+<pre><code>$ python3 labs/contracts_lab.py
+all behaviour below is Python's json module on this machine
+
+Part A: one body, two answers.
+ 1. the handler's parser reads miles as                90000
+ 2. a first-wins parser reads miles as                 10
+ 3. the two agree                                      False
+ 4. both parsers accepted the body                     True
+
+Part B: values the contract never described.
+ 5. NaN, which is not valid JSON                       ok: nan
+ 6. Infinity, which is not valid JSON                  ok: inf
+ 7. 1e400, a number with no JSON limit                 ok: inf
+ 8. NaN with parse_constant refusing                   crash: ValueError
+ 9. a 10000-digit integer literal                      crash: ValueError
+10. inf passes a schema that wants a positive number   True
+
+Part C: shapes that cost you before any check runs.
+11. 100000 levels of nesting, parsed                   crash: RecursionError
+12. its depth, measured without parsing                100000
+13. a depth limit of 64, applied first                 reject: too deeply nested
+14. a compressed body under 64 KiB                     True
+15. its decoded size over 1 MiB                        True
+16. expansion ratio over 100 to 1                      True
+17. a decoded-size limit of 1 MiB, applied while decoding reject: body too large
+
+Part D: why the schema cannot do Part C's job.
+18. the nested body reaches the schema at all          no, it crashed in the parser
+19. the oversized body satisfies the schema            True
+20. the duplicate-key body satisfies the schema        True
+
+all lab checks passed</code></pre>
+<div class="prose">
+<p>Checks 1 to 4 are the whole of Part A. One body, two parsers, two values, and both parsers returned successfully. There is no error to find later, because neither component did anything wrong.</p>
+<p>Checks 8 and 9 are worth reading as a pair with the ones above them. Check 8 is a refusal you configured: <code>parse_constant</code> turning <code>NaN</code> into a rejection. Check 9 is not a refusal at all, it is the parser raising because the integer literal exceeds Python's digit limit. Both appear in a log as an exception, and only one of them is a control.</p>
+<p>Check 11 is the one to try changing. A hundred thousand open brackets is 200 KB of input, well under any sensible body limit, and it exhausts the parser. Check 12 measures the same body's depth without parsing it, in a few lines, and check 13 refuses it. The order is the entire control.</p>
+<p>Checks 14 to 17 are the compression case. A body that arrives under 64 KiB decodes to megabytes, and a limit that inspects the decoded object measures something you have already paid for.</p>
+<p>Part D closes it. The nested body never reaches the schema at all, and the other two satisfy it completely. A schema was never going to be where this is caught.</p>
+<p><strong>Try next:</strong></p>
+<ul>
+<li>Change the depth in <code>nested</code> from 100000 to 200. Check 11 stops crashing and check 13 still refuses it, which is the difference between a limit and a cliff.</li>
+<li>Pass <code>object_pairs_hook</code> to the handler's parse in Part A so that a repeated name raises. Both checks 1 and 3 change, and that is the fix.</li>
+<li>Add a field to <code>accepts_schema</code> requiring <code>miles</code> to be below a million. Check 10 flips, and check 19 does not. Say why.</li>
+<li>Take the JSON parser of another language you use and run the Part A body through it. Write down which of RFC 8259's three behaviours it implements.</li>
+</ul>
+</div>
+
+<h2>8. Check your understanding</h2>
+<details><summary>Two services parse the same request body. Why is that a security problem rather than a duplication problem?</summary><p>Because a repeated name has no single meaning. RFC 8259 recommends unique names and documents three conformant behaviours when they are not: last wins, error, and all pairs kept. Two components can each behave correctly and reach different values, so a validator can approve one number while a handler acts on another. Either reject repeated names or make sure only one component parses the request.</p></details>
+<details><summary>Your schema says miles is a number greater than zero. Does infinity satisfy it?</summary><p>In most implementations, yes. <code>Infinity</code> is not valid JSON, and Python's parser produces it anyway unless told otherwise, at which point it is a number and it is greater than zero. The fix is in the parser's configuration, not in the schema, and it needs a bounded range on the field as well.</p></details>
+<details><summary>Why can a nesting limit not live in the schema?</summary><p>Because the schema runs on an object and a deeply nested body is an attack on the process of building one. The parser exhausts its stack first, so the validator that would have refused the input never executes. Depth is visible in the text, so it can be measured before parsing, which is the only place the check does any good.</p></details>
+<details><summary>You accept gzipped request bodies and limit bodies to 1 MiB. What is the limit on?</summary><p>Whichever number you measured. If it is the bytes that arrived, a 64 KiB body can decode to megabytes and you have no limit on the thing that costs you. The limit has to be enforced during decompression, on the bytes produced, with the decoder stopped when it passes the threshold.</p></details>
+
+<section class="course-quiz" data-quiz data-quiz-id="request-and-response-contracts-check" data-correct-feedback="Correct. RFC 8259 recommends unique names and records three conformant behaviours when they repeat, so two components can each be correct and disagree. Rejecting the body is the only resolution that cannot be disagreed with." data-incorrect-feedback="Not quite. Any rule you pick for resolving a repeated name is a rule some other parser resolves differently, and the attacker only has to send both values to find out which one takes effect. Reject the body.">
+<p class="kicker">Quick check</p>
+<h2>A repeated name</h2>
+<fieldset><legend>A request body contains <code>"miles"</code> twice, with different values. What should the API do?</legend>
+<label><input type="radio" name="ctr" value="last"> Take the last value, which is what most parsers do.</label>
+<label><input type="radio" name="ctr" value="first"> Take the first value, and document it.</label>
+<label><input type="radio" name="ctr" value="reject" data-correct="true"> Reject the request.</label>
+<label><input type="radio" name="ctr" value="schema"> Let the schema decide, since it validates the object.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+</section>
+<p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
+<span class="layer" id="reference" style="margin-top:3rem">Reference</span>
+<h2 style="border-top:none;margin-top:.5rem">Controls</h2>
+<p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
+<ul class="controls">
+<li><span class="label std">Standard</span>"The names within an object SHOULD be unique." When they are not, RFC 8259 section 4 records three conformant behaviours: "many implementations report the last name/value pair only. Other implementations report an error or fail to parse the object, and some implementations report all of the name/value pairs, including duplicates."</li>
+<li><span class="label std">Standard</span>"Numeric values that cannot be represented in the grammar below (such as Infinity and NaN) are not permitted." RFC 8259 section 6.</li>
+<li><span class="label std">Standard</span>RFC 8259 section 6 notes that "good interoperability can be achieved by implementations that expect no more precision or range than" IEEE 754 double precision provides, and that numbers implying more may indicate interoperability problems.</li>
+<li><span class="label std">Standard</span>"A JSON parser MUST accept all texts that conform to the JSON grammar", and an implementation "may set limits on the size of texts that it accepts", "may set limits on the maximum depth of nesting" and "may set limits on the range and precision of numbers". RFC 8259 section 9. The limits are yours to set.</li>
+<li><span class="label std">Standard</span>"Define and enforce a maximum size of data on all incoming parameters and payloads, such as maximum length for strings, maximum number of elements in arrays, and maximum upload file size." OWASP API4:2023, How To Prevent.</li>
+<li><span class="label std">Standard</span>OWASP API4:2023 lists execution timeouts, maximum allocable memory, the number of operations in a single request and the number of records per page among the limits whose absence makes an API vulnerable.</li>
+<li><span class="label base">Baseline</span>Reject a body containing a repeated name. Do not resolve it.</li>
+<li><span class="label base">Baseline</span>Parse each request once, or prove that every component parsing it resolves the same bytes the same way.</li>
+<li><span class="label base">Baseline</span>Configure the parser to refuse <code>NaN</code>, <code>Infinity</code> and <code>-Infinity</code>.</li>
+<li><span class="label base">Baseline</span>Limit nesting depth to 64, measured from the text before parsing.</li>
+<li><span class="label base">Baseline</span>Enforce the decoded-size limit during decompression, stopping the decoder at the threshold, and bound the expansion ratio.</li>
+<li><span class="label base">Baseline</span>Give every numeric field an explicit range and every string and array field an explicit maximum length, per field rather than globally.</li>
+<li><span class="label base">Baseline</span>Return one status and a stable error shape naming the rule that refused the request, never echoing the offending value.</li>
+<li><span class="label opt">Option</span>Do not accept compressed request bodies at all, which removes the decoded-size problem instead of bounding it.</li>
+<li><span class="label opt">Option</span>Apply the same limits to responses you consume from other services, since a response is somebody else's body arriving at your parser.</li>
+</ul>
+
+<h2>Review checklist items</h2>
+<p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
+<ul class="checks">
+<li data-check="ctr-01" data-severity="Critical"><strong>Repeated names are rejected, not resolved</strong> <span>Test a body with one name twice. Any silent resolution is a resolution another parser makes differently.</span></li>
+<li data-check="ctr-02" data-severity="Critical"><strong>Limits run before the parser</strong> <span>Size, decoded size and nesting depth. A schema runs on an object, and these inputs are the ones that stop an object existing.</span></li>
+<li data-check="ctr-03" data-severity="Critical"><strong>Decoded size is bounded during decompression</strong> <span>Measured on the bytes produced, with the decoder stopped at the limit. A limit on the bytes received is not this.</span></li>
+<li data-check="ctr-04" data-severity="High"><strong>The parser refuses NaN and Infinity</strong> <span>Neither is valid JSON. Most libraries accept them by default and offer a setting that does not.</span></li>
+<li data-check="ctr-05" data-severity="High"><strong>Every numeric field has an explicit range</strong> <span>The grammar bounds neither magnitude nor digit count. Test a value that becomes infinity.</span></li>
+<li data-check="ctr-06" data-severity="High"><strong>Either one component parses the request, or they demonstrably agree</strong> <span>Gateway and service, validator and handler, or two languages. Test the same body through each.</span></li>
+<li data-check="ctr-07" data-severity="Medium"><strong>String and array fields have per-field maximum lengths</strong> <span>A single global limit sized for the largest field is no limit for the rest.</span></li>
+<li data-check="ctr-08" data-severity="Medium"><strong>Rejections name the rule and do not echo the value</strong> <span>One status, one error shape, no attacker-controlled bytes in logs or responses.</span></li>
+</ul>
+
+<h2>Sources</h2>
+<ul class="prose">
+<li><a href="https://www.rfc-editor.org/rfc/rfc8259">RFC 8259: The JavaScript Object Notation (JSON) Data Interchange Format</a>, December 2017. Sections 4, 6 and 9.</li>
+<li><a href="https://api-security.owasp.org/editions/2023/en/0xa4-unrestricted-resource-consumption/">OWASP API Security Top 10 2023, API4:2023 Unrestricted Resource Consumption</a>.</li>
+</ul>
+</main>
+<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
+</body>
+</html>
