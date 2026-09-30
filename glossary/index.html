@@ -33,8 +33,10 @@
 <dt id="constant-time-comparison">Constant-time comparison</dt><dd>A comparison that takes the same time whether values differ at the first byte or the last. Ordinary string comparison stops at the first difference, which can leak information through timing.</dd>
 <dt id="content-digest">Content-Digest</dt><dd>A header carrying a hash of the message body, defined by RFC 9530. It is the only way a request body enters an HTTP message signature, and then only if it is a covered component and the receiver recomputes it.</dd>
 <dt id="covered-components">Covered components</dt><dd>The ordered list of message parts a signature is computed over. Anything not in the list is outside the signature and can be changed without invalidating it.</dd>
+<dt id="cryptoperiod">Cryptoperiod</dt><dd>"The time span during which a specific key is authorized for use or in which the keys for a given system or application may remain in effect" (NIST SP 800-57 Part 1). The specifications give you the concept; the length is your judgment to make and defend.</dd>
 <dt id="derived-component">Derived component</dt><dd>A signature input taken from the request or response line rather than a header, written with a leading <code>@</code>, such as <code>@method</code>, <code>@authority</code> or <code>@path</code>. RFC 9421 section 2.2.</dd>
 <dt id="dpop">DPoP</dt><dd>Demonstrating Proof of Possession. The client signs a small JWT per request with a key it holds, and the access token names that key, so a stolen token alone is not enough. RFC 9449.</dd>
+<dt id="enumeration">Enumeration</dt><dd>Walking a range of identifiers to discover which ones exist. Sequential identifiers make it a loop; a refusal that distinguishes "forbidden" from "not found" makes it a map.</dd>
 <dt id="front-channel">Front channel</dt><dd>A request or response that travels through the user's browser, usually as a redirect. Anything in a front-channel URL may reach browser history, referrer headers, proxy logs, and other apps on the device.</dd>
 <dt id="hash">Hash</dt><dd>A fixed-length fingerprint of data, such as SHA-256. Anyone can compute it, and changing one byte of input changes the output completely. A hash alone proves nothing about who made it.</dd>
 <dt id="hmac">HMAC</dt><dd>Hash-based message authentication code. A hash computed with a secret key mixed in, so only key holders can produce or check it.</dd>
@@ -48,6 +50,7 @@
 <dt id="mtls">mTLS</dt><dd>Mutual TLS. Both client and server present certificates, so each proves its identity to the other when the connection opens.</dd>
 <dt id="non-repudiation">Non-repudiation</dt><dd>The property that a signer cannot plausibly deny having signed. An asymmetric signature gives a technical version of this, because the verifier could not have produced it, and it holds only as far as private key custody holds.</dd>
 <dt id="nonce">Nonce</dt><dd>A value used once. The receiver remembers nonces it has seen for a limited time and rejects repeats.</dd>
+<dt id="object-level-authorization">Object-level authorization</dt><dd>Comparing the authenticated caller with the owner recorded on the specific object a request names, after loading it. Its absence is OWASP API1:2023, Broken Object Level Authorization, or BOLA.</dd>
 <dt id="pkce">PKCE</dt><dd>Proof Key for Code Exchange. The client commits to a secret verifier by sending its hash, then proves possession of the verifier when redeeming the code, so a stolen code on its own is useless.</dd>
 <dt id="public-client">Public client</dt><dd>A client that cannot keep a secret, such as a mobile app or code running in a browser. It relies on PKCE rather than a client secret.</dd>
 <dt id="query-string">Query string</dt><dd>The part of a URL after the question mark and before any fragment. It often contains named parameters and may be recorded in request logs.</dd>
@@ -60,8 +63,11 @@
 <dt id="shared-secret">Shared secret</dt><dd>A key known to both parties. Either party can create a valid signature, which is why a shared secret can't prove which one did.</dd>
 <dt id="signature">Signature</dt><dd>A value computed from data and a key that lets a receiver check the data wasn't changed and came from a key holder.</dd>
 <dt id="signature-base">Signature base</dt><dd>The exact ASCII string an HTTP message signature is computed over: one line per covered component, with the signature parameters as the last line. RFC 9421 section 2.5.</dd>
+<dt id="spiffe-id">SPIFFE ID</dt><dd>A URI naming a workload, of the form <code>spiffe://trust-domain/path</code>, carried in a certificate's Subject Alternative Name. It is an identity, not an authorization, and the trust domain has no central registry.</dd>
 <dt id="tls">TLS</dt><dd>Transport Layer Security. Encrypts a connection and proves the server's identity to the client. It protects data in transit, not after it arrives.</dd>
 <dt id="token-profile">Token profile</dt><dd>The rules an application declares before verifying any token: allowed algorithms, token type, expected issuer and audience, required claims, key source and clock leeway. Nothing in it is read from the token.</dd>
+<dt id="trust-boundary">Trust boundary</dt><dd>Any point where a request or a value moves from somewhere you do not control to somewhere you do. Checks belong on the boundary, and a check is only a control if every path to the handler crosses it.</dd>
+<dt id="workload-identity">Workload identity</dt><dd>An identity issued to a running service by its platform, rather than a secret handed to it at deployment. It removes the long-lived value that had to be rotated and distributed; it does not remove ownership, scope or retirement.</dd>
 </dl>
 </main>
 <footer>Part of API Security in the Age of AI.</footer>
