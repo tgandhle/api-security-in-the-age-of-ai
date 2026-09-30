@@ -33,7 +33,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SKIP_DIRS = {".git", "node_modules", "dist", "react-poc"}
+SKIP_DIRS = {".git", ".venv", "venv", "env", "__pycache__", "node_modules", "dist", "react-poc"}
 TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"]
 MODES = [("light", 1280), ("dark", 1280), ("light", 390), ("dark", 390)]
 INSTALL_HINT = "see the install commands at the top of tools/check_a11y.py"
