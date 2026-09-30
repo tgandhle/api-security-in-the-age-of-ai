@@ -150,8 +150,16 @@ unknown kid after a refresh      n/a              reject, unknown kid</code></pr
 <h2>7. Lab</h2>
 <div class="prose">
 <p>Download <a href="../../labs/jwks_lab.py"><code>labs/jwks_lab.py</code></a>. Like module 5 it needs one package:</p>
-<pre><code>python3 -m pip install cryptography==50.0.1</code></pre>
-<p>On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>, including the install line above. The issuer's key endpoint and the introspection endpoint are stubs in the process, the clock is a variable, and no sockets are opened.</p>
+<p>Install it into a virtual environment, so it does not change the Python the rest of your machine uses:</p>
+</div>
+<pre><code>Windows              macOS and Linux
+py -3 -m venv .venv          python3 -m venv .venv
+.venv\Scripts\Activate.ps1    source .venv/bin/activate
+python -m pip install cryptography==50.0.1
+python labs/jwks_lab.py</code></pre>
+<div class="prose">
+<p>Inside an activated environment use <code>python</code>, not <code>py -3</code>. The Windows launcher ignores an active environment when you give it an explicit version: "To run the global interpreter, either deactivate the virtual environment, or explicitly specify the global Python version" (Python documentation, Using Python on Windows, Virtual environments). Outside an environment, <code>py -3</code> is still the right command on Windows.</p>
+<p>The issuer's key endpoint and the introspection endpoint are stubs in the process, the clock is a variable, and no sockets are opened.</p>
 </div>
 <pre><code>$ python3 labs/jwks_lab.py
 key source: RSA generated for this run; keys and tokens never printed

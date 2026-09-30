@@ -152,8 +152,16 @@ clock leeway    60 seconds, both directions</code></pre>
 <h2>7. Lab</h2>
 <div class="prose">
 <p>Download <a href="../../labs/jwt_lab.py"><code>labs/jwt_lab.py</code></a>. This is the first lab that needs a package, because Python has no asymmetric cryptography in its standard library:</p>
-<pre><code>python3 -m pip install cryptography==50.0.1</code></pre>
-<p>On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>, including the install line above. Modules 1, 2 and 4 still need nothing beyond Python 3. The lab generates an RSA key for the run, builds real tokens, and sends the same tokens past two verifiers. Keys, tokens and signatures stay in memory and are never printed.</p>
+<p>Install it into a virtual environment, so it does not change the Python the rest of your machine uses:</p>
+</div>
+<pre><code>Windows              macOS and Linux
+py -3 -m venv .venv          python3 -m venv .venv
+.venv\Scripts\Activate.ps1    source .venv/bin/activate
+python -m pip install cryptography==50.0.1
+python labs/jwt_lab.py</code></pre>
+<div class="prose">
+<p>Inside an activated environment use <code>python</code>, not <code>py -3</code>. The Windows launcher ignores an active environment when you give it an explicit version: "To run the global interpreter, either deactivate the virtual environment, or explicitly specify the global Python version" (Python documentation, Using Python on Windows, Virtual environments). Outside an environment, <code>py -3</code> is still the right command on Windows.</p>
+<p>Modules 1, 2 and 4 still need nothing beyond Python 3. The lab generates an RSA key for the run, builds real tokens, and sends the same tokens past two verifiers. Keys, tokens and signatures stay in memory and are never printed.</p>
 </div>
 <pre><code>$ python3 labs/jwt_lab.py
 key source: RSA generated for this run; keys and tokens never printed
