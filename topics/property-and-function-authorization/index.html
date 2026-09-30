@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Property and function authorization | API Security in the Age of AI</title>
+<link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/course.js" defer></script>
+</head>
+<body data-course-lesson="property-and-function-authorization">
+<nav class="site-nav" aria-label="Site"><div><a class="home" href="../../index.html">API Security in the Age of AI</a><a href="../../index.html#course">Course</a><a href="../../index.html#path">Modules</a><a href="../../roadmap/index.html">Roadmap</a><a href="../../checklist/index.html">Checklist</a><a href="../../glossary/index.html">Glossary</a></div></nav>
+<main>
+<p class="kicker">Part 2: Deciding what they may do &middot; Module 10</p>
+<h1>Property and function authorization</h1>
+<p class="meta">Last reviewed 2026-09-30 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+
+<div class="prose">
+<p><strong>Objective.</strong> After this module you can name the two separate property lists every endpoint needs, explain why an allowlist and a denylist behave differently as a codebase changes, build a route table that denies by default, and say why a path prefix is not an authorization rule.</p>
+<p><strong>Before you start.</strong> <a href="../object-level-authorization/index.html">Module 9</a> settled which objects a caller may reach. Everything below assumes that check has already passed, and is about the two questions it does not answer.</p>
+</div>
+<section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 11 of 12</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
+
+<span class="layer" id="learn">Learn</span>
+
+<h2>1. The attack</h2>
+<div class="prose">
+<p>Running example: ExampleAir's customer profile endpoint. Company names are fictional. The caller is a real customer, correctly authenticated, asking for its own profile. Module 9's ownership check passes on every request in this module.</p>
+<p>Three separate things go wrong, and they are usually found in the same codebase because they have the same cause: a handler that treats an object as one indivisible thing.</p>
+<ul>
+<li><strong>The response carries more than it should.</strong> The handler serialises the record, and the record has a fraud score, internal notes and a staff flag on it. The customer asked for their profile and received the company's assessment of them.</li>
+<li><strong>The request writes more than it should.</strong> The handler merges the request body into the record, so the body decides which fields exist. Adding <code>"loyalty_tier": "platinum"</code> to a profile update works, because nothing said it would not.</li>
+<li><strong>The operation should not have been available.</strong> The promote endpoint is guarded by a rule that says administrative routes live under <code>/api/admin/</code>, and this one does not.</li>
+</ul>
+<p>OWASP splits these across two entries. The first two are <strong>API3:2023 Broken Object Property Level Authorization</strong>, which merges what earlier editions called excessive data exposure and mass assignment. The third is <strong>API5:2023 Broken Function Level Authorization</strong>.</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>The caller does</th><th>Object check only</th><th>With property and function checks</th></tr></thead>
+<tbody>
+<tr><td>Read its own profile</td><td class="yes">Receives the fraud score and internal notes</td><td class="no">Receives the five fields it needs</td></tr>
+<tr><td>Add a field to its profile update</td><td class="yes">Sets its own loyalty tier and point balance</td><td class="no">Ignored, and the attempt is recorded</td></tr>
+<tr><td>Add <code>"is_staff": true</code> to that body</td><td class="yes">Becomes staff</td><td class="no">Ignored</td></tr>
+<tr><td>Call an admin function at a non-admin path</td><td class="yes">Allowed by the prefix rule</td><td class="no">Refused by the route table</td></tr>
+<tr><td>Change the verb on an endpoint it may read</td><td class="yes">Allowed</td><td class="no">Refused: method and path are one rule</td></tr>
+<tr><td>Call a route nobody wrote a rule for</td><td class="yes">Allowed</td><td class="no">Refused by default</td></tr>
+<tr><td>Set an allowed property on someone else's record</td><td class="no">Refused by module 9</td><td class="yes">Allowed, unless module 9's check is also there</td></tr>
+</tbody></table></div>
+<p class="prose">The last row is the reminder that these checks compose rather than replace. A writable-property list has no opinion about whose record it is, and an ownership check has no opinion about which fields. You need both, on the same request.</p>
+
+<h2>2. Why it works</h2>
+<div class="prose">
+<p>All three have one root: a framework offering a convenient way to move a whole object across a boundary. <code>to_json()</code> on a model, a body bound straight into a struct, a router that maps URL shapes to handlers. Each of them is a productivity feature, each of them is correct on the day it is written, and each of them is defined by the shape of your data rather than by a decision anyone made.</p>
+<p>That is why this defect arrives later than the code does. Nobody exposes a fraud score on purpose. Someone adds a column, and a serialiser that was accurate in March starts returning it in June, in an endpoint nobody reopened. OWASP's guidance is direct about the mechanism: "avoid using generic methods such as <code>to_json()</code> and <code>to_string()</code>" and "avoid using functions that automatically bind a client's input into code variables".</p>
+<p>It also explains why allowlists and denylists are not two styles of the same control. A denylist is a statement about the fields that exist today. An allowlist is a statement about what the endpoint is for. Add a column to the table and the denylist silently starts leaking it; the allowlist does not change its behaviour at all. That difference is the entire value, and it only shows up months after the decision.</p>
+<p>The function-level version has its own specific trap. Teams write a rule like "anything under <code>/api/admin/</code> requires staff", which is a statement about URL shape, not about what the endpoint does. OWASP names it: "don't assume that an API endpoint is regular or administrative only based on the URL path", and notes that "it's very common to find these administrative endpoints under other relative paths together with regular endpoints". The promote operation lives at <code>/api/users/promote</code> because that is where the users controller is, and the rule was never wrong about the path. It was wrong about what the path meant.</p>
+</div>
+
+<h2>3. The control</h2>
+<h3>Two property lists, not one</h3>
+<div class="prose">
+<p>Readable and writable are different questions with different answers, and collapsing them into one list gets one of them wrong. A customer may read their loyalty tier and points and may not set either. A password field may be writable and never readable. Keep two lists, declared next to the endpoint, and build the response and the update from them rather than from the record.</p>
+</div>
+<ol class="steps prose">
+<li><strong>Declare what the response contains</strong>, field by field, and build it from that list. Not the record minus some fields: the list, positively stated.</li>
+<li><strong>Declare what the client may set</strong>, field by field, and copy only those. Everything else in the body is ignored.</li>
+<li><strong>Record what you ignored.</strong> A request trying to set <code>is_staff</code> is not a malformed request, it is a signal. Silently dropping it loses that.</li>
+<li><strong>Validate the response against the declared shape</strong> before it leaves. OWASP recommends schema-based response validation as an extra layer, and it is the thing that catches the field somebody added last week.</li>
+</ol>
+
+<h3>A route table, denying by default</h3>
+<div class="prose">
+<p>Function-level authorization is a rule per operation, and an operation is a method and a path together, not a path. OWASP's first prevention bullet is the design principle: "the enforcement mechanism(s) should deny all access by default". The practical form is a table keyed by method and path, where a request with no matching rule is refused rather than allowed, so a new endpoint is unreachable until somebody writes its rule.</p>
+<p>That last property is what makes it worth the bureaucracy. Under a prefix rule, forgetting to think about a new endpoint means it is public. Under a table that denies by default, forgetting means it returns 403 and someone opens a ticket on the first day rather than the vulnerability being found on some later day by somebody else.</p>
+</div>
+<div class="diagram">
+<svg viewBox="0 0 1100 390" width="100%" style="min-width:900px" role="img">
+<title>Three authorization questions on one request, and what each one settles</title>
+<desc>A single request passes through three checks in order. First the function check asks whether this caller's role may invoke this method and path at all, decided by a route table that denies by default. Second the object check asks whether the caller owns the specific record named, which was module 9. Third the property check asks which fields of that record may be read and which may be written, decided by two separate declared lists. A box below records that all three are required, because each one is silent about what the other two decide.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+<text class="lab" x="36" y="30">One request, three questions, none of which answers the others.</text>
+<g class="h"><rect x="30" y="56" width="300" height="86" rx="8"/><text class="th" x="180" y="82" text-anchor="middle">Function</text><text class="ts" x="180" y="102" text-anchor="middle">may this role call this</text><text class="ts" x="180" y="120" text-anchor="middle">method and path at all</text></g>
+<g class="s"><rect x="390" y="56" width="300" height="86" rx="8"/><text class="th" x="540" y="82" text-anchor="middle">Object</text><text class="ts" x="540" y="102" text-anchor="middle">does this caller own</text><text class="ts" x="540" y="120" text-anchor="middle">the record named, module 9</text></g>
+<g class="p"><rect x="750" y="56" width="320" height="86" rx="8"/><text class="th" x="910" y="82" text-anchor="middle">Property</text><text class="ts" x="910" y="102" text-anchor="middle">which fields may be read,</text><text class="ts" x="910" y="120" text-anchor="middle">which may be written</text></g>
+<line class="arr" x1="330" y1="99" x2="386" y2="99" marker-end="url(#a)"/>
+<line class="arr" x1="690" y1="99" x2="746" y2="99" marker-end="url(#a)"/>
+
+<rect class="zone" x="20" y="170" width="1060" height="120" rx="12"/>
+<text class="lab" x="550" y="198" text-anchor="middle">Decided by</text>
+<text class="ts" x="180" y="228" text-anchor="middle">a route table keyed by</text>
+<text class="ts" x="180" y="246" text-anchor="middle">method and path,</text>
+<text class="ts" x="180" y="264" text-anchor="middle">denying by default</text>
+<text class="ts" x="540" y="228" text-anchor="middle">the owner read from</text>
+<text class="ts" x="540" y="246" text-anchor="middle">the loaded record</text>
+<text class="ts" x="910" y="228" text-anchor="middle">two declared lists,</text>
+<text class="ts" x="910" y="246" text-anchor="middle">one for reading and</text>
+<text class="ts" x="910" y="264" text-anchor="middle">one for writing</text>
+
+<g class="r"><rect x="150" y="315" width="800" height="58" rx="8"/><text class="th" x="550" y="339" text-anchor="middle">Two out of three is a vulnerability</text><text class="ts" x="550" y="359" text-anchor="middle">a writable field on someone else's record, or the right field on a function you may not call</text></g>
+</svg>
+<div class="legend"><span class="lg-h">Function</span><span class="lg-s">Object</span><span class="lg-p">Property</span><span class="lg-r">What is missing</span></div>
+</div>
+
+<h2>4. Defaults and when to change them</h2>
+<div class="wrap"><table>
+<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>
+<tbody>
+<tr><td>Response fields</td><td>An allowlist declared per endpoint</td><td>Never a denylist. A denylist describes the fields that exist today and leaks the one added tomorrow.</td></tr>
+<tr><td>Writable fields</td><td>A separate allowlist, per endpoint</td><td>Readable and writable are different questions. One list answers one of them and guesses the other.</td></tr>
+<tr><td>Serialisation</td><td>Built from the declared list</td><td>Never <code>to_json()</code> on the model. OWASP names generic serialisers specifically.</td></tr>
+<tr><td>Request binding</td><td>Copy the allowed fields by name</td><td>Never bind the body to the model. The body then decides which fields exist.</td></tr>
+<tr><td>Ignored fields</td><td>Counted and logged, without their values</td><td>A body trying to set <code>is_staff</code> is a signal. Log the field name; the value is the attacker's, so do not store it.</td></tr>
+<tr><td>Response validation</td><td>Validate against the schema before sending</td><td>This is the layer that catches a field added since the endpoint was last reviewed.</td></tr>
+<tr><td>Function rules</td><td>A table keyed by method and path, denying by default</td><td>Never a path prefix. A prefix is a statement about URL shape, not about what an operation does.</td></tr>
+<tr><td>New endpoints</td><td>Unreachable until a rule exists</td><td>This is the point of denying by default. Forgetting produces a 403 and a ticket, not an exposure.</td></tr>
+<tr><td>Verbs</td><td>Each method is its own rule</td><td>A caller who may GET a resource has not been told anything about DELETE.</td></tr>
+</tbody></table></div>
+
+<h2>5. What it proves, and what it doesn't</h2>
+<div class="prose">
+<p><strong>Proves:</strong> that this caller's role may invoke this operation, that the response contains only fields somebody decided to expose here, and that the request changed only fields somebody decided a client may set.</p>
+<p><strong>Doesn't prove:</strong> that the record belongs to them. A writable-property list is per property, not per object, so an allowed field written to someone else's record passes it cleanly. That is module 9's check, and this module does not replace it.</p>
+<div class="callout warn"><strong>Deny by default protects the routes nobody thought about, not the ones somebody got wrong.</strong> A table with a default-deny still hands an administrative report to customers if that route was listed with the customer role. The default is a floor. The rules themselves still need reviewing by someone who knows what each operation does, which is why the checklist item asks for the table to be read, not just for it to exist.</div>
+</div>
+
+<h2>6. Prove it</h2>
+<div class="prose">
+<p>For each endpoint:</p>
+<ul>
+<li>The response fields are listed somewhere you can read without running the code, and the list is what builds the response.</li>
+<li>Adding a column to the underlying table changes no response, and there is a test that proves it.</li>
+<li>A request body containing every field of the record changes only the writable ones.</li>
+<li>Attempts to set non-writable fields are counted, with the field names and not the values.</li>
+<li>Every operation has a rule keyed by method and path, and a request to an unlisted route is refused.</li>
+<li>Every verb the route accepts has its own rule, including the ones you did not intend to expose.</li>
+<li>Somebody has read the route table end to end and can say what each operation does, not just that a rule exists.</li>
+<li>All of the above hold for older API versions still serving traffic.</li>
+</ul>
+</div>
+
+<h2>7. Lab</h2>
+<div class="prose">
+<p>Download <a href="../../labs/property_function_lab.py"><code>labs/property_function_lab.py</code></a>. It needs nothing beyond Python 3.</p>
+</div>
+<pre><code>Windows              macOS and Linux
+py -3 labs/property_function_lab.py    python3 labs/property_function_lab.py</code></pre>
+<div class="prose">
+<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The caller is a customer, authenticated, and owns the profile it is asking for. Module 9's check passes on all 25 checks.</p>
+</div>
+<pre><code>$ python3 labs/property_function_lab.py
+caller: acct-77, role customer, authenticated and authorized for its own
+        profile object. Module 9's check passes on every request below.
+
+Part A: which properties leave the service.
+ 1. fields returned by the whole-record serializer     10 fields
+ 2. fraud_score in that response                       present
+ 3. fields returned by the allowlist                   5 fields
+ 4. fraud_score in that response                       absent
+ 5. internal_notes and is_staff in that response       absent
+
+Part B: which properties the client may set.
+ 6. after a merge, loyalty_tier                        platinum
+ 7. after a merge, points                              999999
+ 8. after a merge, is_staff                            True
+ 9. after a merge, fraud_score                         0
+10. the same body against the writable list            200 updated, ignored ['fraud_score', 'is_staff', 'loyalty_tier', 'points']
+11. email did change                                   new@mail.example
+12. loyalty_tier did not                               silver
+13. is_staff did not                                   False
+
+Part C: which functions the caller may invoke.
+14. customer, GET /api/admin/reports, prefix rule      403 forbidden
+15. customer, POST /api/users/promote, prefix rule     200 ok
+16. the same request, route table                      403 forbidden
+17. customer, DELETE /api/profile, prefix rule         200 ok
+18. the same request, route table                      403 forbidden
+19. customer, GET /api/internal/export, prefix rule    200 ok
+20. the same request, route table                      403 no rule for this route
+21. staff, POST /api/users/promote, route table        200 ok
+
+Part D: what property and function checks do not settle.
+22. an allowed property, on another customer's record  attacker@mail.example
+23. module 9's check on that same request              would refuse
+24. an admin route listed with the wrong role          200 ok
+25. the same route in the correct table                403 forbidden
+
+all lab checks passed</code></pre>
+<div class="prose">
+<p>Check 1 and check 3 are the same record through two serialisers, and the gap between ten fields and five is the whole of the read-side problem. Nobody decided to publish a fraud score; a serialiser decided, on their behalf, in a language that looks like convenience.</p>
+<p>Check 8 is the one to sit with. A customer set <code>is_staff</code> to true on their own profile, in a request that is otherwise an ordinary profile update, and every check before this module passed. That is the shape mass assignment takes: no injection, no malformed input, one extra key in valid JSON.</p>
+<p>Check 10's output is the part teams skip. The allowlisted update reports what it ignored, which turns four rejected fields into a log line somebody can alert on. Dropping them silently is correct behaviour and wasted evidence.</p>
+<p>Checks 15 and 19 are the prefix rule failing in both directions: an administrative function that does not live under <code>/api/admin/</code> is allowed, and a route nobody has thought about at all is allowed. Check 20 is the same request against a table that denies by default, which refuses it because no rule exists, not because someone predicted this route.</p>
+<p>Checks 22 to 25 are the boundary. Check 22 writes an allowed field to a record the caller does not own, and the property check passes it because property checks do not look at owners. Check 24 shows the limit of deny-by-default: the rule was written, and it was written wrong.</p>
+<p><strong>Try next:</strong></p>
+<ul>
+<li>Add a field to the profiles in <code>seed()</code> and rerun. Check 1 moves and check 3 does not, which is the difference between an allowlist and a denylist expressed as two numbers.</li>
+<li>Add <code>"points"</code> to <code>WRITABLE</code> and rerun. Decide how you would have caught that change in review, given that it is one word in a tuple.</li>
+<li>Remove the <code>("DELETE", "/api/profile")</code> entry from <code>ROUTES</code> and rerun. Check 18 changes from forbidden to no rule, and both are refusals. That is what deny-by-default buys you.</li>
+<li>Write the route table for an API you work on. Count the operations you had to look up because you were not sure who should be able to call them.</li>
+</ul>
+</div>
+
+<h2>8. Check your understanding</h2>
+<details><summary>Why is an allowlist of response fields different from a denylist of sensitive ones?</summary><p>Because they behave differently when the data changes, which is the only time it matters. A denylist enumerates the fields that exist now; a column added next quarter is not on it and ships in every response. An allowlist enumerates what the endpoint is for, and a new column changes nothing until somebody adds it deliberately.</p></details>
+<details><summary>Your update endpoint binds the request body to the model. What is the full set of fields a caller can set?</summary><p>Every field on the model. The body decides which keys are present, so the answer is not determined by your code at all, it is determined by whatever the attacker sends and whatever your schema happens to contain today. That includes the fields somebody adds later.</p></details>
+<details><summary>Your rule is that anything under /api/admin/ requires staff. What does that rule actually enforce?</summary><p>A statement about URL shape. It is correct for every administrative endpoint that happens to live under that prefix and silent about every one that does not, which OWASP notes is common, because administrative operations tend to sit in the controller for the thing they operate on. Bind the rule to the operation, not to the path it was filed under.</p></details>
+<details><summary>Your route table denies by default and every route has a rule. Are you done?</summary><p>No. Denying by default protects the routes nobody wrote a rule for. It does nothing about a rule that names the wrong role, which is an ordinary mistake that produces an ordinary-looking table entry. Somebody has to read the table against what each operation does.</p></details>
+
+<section class="course-quiz" data-quiz data-quiz-id="property-and-function-authorization-check" data-correct-feedback="Correct. A denylist enumerates today's fields, so a column added later is not on it and ships. An allowlist states what the endpoint is for, and new fields change nothing until somebody adds them deliberately." data-incorrect-feedback="Not quite. Both lists can be reviewed, both can be tested, and neither is faster. The difference appears when the underlying data changes, which is when a denylist starts leaking and an allowlist does not.">
+<p class="kicker">Quick check</p>
+<h2>Allowlist or denylist</h2>
+<fieldset><legend>Your response filter removes fraud_score and internal_notes. Why is an allowlist of exposed fields better?</legend>
+<label><input type="radio" name="prop" value="review"> An allowlist is easier to review.</label>
+<label><input type="radio" name="prop" value="new" data-correct="true"> A field added to the record later is excluded by an allowlist and shipped by a denylist.</label>
+<label><input type="radio" name="prop" value="fast"> An allowlist is faster to evaluate at runtime.</label>
+<label><input type="radio" name="prop" value="test"> Only an allowlist can be covered by tests.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+</section>
+<p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
+<span class="layer" id="reference" style="margin-top:3rem">Reference</span>
+<h2 style="border-top:none;margin-top:.5rem">Controls</h2>
+<p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
+<ul class="controls">
+<li><span class="label std">Standard</span>An endpoint is vulnerable where it "exposes properties of an object that are considered sensitive and should not be read by the user", or "allows a user to change, add/or delete the value of a sensitive object's property which the user should not be able to access". OWASP API3:2023, which merges the earlier excessive data exposure and mass assignment categories.</li>
+<li><span class="label std">Standard</span>"Always make sure that the user should have access to the object's properties you expose." OWASP API3:2023, How To Prevent.</li>
+<li><span class="label std">Standard</span>"Avoid using generic methods such as <code>to_json()</code> and <code>to_string()</code>." OWASP API3:2023, How To Prevent.</li>
+<li><span class="label std">Standard</span>"Avoid using functions that automatically bind a client's input into code variables", and "allow changes only to the object's properties that should be updated by the client". OWASP API3:2023, How To Prevent.</li>
+<li><span class="label std">Standard</span>"Implement a schema-based response validation mechanism as an extra layer of security", and "keep returned data structures to the bare minimum, according to the business/functional requirements". OWASP API3:2023, How To Prevent.</li>
+<li><span class="label std">Standard</span>"The enforcement mechanism(s) should deny all access by default." OWASP API5:2023, How To Prevent.</li>
+<li><span class="label std">Standard</span>"Don't assume that an API endpoint is regular or administrative only based on the URL path." OWASP API5:2023, which notes it is "very common to find these administrative endpoints under other relative paths together with regular endpoints".</li>
+<li><span class="label base">Baseline</span>Declare two lists per endpoint, one readable and one writable, and build the response and the update from them rather than from the record.</li>
+<li><span class="label base">Baseline</span>Count and log the fields an update ignored, by name and never by value.</li>
+<li><span class="label base">Baseline</span>Key function rules by method and path together. A rule for GET says nothing about DELETE.</li>
+<li><span class="label base">Baseline</span>Refuse any request whose method and path have no rule, so a new endpoint is unreachable until somebody writes one.</li>
+<li><span class="label base">Baseline</span>Have somebody read the route table against what each operation does. Deny by default covers the routes nobody considered, not the rules somebody got wrong.</li>
+<li><span class="label base">Baseline</span>Keep the object check from module 9 on every one of these requests. Property and function checks say nothing about whose record it is.</li>
+<li><span class="label opt">Option</span>Generate the response allowlist from the published API schema, so the contract and the filter cannot drift apart. This helps only if the schema is the source of truth rather than a document produced from the code.</li>
+<li><span class="label opt">Option</span>Fail a build when a model gains a field that no endpoint's list mentions, which turns the silent version of this defect into a visible one.</li>
+</ul>
+
+<h2>Review checklist items</h2>
+<p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
+<ul class="checks">
+<li data-check="prop-01" data-severity="Critical"><strong>Updates copy an allowlist of writable fields, never bind the body</strong> <span>Send a body containing every field of the record and confirm only the writable ones changed, including <code>is_staff</code> or its equivalent.</span></li>
+<li data-check="prop-02" data-severity="Critical"><strong>Every operation has a rule keyed by method and path, and unlisted routes are refused</strong> <span>Deny by default. Test an unlisted route and a second verb on a route you do allow.</span></li>
+<li data-check="prop-03" data-severity="Critical"><strong>Administrative functions are identified by what they do, not by their path</strong> <span>List them and check each one's rule. A prefix rule is not an authorization mechanism.</span></li>
+<li data-check="prop-04" data-severity="High"><strong>Responses are built from a declared field list</strong> <span>No generic serialiser. Adding a column to the table changes no response, and a test proves it.</span></li>
+<li data-check="prop-05" data-severity="High"><strong>Readable and writable are two separate lists</strong> <span>Confirm the endpoint has both and that neither is derived from the other.</span></li>
+<li data-check="prop-06" data-severity="High"><strong>The object check is still present on these requests</strong> <span>A writable field on another customer's record is refused. Property authorization does not look at owners.</span></li>
+<li data-check="prop-07" data-severity="Medium"><strong>Ignored fields are counted and logged by name</strong> <span>Names only, never values. A body setting a non-writable field is a signal worth alerting on.</span></li>
+<li data-check="prop-08" data-severity="Medium"><strong>Somebody has read the route table against what each operation does</strong> <span>Deny by default does not catch a rule written with the wrong role.</span></li>
+</ul>
+
+<h2>Sources</h2>
+<ul class="prose">
+<li><a href="https://api-security.owasp.org/editions/2023/en/0xa3-broken-object-property-level-authorization/">OWASP API Security Top 10 2023, API3:2023 Broken Object Property Level Authorization</a>. Definition and prevention guidance.</li>
+<li><a href="https://api-security.owasp.org/editions/2023/en/0xa5-broken-function-level-authorization/">OWASP API Security Top 10 2023, API5:2023 Broken Function Level Authorization</a>. Deny by default, and administrative endpoints outside administrative paths.</li>
+</ul>
+</main>
+<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
+</body>
+</html>
