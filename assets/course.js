@@ -52,7 +52,9 @@
     });
     document.querySelectorAll("[data-course-progress-bar]").forEach((element) => {
       element.style.width = `${percent}%`;
-      element.setAttribute("aria-valuenow", String(percent));
+      // aria-valuenow belongs on the element carrying role="progressbar", not the fill.
+      const meter = element.closest('[role="progressbar"]');
+      if (meter) meter.setAttribute("aria-valuenow", String(percent));
     });
     document.querySelectorAll("[data-course-assessment-progress]").forEach((element) => {
       element.textContent = `${passedQuizCount} of ${quizIds.length} published quick checks passed`;
@@ -113,5 +115,19 @@
     feedback.className = correct ? "quiz-feedback is-correct" : "quiz-feedback is-incorrect";
   });
 
+  function markScrollableRegions() {
+    document.querySelectorAll("pre, .wrap, .diagram").forEach((element) => {
+      // A region that scrolls must be reachable by keyboard. WCAG 2.1.1.
+      if (element.scrollWidth > element.clientWidth + 1) {
+        element.setAttribute("tabindex", "0");
+      } else {
+        element.removeAttribute("tabindex");
+      }
+    });
+  }
+
+  window.addEventListener("resize", markScrollableRegions);
+
   renderProgress();
+  markScrollableRegions();
 })();
