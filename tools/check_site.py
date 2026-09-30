@@ -11,7 +11,7 @@ import pathlib, re, subprocess, sys
 from html.parser import HTMLParser
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SKIP_DIRS = {".git", "node_modules", "dist"}
+SKIP_DIRS = {".git", "node_modules", "dist", "react-poc"}
 TEXT_SUFFIXES = {".html", ".css", ".js", ".py", ".md", ".txt"}
 SECRET_PATTERNS = [
     (r"sk_live_[A-Za-z0-9]{6,}", "live-style API key"),
