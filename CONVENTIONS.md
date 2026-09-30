@@ -33,6 +33,8 @@ Each page has two layers, in this order.
 - Link a glossary term the first time a page uses it.
 - After editing any checklist item, run `python3 tools/build_checklist.py`.
 - Record the review date at the top of each page.
+- Every page must pass `python3 tools/check_a11y.py` with no violations, in light and dark mode at desktop and mobile width. Automated rules are a floor, not a conformance claim.
+- `react-poc/` is an unpublished experiment and is exempt from these conventions. Lesson content is authored in `topics/`, never there.
 
 ## Review cadence
 - Topic pages: quarterly.

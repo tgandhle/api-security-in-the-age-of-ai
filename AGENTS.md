@@ -7,21 +7,31 @@ Instructions for coding agents working in this repository. Read this file, `CONV
 A static learning site that teaches API security to new security engineers. Each topic page teaches one attack and the controls that stop it, with a runnable lab, then gives a reference section for design reviews.
 
 - Audience: new security engineers. Assume they can read Python and HTTP. Do not assume they know the vocabulary.
-- Format: hand-written HTML and one shared stylesheet, `assets/site.css`. No site generator, no framework, no JavaScript build.
-- Labs: Python 3, standard library only.
+- Format: hand-written HTML and one shared stylesheet, `assets/site.css`. No site generator, no framework, no JavaScript build. This applies to every published page and to `assets/`.
+- Exception, `react-poc/`: an isolated Vite and React experiment asking whether a framework would pay for itself across 27 modules. It is not published, not deployed, and not checked by `tools/check_site.py`. It is not the source of truth for any lesson. Never author or correct lesson content there first, and never copy content out of it into a published page. If its copy of a lesson drifts from the HTML, delete the copy rather than reconcile it. Its existing dependencies (React, React DOM, Vite, oxlint, `@types/*`) are already in the lockfile; rule 7 still applies to anything new.
+- Labs: Python 3, standard library only. Modules 3, 5, 6 and 7 may also use `cryptography==50.0.1`, because Python has no asymmetric primitives. Those labs must exit with a clear message rather than a traceback when it is absent, and their page must say a package is needed.
 - The site must work when opened from local files (`file://`) as well as on GitHub Pages. Use relative links only.
 
 ## Current state
 
-| Path | Status |
+For module status, read `index.html`. A module with a plain link is published. A module
+with `class="planned"` links to its roadmap entry and is not built. Do not restate module
+status here; this file goes stale and `index.html` does not.
+
+These do not change:
+
+| Path | Role |
 |---|---|
-| `index.html` | Home page and module list. Only module 2 is linked. |
-| `topics/hmac-request-signing/` | Done. Module 2. The template to copy. |
-| `labs/hmac_lab.py` | Done. Tested. |
-| `glossary/index.html` | Started. Add terms as modules need them. |
+| `topics/hmac-request-signing/` | The reference implementation of the page template. Copy its structure, tone, and markup. |
+| `topics/<slug>/index.html` | One module per directory. Learn layer, then Reference layer. |
+| `labs/<topic>_lab.py` | One lab per module. Python 3, standard library only. |
+| `glossary/index.html` | Alphabetical. Add terms as modules need them. |
 | `checklist/index.html` | Generated. Never edit by hand. |
-| `tools/build_checklist.py` | Regenerates the checklist from topic pages. |
-| `tools/check_site.py` | Links, anchors, dashes, secrets, checklist freshness. |
+| `assets/site.css`, `assets/course.js` | The only stylesheet and the only script the site uses. |
+| `tools/build_checklist.py` | Regenerates the checklist from topic pages. `--check` exits 1 if stale. |
+| `tools/check_site.py` | Links, anchors, dashes, secrets, checklist freshness. Skips `react-poc/`. |
+| `tools/check_a11y.py` | axe-core against every page, light and dark, desktop and mobile. Author tool. Skips cleanly if not installed. |
+| `react-poc/` | Out of scope. See Format above. |
 
 ## Hard rules
 
@@ -33,7 +43,11 @@ These apply to every change. If a task seems to require breaking one, stop and a
 4. **No secrets anywhere.** Not in code, examples, comments, or screenshots. Use placeholders such as `<secret from vault>` or `<api-key>`. Labs generate keys at runtime or read them from a file passed on the command line. Do not read secrets from environment variables in labs, and do not present environment variables as the production pattern.
 5. **Fictional names only.** Use companies such as ExampleAir and ExampleHotels, and the reserved `.example` domain. Do not name real companies, real products as examples of victims, or real people. Do not reference any employer.
 6. **Run everything you publish.** Every lab and every code sample that shows output must be executed, and the page must show the real output, pasted from the run. Never type expected output by hand.
-7. **No new dependencies without asking.** This includes Python packages, CDN scripts, fonts, and tools. If a lab cannot be written with the standard library (for example, RSA signing for the JWT module), stop and ask. Propose a specific package and version.
+7. **Dependencies are decided, not assumed.** Two are approved, both as of 2026-09-29:
+   - `cryptography==50.0.1` for labs that need asymmetric keys, which is modules 3, 5, 6 and 7. It requires Python 3.9 or later.
+   - `playwright==1.56.0` and `axe-core@4.13.0` for `tools/check_a11y.py`.
+
+   The distinction that matters: a dependency in `labs/` is a **learner** dependency and breaks the promise that the course runs with Python 3 alone, so it needs a reason, a graceful skip, and a note on the page. A dependency in `tools/` is an **author** dependency and costs the learner nothing. Anything beyond the two above, in either place, including CDN scripts and fonts: stop and ask, and propose a specific package and version.
 8. **Never edit `checklist/index.html` by hand.** Edit checklist items on topic pages, then run `python3 tools/build_checklist.py`.
 9. **Smallest change that does the job.** Do not refactor, rename, or restyle existing pages while adding a module. If the shared CSS needs a change, make it minimal and check the HMAC page still renders correctly.
 10. **Writing style:**
@@ -44,7 +58,9 @@ These apply to every change. If a task seems to require breaking one, stop and a
 
 ## Stop and ask before
 
-- Adding any dependency.
+- Adding any dependency beyond the two approved in rule 7.
+- Adding anything to `react-poc/`, or moving published content into it.
+- Deciding for or against the React migration.
 - Deleting or renaming any file.
 - Changing the page template structure or the claim-label scheme.
 - Any git history rewrite or force push.
@@ -77,6 +93,7 @@ Work on one module per task unless told otherwise.
    ```sh
    python3 tools/build_checklist.py
    python3 tools/check_site.py
+   python3 tools/check_a11y.py
    python3 labs/<topic>_lab.py
    ```
 8. **Visual check.** If you have a browser available, open the new page in light and dark mode and at a narrow width. If you do not, say "not visually checked" in your report.
@@ -85,6 +102,7 @@ Work on one module per task unless told otherwise.
 ## Definition of done for a module
 
 - [ ] `python3 tools/check_site.py` prints `all checks passed`.
+- [ ] `python3 tools/check_a11y.py` prints `no accessibility violations`, or your report says it was skipped and why.
 - [ ] The lab runs, and the page shows its real output.
 - [ ] Every Standard label has a primary source that you opened.
 - [ ] Every Sources entry is a primary source with a pinned revision if the spec is versioned.
@@ -109,15 +127,15 @@ Build in this order. Each line gives the core attack and the lab idea. Details a
 
 **Primer** (`topics/primer/`)
 - Hash vs HMAC vs signature, symmetric vs asymmetric keys, what TLS and mTLS prove, authentication vs authorization, bearer vs sender-constrained credentials, trust boundaries.
-- Lab: hash vs HMAC vs signature. Signatures need a dependency, so ask first.
+- Lab: hash vs HMAC vs signature. Signature parts use `cryptography` per rule 7.
 - The primer does not need the full eight-section attack structure. Keep the Reference layer, and include checklist items only if they are real review items.
 
 **Part 1: Proving who is calling**
 1. **API keys.** Attack: a key leaked in a URL or log is reused. Lab: a log scanner that finds credentials in query strings.
 2. **HMAC request signing.** Done.
-3. **Asymmetric request signing** (RFC 9421). Attack: a receiver with a shared key forges caller requests. Lab: sign with a private key, verify with a public key, show the verifier cannot sign. Needs a dependency, so ask.
+3. **Asymmetric request signing** (RFC 9421). Attack: a receiver with a shared key forges caller requests. Lab: sign with a private key, verify with a public key, show the verifier cannot sign. Uses `cryptography` per rule 7.
 4. **OAuth basics.** Client credentials, authorization code with PKCE, and why the implicit and password grants are obsolete. Lab: walk a client credentials exchange against a local stub.
-5. **JWT validation.** Attacks: `alg:none`, RS256 to HS256 confusion, wrong audience. Lab: a vulnerable and a fixed verifier. RSA needs a dependency, so ask.
+5. **JWT validation.** Attacks: `alg:none`, RS256 to HS256 confusion, wrong audience. Lab: a vulnerable and a fixed verifier. RSA keys come from `cryptography` per rule 7; write the validation by hand rather than calling a JWT library, because the validation is the lesson.
 6. **JWKS, revocation, and introspection.** Attacks: stale or ambiguous keys, tokens that cannot be revoked. Lab: JWKS cache states, including unknown `kid`, duplicate `kid`, and malformed refresh.
 7. **Sender-constrained tokens: mTLS and DPoP.** Attack: stolen bearer token replay. Lab: replay of a bound vs an unbound token.
 8. **Workload and agent identity lifecycle.** Attack: orphaned credentials. This is a design exercise, not a code lab.
