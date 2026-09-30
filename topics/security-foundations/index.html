@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security concepts for the course | API Security in the Age of AI</title>
+<link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/course.js" defer></script>
+</head>
+<body data-course-lesson="security-foundations">
+<nav class="site-nav" aria-label="Site"><div><a class="home" href="../../index.html">API Security in the Age of AI</a><a href="../../index.html#course">Course</a><a href="../../index.html#path">Modules</a><a href="../../roadmap/index.html">Roadmap</a><a href="../../checklist/index.html">Checklist</a><a href="../../glossary/index.html">Glossary</a></div></nav>
+<main>
+<p class="kicker">Primer &middot; Module 0</p>
+<h1>Security concepts for the course</h1>
+<p class="meta">Last reviewed 2026-09-30 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+
+<div class="prose">
+<p><strong>Objective.</strong> After this module you can say who can produce and who can check each of a hash, an HMAC and a signature, state what TLS authenticates and what it does not, tell authentication from authorization without hesitating, and name the trust boundary a given check sits on.</p>
+<p><strong>Before you start.</strong> Nothing. This is the first module, and everything after it assumes these distinctions. If you already have them, the lab takes four minutes and you can move on.</p>
+</div>
+<section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 1 of 10</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
+
+<span class="layer" id="learn">Learn</span>
+
+<h2>1. The confusions that cause the bugs</h2>
+<div class="prose">
+<p>Almost every finding in the rest of this course traces back to one of six sentences that sound right and are not. They are not beginner mistakes. They appear in production systems built by people who know the protocols, because each one is true of something adjacent to the thing it is said about.</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>The sentence</th><th>What it actually produces</th><th>Where it is dealt with</th></tr></thead>
+<tbody>
+<tr><td>"The hash proves the body wasn't changed"</td><td>An attacker changes the body and the hash beside it</td><td>Here, and <a href="../hmac-request-signing/index.html">module 2</a></td></tr>
+<tr><td>"The signature proves who sent it"</td><td>It proves a key was used, and the receiver holds that key too</td><td><a href="../asymmetric-request-signing/index.html">Module 3</a></td></tr>
+<tr><td>"It came over TLS, so it's authentic"</td><td>TLS authenticates the server and the channel, not the caller or the request</td><td>Here</td></tr>
+<tr><td>"The token is genuine, so the holder is its owner"</td><td>Anyone who stole it is treated as its owner</td><td><a href="../sender-constrained-tokens/index.html">Module 7</a></td></tr>
+<tr><td>"The credential is valid, so the call is allowed"</td><td>A real caller reading someone else's records</td><td>Part 2</td></tr>
+<tr><td>"Authentication and authorization are the same check"</td><td>Every mechanism in Part 1 working perfectly, on a request that should have been refused</td><td>Nothing in Part 1 fixes this</td></tr>
+</tbody></table></div>
+<p class="prose">The last row does not turn green anywhere in Part 1, and saying so now is the point of this module. Part 1 is eight modules about establishing who is calling. All eight can succeed completely and leave you with a system that answers every question correctly except the one that matters.</p>
+
+<h2>2. Why it works</h2>
+<h3>Who can produce, and who can check</h3>
+<div class="prose">
+<p>Three mechanisms get used interchangeably in conversation and they differ on one axis: the set of parties who can produce a value, and the set who can check it.</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>Mechanism</th><th>Can produce</th><th>Can check</th><th>So it proves</th></tr></thead>
+<tbody>
+<tr><td><a href="../../glossary/index.html#hash">Hash</a></td><td>Anyone</td><td>Anyone</td><td>That two things are the same, if you got the hash from somewhere you trust</td></tr>
+<tr><td><a href="../../glossary/index.html#hmac">HMAC</a></td><td>Anyone holding the key</td><td>Anyone holding the key</td><td>That a key holder produced it. Both parties are key holders</td></tr>
+<tr><td><a href="../../glossary/index.html#asymmetric-signature">Asymmetric signature</a></td><td>The private key holder</td><td>Anyone with the public key</td><td>That the private key holder produced it, to anyone who cares</td></tr>
+</tbody></table></div>
+<div class="prose">
+<p>Read the first row carefully, because it is the one people get wrong. A hash has no key in it. That is not a limitation to work around, it is the definition, and it means a hash sent next to the thing it describes protects nothing: whoever can change one can change the other. A hash becomes useful the moment it is carried inside something a key protects, which is exactly what <a href="../asymmetric-request-signing/index.html">module 3</a> does when it covers <code>Content-Digest</code> in a signature.</p>
+<p>The second and third rows differ only in the "can produce" column, and that single difference is worth a whole module. If the party checking your requests can also produce them, then a valid request proves that one of two parties made it, which is not what anyone means by proving who sent it.</p>
+</div>
+
+<h3>What TLS does, and where it stops</h3>
+<div class="prose">
+<p>RFC 8446 states TLS 1.3's guarantees in its first section, and they are narrower than the way the protocol gets talked about:</p>
+<ul>
+<li><strong>Authentication.</strong> "The server side of the channel is always authenticated; the client side is optionally authenticated." The default is one-way. Your service proves it is your service; the caller proves nothing unless you deployed mutual TLS.</li>
+<li><strong>Confidentiality.</strong> "Data sent over the channel after establishment is only visible to the endpoints."</li>
+<li><strong>Integrity.</strong> "Data sent over the channel after establishment cannot be modified by attackers without detection."</li>
+</ul>
+<p>Every one of those is about the channel, and every one of them ends where the channel ends. Three consequences follow, and they are where TLS gets over-read:</p>
+<ul>
+<li>A request that arrived over TLS has an authenticated <em>server</em>, which is you. It says nothing about the caller. A credential in the request is what says something about the caller.</li>
+<li>Integrity holds between the two endpoints of the connection. If a load balancer or gateway terminates TLS, it is an endpoint, and everything past it is a new decision about trust. <a href="../sender-constrained-tokens/index.html">Module 7</a> is where that becomes concrete.</li>
+<li>None of it applies to data at rest, in a log, in a trace or in a crash dump. A credential is protected in transit and is plaintext at both ends, which is most of why <a href="../api-keys/index.html">module 1</a> exists.</li>
+</ul>
+</div>
+
+<h3>Authentication, authorization, and the trust boundary between them</h3>
+<div class="prose">
+<p><a href="../../glossary/index.html#authentication">Authentication</a> answers "who is calling". <a href="../../glossary/index.html#authorization">Authorization</a> answers "may this caller do this, to this object". They are separate questions with separate answers, they fail in different ways, and a system can do the first perfectly and never ask the second. Part 1 of this course is entirely the first question. Part 2 is entirely the second.</p>
+<p>A <a href="../../glossary/index.html#trust-boundary">trust boundary</a> is any point where data or a request moves from somewhere you do not control to somewhere you do. Checks belong on the boundary, and the practical failure is that a check gets performed once, on one path, and then the value is treated as validated everywhere afterwards. When a second path reaches the same handler without crossing that check, the handler cannot tell. This is why "the gateway validates it" is an answer that needs a second question: can anything reach this service without passing the gateway.</p>
+<p>One more distinction the course leans on constantly. A <a href="../../glossary/index.html#bearer-credential">bearer credential</a> is one where holding it is sufficient: possession is the whole claim. A <a href="../../glossary/index.html#sender-constrained-token">sender-constrained</a> one additionally requires proving you hold a key it names. API keys, most access tokens and session cookies are bearer credentials, which is why so much of Part 1 is about limiting what a stolen one is worth.</p>
+</div>
+
+<h3>The whole system</h3>
+<div class="diagram">
+<svg viewBox="0 0 1100 355" width="100%" style="min-width:900px" role="img">
+<title>The four questions a request passes through, and where each one is answered</title>
+<desc>A request travels left to right through four checks. First the channel, where TLS authenticates the server and protects the data in transit. Second authentication, which establishes which caller is making the request. Third authorization, which decides whether that caller may perform this action on this object. Fourth the business rule. Part 1 of the course is marked under authentication and Part 2 under authorization. A note records that the first three can each succeed while the request should still have been refused, because only authorization asks about the object.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+<text class="lab" x="36" y="30">A request, and the four separate questions it has to survive.</text>
+<g class="p"><rect x="30" y="60" width="180" height="70" rx="8"/><text class="th" x="120" y="88" text-anchor="middle">Channel</text><text class="ts" x="120" y="108" text-anchor="middle">TLS: the server, in transit</text></g>
+<g class="h"><rect x="250" y="60" width="200" height="70" rx="8"/><text class="th" x="350" y="88" text-anchor="middle">Authentication</text><text class="ts" x="350" y="108" text-anchor="middle">which caller is this</text></g>
+<g class="s"><rect x="490" y="60" width="220" height="70" rx="8"/><text class="th" x="600" y="88" text-anchor="middle">Authorization</text><text class="ts" x="600" y="108" text-anchor="middle">may they, to this object</text></g>
+<g class="g"><rect x="750" y="60" width="200" height="70" rx="8"/><text class="th" x="850" y="88" text-anchor="middle">Business rule</text><text class="ts" x="850" y="108" text-anchor="middle">should they, right now</text></g>
+<line class="arr" x1="210" y1="95" x2="246" y2="95" marker-end="url(#a)"/>
+<line class="arr" x1="450" y1="95" x2="486" y2="95" marker-end="url(#a)"/>
+<line class="arr" x1="710" y1="95" x2="746" y2="95" marker-end="url(#a)"/>
+
+<rect class="zone" x="250" y="160" width="200" height="72" rx="12"/>
+<text class="lab" x="350" y="188" text-anchor="middle">Part 1 of this course</text>
+<text class="ts" x="350" y="212" text-anchor="middle">modules 1 to 8</text>
+<rect class="zone" x="490" y="160" width="220" height="72" rx="12"/>
+<text class="lab" x="600" y="188" text-anchor="middle">Part 2</text>
+<text class="ts" x="600" y="212" text-anchor="middle">modules 9 to 11</text>
+
+<g class="r"><rect x="150" y="272" width="800" height="62" rx="8"/><text class="th" x="550" y="297" text-anchor="middle">All four are separate answers</text><text class="ts" x="550" y="318" text-anchor="middle">the first three can each succeed on a request that should have been refused</text></g>
+</svg>
+<div class="legend"><span class="lg-p">The channel</span><span class="lg-h">Who is calling</span><span class="lg-s">What they may do</span><span class="lg-r">What none of it settles</span></div>
+</div>
+
+<h2>3. The control</h2>
+<div class="prose">
+<p>There is no control to implement in this module. What there is, is a set of questions to ask of any design, and the value of asking them in this order is that each one stops you answering the next with the wrong evidence.</p>
+</div>
+<ol class="steps prose">
+<li><strong>What is being protected, and from whom?</strong> Integrity, confidentiality, attribution or availability. They need different mechanisms and get confused constantly.</li>
+<li><strong>Who can produce this value, and who can check it?</strong> If the answer is the same set both times, you have a shared secret and the receiver can forge. That may be acceptable. It has to be a decision.</li>
+<li><strong>Where does the channel end?</strong> Name the endpoints. Everything past the last TLS termination is a separate trust relationship whether or not you designed it as one.</li>
+<li><strong>Which question is this check answering?</strong> Who is calling, or what they may do. If a single check appears to answer both, it is answering one and assuming the other.</li>
+<li><strong>What does holding this credential get you?</strong> If the answer is "everything it authorizes", it is a bearer credential, and the whole of your exposure is wherever it can be copied from.</li>
+<li><strong>Can anything reach this handler without crossing the boundary you are relying on?</strong> If yes, the check is on the wrong side of it.</li>
+</ol>
+
+<h2>4. Defaults and when to change them</h2>
+<div class="wrap"><table>
+<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>
+<tbody>
+<tr><td>Integrity of a body</td><td>A hash carried inside something keyed: covered by a signature, or inside a token</td><td>Never send a bare hash beside the thing it describes and call it integrity.</td></tr>
+<tr><td>Symmetric or asymmetric</td><td>Asymmetric where the verifier must not be able to forge</td><td>An HMAC is enough when both parties are you and nothing will need attributing to one side. Module 3 has the full version.</td></tr>
+<tr><td>What TLS is relied on for</td><td>Confidentiality and integrity in transit, and server authentication</td><td>Never for caller authentication unless you deployed mutual TLS and the certificate reaches the code that checks it.</td></tr>
+<tr><td>Where checks live</td><td>On the trust boundary, in the service that owns the data</td><td>A gateway check is additional, not a replacement, unless you can show nothing else reaches the service.</td></tr>
+<tr><td>Authorization</td><td>A separate check, after authentication, naming the object</td><td>Never derived from the fact that authentication passed. That is the last row of the table above.</td></tr>
+<tr><td>Bearer credentials</td><td>Short-lived, narrowly scoped, never in a URL</td><td>Sender-constrain them where theft is a credible route in. Module 7 covers it.</td></tr>
+</tbody></table></div>
+
+<h2>5. What it proves, and what it doesn't</h2>
+<div class="prose">
+<p><strong>Proves:</strong> nothing on its own. This module is vocabulary, and vocabulary does not defend anything.</p>
+<p><strong>Doesn't prove:</strong> it is worth being explicit about the trap this module is most likely to set. Knowing that authentication is not authorization does not mean your system distinguishes them. The distinction has to exist in the code, as a second check that names the object, and the lab shows how comfortable a system looks when it is missing.</p>
+<div class="callout warn"><strong>The most expensive confusion is the cheapest to state.</strong> A caller can be fully authenticated, using a correctly validated, sender-constrained, unexpired credential, and still be asking for someone else's data. Every mechanism in Part 1 will say yes. The only thing that says no is a check you wrote that compares the object to the caller.</div>
+</div>
+
+<h2>6. Prove it</h2>
+<div class="prose">
+<p>For any design you are reviewing, you should be able to answer these without looking anything up:</p>
+<ul>
+<li>For each value carried in a request, who can produce it and who can check it.</li>
+<li>Which hop is the last TLS termination before your code, and what is trusted across it.</li>
+<li>Whether the caller is authenticated by something in the request, or assumed from the network position.</li>
+<li>Which line of code decides that this caller may act on this object, quoted.</li>
+<li>What an attacker gets from a copy of each credential involved, and for how long.</li>
+<li>Which paths reach the handler, and whether every one of them crosses the check you named.</li>
+</ul>
+</div>
+
+<h2>7. Lab</h2>
+<div class="prose">
+<p>Download <a href="../../labs/foundations_lab.py"><code>labs/foundations_lab.py</code></a>. It needs nothing beyond Python 3.</p>
+</div>
+<pre><code>Windows              macOS and Linux
+py -3 labs/foundations_lab.py    python3 labs/foundations_lab.py</code></pre>
+<div class="prose">
+<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The two keys in the file are fixed so the run is reproducible. Real keys are random and are never written in a file, which is <a href="../hmac-request-signing/index.html">module 2</a>.</p>
+</div>
+<pre><code>$ python3 labs/foundations_lab.py
+message: {"partnerTxnId":"EXA-000042","miles":10000}
+altered: {"partnerTxnId":"EXA-000042","miles":10001}   (one digit)
+
+Part A: a hash.
+ 1. the same input twice                             identical
+ 2. one digit changed                                different
+ 3. bits that changed, out of 256                    roughly half
+      (116 bits actually changed)
+ 4. an attacker alters the message and the hash      still consistent
+
+Part B: an HMAC.
+ 5. the same key and message twice                   identical
+ 6. the same message, a different key                different
+ 7. one digit changed, same key                      different
+ 8. the right key and message                        accepted
+ 9. the wrong key                                    rejected
+10. the altered message, the original tag            rejected
+
+Part C: who can produce a value, and who can check it.
+
+  mechanism              can produce                can check
+  hash                   anyone                     anyone
+  HMAC                   anyone holding the key     anyone holding the key
+  asymmetric signature   the private key holder     anyone with the public key
+
+  Rows 1 and 2 were produced above. Row 3 is stated here and
+  demonstrated in module 3, because Python's standard library has
+  no asymmetric primitives.
+
+11. a tag proves which key was used                  yes
+12. a message the caller never sent, from the receiver accepted
+
+Part D: authentication is not authorization.
+13. the caller reads its own balance                 accept
+14. the same caller reads another account            accept
+15. a forged request for another account             reject: bad signature
+16. with an ownership check, its own account         accept
+17. with an ownership check, another account         reject: not your account
+
+  Check 14 is the whole point of this module. The signature was
+  genuine, the caller was who it claimed, and the request should
+  still have been refused. Nothing in Part 1 of this course adds
+  the check that refuses it. Part 2 does.
+
+all lab checks passed</code></pre>
+<div class="prose">
+<p>Check 3 is the avalanche property, which is why a hash is useful for comparing things. Check 4 is why that usefulness evaporates when nothing protects the hash: the attacker recomputed it, and the pair is perfectly consistent.</p>
+<p>Check 12 is module 3's reason for existing, in one line. The message was never sent by the caller, the receiver produced the tag with the key it legitimately holds, and the verification succeeds because there is nothing in an HMAC that could tell the two apart.</p>
+<p>Checks 13 to 17 are the same five requests through two handlers. The first has authentication and no ownership check, and accepts a real caller reading an account that is not theirs. The second adds three lines and refuses it. Nothing about the credential changed between them.</p>
+<p><strong>Try next:</strong></p>
+<ul>
+<li>Change <code>ALTERED</code> so it differs from <code>MESSAGE</code> by one character somewhere else, and rerun. Watch how little check 3 moves.</li>
+<li>Replace <code>hmac.compare_digest</code> in <code>verify</code> with <code>==</code> and rerun. Every check still passes, which is the point: this one is not about correctness, it is about timing, and no functional test will ever catch it.</li>
+<li>In <code>handle</code>, move the ownership check above the signature check. Decide what an attacker learns from the difference between the two rejection messages.</li>
+</ul>
+</div>
+
+<h2>8. Check your understanding</h2>
+<details><summary>A request arrives over TLS 1.3 with a valid certificate. What do you know about the caller?</summary><p>Nothing. RFC 8446 says the server side is always authenticated and the client side only optionally. The certificate you validated is yours, presented by you, to them. Anything you know about the caller comes from a credential in the request.</p></details>
+<details><summary>Your partner sends a body and a SHA-256 of that body. What has that bought you?</summary><p>Protection against accidental corruption, and nothing against an attacker, who changes the body and recomputes the hash. A hash has no key, so producing one is available to everybody on the path. It is worth something only when it is carried inside something keyed, such as a covered <code>Content-Digest</code> in a signature.</p></details>
+<details><summary>An HMAC on a request verifies. Name precisely what you have established.</summary><p>That someone holding that key produced this exact request. Since both you and your partner hold the key, that set has at least two members, and you are one of them. If you need to attribute a request to your partner specifically, an HMAC cannot do it.</p></details>
+<details><summary>Every credential check in your service passes and a customer's data went to the wrong caller. Which check was missing?</summary><p>The one comparing the object being requested to the caller who requested it. Authentication established who was calling and did so correctly. Nothing in that answer says anything about which records they may read, and nothing in Part 1 of this course adds it.</p></details>
+
+<section class="course-quiz" data-quiz data-quiz-id="security-foundations-check" data-correct-feedback="Correct. Both parties hold the same key, so a valid HMAC narrows the producer to the set of key holders, which includes you. Attributing a request to the other party specifically needs an asymmetric signature." data-incorrect-feedback="Not quite. An HMAC does prove the message was not altered and that a key holder produced it. What it cannot do is single out which key holder, because the verifier holds the same key and could have produced it.">
+<p class="kicker">Quick check</p>
+<h2>What an HMAC establishes</h2>
+<fieldset><legend>Your partner sends requests signed with an HMAC using a key you both hold. A request verifies. What have you established?</legend>
+<label><input type="radio" name="fnd" value="partner"> That your partner sent this request.</label>
+<label><input type="radio" name="fnd" value="holder" data-correct="true"> That someone holding the key produced it, and you are also such a party.</label>
+<label><input type="radio" name="fnd" value="fresh"> That the request is recent and has not been sent before.</label>
+<label><input type="radio" name="fnd" value="allowed"> That your partner is permitted to make this request.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+</section>
+<p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
+<span class="layer" id="reference" style="margin-top:3rem">Reference</span>
+<h2 style="border-top:none;margin-top:.5rem">Controls</h2>
+<p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
+<ul class="controls">
+<li><span class="label std">Standard</span>TLS authenticates the server by default and the client only if you configure it. "The server side of the channel is always authenticated; the client side is optionally authenticated." RFC 8446 section 1.</li>
+<li><span class="label std">Standard</span>TLS protects the channel, not the stored data. Its guarantees are that data sent "after establishment is only visible to the endpoints" and "cannot be modified by attackers without detection". RFC 8446 section 1. Both end at the endpoints.</li>
+<li><span class="label std">Standard</span>An HMAC is computed with a key shared by both parties, so verification capability equals production capability. Use HMAC as specified in RFC 2104 and FIPS 198-1.</li>
+<li><span class="label base">Baseline</span>Never treat a hash sent alongside the data it describes as integrity protection. Carry it inside something a key protects.</li>
+<li><span class="label base">Baseline</span>For every value in a request, be able to name who can produce it and who can check it, and record the answer where the design is written down.</li>
+<li><span class="label base">Baseline</span>Name the last TLS termination before your code, and treat everything past it as a separate trust relationship.</li>
+<li><span class="label base">Baseline</span>Authorize as a separate check, after authentication, naming the object. Never derive it from authentication having succeeded.</li>
+<li><span class="label base">Baseline</span>Place checks in the service that owns the data. Treat a gateway check as additional unless nothing else can reach the service.</li>
+<li><span class="label base">Baseline</span>Compare secrets and tags with a constant-time function. No functional test will catch the difference.</li>
+<li><span class="label opt">Option</span>Use mutual TLS where you want the transport layer to carry caller identity, and confirm the certificate reaches the code that checks it rather than stopping at a proxy.</li>
+</ul>
+
+<h2>Review checklist items</h2>
+<p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
+<ul class="checks">
+<li data-check="fnd-01" data-severity="Critical"><strong>Authorization is a separate check that names the object</strong> <span>Quote the line. If the only check is that authentication passed, the system cannot refuse a real caller asking for someone else's data.</span></li>
+<li data-check="fnd-02" data-severity="Critical"><strong>Caller identity comes from a credential, never from the network position or the presence of TLS</strong> <span>TLS authenticates the server by default. A request arriving over TLS says nothing about who sent it.</span></li>
+<li data-check="fnd-03" data-severity="High"><strong>Body integrity is carried inside something keyed</strong> <span>A hash beside the data it describes is not integrity protection. It must be covered by a signature or carried in a token.</span></li>
+<li data-check="fnd-04" data-severity="High"><strong>The last TLS termination before the service is named, and what crosses it is stated</strong> <span>Anything past it is a separate trust relationship whether or not it was designed as one.</span></li>
+<li data-check="fnd-05" data-severity="High"><strong>Every check sits on the boundary it is relied on for</strong> <span>Enumerate the paths that reach the handler and confirm each one crosses it. A gateway check with a second path around it is not a control.</span></li>
+<li data-check="fnd-06" data-severity="Medium"><strong>For each value in a request, who can produce it and who can check it is written down</strong> <span>Where the two sets are the same, the design records that the receiver can forge and that this was accepted.</span></li>
+<li data-check="fnd-07" data-severity="Medium"><strong>Secrets and tags are compared in constant time</strong> <span>Library functions built for the purpose, not string equality. Functional tests pass either way.</span></li>
+</ul>
+
+<h2>Sources</h2>
+<ul class="prose">
+<li><a href="https://www.rfc-editor.org/rfc/rfc8446">RFC 8446: The Transport Layer Security (TLS) Protocol Version 1.3</a>, August 2018. Section 1, on what TLS authenticates and protects.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc2104">RFC 2104: HMAC: Keyed-Hashing for Message Authentication</a>, February 1997.</li>
+<li><a href="https://doi.org/10.6028/NIST.FIPS.198-1">NIST FIPS 198-1: The Keyed-Hash Message Authentication Code (HMAC)</a>.</li>
+</ul>
+</main>
+<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
+</body>
+</html>

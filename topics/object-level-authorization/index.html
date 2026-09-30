@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Object-level authorization | API Security in the Age of AI</title>
+<link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/course.js" defer></script>
+</head>
+<body data-course-lesson="object-level-authorization">
+<nav class="site-nav" aria-label="Site"><div><a class="home" href="../../index.html">API Security in the Age of AI</a><a href="../../index.html#course">Course</a><a href="../../index.html#path">Modules</a><a href="../../roadmap/index.html">Roadmap</a><a href="../../checklist/index.html">Checklist</a><a href="../../glossary/index.html">Glossary</a></div></nav>
+<main>
+<p class="kicker">Part 2: Deciding what they may do &middot; Module 9</p>
+<h1>Object-level authorization</h1>
+<p class="meta">Last reviewed 2026-09-30 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+
+<div class="prose">
+<p><strong>Objective.</strong> After this module you can write an ownership check that reads the owner from the stored object, recognise the five shapes in which the check exists in a codebase and not in effect, choose between 403 and 404 on purpose, and say what an ownership check does not decide.</p>
+<p><strong>Before you start.</strong> Part 1 established who is calling. <a href="../security-foundations/index.html">Module 0</a> ended on the row nothing in Part 1 turns green: a real caller, a valid credential, someone else's data. This module is that row.</p>
+</div>
+<section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 10 of 10</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
+
+<span class="layer" id="learn">Learn</span>
+
+<h2>1. The attack</h2>
+<div class="prose">
+<p>Running example: ExampleAir's booking API. Company names are fictional. The caller is <code>acct-77</code>, a real customer, correctly authenticated on every request below.</p>
+<p>The attack is changing a number in a URL. <code>GET /bookings/bkg-1001</code> returns your booking, so you try <code>bkg-1002</code>. Every credential check passes, because nothing about the credential changed. The only thing that changed is the object being asked for, and nothing looked at that.</p>
+<p>OWASP lists this first, as <strong>API1:2023 Broken Object Level Authorization</strong>, and rates it easy to exploit, widespread, and easy to detect. The detectability rating is worth sitting with: it is easy to detect by trying, and it produces no errors, no anomalies and a completely ordinary access log while it happens.</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>The caller does</th><th>Authentication alone</th><th>With an ownership check</th></tr></thead>
+<tbody>
+<tr><td>Read its own booking</td><td class="no">Allowed, correctly</td><td class="no">Allowed, correctly</td></tr>
+<tr><td>Change one digit in the URL</td><td class="yes">Someone else's booking</td><td class="no">Blocked</td></tr>
+<tr><td>Cancel that booking</td><td class="yes">Cancelled</td><td class="no">Blocked</td></tr>
+<tr><td>Walk the whole id range</td><td class="yes">Every record in the system</td><td class="no">Only its own</td></tr>
+<tr><td>Follow a reference to a related object</td><td class="yes">Whatever the reference points at</td><td class="yes">Whatever the reference points at, unless that handler checks too</td></tr>
+<tr><td>Act on its own booking in a way only staff should</td><td class="yes">Allowed</td><td class="yes">Allowed</td></tr>
+</tbody></table></div>
+<p class="prose">The last two rows stay open, and they are the two halves of the rest of Part 2. A related object needs its own check, in its own handler. An action needs a check about the action, which is <a href="../../roadmap/index.html#module-10">module 10</a>.</p>
+
+<h2>2. Why it works</h2>
+<div class="prose">
+<p>OWASP's definition of <a href="../../glossary/index.html#object-level-authorization">object-level authorization</a> is worth quoting because the important word is where the check lives: "Object level authorization is an access control mechanism that is usually implemented at the code level to validate that a user can only access the objects that they should have permissions to access."</p>
+<p>At the code level. Not in a gateway, not in a policy file, not in a middleware that never sees the object. The check needs two values, and one of them can only be obtained by loading the object: who the caller is, and who the object belongs to. Anything upstream of the data access has the first and not the second.</p>
+<p>Which is why this defect survives good architecture. A team with a solid gateway, validated tokens, scopes and mutual TLS still has to write this comparison, per object, in every handler, and nothing above the handler can write it for them. It is repetitive, it is easy to omit once, and omitting it once is the whole vulnerability.</p>
+<p>The identifier being guessable is not the cause. Sequential integers make <a href="../../glossary/index.html#enumeration">enumeration</a> a loop instead of a search, so unguessable identifiers are worth using, and OWASP does recommend random values such as GUIDs. But an unguessable id is a delay, not a control: identifiers leak in referrals, logs, exports, support tickets and shared links, and the moment one leaks the missing check is exactly as missing as before.</p>
+</div>
+
+<h2>3. The control</h2>
+<h3>The check</h3>
+<div class="prose">
+<p>Load the object, read the owner from the object you loaded, compare it with the caller established by authentication, and refuse before returning anything. Four steps, and each one of them is a place this goes wrong:</p>
+</div>
+<ol class="steps prose">
+<li><strong>Load the object first.</strong> You cannot check ownership of a record you have not read. A check that runs before the load is checking something else.</li>
+<li><strong>Read the owner from the loaded record.</strong> Not from a parameter, a header, a body field or a hidden form value. If the caller can supply it, the caller can supply yours.</li>
+<li><strong>Compare against the identity authentication produced.</strong> The subject from the validated token, not a user id in the request that happens to match it.</li>
+<li><strong>Refuse before the response is built.</strong> Including before any part of it is logged, cached, or emitted in an error message.</li>
+</ol>
+<div class="diagram">
+<svg viewBox="0 0 1100 360" width="100%" style="min-width:900px" role="img">
+<title>Where an ownership check can and cannot be made</title>
+<desc>A request passes through a gateway and a service. The gateway knows the caller from the validated token but has not loaded the object, so it cannot compare ownership. The service loads the object, which is the first point where both the caller and the object owner are known, and that is where the comparison belongs. A box below records that every handler reaching the same object needs the check, including list endpoints, write endpoints and the handlers for related objects.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+<g class="p"><rect x="30" y="60" width="200" height="72" rx="8"/><text class="th" x="130" y="88" text-anchor="middle">Request</text><text class="ts" x="130" y="108" text-anchor="middle">GET /bookings/bkg-1002</text></g>
+<g class="g"><rect x="270" y="60" width="230" height="72" rx="8"/><text class="th" x="385" y="84" text-anchor="middle">Gateway</text><text class="ts" x="385" y="102" text-anchor="middle">knows the caller</text><text class="ts" x="385" y="120" text-anchor="middle">has not loaded the object</text></g>
+<g class="h"><rect x="540" y="60" width="260" height="72" rx="8"/><text class="th" x="670" y="84" text-anchor="middle">Handler, after the load</text><text class="ts" x="670" y="102" text-anchor="middle">knows the caller</text><text class="ts" x="670" y="120" text-anchor="middle">and the object's owner</text></g>
+<g class="r"><rect x="850" y="60" width="220" height="72" rx="8"/><text class="th" x="960" y="88" text-anchor="middle">Refuse</text><text class="ts" x="960" y="108" text-anchor="middle">before anything is built</text></g>
+<line class="arr" x1="230" y1="96" x2="266" y2="96" marker-end="url(#a)"/>
+<line class="arr" x1="500" y1="96" x2="536" y2="96" marker-end="url(#a)"/>
+<line class="rej" x1="800" y1="96" x2="846" y2="96" marker-end="url(#a)"/>
+<text class="ts" x="385" y="158" text-anchor="middle">cannot make this decision</text>
+<text class="ts" x="670" y="158" text-anchor="middle">the only place that can</text>
+
+<rect class="zone" x="20" y="190" width="1060" height="150" rx="12"/>
+<text class="lab" x="550" y="220" text-anchor="middle">And once, per handler, is not enough</text>
+<g class="s"><rect x="60" y="240" width="220" height="56" rx="8"/><text class="th" x="170" y="262" text-anchor="middle">Read one</text><text class="ts" x="170" y="281" text-anchor="middle">GET /bookings/{id}</text></g>
+<g class="s"><rect x="310" y="240" width="220" height="56" rx="8"/><text class="th" x="420" y="262" text-anchor="middle">List many</text><text class="ts" x="420" y="281" text-anchor="middle">filter in the query</text></g>
+<g class="s"><rect x="560" y="240" width="220" height="56" rx="8"/><text class="th" x="670" y="262" text-anchor="middle">Write or delete</text><text class="ts" x="670" y="281" text-anchor="middle">every verb, not just GET</text></g>
+<g class="s"><rect x="810" y="240" width="230" height="56" rx="8"/><text class="th" x="925" y="262" text-anchor="middle">Related objects</text><text class="ts" x="925" y="281" text-anchor="middle">the invoice has its own owner</text></g>
+<text class="ts" x="550" y="322" text-anchor="middle">one handler without it is the whole vulnerability</text>
+</svg>
+<div class="legend"><span class="lg-p">The request</span><span class="lg-h">Where the check belongs</span><span class="lg-s">Every route to the object</span><span class="lg-r">Refusal</span></div>
+</div>
+
+<h3>403 or 404</h3>
+<div class="prose">
+<p>A refusal has to say something, and what it says is information. RFC 9110 defines both codes and is explicit that the choice is available to you. Under 403 it notes that "if the server wishes to hide that the target resource exists, the server can respond with a 404 (Not Found) status code instead", and under 404 that "the server does not need to reveal whether the target resource exists or merely refuses access to it".</p>
+<p>So: 403 tells the caller the object exists and they may not have it. 404 tells them nothing. The difference matters because 403 turns an id range into a map. An attacker walking identifiers learns which ones are real, which is useful on its own and more useful combined with anything else they find later.</p>
+<p>The project baseline is 404 for an object the caller may not see, and 403 only where the caller is known to be entitled to know the object exists, such as a shared resource they have been removed from. Whichever you choose, choose it once and apply it consistently, because a service that returns 404 from most handlers and 403 from one has disclosed exactly the same thing through the inconsistency.</p>
+</div>
+
+<h2>4. Defaults and when to change them</h2>
+<div class="wrap"><table>
+<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>
+<tbody>
+<tr><td>Where the owner comes from</td><td>The stored object, after loading it</td><td>Never from the request. A parameter the caller controls is not evidence about the caller.</td></tr>
+<tr><td>Where the check runs</td><td>In the service that owns the data, in the handler, after the load</td><td>A gateway check is additional. It cannot make this decision because it has not read the object.</td></tr>
+<tr><td>List endpoints</td><td>Filter in the query, by the caller's identity</td><td>Never filter in the client or after serialisation. The rows left the database, and everything after that is a rendering choice.</td></tr>
+<tr><td>Which verbs</td><td>All of them</td><td>A read check with no write check is the more damaging half missing.</td></tr>
+<tr><td>Related objects</td><td>Each has its own check in its own handler</td><td>Reaching an object through one you own does not make it yours. The invoice belongs to whoever the invoice says.</td></tr>
+<tr><td>Refusal code</td><td>404 for anything the caller may not see</td><td>403 where the caller is entitled to know it exists. Apply one rule across the whole service.</td></tr>
+<tr><td>Identifiers</td><td>Random and unguessable, such as a UUID</td><td>Worth doing, and never instead of the check. OWASP recommends it; it raises the cost of discovery and removes nothing.</td></tr>
+<tr><td>Proving it</td><td>A test per object type that a second caller is refused</td><td>OWASP's advice is to write the tests and not deploy when they fail. This is the only control here that does not decay.</td></tr>
+</tbody></table></div>
+
+<h2>5. What it proves, and what it doesn't</h2>
+<div class="prose">
+<p><strong>Proves:</strong> that the caller this request authenticated as is the owner recorded on the object this request named, at the moment it was loaded.</p>
+<p><strong>Doesn't prove:</strong> that they may perform this action on it. Ownership is one question and the operation is another, which is why a customer who owns a booking can still be refused a refund on it. It also says nothing about which fields of the object they may see or set, and nothing about objects reached through this one.</p>
+<div class="callout warn"><strong>The check exists in most of the codebases where this is found.</strong> It is in the main read handler, written correctly, and missing from the bulk export, the admin-adjacent route, the v1 endpoint still serving traffic, or the handler for the object the response embeds. Finding this defect is not a search for code that is absent; it is an enumeration of every path that reaches the object and a check that each one carries it.</div>
+</div>
+
+<h2>6. Prove it</h2>
+<div class="prose">
+<p>For every object type your API exposes, all of these must hold:</p>
+<ul>
+<li>A second, authenticated caller is refused the object, on every verb it is exposed under.</li>
+<li>The list endpoint returns nothing belonging to anyone else, verified against the query, not the response.</li>
+<li>Supplying an owner identifier in the request changes nothing about the outcome.</li>
+<li>Every object referenced in a response is refused to the same second caller when requested directly.</li>
+<li>The refusal is the same code and body whether the object exists or not, unless you documented a deliberate exception.</li>
+<li>Older API versions still serving traffic pass all of the above.</li>
+<li>The tests for all of the above run in the build, and a failure stops the deployment.</li>
+</ul>
+</div>
+
+<h2>7. Lab</h2>
+<div class="prose">
+<p>Download <a href="../../labs/object_authorization_lab.py"><code>labs/object_authorization_lab.py</code></a>. It needs nothing beyond Python 3.</p>
+</div>
+<pre><code>Windows              macOS and Linux
+py -3 labs/object_authorization_lab.py    python3 labs/object_authorization_lab.py</code></pre>
+<div class="prose">
+<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The caller is authenticated correctly in all 21 checks. Nothing in this lab is a credential problem.</p>
+</div>
+<pre><code>$ python3 labs/object_authorization_lab.py
+caller: acct-77, authenticated correctly in every request below
+
+Part A: authentication only. No ownership check anywhere.
+ 1. reads its own booking                                200 DFW-LHR
+ 2. reads another customer's booking                     200 SFO-NRT
+ 3. cancels another customer's booking                   200 cancelled
+
+Part B: the owner is read from the stored object and compared.
+ 4. reads its own booking                                200 DFW-LHR
+ 5. reads another customer's booking                     404 not found
+ 6. cancels another customer's booking                   404 not found
+ 7. the other booking is untouched                       confirmed
+
+Part C: the check is in the code and absent in effect.
+ 8. owner read from the request, caller supplies its own 200 SFO-NRT
+ 9. the same request, owner read from the object         404 not found
+10. list endpoint, filtered in the client                5 bookings returned
+11. list endpoint, filtered in the query                 2 bookings returned
+12. invoice of another customer, no check on the invoice 200 1180.00
+13. the same invoice, checked in its own handler         404 not found
+14. a path that reaches the handler with no caller       200 SFO-NRT
+15. the same path, unguarded comparison                  404 not found
+16. walking bkg-1001 to bkg-1005 with no check           5 of 5 reachable
+17. the same walk with the check in place                2 of 5 reachable
+
+Part D: what an ownership check does not decide.
+18. the caller refunds a booking it owns                 200 refunded
+19. the same request, with a function-level check        403 staff only
+20. 403 for an id that exists, 404 for one that does not existence disclosed
+21. 404 for both                                         indistinguishable
+
+all lab checks passed</code></pre>
+<div class="prose">
+<p>Check 7 is there because a cancelled booking is the part customers notice. Part A's check 3 is not a read of data that should have been private; it destroyed a stranger's travel plans, and the caller needed no tooling to do it.</p>
+<p>Part C is five pairs, and each pair is the same request against two handlers. Check 8 is the most common shape in real code: the handler compares the caller with an owner the caller supplied, which is an elaborate way of comparing a value with itself. Check 10 is the second most common: the query returns every row and the filtering is somewhere later, so the data left the database and the API's job was already done wrong. Check 12 is the one that survives reviews, because the booking handler is correct and the invoice handler was written by someone reading a different ticket. Check 14 is a one-word bug: <code>if caller and booking["owner"] != caller</code> skips the comparison entirely on any path that arrives without a caller.</p>
+<p>Checks 16 and 17 put a number on it. With no check, five identifiers in a range return five records. With the check, the same walk returns the two that belong to the caller, and the other three are indistinguishable from identifiers that were never issued.</p>
+<p>Checks 18 and 19 are the boundary of this module. The caller owns that booking, so the ownership check has done its job and has no opinion about refunds. Module 10 is where the second question gets asked.</p>
+<p><strong>Try next:</strong></p>
+<ul>
+<li>Change <code>bkg-1002</code>'s owner to <code>acct-77</code> and rerun. Watch which checks move and satisfy yourself that the verdict follows the stored record rather than the identifier.</li>
+<li>Delete the <code>caller and</code> guard from <code>get_guarded_check</code>. Check 14 flips, and that is the entire fix for a defect that returns another customer's booking.</li>
+<li>Add a sixth booking owned by <code>acct-77</code> and rerun. Check 17 changes and check 16 does not, which tells you which number is about your data and which is about your code.</li>
+<li>Make <code>probe</code> return 403 for unknown identifiers as well as forbidden ones. Check 20 flips. Decide whether you would rather leak existence or leak nothing.</li>
+</ul>
+</div>
+
+<h2>8. Check your understanding</h2>
+<details><summary>Why can a gateway not make this decision for you?</summary><p>Because it has the caller and not the object. The comparison needs the owner recorded on the record being requested, and that value exists only after the record is loaded, which happens in the service. A gateway can enforce that a caller may use an endpoint. It cannot enforce which rows they may have from it.</p></details>
+<details><summary>Your handler compares the caller with an owner id from the request body, and they match. What have you checked?</summary><p>That a value the caller sent equals a value the caller sent. The comparison succeeds for every request an attacker constructs, because they supply both sides. The owner has to come from the record you loaded.</p></details>
+<details><summary>The item endpoint is correct and the list endpoint returns everything, filtered in the front end. How bad is that?</summary><p>It is the same vulnerability with a better yield. The item endpoint leaks one record per request and requires guessing identifiers; the list endpoint hands over every record in one response, and the filtering that hides them is running on the attacker's own machine. Filter in the query.</p></details>
+<details><summary>You switch every refusal from 403 to 404. What have you gained and what have you not?</summary><p>You have stopped confirming which identifiers exist, which makes enumeration blind. You have not added a single access control: the check that refuses the request is the same check it was before. If the check is missing, the status code it would have returned is not the problem.</p></details>
+
+<section class="course-quiz" data-quiz data-quiz-id="object-level-authorization-check" data-correct-feedback="Correct. The owner has to be read from the record that was loaded. Any value the caller can supply is a value the caller can choose, so comparing it with the caller's own identity always succeeds." data-incorrect-feedback="Not quite. Unguessable identifiers and gateway policy both raise the cost of finding the object, and neither compares the caller with the record's owner. The check has to read the owner from the loaded object.">
+<p class="kicker">Quick check</p>
+<h2>Where the owner comes from</h2>
+<fieldset><legend>Which change actually stops a caller from reading another customer's booking?</legend>
+<label><input type="radio" name="bola" value="uuid"> Replace sequential identifiers with UUIDs.</label>
+<label><input type="radio" name="bola" value="object" data-correct="true"> Load the booking and compare its stored owner with the authenticated caller.</label>
+<label><input type="radio" name="bola" value="param"> Compare the caller with the owner id sent in the request.</label>
+<label><input type="radio" name="bola" value="gateway"> Require a valid token with the right scope at the gateway.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+</section>
+<p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
+<span class="layer" id="reference" style="margin-top:3rem">Reference</span>
+<h2 style="border-top:none;margin-top:.5rem">Controls</h2>
+<p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
+<ul class="controls">
+<li><span class="label std">Standard</span>Object level authorization is "usually implemented at the code level to validate that a user can only access the objects that they should have permissions to access". OWASP API Security Top 10 2023, API1:2023.</li>
+<li><span class="label std">Standard</span>Validate the caller's permission against every object reached using an identifier from client input, in every handler that reaches it. OWASP API1:2023, How To Prevent.</li>
+<li><span class="label std">Standard</span>Write tests for the authorization mechanism and do not deploy a change that fails them. OWASP API1:2023, How To Prevent.</li>
+<li><span class="label std">Standard</span>Use random, unpredictable values for record identifiers, such as GUIDs. OWASP API1:2023, How To Prevent. This raises the cost of discovery; it is not the access control.</li>
+<li><span class="label std">Standard</span>Choose the refusal code deliberately. RFC 9110 section 15.5.4 notes that "if the server wishes to hide that the target resource exists, the server can respond with a 404 (Not Found) status code instead", and section 15.5.5 that "the server does not need to reveal whether the target resource exists or merely refuses access to it".</li>
+<li><span class="label base">Baseline</span>Load the object, read the owner from the loaded record, compare with the identity authentication produced, and refuse before any part of the response is built.</li>
+<li><span class="label base">Baseline</span>Never read the owner from a request parameter, header or body field.</li>
+<li><span class="label base">Baseline</span>Filter list endpoints in the query. Never after serialisation and never in the client.</li>
+<li><span class="label base">Baseline</span>Apply the check on every verb the object is exposed under, not only reads.</li>
+<li><span class="label base">Baseline</span>Give every related object its own check in its own handler. Reaching it through an object you own does not transfer ownership.</li>
+<li><span class="label base">Baseline</span>Return 404 for anything the caller may not see, consistently across the service.</li>
+<li><span class="label base">Baseline</span>Enumerate every path that reaches each object type, including older versions still serving traffic, and confirm each one carries the check.</li>
+<li><span class="label opt">Option</span>Return 403 where the caller is entitled to know the object exists, such as a shared resource their access to was removed. Document it, and keep it out of the paths where existence is itself the secret.</li>
+<li><span class="label opt">Option</span>Enforce ownership in the data access layer, so a handler that forgets the check cannot load the row at all. This trades some flexibility for a default that fails closed.</li>
+</ul>
+
+<h2>Review checklist items</h2>
+<p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
+<ul class="checks">
+<li data-check="bola-01" data-severity="Critical"><strong>Every handler compares the caller with the owner read from the loaded object</strong> <span>Quote the line for each object type. A comparison against a value from the request is not a check.</span></li>
+<li data-check="bola-02" data-severity="Critical"><strong>The check is present on every verb and every path to the object</strong> <span>Reads, writes, deletes, bulk exports, and any older API version still serving traffic. One path without it is the vulnerability.</span></li>
+<li data-check="bola-03" data-severity="Critical"><strong>List endpoints filter in the query</strong> <span>Verified against the query, not the response. Filtering after serialisation or in the client means the data already left.</span></li>
+<li data-check="bola-04" data-severity="High"><strong>Related and embedded objects are checked in their own handlers</strong> <span>Test each referenced object directly as a second caller. Reaching it through an object you own does not make it yours.</span></li>
+<li data-check="bola-05" data-severity="High"><strong>A second authenticated caller is refused, and there is a test that proves it</strong> <span>Per object type, in the build, and a failure stops the deployment.</span></li>
+<li data-check="bola-06" data-severity="Medium"><strong>Refusals do not disclose existence</strong> <span>The same status and body whether the object exists or not, consistently across the service, unless an exception is documented.</span></li>
+<li data-check="bola-07" data-severity="Medium"><strong>Identifiers are unguessable, and nothing depends on that</strong> <span>Random values raise the cost of discovery. Removing the check because identifiers are UUIDs is not a trade, it is the vulnerability.</span></li>
+</ul>
+
+<h2>Sources</h2>
+<ul class="prose">
+<li><a href="https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/">OWASP API Security Top 10 2023, API1:2023 Broken Object Level Authorization</a>. Definition, ratings and prevention guidance.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9110">RFC 9110: HTTP Semantics</a>, June 2022. Sections 15.5.2, 15.5.4 and 15.5.5 for 401, 403 and 404.</li>
+</ul>
+</main>
+<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
+</body>
+</html>

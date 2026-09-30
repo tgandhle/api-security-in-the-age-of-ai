@@ -177,5 +177,5 @@ These are starting points to open and verify, not citations to copy. Confirm eac
 - JWT: RFC 7519. JWT best current practices: RFC 8725. JWT access token profile: RFC 9068. JWK: RFC 7517.
 - Revocation: RFC 7009. Introspection: RFC 7662. mTLS-bound tokens: RFC 8705. DPoP: RFC 9449. Token exchange: RFC 8693. Rich authorization requests: RFC 9396. Resource indicators: RFC 8707. Protected resource metadata: RFC 9728.
 - HTTP message signatures: RFC 9421. Digest fields: RFC 9530. HMAC: RFC 2104 and NIST FIPS 198-1.
-- OWASP API Security Top 10 2023, OWASP Top 10 for LLM Applications 2025, OWASP Top 10 for Agentic Applications 2026.
+- OWASP API Security Top 10 2023, OWASP Top 10 for LLM Applications 2025, OWASP Top 10 for Agentic Applications, released December 2025 (the title carries no year).
 - MCP specification, revision 2026-07-28. A2A specification: version to be confirmed.
