@@ -83,6 +83,7 @@ Work on one module per task unless told otherwise.
    - The Reference layer has controls, checklist items, and sources.
    - Include "Last reviewed YYYY-MM-DD" with today's date.
    - In the Lab section, carry the Windows note verbatim: `On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>.` A default Windows install has no `python3` command, and the audience includes Windows users.
+   - If the lab needs a package, show the virtual environment block instead, and say that inside an activated environment the command is `python`, not `py -3`. The Windows launcher bypasses an active environment when given an explicit version.
    - Link glossary terms on first use, and add any missing terms to `glossary/index.html`. Keep the glossary alphabetical, and give each term an `id` in lowercase with hyphens.
 5. **Checklist items** use this exact markup, with ids prefixed by the topic, for example `jwt-01`:
    ```html
