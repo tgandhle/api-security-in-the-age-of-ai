@@ -31,6 +31,9 @@
 <dt id="confidential-client">Confidential client</dt><dd>A client that can keep a secret, such as a server-side application. It authenticates to the authorization server in its own right.</dd>
 <dt id="confirmation-claim">Confirmation claim</dt><dd>The <code>cnf</code> claim in a token, naming a key its holder must be able to use. It turns a bearer token into one that also requires proof of possession.</dd>
 <dt id="constant-time-comparison">Constant-time comparison</dt><dd>A comparison that takes the same time whether values differ at the first byte or the last. Ordinary string comparison stops at the first difference, which can leak information through timing.</dd>
+<dt id="content-digest">Content-Digest</dt><dd>A header carrying a hash of the message body, defined by RFC 9530. It is the only way a request body enters an HTTP message signature, and then only if it is a covered component and the receiver recomputes it.</dd>
+<dt id="covered-components">Covered components</dt><dd>The ordered list of message parts a signature is computed over. Anything not in the list is outside the signature and can be changed without invalidating it.</dd>
+<dt id="derived-component">Derived component</dt><dd>A signature input taken from the request or response line rather than a header, written with a leading <code>@</code>, such as <code>@method</code>, <code>@authority</code> or <code>@path</code>. RFC 9421 section 2.2.</dd>
 <dt id="dpop">DPoP</dt><dd>Demonstrating Proof of Possession. The client signs a small JWT per request with a key it holds, and the access token names that key, so a stolen token alone is not enough. RFC 9449.</dd>
 <dt id="front-channel">Front channel</dt><dd>A request or response that travels through the user's browser, usually as a redirect. Anything in a front-channel URL may reach browser history, referrer headers, proxy logs, and other apps on the device.</dd>
 <dt id="hash">Hash</dt><dd>A fixed-length fingerprint of data, such as SHA-256. Anyone can compute it, and changing one byte of input changes the output completely. A hash alone proves nothing about who made it.</dd>
@@ -43,6 +46,7 @@
 <dt id="key-rotation">Key rotation</dt><dd>Replacing a key on a schedule or after exposure. Usually both old and new keys are accepted during a short overlap, then the old one is retired.</dd>
 <dt id="keyid">keyId</dt><dd>An identifier sent with a signed request telling the receiver which key to verify with. It must never be the key itself.</dd>
 <dt id="mtls">mTLS</dt><dd>Mutual TLS. Both client and server present certificates, so each proves its identity to the other when the connection opens.</dd>
+<dt id="non-repudiation">Non-repudiation</dt><dd>The property that a signer cannot plausibly deny having signed. An asymmetric signature gives a technical version of this, because the verifier could not have produced it, and it holds only as far as private key custody holds.</dd>
 <dt id="nonce">Nonce</dt><dd>A value used once. The receiver remembers nonces it has seen for a limited time and rejects repeats.</dd>
 <dt id="pkce">PKCE</dt><dd>Proof Key for Code Exchange. The client commits to a secret verifier by sending its hash, then proves possession of the verifier when redeeming the code, so a stolen code on its own is useless.</dd>
 <dt id="public-client">Public client</dt><dd>A client that cannot keep a secret, such as a mobile app or code running in a browser. It relies on PKCE rather than a client secret.</dd>
@@ -55,6 +59,7 @@
 <dt id="sender-constrained-token">Sender-constrained token</dt><dd>A token that only works for a holder who can prove possession of a particular key, through a client certificate or a per-request proof.</dd>
 <dt id="shared-secret">Shared secret</dt><dd>A key known to both parties. Either party can create a valid signature, which is why a shared secret can't prove which one did.</dd>
 <dt id="signature">Signature</dt><dd>A value computed from data and a key that lets a receiver check the data wasn't changed and came from a key holder.</dd>
+<dt id="signature-base">Signature base</dt><dd>The exact ASCII string an HTTP message signature is computed over: one line per covered component, with the signature parameters as the last line. RFC 9421 section 2.5.</dd>
 <dt id="tls">TLS</dt><dd>Transport Layer Security. Encrypts a connection and proves the server's identity to the client. It protects data in transit, not after it arrives.</dd>
 <dt id="token-profile">Token profile</dt><dd>The rules an application declares before verifying any token: allowed algorithms, token type, expected issuer and audience, required claims, key source and clock leeway. Nothing in it is read from the token.</dd>
 </dl>
