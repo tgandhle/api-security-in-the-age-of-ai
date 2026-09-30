@@ -233,37 +233,38 @@ def main():
     print("Part B: a verifier that enforces a declared profile.")
     strict = ProfileVerifier(public_key, ISSUER, AUDIENCE)
     check("genuine RS256 access token", "accept", strict.verify(genuine))
-    check("alg none, signature removed", "reject", strict.verify(unsigned))
-    check("alg HS256 signed with the public key", "reject", strict.verify(confused))
-    check("token issued for another audience", "reject", strict.verify(wrong_audience))
-    check("token that expired an hour ago", "reject", strict.verify(expired))
+    check("alg none, signature removed", "reject: algorithm not allowed", strict.verify(unsigned))
+    check("alg HS256 signed with the public key", "reject: algorithm not allowed", strict.verify(confused))
+    check("token issued for another audience", "reject: audience mismatch", strict.verify(wrong_audience))
+    check("token that expired an hour ago", "reject: expired", strict.verify(expired))
 
     other_issuer = make_rs256(header, access_claims(iss="https://auth.attacker.example"), private_key)
-    check("token from a different issuer", "reject", strict.verify(other_issuer))
+    check("token from a different issuer", "reject: issuer mismatch", strict.verify(other_issuer))
 
     id_token = make_rs256({"alg": "RS256", "typ": "JWT", "kid": "hotel-2026-09"},
                           access_claims(client_id=None, jti=None), private_key)
-    check("an ID token where an access token is due", "reject", strict.verify(id_token))
+    check("an ID token where an access token is due", "reject: wrong token type", strict.verify(id_token))
 
     no_jti = make_rs256(header, access_claims(jti=None), private_key)
-    check("required claim jti removed", "reject", strict.verify(no_jti))
+    check("required claim jti removed", "reject: missing claim jti", strict.verify(no_jti))
 
     head, body, signature = split(genuine)
     raw = bytearray(unb64(signature))
     raw[0] ^= 0x01
     tampered = head + "." + body + "." + b64(bytes(raw))
-    check("one bit flipped in the signature", "reject", strict.verify(tampered))
+    check("one bit flipped in the signature", "reject: signature check failed", strict.verify(tampered))
 
     foreign = make_rs256(header, access_claims(), other_key)
-    check("signed by a different RSA key", "reject", strict.verify(foreign))
+    check("signed by a different RSA key", "reject: signature check failed", strict.verify(foreign))
 
     future = make_rs256(header, access_claims(nbf=NOW + 300), private_key)
-    check("nbf five minutes in the future", "reject", strict.verify(future))
+    check("nbf five minutes in the future", "reject: not yet valid", strict.verify(future))
 
     just_expired = make_rs256(header, access_claims(exp=NOW - 30), private_key)
     check("expired 30s ago, inside 60s leeway", "accept", strict.verify(just_expired))
 
-    failures = [r for r in RESULTS if not r[2].startswith(r[1])]
+    # Exact comparison: a prefix match can let a check pass for the wrong reason.
+    failures = [r for r in RESULTS if r[2] != r[1]]
     print()
     if failures:
         print("%d check(s) did not match the expected outcome:" % len(failures))

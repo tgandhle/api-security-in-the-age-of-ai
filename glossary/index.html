@@ -34,6 +34,7 @@
 <dt id="hmac">HMAC</dt><dd>Hash-based message authentication code. A hash computed with a secret key mixed in, so only key holders can produce or check it.</dd>
 <dt id="id-token">ID token</dt><dd>A JWT from OpenID Connect that tells a client who signed in. It is for the client, not for an API, and a verifier expecting an access token must reject it.</dd>
 <dt id="idempotency-key">Idempotency key</dt><dd>A value, such as a transaction ID, that lets the receiver recognize a repeated business operation and return the original result instead of doing the work twice.</dd>
+<dt id="introspection">Introspection</dt><dd>Asking the authorization server whether a token is active right now. It answers for the moment you ask, so caching the answer trades liveness for load.</dd>
 <dt id="jwks">JWKS</dt><dd>JSON Web Key Set. The set of public keys an issuer publishes so verifiers can check its signatures, each identified by a key id. Covered in module 6.</dd>
 <dt id="jwt">JWT</dt><dd>JSON Web Token. A base64url-encoded header, payload and signature, separated by dots. The header and payload are readable by anyone holding the token; the signature only shows they were not altered.</dd>
 <dt id="key-rotation">Key rotation</dt><dd>Replacing a key on a schedule or after exposure. Usually both old and new keys are accepted during a short overlap, then the old one is retired.</dd>
@@ -46,6 +47,7 @@
 <dt id="redirect-uri">Redirect URI</dt><dd>The address the authorization server returns the user to with the authorization code. It must be registered in advance and matched exactly, or an attacker can choose where the code goes.</dd>
 <dt id="replay-attack">Replay attack</dt><dd>Resending a captured, valid request unchanged. The signature is still correct, so only freshness and nonce checks stop it.</dd>
 <dt id="resource-server">Resource server</dt><dd>The server hosting the protected API. It validates the access token, including that the token was issued for it and that the scope covers the operation.</dd>
+<dt id="revocation">Revocation</dt><dd>Withdrawing a grant before its token expires. A self-contained token does not change when this happens, so a resource server only notices if it consults current state.</dd>
 <dt id="scope">Scope</dt><dd>The set of permissions a client requests and the resource owner grants. A scope limits what a token can do; it does not decide who may act on a specific object.</dd>
 <dt id="shared-secret">Shared secret</dt><dd>A key known to both parties. Either party can create a valid signature, which is why a shared secret can't prove which one did.</dd>
 <dt id="signature">Signature</dt><dd>A value computed from data and a key that lets a receiver check the data wasn't changed and came from a key holder.</dd>
