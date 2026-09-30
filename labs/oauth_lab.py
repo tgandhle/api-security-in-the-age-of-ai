@@ -205,15 +205,15 @@ def main():
           "accept" if status == 200 else "reject: " + body["error"])
     service_token = body.get("access_token")
 
-    check("no refresh token in the response", "pass",
+    check("no refresh token in the response", "pass: RFC 6749 4.4.3",
           "pass: RFC 6749 4.4.3" if "refresh_token" not in body else "fail: refresh token present")
 
     status, body = auth.token(dict(base, client_secret=secrets.token_urlsafe(32)))
-    check("wrong client secret", "reject",
+    check("wrong client secret", "reject: invalid_client",
           "accept" if status == 200 else "reject: " + body["error"])
 
     status, body = auth.token(dict(base, client_secret=service_secret, scope="admin:all"))
-    check("scope beyond the client's grant", "reject",
+    check("scope beyond the client's grant", "reject: invalid_scope",
           "accept" if status == 200 else "reject: " + body["error"])
 
     assert bearer_header(service_token).startswith("Authorization: Bearer ")
@@ -222,7 +222,7 @@ def main():
           "accept" if status == 200 else "reject: " + body["error"])
 
     status, body = ledger.call(service_token)
-    check("token at a different resource server", "reject",
+    check("token at a different resource server", "reject: invalid_token, audience",
           "accept" if status == 200 else "reject: %s, audience" % body["error"])
 
     print()
@@ -255,7 +255,7 @@ def main():
         "client_id": "app-exampleair",
         "redirect_uri": CALLBACK,
     })
-    check("S256, attacker has no verifier", "reject",
+    check("S256, attacker has no verifier", "reject: invalid_grant",
           "accept" if status == 200 else "reject: " + body["error"])
 
     status, body = auth.token({
@@ -265,7 +265,7 @@ def main():
         "redirect_uri": CALLBACK,
         "code_verifier": new_verifier(),
     })
-    check("S256, attacker invents a verifier", "reject",
+    check("S256, attacker invents a verifier", "reject: invalid_grant",
           "accept" if status == 200 else "reject: " + body["error"])
 
     status, body = auth.token({
@@ -276,7 +276,7 @@ def main():
         "code_verifier": s256(verifier),
         "code_challenge_method": "plain",
     })
-    check("S256, attacker claims method plain", "reject",
+    check("S256, attacker claims method plain", "reject: invalid_grant",
           "accept" if status == 200 else "reject: " + body["error"])
 
     status, body = auth.token({
@@ -301,23 +301,23 @@ def main():
         "redirect_uri": CALLBACK,
         "code_verifier": verifier,
     })
-    check("same code redeemed twice", "reject",
+    check("same code redeemed twice", "reject: invalid_grant",
           "accept" if status == 200 else "reject: " + body["error"])
 
     status, body = hotel.call(user_token)
-    check("the first token after that code replay", "reject",
+    check("the first token after that code replay", "reject: invalid_token",
           "accept" if status == 200 else "reject: " + body["error"])
 
     verifier2 = new_verifier()
     status, body = auth.authorize(dict(plain_request, redirect_uri=CALLBACK + "/",
                                        code_challenge=s256(verifier2),
                                        code_challenge_method="S256"))
-    check("redirect URI off by one character", "reject",
+    check("redirect URI off by one character", "reject: invalid_request",
           "accept" if status == 302 else "reject: " + body["error"])
 
     status, body = auth.authorize(dict(plain_request, code_challenge=s256(verifier2),
                                        code_challenge_method="plain"))
-    check("authorization request asks for plain", "reject",
+    check("authorization request asks for plain", "reject: invalid_request",
           "accept" if status == 302 else "reject: " + body["error"])
 
     print()
@@ -329,15 +329,16 @@ def main():
         "username": "member@exampleair.example",
         "scope": "balance:read",
     })
-    check("password grant", "reject",
+    check("password grant", "reject: unsupported_grant_type",
           "accept" if status == 200 else "reject: " + body["error"])
 
     status, body = auth.authorize(dict(plain_request, response_type="token"))
-    check("response_type=token", "reject",
+    check("response_type=token", "reject: unsupported_response_type",
           "accept" if status == 302 else "reject: " + body["error"])
 
+    # Exact comparison: a prefix match can let a check pass for the wrong reason.
     failures = [(label, expected, actual) for label, expected, actual in RESULTS
-                if not actual.startswith(expected)]
+                if actual != expected]
     print()
     if failures:
         print("%d check(s) did not match the expected outcome:" % len(failures))
