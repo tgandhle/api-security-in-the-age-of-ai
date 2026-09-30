@@ -15,6 +15,12 @@ Work through the published modules in order. Each lesson includes an attack exam
 
 The lab links open Python source files. Download the project and run a lab with Python as described below.
 
+## Running the labs on Windows
+
+`python3` is not a working command on a default Windows install. Use `py -3` in place of `python3` everywhere in this repository, including the `pip` lines.
+
+The labs are pure in-process Python with no shell, subprocess or path handling, so their output does not vary by platform. Checked, not assumed: `labs/oauth_lab.py` produces output byte-identical to the transcript published on its page on Windows (Python 3.14.6, `py -3`) and on Linux (Python 3.11.15, `python3`). `tools/check_site.py` also produces identical output on both.
+
 ## Working on the site
 
 Plain HTML. Open `index.html` in any browser, or publish the folder with GitHub Pages. No build step is needed to view the site.

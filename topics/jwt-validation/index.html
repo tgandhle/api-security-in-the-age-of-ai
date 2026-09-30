@@ -153,7 +153,7 @@ clock leeway    60 seconds, both directions</code></pre>
 <div class="prose">
 <p>Download <a href="../../labs/jwt_lab.py"><code>labs/jwt_lab.py</code></a>. This is the first lab that needs a package, because Python has no asymmetric cryptography in its standard library:</p>
 <pre><code>python3 -m pip install cryptography==50.0.1</code></pre>
-<p>Modules 1, 2 and 4 still need nothing beyond Python 3. The lab generates an RSA key for the run, builds real tokens, and sends the same tokens past two verifiers. Keys, tokens and signatures stay in memory and are never printed.</p>
+<p>On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>, including the install line above. Modules 1, 2 and 4 still need nothing beyond Python 3. The lab generates an RSA key for the run, builds real tokens, and sends the same tokens past two verifiers. Keys, tokens and signatures stay in memory and are never printed.</p>
 </div>
 <pre><code>$ python3 labs/jwt_lab.py
 key source: RSA generated for this run; keys and tokens never printed
