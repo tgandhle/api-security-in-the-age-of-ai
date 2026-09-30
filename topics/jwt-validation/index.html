@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JWT validation | API Security in the Age of AI</title>
+<link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/course.js" defer></script>
+</head>
+<body data-course-lesson="jwt-validation">
+<nav class="site-nav" aria-label="Site"><div><a class="home" href="../../index.html">API Security in the Age of AI</a><a href="../../index.html#course">Course</a><a href="../../index.html#path">Modules</a><a href="../../roadmap/index.html">Roadmap</a><a href="../../checklist/index.html">Checklist</a><a href="../../glossary/index.html">Glossary</a></div></nav>
+<main>
+<p class="kicker">Part 1: Proving who is calling &middot; Module 5</p>
+<h1>JWT validation</h1>
+<p class="meta">Last reviewed 2026-09-29 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+
+<div class="prose">
+<p><strong>Objective.</strong> After this module you can explain why a valid signature is not a valid token, write the profile a verifier must enforce before it sees any token, carry out the two classic algorithm attacks yourself, and test a verifier against the rejections it must make.</p>
+<p><strong>Before you start.</strong> You should know what an <a href="../../glossary/index.html#access-token">access token</a> is and what it does not prove, from module 4. Module 2 covers <a href="../../glossary/index.html#hmac">HMAC</a> and the difference between a shared secret and an <a href="../../glossary/index.html#asymmetric-signature">asymmetric signature</a>, which this module depends on.</p>
+</div>
+<section class="lesson-status" aria-label="Lesson progress"><div><strong>Published module 4 of 4</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
+
+<span class="layer" id="learn">Learn</span>
+
+<h2>1. The attack</h2>
+<div class="prose">
+<p>Running example: ExampleHotels issues <a href="../../glossary/index.html#jwt">JWT</a> access tokens, and its balance API verifies them. Company names are fictional.</p>
+<p>A JWT carries its own description of itself. The header says which algorithm signed it. The payload says who issued it, who it is for, and when it expires. A verifier that reads those fields and believes them is doing what the token asked, not what the application needed. RFC 7519 makes this explicit: for every registered claim, including <code>iss</code>, <code>aud</code> and <code>exp</code>, it says "Use of this claim is OPTIONAL." A plain JWT is not required to contain anything.</p>
+<p>So the verifier's behaviour depends on how much it decided in advance:</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>An attacker presents</th><th>Verifier trusts the header</th><th>Algorithm allowlist only</th><th>Full profile</th></tr></thead>
+<tbody>
+<tr><td>A token with <code>alg</code> set to <code>none</code> and no signature</td><td class="yes">Works</td><td class="no">Blocked</td><td class="no">Blocked</td></tr>
+<tr><td>A token signed HS256, using the issuer's public key as the secret</td><td class="yes">Works</td><td class="no">Blocked</td><td class="no">Blocked</td></tr>
+<tr><td>A genuine token issued for a different API</td><td class="yes">Works</td><td class="yes">Works</td><td class="no">Blocked</td></tr>
+<tr><td>A genuine token that expired an hour ago</td><td class="yes">Works</td><td class="yes">Works</td><td class="no">Blocked</td></tr>
+<tr><td>An ID token where an access token was expected</td><td class="yes">Works</td><td class="yes">Works</td><td class="no">Blocked</td></tr>
+<tr><td>A current, genuine token stolen from the real client</td><td class="yes">Works</td><td class="yes">Works</td><td class="yes">Works</td></tr>
+</tbody></table></div>
+<p class="prose">The last row never turns green. Everything on this page checks that the token is genuine, not that the caller is its owner. Binding a token to its holder is module 7.</p>
+
+<h2>2. Why it works</h2>
+<div class="prose">
+<p>Both algorithm attacks come from one mistake: letting the token choose the operation.</p>
+<ul>
+<li><strong><code>alg: none</code>.</strong> RFC 7518 section 3.6 defines an Unsecured JWS, which uses the empty octet sequence as its signature. The specification is blunt about it: "Implementations MUST NOT accept Unsecured JWSs by default." A verifier that switches on the header's algorithm and has no branch for <code>none</code> other than "skip verification" accepts a token anyone can write.</li>
+<li><strong>RS256 to HS256 downgrade.</strong> This is <a href="../../glossary/index.html#algorithm-confusion">algorithm confusion</a>. The issuer signs with an RSA private key, and the verifier holds the matching public key. The public key is public. An attacker changes the header to <code>HS256</code> and computes an HMAC over the token using that public key as the shared secret. A verifier that reads <code>HS256</code> from the header and reaches for "the key it has" verifies successfully, because the attacker used the same value.</li>
+</ul>
+<p>The remaining failures come from a different mistake: treating signature verification as the whole job.</p>
+<ul>
+<li><strong>"A valid signature means a valid token."</strong> It means the bytes were not altered since the issuer signed them. It says nothing about whether this token was meant for you, whether it is still current, or whether it is even the right kind of token.</li>
+<li><strong>"Every JWT has the claims I need."</strong> RFC 7519 marks all of them optional. Whether <code>aud</code> must be present is a decision your application makes, and if it does not make it, the answer is no.</li>
+<li><strong>"There is only one kind of token here."</strong> The same issuer commonly signs access tokens and ID tokens with the same key. RFC 8725 section 3.12 requires validation rules for different kinds of JWT to be "mutually exclusive, rejecting JWTs of the wrong kind."</li>
+</ul>
+</div>
+
+<h2>3. The control</h2>
+<h3>What the application declares</h3>
+<div class="prose"><p>Write the <a href="../../glossary/index.html#token-profile">token profile</a> down before any token arrives. Nothing in this list is ever read from the token being verified.</p></div>
+<pre><code>algorithms      RS256                      one entry, not a family
+type            at+jwt                     RFC 9068 access token
+issuer          https://auth.hotel.example exact match
+audience        https://api.hotel.example  this API, not the family
+required claims iss exp aud sub client_id iat jti
+key source      the issuer's published keys, selected by kid
+clock leeway    60 seconds, both directions</code></pre>
+<p class="meta">RFC 9068 section 2.2 is where the required claim list comes from. A different profile, such as an OpenID Connect ID token, has a different list and different rules.</p>
+
+<h3>How the verifier checks</h3>
+<ol class="steps prose">
+<li>Read the header's <code>alg</code> and compare it against the declared allowlist. Not on the list, including <code>none</code>: reject. Do not use it to select the operation; use it only to decide whether to continue.</li>
+<li>Check the <code>typ</code> against the declared type. This is what stops an ID token being accepted as an access token.</li>
+<li>Verify the signature with the declared algorithm and a key from the declared source, selected by <code>kid</code>. Getting the key from the token itself, through <code>jku</code> or <code>x5u</code>, hands the attacker the key choice.</li>
+<li>Only now read the <a href="../../glossary/index.html#claim">claims</a>. Confirm every required claim is present before testing any of them. A missing claim is a rejection, not a default.</li>
+<li>Compare <code>iss</code> with the expected issuer, and confirm the verifying key belongs to that issuer. RFC 8725 section 3.8 requires this pairing.</li>
+<li>Confirm this API's own identifier appears in <code>aud</code>. RFC 7519 section 4.1.3: if the principal is not identified by a value in the audience claim, "the JWT MUST be rejected."</li>
+<li>Check <code>exp</code>, and <code>nbf</code> and <code>iat</code> where present, against server time with a small, documented leeway.</li>
+<li>Hand the request to authorization. The token being genuine, current and addressed to you says nothing about whether this caller may perform this operation on this object.</li>
+</ol>
+
+<h3>The whole system</h3>
+<div class="diagram">
+<svg viewBox="0 0 1100 470" width="100%" style="min-width:900px" role="img">
+<title>A JWT verifier taking a declared profile and an untrusted token</title>
+<desc>Top band: the profile the application declares in advance, holding allowed algorithms, token type, expected issuer, expected audience and required claims. Bottom band, each request: an access token arrives from the client, the profile feeds down into the verifier, the verifier reads issuer keys selected by key id, and on success passes the request to authorization. Failed checks go to a reject box.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+<rect class="zone" x="20" y="16" width="1060" height="122" rx="12"/>
+<text class="lab" x="36" y="38">Declared in advance. No token ever changes any of it.</text>
+<g class="s"><rect x="40" y="58" width="196" height="56" rx="8"/><text class="th" x="138" y="80" text-anchor="middle">Algorithms</text><text class="ts" x="138" y="100" text-anchor="middle">RS256 only</text></g>
+<g class="s"><rect x="248" y="58" width="196" height="56" rx="8"/><text class="th" x="346" y="80" text-anchor="middle">Token type</text><text class="ts" x="346" y="100" text-anchor="middle">at+jwt</text></g>
+<g class="s"><rect x="456" y="58" width="196" height="56" rx="8"/><text class="th" x="554" y="80" text-anchor="middle">Issuer</text><text class="ts" x="554" y="100" text-anchor="middle">Exact match</text></g>
+<g class="s"><rect x="664" y="58" width="196" height="56" rx="8"/><text class="th" x="762" y="80" text-anchor="middle">Audience</text><text class="ts" x="762" y="100" text-anchor="middle">This API</text></g>
+<g class="s"><rect x="872" y="58" width="196" height="56" rx="8"/><text class="th" x="970" y="80" text-anchor="middle">Required claims</text><text class="ts" x="970" y="100" text-anchor="middle">RFC 9068 list</text></g>
+
+<text class="lab" x="36" y="186">Each request</text>
+<rect class="zone" x="20" y="198" width="1060" height="252" rx="12"/>
+<g class="p"><rect x="40" y="252" width="230" height="56" rx="8"/><text class="th" x="155" y="274" text-anchor="middle">Access token</text><text class="ts" x="155" y="294" text-anchor="middle">header . payload . signature</text></g>
+<g class="h"><rect x="330" y="252" width="250" height="56" rx="8"/><text class="th" x="455" y="274" text-anchor="middle">Verifier</text><text class="ts" x="455" y="294" text-anchor="middle">Is this token genuine and mine?</text></g>
+<g class="h"><rect x="640" y="252" width="230" height="56" rx="8"/><text class="th" x="755" y="274" text-anchor="middle">Authorization</text><text class="ts" x="755" y="294" text-anchor="middle">May this caller do this?</text></g>
+<g class="r"><rect x="910" y="252" width="150" height="56" rx="8"/><text class="th" x="985" y="274" text-anchor="middle">Reject and log</text><text class="ts" x="985" y="294" text-anchor="middle">401, no detail</text></g>
+<line class="arr" x1="270" y1="280" x2="326" y2="280" marker-end="url(#a)"/>
+<line class="arr" x1="580" y1="280" x2="636" y2="280" marker-end="url(#a)"/>
+<line class="rej" x1="870" y1="280" x2="906" y2="280" marker-end="url(#a)"/>
+<line class="arr" x1="455" y1="140" x2="455" y2="248" marker-end="url(#a)"/>
+<text class="ts" x="472" y="224" text-anchor="start">the profile</text>
+<g class="s"><rect x="330" y="360" width="250" height="56" rx="8"/><text class="th" x="455" y="382" text-anchor="middle">Issuer keys</text><text class="ts" x="455" y="402" text-anchor="middle">Selected by kid, module 6</text></g>
+<line class="leader" x1="455" y1="308" x2="455" y2="360"/>
+</svg>
+<div class="legend"><span class="lg-p">Untrusted input</span><span class="lg-h">Server decisions</span><span class="lg-s">Declared state</span><span class="lg-r">Rejection path</span></div>
+</div>
+<p class="prose meta">Two things arrive at the verifier, and only one of them is trusted. Everything the token says is a claim to be checked against the profile, never a setting to be obeyed.</p>
+
+<h2>4. Defaults and when to change them</h2>
+<div class="wrap"><table>
+<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>
+<tbody>
+<tr><td>Allowed algorithms</td><td>A list with one entry, matching what your issuer actually signs with</td><td>A key rotation introduces a second algorithm. Add it for the overlap, then remove the old one. Never widen to a family.</td></tr>
+<tr><td><code>none</code></td><td>Rejected, with no configuration that can turn it on</td><td>Never. RFC 7518 section 3.6 says implementations must not accept Unsecured JWSs by default, and must not signal acceptance globally.</td></tr>
+<tr><td>Token type</td><td><code>typ</code> is <code>at+jwt</code> for OAuth access tokens</td><td>Your issuer does not set it. Then say so in the profile and use another claim to distinguish token kinds, because something must.</td></tr>
+<tr><td>Required claims</td><td>The RFC 9068 list: <code>iss exp aud sub client_id iat jti</code></td><td>You are verifying a different kind of JWT. Write that profile separately; do not merge the two.</td></tr>
+<tr><td>Key source</td><td>The issuer's published key set, fetched by the verifier, selected by <code>kid</code></td><td>Never take the key location from the token. <code>jku</code> and <code>x5u</code> in an untrusted header are attacker-controlled fetch targets.</td></tr>
+<tr><td>Clock leeway</td><td>60 seconds either direction</td><td>Tighten when clocks are synchronized and tokens are short lived. Widening past a few minutes means you are papering over a clock problem.</td></tr>
+<tr><td>Error detail</td><td>401 with no explanation of which check failed</td><td>Never for callers. Log the specific reason internally with a correlation ID.</td></tr>
+</tbody></table></div>
+
+<h2>5. What it proves, and what it doesn't</h2>
+<div class="prose">
+<p><strong>Proves:</strong> the token was signed by a key you expected, has not been altered since, is the kind of token you were expecting, was issued for you by an issuer you trust, and is current.</p>
+<p><strong>Doesn't prove:</strong> that the caller presenting it is the party it was issued to. It is still a <a href="../../glossary/index.html#bearer-credential">bearer credential</a>. It also does not prove the token has not been revoked since issuance, and it says nothing about whether this caller may touch this particular object.</p>
+<div class="callout warn"><strong>Validation is not revocation.</strong> A verifier checking <code>exp</code> accepts a token until it expires, even if the account was disabled a minute after it was issued. Nothing on this page detects that. Deciding how fast a withdrawn grant must stop working, and what that costs, is module 6.</div>
+</div>
+
+<h2>6. Prove it</h2>
+<div class="prose">
+<p>A working verifier must reject every one of these. If any is accepted, the control is broken:</p>
+<ul>
+<li>A token with <code>alg</code> set to <code>none</code> and an empty signature.</li>
+<li>A token with <code>alg</code> changed to <code>HS256</code> and signed with the issuer's public key as the secret.</li>
+<li>A token with a valid signature but the wrong <code>iss</code>.</li>
+<li>A token whose <code>aud</code> names another service, including one in the same family of APIs.</li>
+<li>A token missing any claim the profile requires.</li>
+<li>An ID token, or any other JWT kind the same issuer signs, presented where an access token is expected.</li>
+<li>A token with one bit changed anywhere in the signature.</li>
+<li>A token signed by a valid key belonging to a different issuer.</li>
+<li>A token whose <code>exp</code> has passed, and one whose <code>nbf</code> has not yet arrived, both outside the declared leeway.</li>
+<li>A token whose <code>kid</code> is unknown, or names a key that was rotated out.</li>
+</ul>
+</div>
+
+<h2>7. Lab</h2>
+<div class="prose">
+<p>Download <a href="../../labs/jwt_lab.py"><code>labs/jwt_lab.py</code></a>. This is the first lab that needs a package, because Python has no asymmetric cryptography in its standard library:</p>
+<pre><code>python3 -m pip install cryptography==50.0.1</code></pre>
+<p>Modules 1, 2 and 4 still need nothing beyond Python 3. The lab generates an RSA key for the run, builds real tokens, and sends the same tokens past two verifiers. Keys, tokens and signatures stay in memory and are never printed.</p>
+</div>
+<pre><code>$ python3 labs/jwt_lab.py
+key source: RSA generated for this run; keys and tokens never printed
+
+Part A: a verifier that reads the algorithm out of the token.
+ 1. genuine RS256 access token                 accept
+ 2. alg none, signature removed                accept
+ 3. alg HS256 signed with the public key       accept
+ 4. token issued for another audience          accept
+ 5. token that expired an hour ago             accept
+
+Part B: a verifier that enforces a declared profile.
+ 6. genuine RS256 access token                 accept
+ 7. alg none, signature removed                reject: algorithm not allowed
+ 8. alg HS256 signed with the public key       reject: algorithm not allowed
+ 9. token issued for another audience          reject: audience mismatch
+10. token that expired an hour ago             reject: expired
+11. token from a different issuer              reject: issuer mismatch
+12. an ID token where an access token is due   reject: wrong token type
+13. required claim jti removed                 reject: missing claim jti
+14. one bit flipped in the signature           reject: signature check failed
+15. signed by a different RSA key              reject: signature check failed
+16. nbf five minutes in the future             reject: not yet valid
+17. expired 30s ago, inside 60s leeway         accept
+
+all lab checks passed</code></pre>
+<div class="prose">
+<p>Checks 2 and 3 are the two algorithm attacks, and part A is not a strawman: <code>TrustingVerifier</code> holds exactly one key and picks the operation from the token's header, which is how the defect appears in real code. Check 17 is the leeway working as intended, and is worth understanding before you tighten it.</p>
+<p><strong>Try next:</strong></p>
+<ul>
+<li>Add <code>"HS256"</code> to <code>ProfileVerifier.allowed_algorithms</code>. Check 8 goes green. You have just reintroduced the confusion attack by widening one tuple.</li>
+<li>Delete the <code>typ</code> check. One check changes. Which token did you just accept, and what was it issued to do?</li>
+<li>Move the claim loop above the signature check. Everything still passes. Explain why that ordering is still wrong, using module 2's reasoning about the nonce cache.</li>
+</ul>
+</div>
+
+<h2>8. Check your understanding</h2>
+<details><summary>Why does signing with the public key work against a verifier that trusts the header?</summary><p>The verifier holds one key and chooses the operation from the header. Told <code>HS256</code>, it treats its key as a shared secret and computes an HMAC. The attacker did the same thing with the same value, because a public key is public. The fix is not a better key, it is refusing to let the token pick the algorithm.</p></details>
+<details><summary>Your verifier checks the signature, issuer and expiry, and the token passes. Name two attacks still open.</summary><p>A token issued for a different service in the same estate is accepted, because <code>aud</code> was not checked. And an ID token signed by the same issuer is accepted where an access token was expected, because the token type was not checked.</p></details>
+<details><summary>Why is a required-claim list part of the profile rather than a property of JWT?</summary><p>Because RFC 7519 marks every registered claim OPTIONAL. A bare JWT can legitimately contain nothing. What must be present is decided by the profile you are verifying against, such as RFC 9068 for OAuth access tokens, and if you never declared one, you are not requiring anything.</p></details>
+<details><summary>The account is disabled one minute after a one-hour token is issued. What does your verifier do?</summary><p>It keeps accepting the token for the remaining 59 minutes. Every check on this page passes, because they all describe the token, not the current state of the grant. Closing that window is revocation, in module 6.</p></details>
+
+<section class="course-quiz" data-quiz data-quiz-id="jwt-validation-check" data-correct-feedback="Correct. The verifier must decide the algorithm from its own configuration. Reading it from the token is what makes both alg none and the HS256 downgrade work." data-incorrect-feedback="Not quite. A longer key and a fresh key are both good practice, but neither helps when the verifier lets the token choose which operation to perform.">
+<p class="kicker">Quick check</p>
+<h2>Stop the algorithm downgrade</h2>
+<fieldset><legend>An attacker changes a token's header to HS256 and signs it with the issuer's public key. Which change stops this?</legend>
+<label><input type="radio" name="jwt-alg" value="longer"> Use a larger RSA key.</label>
+<label><input type="radio" name="jwt-alg" value="allowlist" data-correct="true"> Select the algorithm from the verifier's own allowlist, never from the header.</label>
+<label><input type="radio" name="jwt-alg" value="rotate"> Rotate the signing key more often.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+</section>
+<p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
+<span class="layer" id="reference" style="margin-top:3rem">Reference</span>
+<h2 style="border-top:none;margin-top:.5rem">Controls</h2>
+<p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
+<ul class="controls">
+<li><span class="label std">Standard</span>The caller must be able to specify a supported set of algorithms, and no others may be used. RFC 8725 section 3.1, which also requires that the <code>alg</code> header specifies the same algorithm actually used.</li>
+<li><span class="label std">Standard</span>Applications must only allow cryptographically current algorithms that meet their security requirements. RFC 8725 section 3.2.</li>
+<li><span class="label std">Standard</span>Implementations must not accept Unsecured JWSs, the <code>alg</code> value <code>none</code>, by default, and must not signal acceptance of them at a global level. RFC 7518 section 3.6.</li>
+<li><span class="label std">Standard</span>When a JWT contains <code>iss</code>, the application must validate that the keys used belong to that issuer, and must reject the JWT if they do not. RFC 8725 section 3.8.</li>
+<li><span class="label std">Standard</span>The audience value must be validated, and the JWT rejected if the audience is absent or not associated with the recipient. RFC 8725 section 3.9. RFC 7519 section 4.1.3 says the JWT must be rejected if the principal is not identified by a value in <code>aud</code>.</li>
+<li><span class="label std">Standard</span>Where one issuer can issue more than one kind of JWT, the validation rules must be mutually exclusive and reject JWTs of the wrong kind. RFC 8725 section 3.12. Explicit typing is covered in section 3.11.</li>
+<li><span class="label std">Standard</span>The current time must be before <code>exp</code>. RFC 7519 section 4.1.4, which allows a small leeway for clock skew.</li>
+<li><span class="label std">Standard</span>An OAuth JWT access token requires <code>iss</code>, <code>exp</code>, <code>aud</code>, <code>sub</code>, <code>client_id</code>, <code>iat</code> and <code>jti</code>, and RFC 9068 section 2.1 says <code>typ</code> should be <code>at+jwt</code>. Under RFC 9068 section 2.2.1, a client credentials token still has <code>sub</code>, identifying the client rather than a user.</li>
+<li><span class="label base">Baseline</span>Declare the whole profile in configuration: algorithms, type, issuer, audience, required claims, key source and leeway. Read none of it from the token.</li>
+<li><span class="label base">Baseline</span>Verify in this order: algorithm allowlist, token type, signature, required claims present, then claim values. Reject before reading anything you have not yet authenticated.</li>
+<li><span class="label base">Baseline</span>Select the key from the issuer's published key set by <code>kid</code>. Never follow <code>jku</code> or <code>x5u</code> from the token header.</li>
+<li><span class="label base">Baseline</span>Allow 60 seconds of clock leeway in both directions, and document it.</li>
+<li><span class="label base">Baseline</span>Return 401 with no indication of which check failed. Log the specific reason with a correlation ID.</li>
+<li><span class="label opt">Option</span>Use a reviewed JWT library rather than writing the parsing yourself, and configure its algorithm, audience and issuer options explicitly, because most default to checking less than this list.</li>
+<li><span class="label opt">Option</span>Sender-constrain the token with mTLS or DPoP where theft is a material risk. Module 7.</li>
+</ul>
+
+<h2>Review checklist items</h2>
+<p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
+<ul class="checks">
+<li data-check="jwt-01" data-severity="Critical"><strong>The verifier selects the algorithm from its own allowlist, never from the token header</strong> <span>Test a token with <code>alg</code> set to <code>none</code> and one downgraded to HS256 and signed with the issuer's public key. Both must be rejected.</span></li>
+<li data-check="jwt-02" data-severity="Critical"><strong>The audience is validated against this service's own identifier</strong> <span>A genuine token issued for a sibling service in the same estate is rejected. A missing <code>aud</code> is rejected.</span></li>
+<li data-check="jwt-03" data-severity="Critical"><strong>The signing key comes from the issuer's published key set, selected by <code>kid</code></strong> <span>The verifier never fetches a key named by <code>jku</code> or <code>x5u</code> in the token header. An unknown <code>kid</code> is rejected.</span></li>
+<li data-check="jwt-04" data-severity="High"><strong>The token profile is declared, and every required claim is checked for presence before use</strong> <span>Name the profile, such as RFC 9068 for OAuth access tokens. A token missing any required claim is rejected rather than defaulted.</span></li>
+<li data-check="jwt-05" data-severity="High"><strong>Different kinds of JWT from the same issuer have mutually exclusive validation rules</strong> <span>An ID token is rejected where an access token is expected, and the reverse. Token type or an equivalent claim is checked.</span></li>
+<li data-check="jwt-06" data-severity="High"><strong>Issuer and time claims are validated with a documented leeway</strong> <span><code>iss</code> matches exactly, the key belongs to that issuer, and <code>exp</code>, <code>nbf</code> and <code>iat</code> are checked against server time.</span></li>
+<li data-check="jwt-07" data-severity="Medium"><strong>Rejection responses do not say which check failed</strong> <span>Callers get 401. The specific reason is logged internally with a correlation ID.</span></li>
+<li data-check="jwt-08" data-severity="Medium"><strong>Library defaults have been read, not assumed</strong> <span>Confirm what your JWT library validates by default, and configure algorithms, audience and issuer explicitly. Test the negative cases against your own configuration.</span></li>
+</ul>
+
+<h2>Sources</h2>
+<ul class="prose">
+<li><a href="https://www.rfc-editor.org/rfc/rfc7519">RFC 7519: JSON Web Token (JWT)</a>, May 2015. Sections 4.1.1 to 4.1.7, where every registered claim is OPTIONAL, and 4.1.3 and 4.1.4.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc7518">RFC 7518: JSON Web Algorithms (JWA)</a>, May 2015. Section 3.6, the <code>none</code> algorithm and Unsecured JWSs.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc8725">RFC 8725: JSON Web Token Best Current Practices</a>, Best Current Practice, February 2020. Sections 3.1, 3.2, 3.8, 3.9, 3.11, 3.12.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9068">RFC 9068: JSON Web Token (JWT) Profile for OAuth 2.0 Access Tokens</a>, October 2021. Sections 2.1, 2.2, 2.2.1.</li>
+<li><a href="https://cryptography.io/en/latest/hazmat/primitives/asymmetric/rsa/">pyca/cryptography documentation: RSA</a>. Used for key generation, signing and verification in the lab.</li>
+</ul>
+</main>
+<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
+</body>
+</html>
