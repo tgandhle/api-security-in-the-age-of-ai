@@ -17,7 +17,7 @@
 <p><strong>Objective.</strong> Find an API key leak in a request log, explain why someone can reuse the key, and test both prevention and recovery.</p>
 <p><strong>Before you start.</strong> You should be able to read a URL and a Python function. An <a href="../../glossary/index.html#api-key">API key</a> is a credential issued to an application. Here it is a <a href="../../glossary/index.html#bearer-credential">bearer credential</a>: whoever presents it can act within its assigned permissions.</p>
 </div>
-<section class="lesson-status" aria-label="Lesson progress"><div><strong>Module 1 of 2</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
+<section class="lesson-status" aria-label="Lesson progress"><div><strong>Published module 1 of 4</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
 <span class="layer" id="learn">Learn</span>
 <h2>1. The attack</h2>
 <div class="prose">
@@ -82,7 +82,7 @@
 </div>
 <h2>7. Lab</h2>
 <div class="prose">
-<p>Download <a href="../../labs/api_keys_lab.py"><code>labs/api_keys_lab.py</code></a>. From the project root, run it with Python 3.6 or later. It uses only the standard library. Credentials and the deliberately vulnerable log remain in memory; generated values are never printed or saved. No server is started.</p>
+<p>Download <a href="../../labs/api_keys_lab.py"><code>labs/api_keys_lab.py</code></a>. From the project root, run it with Python 3. It uses only the standard library. Credentials and the deliberately vulnerable log remain in memory; generated values are never printed or saved. No server is started.</p>
 <p>The scanner parses this lab's request-target strings and recognizes the decoded, case-sensitive name <code>api_key</code>. It is not a general log scanner: other field names, log formats, and header leaks need their own tests. Safe logging uses a fixed route label so it also avoids reflecting an arbitrary path.</p>
 </div>
 <pre><code>$ python3 labs/api_keys_lab.py
