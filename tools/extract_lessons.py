@@ -428,19 +428,44 @@ def check():
                     "%s: page says 'of %d', index.html lists %d lessons"
                     % (rec["source"], rec["lesson_total"], len(order)))
 
+    # Is content/ on disk current? The published HTML is the source of truth,
+    # so a page edited without re-running this tool leaves content/ stale and
+    # a front end reading it would serve the old lesson. Same guard as
+    # build_checklist.py --check gives the checklist.
+    stale = []
+    for slug, rec in sorted(records.items()):
+        target = OUT_DIR / (slug + ".json")
+        if not target.is_file():
+            stale.append("content/lessons/%s.json is missing" % slug)
+        elif target.read_text(encoding="utf-8") != serialize(rec):
+            stale.append("content/lessons/%s.json is out of date" % slug)
+    index_path = OUT_DIR.parent / "index.json"
+    if not index_path.is_file():
+        stale.append("content/index.json is missing")
+    elif index_path.read_text(encoding="utf-8") != serialize(index_for(records)):
+        stale.append("content/index.json is out of date")
+
     total = len(pages())
     print("extract_lessons --check")
     print("  pages                 %d" % total)
     print("  rebuilt byte-identical %d of %d" % (rebuilt, total))
     print("  blocks in <main>      %d" % block_count)
+    print("  content/ files stale  %d" % len(stale))
     for k in LABELS:
         print("  %-21s %d" % (k, totals[k]))
     if failures:
         print("\n%d problem(s):" % len(failures))
         for f in failures[:40]:
             print("  " + f)
+    if stale:
+        print("\n%d stale file(s): run python3 tools/extract_lessons.py"
+              % len(stale))
+        for s in stale[:10]:
+            print("  " + s)
+    if failures or stale:
         return 1
-    print("\nevery page rebuilds from its record byte for byte")
+    print("\nevery page rebuilds from its record byte for byte,"
+          "\nand content/ matches the published pages")
     return 0
 
 
@@ -454,6 +479,20 @@ def course_order():
     return re.findall(r'data-course-lesson="([^"]+)"', home)
 
 
+def serialize(value):
+    return json.dumps(value, indent=2, ensure_ascii=False) + "\n"
+
+
+def index_for(records):
+    order = course_order()
+    return {"total": len(order),
+            "lessons": [{"slug": slug,
+                         "lesson_number": i + 1,
+                         "module": records[slug]["module"] if slug in records else -1,
+                         "title": records[slug]["title"] if slug in records else ""}
+                        for i, slug in enumerate(order)]}
+
+
 def write():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     records = {}
@@ -461,17 +500,9 @@ def write():
         rec = extract(path)
         records[rec["slug"]] = rec
         (OUT_DIR / (rec["slug"] + ".json")).write_text(
-            json.dumps(rec, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8")
-    order = course_order()
-    index = [{"slug": slug,
-              "lesson_number": i + 1,
-              "module": records[slug]["module"] if slug in records else -1,
-              "title": records[slug]["title"] if slug in records else ""}
-             for i, slug in enumerate(order)]
+            serialize(rec), encoding="utf-8")
     (OUT_DIR.parent / "index.json").write_text(
-        json.dumps({"total": len(order), "lessons": index},
-                   indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        serialize(index_for(records)), encoding="utf-8")
     print("wrote %d lesson files to %s"
           % (len(records), OUT_DIR.relative_to(ROOT)))
     return 0
