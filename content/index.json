@@ -1,0 +1,80 @@
+[
+  {
+    "slug": "agent-authority-and-approvals"
+  },
+  {
+    "slug": "agent-to-agent"
+  },
+  {
+    "slug": "api-keys"
+  },
+  {
+    "slug": "asymmetric-request-signing"
+  },
+  {
+    "slug": "business-flows-and-idempotency"
+  },
+  {
+    "slug": "credential-lifecycle"
+  },
+  {
+    "slug": "data-in-model-context"
+  },
+  {
+    "slug": "delegation-and-token-exchange"
+  },
+  {
+    "slug": "design-review"
+  },
+  {
+    "slug": "gateway-enforcement"
+  },
+  {
+    "slug": "hmac-request-signing"
+  },
+  {
+    "slug": "jwks-and-revocation"
+  },
+  {
+    "slug": "jwt-validation"
+  },
+  {
+    "slug": "mcp-server-authorization"
+  },
+  {
+    "slug": "oauth-basics"
+  },
+  {
+    "slug": "object-level-authorization"
+  },
+  {
+    "slug": "prompt-injection-and-output-handling"
+  },
+  {
+    "slug": "property-and-function-authorization"
+  },
+  {
+    "slug": "rate-limiting-and-cost"
+  },
+  {
+    "slug": "request-and-response-contracts"
+  },
+  {
+    "slug": "security-foundations"
+  },
+  {
+    "slug": "sender-constrained-tokens"
+  },
+  {
+    "slug": "ssrf-and-unsafe-consumption"
+  },
+  {
+    "slug": "supply-chain-retrieval-and-memory"
+  },
+  {
+    "slug": "versioning-and-deprecation"
+  },
+  {
+    "slug": "webhooks"
+  }
+]
