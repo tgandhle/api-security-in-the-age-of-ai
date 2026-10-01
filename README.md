@@ -32,6 +32,10 @@ Inside an activated environment use `python`, not `py -3`. The launcher ignores 
 
 The labs are pure in-process Python with no shell, subprocess or path handling, so their output does not vary by platform. Checked, not assumed: `labs/oauth_lab.py` produces output byte-identical to the transcript published on its page on Windows (Python 3.14.6, `py -3`) and on Linux (Python 3.11.15, `python3`). `tools/check_site.py` also produces identical output on both.
 
+## Licence
+
+Copyright (c) 2026 Tich Gandhle. All rights reserved. This repository is readable, not open source: see [LICENSE](LICENSE) for what that permits. Quoted specifications remain the property of their publishers and are cited on the page that quotes them.
+
 ## Working on the site
 
 Plain HTML. Open `index.html` in any browser, or publish the folder with GitHub Pages. No build step is needed to view the site.
