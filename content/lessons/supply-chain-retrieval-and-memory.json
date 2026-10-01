@@ -2,12 +2,344 @@
   "slug": "supply-chain-retrieval-and-memory",
   "source": "topics/supply-chain-retrieval-and-memory/index.html",
   "kind": "topics",
+  "prologue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Supply chain, retrieval, and memory | API Security in the Age of AI</title>\n<link rel=\"stylesheet\" href=\"../../assets/site.css\">\n<script src=\"../../assets/course.js\" defer></script>\n</head>\n<body data-course-lesson=\"supply-chain-retrieval-and-memory\">",
+  "nav": "\n<nav class=\"site-nav\" aria-label=\"Site\"><div><a class=\"home\" href=\"../../index.html\">API Security in the Age of AI</a><a href=\"../../index.html#course\">Course</a><a href=\"../../index.html#path\">Modules</a><a href=\"../../roadmap/index.html\">Roadmap</a><a href=\"../../checklist/index.html\">Checklist</a><a href=\"../../glossary/index.html\">Glossary</a></div></nav>",
+  "main_open": "\n<main>",
+  "blocks": [
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "kicker"
+      },
+      "html": "\n<p class=\"kicker\">Part 4: AI and agents &middot; Module 25</p>"
+    },
+    {
+      "tag": "h1",
+      "attrs": {},
+      "html": "\n<h1>Supply chain, retrieval, and memory</h1>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "meta"
+      },
+      "html": "\n<p class=\"meta\">Last reviewed 2026-10-01 &middot; <a class=\"jump\" href=\"#reference\">Jump to reference</a></p>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n\n<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can explain why filtering a retrieval result is not the same as filtering the corpus, say what a result count discloses about documents a caller cannot read, show why ranking hygiene is not a security control, and keep provenance on anything an agent writes down.</p>\n<p><strong>Before you start.</strong> Retrieval makes a document store part of your authorization surface. Whoever can put a document into the index, and whoever can get one out of it, are security-relevant roles, and in most systems both are treated as plumbing.</p>\n</div>"
+    },
+    {
+      "tag": "section",
+      "attrs": {
+        "class": "lesson-status",
+        "aria-label": "Lesson progress"
+      },
+      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 25 of 26</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "layer",
+        "id": "learn"
+      },
+      "html": "\n\n<span class=\"layer\" id=\"learn\">Learn</span>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>1. The attack</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Running example: one vector index shared by three carriers, ExampleAir, ExampleRail and ExampleBus. Company names are fictional. All three have a refund policy document, and the documents are similar, because refund policies are similar.</p>\n<p>OWASP covers this as <strong>LLM08:2025 Vector and Embedding Weaknesses</strong>, and the sentence that describes the deployment is short: \"In multi-tenant environments where multiple classes of users or applications share the same vector database, there's a risk of context leakage between users or queries.\"</p>\n<p>Three attacks, which are the three the lab runs.</p>\n</div>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "wrap"
+      },
+      "html": "\n<div class=\"wrap\"><table>\n<thead><tr><th>Attack</th><th>What it needs</th><th>What it gets</th></tr></thead>\n<tbody>\n<tr><td>Read another tenant's document</td><td>A system that ranks first and filters second</td><td class=\"yes\">Nothing directly, and a result set that silently shrinks while another tenant's document sat above yours</td></tr>\n<tr><td>Probe for documents you cannot read</td><td>A result count computed before the filter</td><td class=\"yes\">Confirmation that a matching document exists, from a query you were allowed to run</td></tr>\n<tr><td>Put a document in the index</td><td>Any route that writes to the corpus</td><td class=\"yes\">First place in the ranking, inside the victim's own tenant</td></tr>\n<tr><td>Have a claim written to memory</td><td>One retrieval that the agent summarised</td><td class=\"yes\">A fact with no source attached that survives the document's deletion</td></tr>\n</tbody></table></div>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<p class=\"prose\">The last row is the one that lasts. OWASP's agentic list puts it in six words: \"Memory poisoning reshaped behaviour long after the initial interaction.\"</p>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>2. Why it works</h2>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n<h3>Filtering after you rank is not filtering</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>There are two places to apply a tenant filter and they are not equivalent. Rank the whole corpus and then drop what the caller may not see, or restrict the corpus and then rank what is left.</p>\n<p>Checks 3 to 11 of the lab run both. Unfiltered, the top three for ExampleAir's own query are their refund policy, ExampleBus's, and ExampleRail's. Post-filtering that result leaves one document. The caller asked for three and received one, and the two that were removed are gone from the response with no record of what they were.</p>\n<p>Pre-filtering returns three ExampleAir documents, two of which the post-filtered version never showed at all, because other tenants' documents had taken their places in the ranking. So post-filtering is worse in two directions at once: it leaks the existence of other tenants' content through the missing slots, and it withholds the caller's own documents by letting other tenants outrank them.</p>\n<p>OWASP's mitigation names the shape directly: \"Implement fine-grained access controls and permission-aware vector and embedding stores\". Permission-aware means the store knows, not the code that reads the store's output.</p>\n</div>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>A count is an answer</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Part B is the quieter version of the same bug. The caller runs a query built from terms that only appear in another tenant's documents. They get no results, which is correct. The interface also tells them there were three matches, which is not.</p>\n<p>Checks 12 to 17 separate those two numbers. Three matches across the index, zero that this caller may read, and a query matching nothing anywhere also returns zero. If the caller can tell the first case from the third, they have a membership oracle: a way to confirm that a document containing given terms exists, without ever reading one.</p>\n<p>This generalises past counts. Anything computed before the filter and surfaced after it is the same bug: a total, a facet count, a \"did you mean\", a latency difference. The rule is that the filter goes first and everything downstream is computed from what survived it.</p>\n</div>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>Ranking hygiene is not a security control</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Part C puts a document in the index that was written to win, not to be read: the query's terms, repeated. It takes first place, above the real policy, with a raw cosine score of 0.62 against 0.53.</p>\n<p>The obvious fix is the information-retrieval one. Damp repeated terms, so a word appearing ten times counts for less than ten times once. Check 25 is the result: the scores move to 0.59 against 0.53, and check 24 says the stuffed document is still first. I expected it to drop and it does not, because that document is made entirely of query terms, so damping the repetition narrows the margin without changing the order.</p>\n<p>That is the useful finding in this module. Ranking adjustments are a quality measure, and an attacker who can write to your index will beat them, because they can see the ranking and iterate. Check 28 adds that tenant isolation did not help either: the stuffed document was uploaded into ExampleAir's own tenant, so pre-filtering keeps it.</p>\n<p>What works is checks 29 and 30: rank only documents of internal origin, and the real policy is first again. The control is about where a document came from, which is <strong>LLM04:2025 Data and Model Poisoning</strong>: \"The risks are particularly high with external data sources, which may contain unverified or malicious content\", with the mitigations starting at tracking data origins and verifying legitimacy.</p>\n</div>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>Memory outlives the document</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>An agent reads a retrieved document and writes down what it learned. Whether that write records where the claim came from is a one-line decision with a long tail.</p>\n<p>Part D writes the same two claims into two stores. With provenance, one is usable and the other is marked as coming from a user-uploaded document. Without it, both are usable, and check 35 is the claim from the stuffed document now sitting in memory as an unattributed fact.</p>\n<p>Then checks 38 to 40, which are the point. Removing the poisoned document from the index does not remove the memory written from it. The corpus is clean and the agent still believes the thing. With provenance, the memory is still there and still unusable, because the judgement travelled with the claim.</p>\n<p>So memory needs the same two properties as the index: an origin on every item, and a rule that says which origins may inform a decision. Without those, deleting the source is not remediation, and you have no way to find what else that document taught the agent.</p>\n</div>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>The whole system</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "diagram"
+      },
+      "html": "\n<div class=\"diagram\">\n<svg viewBox=\"0 0 1100 390\" width=\"100%\" style=\"min-width:920px\" role=\"img\">\n<title>Where a tenant filter goes, and what survives deleting a poisoned document</title>\n<desc>A shared index holds documents from three tenants and from three origins: internal, vendor and user-uploaded. One path ranks the whole corpus and then drops documents the caller may not read, which returns one result of the three requested and lets other tenants outrank the caller's own documents. The other path restricts the corpus to the caller's tenant first and then ranks, returning three of the caller's documents. Below, a stuffed document uploaded into the caller's own tenant takes first place under both raw and damped term weighting, and is only displaced by ranking documents of internal origin. Finally, a claim written to memory from that document survives its deletion unless the memory recorded where the claim came from.</desc>\n\n<text class=\"lab\" x=\"36\" y=\"26\">One index, three tenants, three origins.</text>\n<g class=\"s\"><rect x=\"20\" y=\"44\" width=\"180\" height=\"76\" rx=\"8\"/><text class=\"th\" x=\"110\" y=\"70\" text-anchor=\"middle\">Shared index</text><text class=\"ts\" x=\"110\" y=\"90\" text-anchor=\"middle\">8 documents</text><text class=\"ts\" x=\"110\" y=\"107\" text-anchor=\"middle\">3 from outside</text></g>\n\n<g class=\"r\"><rect x=\"240\" y=\"30\" width=\"330\" height=\"76\" rx=\"8\"/><text class=\"th\" x=\"405\" y=\"56\" text-anchor=\"middle\">Rank first, then filter</text><text class=\"ts\" x=\"405\" y=\"76\" text-anchor=\"middle\">asked for 3, received 1</text><text class=\"ts\" x=\"405\" y=\"93\" text-anchor=\"middle\">two tenants outranked the caller's own</text></g>\n<g class=\"h\"><rect x=\"240\" y=\"122\" width=\"330\" height=\"76\" rx=\"8\"/><text class=\"th\" x=\"405\" y=\"148\" text-anchor=\"middle\">Filter first, then rank</text><text class=\"ts\" x=\"405\" y=\"168\" text-anchor=\"middle\">asked for 3, received 3</text><text class=\"ts\" x=\"405\" y=\"185\" text-anchor=\"middle\">all of them the caller's own</text></g>\n<line class=\"rej\" x1=\"200\" y1=\"72\" x2=\"236\" y2=\"68\"/>\n<line class=\"arr\" x1=\"200\" y1=\"92\" x2=\"236\" y2=\"160\"/>\n\n<g class=\"r\"><rect x=\"610\" y=\"30\" width=\"230\" height=\"76\" rx=\"8\"/><text class=\"th\" x=\"725\" y=\"56\" text-anchor=\"middle\">Result count</text><text class=\"ts\" x=\"725\" y=\"76\" text-anchor=\"middle\">3 matches, 0 readable</text><text class=\"ts\" x=\"725\" y=\"93\" text-anchor=\"middle\">counted before the filter</text></g>\n<g class=\"r\"><rect x=\"610\" y=\"122\" width=\"230\" height=\"76\" rx=\"8\"/><text class=\"th\" x=\"725\" y=\"148\" text-anchor=\"middle\">Stuffed document</text><text class=\"ts\" x=\"725\" y=\"168\" text-anchor=\"middle\">first at 0.62, then 0.59</text><text class=\"ts\" x=\"725\" y=\"185\" text-anchor=\"middle\">damping did not displace it</text></g>\n<g class=\"h\"><rect x=\"870\" y=\"76\" width=\"210\" height=\"76\" rx=\"8\"/><text class=\"th\" x=\"975\" y=\"102\" text-anchor=\"middle\">Internal origin only</text><text class=\"ts\" x=\"975\" y=\"122\" text-anchor=\"middle\">the real policy ranks first</text><text class=\"ts\" x=\"975\" y=\"139\" text-anchor=\"middle\">origin, not ranking</text></g>\n<line class=\"arr\" x1=\"840\" y1=\"160\" x2=\"866\" y2=\"130\"/>\n\n<rect class=\"zone\" x=\"20\" y=\"222\" width=\"1060\" height=\"78\" rx=\"12\"/>\n<text class=\"ts\" x=\"550\" y=\"250\" text-anchor=\"middle\">The agent summarises what it retrieved and writes it to memory. If that write records no origin, the claim becomes an unattributed fact.</text>\n<text class=\"ts\" x=\"550\" y=\"272\" text-anchor=\"middle\">Deleting the document from the index does not delete the memory written from it, and nothing links the two.</text>\n<text class=\"ts\" x=\"550\" y=\"292\" text-anchor=\"middle\">With an origin on every memory, the claim is still there and still unusable, because the judgement travelled with it.</text>\n\n<g class=\"h\"><rect x=\"250\" y=\"316\" width=\"600\" height=\"58\" rx=\"8\"/><text class=\"th\" x=\"550\" y=\"340\" text-anchor=\"middle\">Both stores need the same two properties</text><text class=\"ts\" x=\"550\" y=\"362\" text-anchor=\"middle\">an origin on every item, and a rule saying which origins may inform a decision</text></g>\n</svg>\n<div class=\"legend\"><span class=\"lg-s\">The index</span><span class=\"lg-r\">Leaks, or is beaten</span><span class=\"lg-h\">Holds</span></div>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>3. The control</h2>"
+    },
+    {
+      "tag": "ol",
+      "attrs": {
+        "class": "steps prose"
+      },
+      "html": "\n<ol class=\"steps prose\">\n<li><strong>Filter the corpus before you rank it.</strong> The store is permission-aware, not the code reading its output.</li>\n<li><strong>Compute every number after the filter.</strong> Totals, facets, suggestions and anything else derived from the corpus.</li>\n<li><strong>Tag every document with its origin</strong> at ingestion, and classify it, which is OWASP's \"Tag and classify data within the knowledge base to control access levels\".</li>\n<li><strong>Decide which origins may answer which questions,</strong> and keep untrusted origins out of the corpus for decisions that matter.</li>\n<li><strong>Validate at ingestion,</strong> because that is the last point where you still know where a document came from.</li>\n<li><strong>Treat ranking adjustments as quality, not security.</strong> They narrow margins. Someone who can write to your index iterates against them.</li>\n<li><strong>Record provenance on every memory write,</strong> with the source document and its origin.</li>\n<li><strong>Make deletion reach memory.</strong> If a document is removed, find what was written from it.</li>\n<li><strong>Log retrievals.</strong> OWASP: \"Maintain detailed immutable logs of retrieval activities to detect and respond promptly to suspicious behavior\".</li>\n</ol>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>4. Defaults and when to change them</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "wrap"
+      },
+      "html": "\n<div class=\"wrap\"><table>\n<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>\n<tbody>\n<tr><td>Where the tenant filter goes</td><td>Before the ranking</td><td>Post-filtering is a different control with worse properties in both directions. Never ship it as isolation.</td></tr>\n<tr><td>One index or one per tenant</td><td>Separate, where the tenant count allows</td><td>A shared index is a permission system you now have to write. Measure what that costs before choosing it.</td></tr>\n<tr><td>Result counts and facets</td><td>Computed after filtering</td><td>Anything computed before the filter and shown after it answers a question the caller was not allowed to ask.</td></tr>\n<tr><td>Document origin</td><td>Recorded at ingestion, always</td><td>You cannot recover it later, and every other control here depends on it.</td></tr>\n<tr><td>Untrusted origins in the corpus</td><td>Excluded from anything decision-bearing</td><td>Include them for discovery or search where a human reads the result and the source is shown.</td></tr>\n<tr><td>Ranking adjustments</td><td>Used for quality</td><td>Never counted as a defence. The lab's damping narrowed the margin from 0.09 to 0.06 and changed nothing.</td></tr>\n<tr><td>Memory writes</td><td>Carry source and origin</td><td>No exception. A memory without provenance cannot be judged or cleaned up.</td></tr>\n<tr><td>Deleting a poisoned document</td><td>Followed by a memory sweep</td><td>Deletion is not remediation on its own, because the claim already left the index.</td></tr>\n<tr><td>Who can write to the index</td><td>Enumerated, with each route reviewed</td><td>The upload form that feeds retrieval is an authorization decision wearing a different hat.</td></tr>\n</tbody></table></div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>5. What it proves, and what it doesn't</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p><strong>Proves:</strong> that a caller's results contain only documents they may read, that no number in the response was computed over documents they may not, that every document in the corpus has a recorded origin, and that anything written to memory can be traced back and judged.</p>\n<p><strong>Doesn't prove:</strong> that the documents are true. Everything here is about where content came from and who may see it, not whether it is correct, and an internal document can be wrong or out of date. It also proves nothing about embeddings themselves, where OWASP notes that \"attackers can exploit vulnerabilities to invert embeddings and recover significant amounts of source information\", which is a property of the vectors rather than of your access control.</p>\n<div class=\"callout warn\"><strong>Deleting the document is not the remediation.</strong> Checks 38 to 40 remove the stuffed document from the index and find the claim still sitting in memory, unattributed, with nothing linking it to the document that is now gone. If your incident response for a poisoned corpus ends at the corpus, it ends too early.</div>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>6. Prove it</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<ul>\n<li>The retrieval code path, showing the tenant restriction applied to the corpus rather than to the result.</li>\n<li>A test that a query crafted against another tenant's document returns nothing and reports nothing.</li>\n<li>Every number in a retrieval response, with where in the pipeline it is computed.</li>\n<li>The origin field on each document, and the ingestion step that sets it.</li>\n<li>The list of routes that can write to the index, with who can use each one.</li>\n<li>Which origins are permitted for decision-bearing retrieval, written down.</li>\n<li>A test that a document from an untrusted origin does not appear in a decision-bearing result.</li>\n<li>The memory schema, showing source and origin on every item.</li>\n<li>The procedure that sweeps memory when a document is withdrawn, and evidence it has been run.</li>\n<li>Retrieval logs, with retention, and what would be looked at after a report.</li>\n</ul>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>7. Exercise</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Download <a href=\"../../labs/retrieval_lab.py\"><code>labs/retrieval_lab.py</code></a>. It needs nothing beyond Python 3.</p>\n</div>"
+    },
+    {
+      "tag": "pre",
+      "attrs": {},
+      "html": "\n<pre><code>Windows                         macOS and Linux\npy -3 labs/retrieval_lab.py     python3 labs/retrieval_lab.py</code></pre>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The similarity is real cosine similarity over bag-of-words vectors computed with the standard library, so every ranking in the output is arithmetic you can check by hand. Nothing opens a socket.</p>\n</div>"
+    },
+    {
+      "tag": "pre",
+      "attrs": {},
+      "html": "\n<pre><code>$ python3 labs/retrieval_lab.py\nsimilarity: real cosine over bag-of-words vectors\nquery: 'ExampleAir refund policy for a cancelled booking'\n\nPart A: filtering before the search, or after it.\n 1. documents in the shared index                            7\n 2.   of which belong to exampleair                          3\n 3. top three with no tenant filter at all                   ['A1', 'B1', 'R2']\n 4.   tenants those three belong to                          ['exampleair', 'examplebus', 'examplerail']\n 5. rank first, then drop what the caller may not see        ['A1']\n 6.   results the caller asked for                           3\n 7.   results they got                                       1\n 8. filter first, then rank                                  ['A1', 'A2', 'A3']\n 9.   results they got                                       3\n10.   documents the post-filter never showed them            ['A2', 'A3']\n11.   and the two it ranked above them                       ['B1', 'R2']\n\nPart B: what the result count says about documents you cannot read.\n12. documents in the whole index matching the probe          3\n13.   of those, ones the caller may read                     0\n14.   so a total computed before filtering leaks             3\n15.   and a total computed after filtering does not          0\n16. a probe matching nothing anywhere                        0\n17.   the caller can tell those two cases apart              yes\n\nPart C: a document written to win the ranking.\n18. documents in the index now                               8\n19. top three, raw term counts                               ['S1', 'A1', 'B1']\n20.   what ranked first                                      S1\n21.   who may write a user-uploaded document                 any customer\n22.   its score, and the real policy's, raw                  0.62 then 0.53\n23. top three with repeated terms damped                     ['S1', 'A1', 'B1']\n24.   what ranks first then                                  S1\n25.   the same two scores, damped                            0.59 then 0.53\n26.   so damping narrowed the margin but did not change the order yes\n27. the tenant filter, applied first, with the stuffed document ['S1', 'A1', 'A2']\n28.   so isolation did not help here                         yes\n29. ranking over documents of internal origin only           ['A1', 'B1', 'R2']\n30.   what ranks first then                                  A1\n\nPart D: what the agent wrote down afterwards.\n31. memories written                                         2\n32.   usable when provenance was kept                        1\n33.   which one                                              ['Refunds are issued within fourteen days.']\n34.   usable when it was not                                 2\n35.   the claim that came from the stuffed document          Refunds require a refund desk visit.\n36. origins recorded, with provenance                        ['internal', 'user-uploaded']\n37. origins recorded, without                                []\n38. documents after removing the stuffed one                 7\n39.   memories still holding its claim                       1\n40.   and with provenance, still unusable                    1\n\nPart E: who can put a document in the index.\n41. origins present in the index                             ['internal', 'user-uploaded', 'vendor']\n42.   documents any customer can place                       2\n43.   documents a vendor can place                           1\n44.   documents only staff can place                         5\n45. documents from outside the organisation                  ['A3', 'B2', 'S1']\n46.   of those, ones this tenant's query reaches             ['S1']\n47.   so untrusted documents in the caller's own results     1\n\nall lab checks passed</code></pre>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Checks 5 to 11 are the module's first point, and the thing to notice is that post-filtering fails in both directions at once. The caller receives one document instead of three, which tells them something was removed, and two of their own documents never appeared because other tenants' content outranked them. Pre-filtering fixes both, because the documents the caller may not read were never candidates.</p>\n<p>Checks 12 to 17 are worth running against your own search. Three matches in the index, zero readable, and a nonsense query also returning zero. If your interface shows a total, a facet count or a suggestion computed before the filter, those two cases look different to a caller who is allowed to ask.</p>\n<p>Checks 22 to 26 are where I was wrong and the lab corrected me. I expected damping repeated terms to drop the stuffed document below the real policy. It does not: the margin narrows from 0.09 to 0.06 and the order is unchanged, because that document is made entirely of query terms. Checks 29 and 30 show what does work, and it is not a ranking change: restrict the corpus to documents of internal origin and the real policy is first again.</p>\n<p>Check 28 is the one to take to a design discussion about tenant isolation. The stuffed document was uploaded into ExampleAir's own tenant, so pre-filtering keeps it. Isolation answers \"whose documents can I see\" and says nothing about \"who wrote the ones I can\".</p>\n<p>Checks 38 to 40 close it. The poisoned document is deleted and its claim is still in memory with no source attached. The store that kept provenance still holds the claim too, and still will not use it.</p>\n<p><strong>Try next:</strong></p>\n<ul>\n<li>Change <code>filter_then_search</code> to search the whole corpus and rerun. Four checks fail, and they are the ones that make the index multi-tenant.</li>\n<li>Add a second stuffed document and tune it against the damped ranking. Time how long it takes to beat.</li>\n<li>Give <code>Memory.usable</code> a <code>trusted_origins</code> that includes <code>vendor</code>. Decide whether your vendor's documents should inform a decision.</li>\n<li>Add an origin your organisation actually has, such as a scraped public page, and work out which of the five parts changes.</li>\n<li>For a retrieval system you run: find where the permission filter is applied. If it is applied to the result, you have this module's finding.</li>\n</ul>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>8. Check your understanding</h2>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Your retrieval fetches the top ten and then removes documents the caller may not read. What is wrong with that?</summary><p>Two things. The caller sees fewer results than they asked for, which tells them documents exist that were removed, and their own relevant documents never appear because other tenants' content occupied the ranking. Restricting the corpus before ranking fixes both, because documents the caller may not read were never candidates.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>A caller runs a query and gets no results, but the interface says \"3 matches\". What have they learned?</summary><p>That three documents containing those terms exist somewhere in the index. That is a membership oracle, and it works from a query they were allowed to run. Every number in the response has to be computed after the filter, including totals, facet counts and suggestions.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Someone uploads a document stuffed with your query terms and it ranks first. Is better ranking the answer?</summary><p>No. The lab damps repeated terms and the stuffed document stays first, because it is made entirely of query terms, so the margin narrows and the order does not change. Ranking adjustments are a quality measure and an attacker who can write to your index will iterate against them. The control is origin: restrict decision-bearing retrieval to documents whose provenance you trust.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>You remove a poisoned document from the index. Is the problem over?</summary><p>Not if an agent read it first. A claim written to memory survives the document's deletion, and if the write recorded no origin there is nothing linking the two, so you cannot even find what to remove. Record source and origin on every memory write, and make document withdrawal trigger a memory sweep.</p></details>"
+    },
+    {
+      "tag": "section",
+      "attrs": {
+        "class": "course-quiz",
+        "data-quiz": null,
+        "data-quiz-id": "supply-chain-retrieval-and-memory-check",
+        "data-correct-feedback": "Correct. Documents the caller may not read were never candidates, so nothing is withheld and nothing is disclosed by what is missing.",
+        "data-incorrect-feedback": "Not quite. Ranking first and filtering after returns fewer results than requested, which discloses that documents were removed, and lets other tenants' documents push the caller's own out of the ranking."
+      },
+      "html": "\n\n<section class=\"course-quiz\" data-quiz data-quiz-id=\"supply-chain-retrieval-and-memory-check\" data-correct-feedback=\"Correct. Documents the caller may not read were never candidates, so nothing is withheld and nothing is disclosed by what is missing.\" data-incorrect-feedback=\"Not quite. Ranking first and filtering after returns fewer results than requested, which discloses that documents were removed, and lets other tenants' documents push the caller's own out of the ranking.\">\n<p class=\"kicker\">Quick check</p>\n<h2>Where the filter goes</h2>\n<fieldset><legend>Three tenants share one vector index. Where does the tenant restriction belong?</legend>\n<label><input type=\"radio\" name=\"ret\" value=\"after\"> On the result set, after ranking the corpus.</label>\n<label><input type=\"radio\" name=\"ret\" value=\"before\" data-correct=\"true\"> On the corpus, before ranking.</label>\n<label><input type=\"radio\" name=\"ret\" value=\"prompt\"> In the prompt, as an instruction to the model.</label>\n<label><input type=\"radio\" name=\"ret\" value=\"score\"> As a score penalty on other tenants' documents.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button><p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n</section>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "course-next"
+      },
+      "html": "\n<p class=\"course-next\"><strong>Course progress:</strong> return to the <a href=\"../../index.html#course\">course dashboard</a> to see your published-module progress.</p>"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "layer",
+        "id": "reference",
+        "style": "margin-top:3rem"
+      },
+      "html": "\n<span class=\"layer\" id=\"reference\" style=\"margin-top:3rem\">Reference</span>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {
+        "style": "border-top:none;margin-top:.5rem"
+      },
+      "html": "\n<h2 style=\"border-top:none;margin-top:.5rem\">Controls</h2>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\"><span class=\"label std\">Standard</span> backed by a cited specification. <span class=\"label base\">Baseline</span> this project's default, with reasoning above. <span class=\"label opt\">Option</span> valid depending on the threat model.</p>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "controls"
+      },
+      "html": "\n<ul class=\"controls\">\n<li><span class=\"label std\">Standard</span>\"In multi-tenant environments where multiple classes of users or applications share the same vector database, there's a risk of context leakage between users or queries.\" OWASP LLM08:2025 Vector and Embedding Weaknesses.</li>\n<li><span class=\"label std\">Standard</span>\"Implement fine-grained access controls and permission-aware vector and embedding stores.\" OWASP LLM08:2025.</li>\n<li><span class=\"label std\">Standard</span>\"Implement robust data validation pipelines for knowledge sources.\" OWASP LLM08:2025.</li>\n<li><span class=\"label std\">Standard</span>\"Tag and classify data within the knowledge base to control access levels.\" OWASP LLM08:2025.</li>\n<li><span class=\"label std\">Standard</span>\"Maintain detailed immutable logs of retrieval activities to detect and respond promptly to suspicious behavior.\" OWASP LLM08:2025.</li>\n<li><span class=\"label std\">Standard</span>\"Attackers can exploit vulnerabilities to invert embeddings and recover significant amounts of source information, compromising data confidentiality.\" OWASP LLM08:2025.</li>\n<li><span class=\"label std\">Standard</span>\"Data poisoning occurs when pre-training, fine-tuning, or embedding data is manipulated to introduce vulnerabilities, backdoors, or biases.\" OWASP LLM04:2025 Data and Model Poisoning.</li>\n<li><span class=\"label std\">Standard</span>\"The risks are particularly high with external data sources, which may contain unverified or malicious content.\" OWASP LLM04:2025.</li>\n<li><span class=\"label std\">Standard</span>LLM04:2025's mitigations begin with tracking data origins and verifying legitimacy, vetting data vendors and validating outputs against trusted sources, sandboxing to limit exposure to unverified sources, and data version control to detect manipulation.</li>\n<li><span class=\"label std\">Standard</span>\"Memory poisoning reshaped behaviour long after the initial interaction.\" OWASP Top 10 for Agentic Applications, ASI06 Memory &amp; Context Poisoning.</li>\n<li><span class=\"label std\">Standard</span>\"Dynamic MCP and A2A ecosystems revealed how easily runtime components could be poisoned.\" OWASP Top 10 for Agentic Applications, ASI04 Agentic Supply Chain Vulnerabilities.</li>\n<li><span class=\"label base\">Baseline</span>Apply the permission filter to the corpus before ranking, never to the result afterwards.</li>\n<li><span class=\"label base\">Baseline</span>Compute every number in a retrieval response after the filter, including totals, facets and suggestions.</li>\n<li><span class=\"label base\">Baseline</span>Record an origin on every document at ingestion, and treat ingestion as the last point where it is knowable.</li>\n<li><span class=\"label base\">Baseline</span>Decide which origins may inform a decision, and keep the rest out of decision-bearing retrieval.</li>\n<li><span class=\"label base\">Baseline</span>Treat ranking adjustments as a quality measure and never report them as a control.</li>\n<li><span class=\"label base\">Baseline</span>Record source and origin on every memory write.</li>\n<li><span class=\"label base\">Baseline</span>Sweep memory when a document is withdrawn, because deletion from the index is not remediation.</li>\n<li><span class=\"label base\">Baseline</span>Enumerate every route that can write to the index, with who can use each one.</li>\n<li><span class=\"label opt\">Option</span>Give each tenant its own index where the tenant count allows, which replaces a permission system you have to write with one you do not.</li>\n<li><span class=\"label opt\">Option</span>Show the source document and its origin alongside any retrieved answer, so a human reader can apply the judgement the system did not.</li>\n<li><span class=\"label opt\">Option</span>Expire memories by default, so a poisoned claim has a known lifetime even when the sweep misses it.</li>\n</ul>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>Review checklist items</h2>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\">These are collected into the <a href=\"../../checklist/index.html\">site checklist</a>.</p>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "checks"
+      },
+      "html": "\n<ul class=\"checks\">\n<li data-check=\"ret-01\" data-severity=\"Critical\"><strong>The permission filter is applied to the corpus, not the result</strong> <span>Post-filtering returns fewer results than requested, which discloses removals, and lets other tenants outrank the caller's own documents.</span></li>\n<li data-check=\"ret-02\" data-severity=\"Critical\"><strong>Every number in a retrieval response is computed after the filter</strong> <span>A total computed before it confirms that documents the caller may not read exist.</span></li>\n<li data-check=\"ret-03\" data-severity=\"Critical\"><strong>Decision-bearing retrieval excludes untrusted origins</strong> <span>Ranking adjustments do not displace a document written to win. Origin does.</span></li>\n<li data-check=\"ret-04\" data-severity=\"High\"><strong>Every document carries an origin recorded at ingestion</strong> <span>It cannot be recovered later, and the other controls depend on it.</span></li>\n<li data-check=\"ret-05\" data-severity=\"High\"><strong>Every memory write records its source document and origin</strong> <span>A memory without provenance cannot be judged, found or cleaned up.</span></li>\n<li data-check=\"ret-06\" data-severity=\"High\"><strong>Withdrawing a document triggers a memory sweep</strong> <span>The claim leaves the index before the document does. Deletion alone is not remediation.</span></li>\n<li data-check=\"ret-07\" data-severity=\"High\"><strong>Every write route into the index is enumerated and reviewed</strong> <span>An upload form that feeds retrieval is an authorization decision.</span></li>\n<li data-check=\"ret-08\" data-severity=\"Medium\"><strong>Retrieval activity is logged with a stated retention</strong> <span>OWASP asks for detailed immutable logs of retrieval activity.</span></li>\n<li data-check=\"ret-09\" data-severity=\"Medium\"><strong>No ranking adjustment is reported as a security control</strong> <span>State the margin it changes. In the lab it was 0.09 to 0.06, with the order unchanged.</span></li>\n</ul>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>Sources</h2>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<ul class=\"prose\">\n<li><a href=\"https://genai.owasp.org/llmrisk/llm082025-vector-and-embedding-weaknesses/\">OWASP LLM08:2025 Vector and Embedding Weaknesses</a>, from the OWASP Top 10 for LLM Applications 2025, released 12 March 2025. Multi-tenant context leakage, embedding inversion, and the four mitigations quoted above.</li>\n<li><a href=\"https://genai.owasp.org/llmrisk/llm042025-data-and-model-poisoning/\">OWASP LLM04:2025 Data and Model Poisoning</a>. The definition, the warning about external data sources, and the mitigations beginning with tracking data origins.</li>\n<li><a href=\"https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/\">OWASP Top 10 for Agentic Applications</a>, released 9 December 2025. ASI04 Agentic Supply Chain Vulnerabilities and ASI06 Memory &amp; Context Poisoning.</li>\n</ul>"
+    }
+  ],
+  "main_close": "\n</main>",
+  "footer": "\n<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>",
+  "epilogue": "\n</body>\n</html>\n",
   "page_title": "Supply chain, retrieval, and memory | API Security in the Age of AI",
   "lesson_key": "supply-chain-retrieval-and-memory",
   "title": "Supply chain, retrieval, and memory",
   "kicker": "Part 4: AI and agents &middot; Module 25",
   "reviewed": "2026-10-01",
   "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 25 of 26</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
+  "intro_prose": [
+    "<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can explain why filtering a retrieval result is not the same as filtering the corpus, say what a result count discloses about documents a caller cannot read, show why ranking hygiene is not a security control, and keep provenance on anything an agent writes down.</p>\n<p><strong>Before you start.</strong> Retrieval makes a document store part of your authorization surface. Whoever can put a document into the index, and whoever can get one out of it, are security-relevant roles, and in most systems both are treated as plumbing.</p>\n</div>"
+  ],
   "sections": [
     {
       "heading": "1. The attack",
@@ -67,7 +399,7 @@
     {
       "heading": "Sources",
       "heading_text": "Sources",
-      "html": "<ul class=\"prose\">\n<li><a href=\"https://genai.owasp.org/llmrisk/llm082025-vector-and-embedding-weaknesses/\">OWASP LLM08:2025 Vector and Embedding Weaknesses</a>, from the OWASP Top 10 for LLM Applications 2025, released 12 March 2025. Multi-tenant context leakage, embedding inversion, and the four mitigations quoted above.</li>\n<li><a href=\"https://genai.owasp.org/llmrisk/llm042025-data-and-model-poisoning/\">OWASP LLM04:2025 Data and Model Poisoning</a>. The definition, the warning about external data sources, and the mitigations beginning with tracking data origins.</li>\n<li><a href=\"https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/\">OWASP Top 10 for Agentic Applications</a>, released 9 December 2025. ASI04 Agentic Supply Chain Vulnerabilities and ASI06 Memory &amp; Context Poisoning.</li>\n</ul>\n</main>\n<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>\n</body>\n</html>"
+      "html": "<ul class=\"prose\">\n<li><a href=\"https://genai.owasp.org/llmrisk/llm082025-vector-and-embedding-weaknesses/\">OWASP LLM08:2025 Vector and Embedding Weaknesses</a>, from the OWASP Top 10 for LLM Applications 2025, released 12 March 2025. Multi-tenant context leakage, embedding inversion, and the four mitigations quoted above.</li>\n<li><a href=\"https://genai.owasp.org/llmrisk/llm042025-data-and-model-poisoning/\">OWASP LLM04:2025 Data and Model Poisoning</a>. The definition, the warning about external data sources, and the mitigations beginning with tracking data origins.</li>\n<li><a href=\"https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/\">OWASP Top 10 for Agentic Applications</a>, released 9 December 2025. ASI04 Agentic Supply Chain Vulnerabilities and ASI06 Memory &amp; Context Poisoning.</li>\n</ul>\n</main>"
     }
   ],
   "layers": [

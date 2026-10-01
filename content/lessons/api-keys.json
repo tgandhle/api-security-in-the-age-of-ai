@@ -2,12 +2,296 @@
   "slug": "api-keys",
   "source": "topics/api-keys/index.html",
   "kind": "topics",
+  "prologue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>API keys | API Security in the Age of AI</title>\n<link rel=\"stylesheet\" href=\"../../assets/site.css\">\n<script src=\"../../assets/course.js\" defer></script>\n</head>\n<body data-course-lesson=\"api-keys\">",
+  "nav": "\n<nav class=\"site-nav\" aria-label=\"Site\"><div><a class=\"home\" href=\"../../index.html\">API Security in the Age of AI</a><a href=\"../../index.html#course\">Course</a><a href=\"../../index.html#path\">Modules</a><a href=\"../../roadmap/index.html\">Roadmap</a><a href=\"../../checklist/index.html\">Checklist</a><a href=\"../../glossary/index.html\">Glossary</a></div></nav>",
+  "main_open": "\n<main>",
+  "blocks": [
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "kicker"
+      },
+      "html": "\n<p class=\"kicker\">Part 1: Proving who is calling &middot; Module 1</p>"
+    },
+    {
+      "tag": "h1",
+      "attrs": {},
+      "html": "\n<h1>API keys</h1>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "meta"
+      },
+      "html": "\n<p class=\"meta\">Last reviewed 2026-09-24 &middot; <a class=\"jump\" href=\"#reference\">Jump to reference</a></p>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p><strong>Objective.</strong> Find an API key leak in a request log, explain why someone can reuse the key, and test both prevention and recovery.</p>\n<p><strong>Before you start.</strong> You should be able to read a URL and a Python function. An <a href=\"../../glossary/index.html#api-key\">API key</a> is a credential issued to an application. Here it is a <a href=\"../../glossary/index.html#bearer-credential\">bearer credential</a>: whoever presents it can act within its assigned permissions.</p>\n</div>"
+    },
+    {
+      "tag": "section",
+      "attrs": {
+        "class": "lesson-status",
+        "aria-label": "Lesson progress"
+      },
+      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 2 of 26</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "layer",
+        "id": "learn"
+      },
+      "html": "\n<span class=\"layer\" id=\"learn\">Learn</span>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n<h2>1. The attack</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>ExampleAir reads its rewards balance from ExampleHotels. These companies are fictional. The caller puts its key in the URL's <a href=\"../../glossary/index.html#query-string\">query string</a>, the part after <code>?</code>. The request target has this shape: <code>/balance?api_key=&lt;api-key&gt;</code>. This is an illustration, not a command.</p>\n<p>The receiver records that target. An attacker who can read the log extracts the key and submits it on another request. The lab models that exact path without sending any network traffic.</p>\n</div>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "wrap"
+      },
+      "html": "\n<div class=\"wrap\"><table>\n<thead><tr><th>Attempt</th><th>Query key and raw log</th><th>Header key and safe log</th><th>After leaked key is revoked</th></tr></thead>\n<tbody>\n<tr><td>Extract an active key from new request logs</td><td class=\"yes\">Works</td><td class=\"no\">Blocked in this model</td><td class=\"no\">Old key is inactive</td></tr>\n<tr><td>Reuse a previously stolen key in a header</td><td class=\"yes\">Works</td><td class=\"yes\">Works</td><td class=\"no\">Blocked</td></tr>\n<tr><td>Authenticate using a query parameter</td><td class=\"yes\">Works</td><td class=\"no\">Blocked</td><td class=\"no\">Blocked</td></tr>\n</tbody></table></div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n<h2>2. Why it works</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>The toy receiver checks possession of a value, not which process sent it. Extracting that value is enough to pass the same check. A longer random key would not fix this leak: the attacker copies it rather than guesses it.</p>\n<p><a href=\"../../glossary/index.html#tls\">TLS</a> protects the connection. It does not remove credentials from logs at either endpoint. OWASP advises keeping keys out of URLs and using HTTPS for REST endpoints (<a href=\"#source-rest\">REST Security</a>).</p>\n<p>Headers are not automatically safe either. A debug trace that records the credential header recreates the same problem.</p>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n<h2>3. The control</h2>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n<h3>What the caller sends</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\"><p>Use the API's documented credential header over HTTPS. No universal API-key header name is assumed here. The lab's <code>header_key</code> argument stands in for that header after parsing; it is not an HTTP field name.</p></div>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n<h3>How the receiver verifies</h3>"
+    },
+    {
+      "tag": "ol",
+      "attrs": {
+        "class": "steps prose"
+      },
+      "html": "\n<ol class=\"steps prose\">\n<li>Reject query credentials, even if a header credential is also present. Reject empty and duplicate credential inputs at the HTTP boundary.</li>\n<li>Read the single credential from the agreed header. Missing or unknown value: reject. Compare secret values with a <a href=\"../../glossary/index.html#constant-time-comparison\">constant-time comparison</a>.</li>\n<li>Check its server-side record is active and within its allowed lifetime. This is <a href=\"../../glossary/index.html#authentication\">authentication</a>, checking the claimed identity through its credential.</li>\n<li>Apply <a href=\"../../glossary/index.html#authorization\">authorization</a>: check this caller's permission for this action and resource. A matching key alone is not permission for every operation.</li>\n<li>Record a route label, decision, and non-secret record identifier. Exclude raw credentials from all logs and traces, including rejected requests. OWASP's logging guidance identifies tokens and primary secrets as data to exclude (<a href=\"#source-logging\">Logging</a>).</li>\n</ol>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n<h3>The whole system</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "callout prose"
+      },
+      "html": "\n<div class=\"callout prose\">ExampleAir's server obtains its credential from a secrets manager, then calls ExampleHotels over HTTPS. The receiver checks the credential record and permissions. Logs record the decision without the key. On a leak, the operator disables the old record and provisions a replacement.</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n<h2>4. Defaults and when to change them</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "wrap"
+      },
+      "html": "\n<div class=\"wrap\"><table>\n<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>\n<tbody>\n<tr><td>Key generation</td><td>32 random bytes, encoded for transport, from a secure generator</td><td>Follow an existing API's documented format. Do not substitute a memorable word. Python's secrets module provides suitable generation functions.</td></tr>\n<tr><td>Delivery and logging</td><td>HTTPS, one credential header, allowlisted log fields</td><td>A legacy query-key interface needs a migration plan and leak response, not an undocumented fallback.</td></tr>\n<tr><td>Ownership and permissions</td><td>Separate records per caller and environment, minimum required access</td><td>Split further when operations need independent revocation or different permissions.</td></tr>\n<tr><td>Storage and lifetime</td><td>Caller uses a secrets manager. Assign an owner and expiry; test revocation at every verifier.</td><td>Choose lifetime and cache limits from the impact of misuse and the ability to replace keys. This module prescribes no universal duration.</td></tr>\n<tr><td>Replacement</td><td>Revoke exposed keys immediately. Use a bounded overlap only for planned <a href=\"../../glossary/index.html#key-rotation\">key rotation</a>.</td><td>If a key is known to be stolen, overlap preserves the attacker's access.</td></tr>\n</tbody></table></div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n<h2>5. What it proves, and what it doesn't</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p><strong>Proves:</strong> the request supplied a credential the receiver currently accepts.</p>\n<p><strong>Doesn't prove:</strong> the original application sent it, a person consented, or the operation is permitted. An API key does not bind the credential to the request body or make a request single-use.</p>\n<div class=\"callout warn\"><strong>Prevention is not recovery.</strong> Lab check 8 still accepts the previously stolen key after the logging fix. Check 9 rejects it after revocation. Review all verifier caches when applying that result to a real service.</div>\n<p>For high-value operations, evaluate stronger identity controls rather than relying only on a key (<a href=\"#source-rest\">OWASP REST Security</a>). The next module teaches <a href=\"../hmac-request-signing/index.html\">HMAC request signing</a>.</p>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n<h2>6. Prove it</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Use generated test credentials, never production keys. Lab checks cover query leakage, reuse, missing and wrong keys, revocation, replacement, mixed header/query input, encoded parameter names, and blank values.</p>\n<p>Integration tests must also prove these properties; the in-memory lab does not:</p>\n<ul>\n<li>Expired keys and credentials for another environment fail at every receiver.</li>\n<li>Duplicate credential headers are rejected consistently by the proxy and application.</li>\n<li>A valid key cannot access another caller's resources or an unassigned operation.</li>\n<li>Gateway logs, application logs, traces, and error reports contain no test credential.</li>\n<li>Revocation takes effect within the documented bound, including cached records.</li>\n<li>HTTPS is enforced and clients validate the server certificate.</li>\n</ul>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n<h2>7. Lab</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Download <a href=\"../../labs/api_keys_lab.py\"><code>labs/api_keys_lab.py</code></a>. From the project root, run it with Python 3. It uses only the standard library. Credentials and the deliberately vulnerable log remain in memory; generated values are never printed or saved. No server is started. On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>.</p>\n<p>The scanner parses this lab's request-target strings and recognizes the decoded, case-sensitive name <code>api_key</code>. It is not a general log scanner: other field names, log formats, and header leaks need their own tests. Safe logging uses a fixed route label so it also avoids reflecting an arbitrary path.</p>\n</div>"
+    },
+    {
+      "tag": "pre",
+      "attrs": {},
+      "html": "\n<pre><code>$ python3 labs/api_keys_lab.py\nkey source: random, this run only; values never printed\n1. legitimate query request: accept\n2. query log scanner findings: 1\n3. attacker reuses logged key: accept\n4. query credential after fix: reject: query credential\n5. legitimate header request: accept\n6. protected log scanner findings: 0\n7. attacker with only protected logs: reject: invalid credential\n8. previously stolen key in header: accept\n9. stolen key after revocation: reject: invalid credential\n10. replacement key: accept\n11. old key after replacement: reject: invalid credential\n12. wrong key: reject: invalid credential\n13. header plus query credential: reject: query credential\n14. encoded name and duplicate query scan: 2\n15. encoded query credential: reject: query credential\n16. harmless and blank query scan: 0\n17. empty query credential: reject: query credential\nall lab checks passed</code></pre>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\"><p><strong>Try next:</strong> In a local copy, make the protected logger save the raw target. Run the lab again. The protected-log check must fail with a non-zero exit. Then restore it. Why does simply removing the query parser from the attacker fail to fix the receiver?</p></div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n<h2>8. Check your understanding</h2>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Does HTTPS stop the attack in check 3?</summary><p>No. The attacker reads the receiver's log after transport protection has ended. Keeping the key out of that log prevents this disclosure.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Why does the stolen key still work in check 8?</summary><p>The receiver still accepts its value. A header-only rule changes where credentials are read, not who can possess them. Revocation disables the compromised credential.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>The scanner finds zero keys. Is the service secure?</summary><p>No. It checks one parameter name in one log format. It says nothing about header traces, authorization, TLS configuration, or logs outside this model.</p></details>"
+    },
+    {
+      "tag": "section",
+      "attrs": {
+        "class": "course-quiz",
+        "data-quiz": null,
+        "data-quiz-id": "api-keys-check",
+        "data-correct-feedback": "Correct. Preventing new log exposure is important, but revocation is what stops reuse of a key that was already stolen.",
+        "data-incorrect-feedback": "Not quite. A header-only rule prevents a new query-string leak. It does not invalidate a key that an attacker already copied."
+      },
+      "html": "\n<section class=\"course-quiz\" data-quiz data-quiz-id=\"api-keys-check\" data-correct-feedback=\"Correct. Preventing new log exposure is important, but revocation is what stops reuse of a key that was already stolen.\" data-incorrect-feedback=\"Not quite. A header-only rule prevents a new query-string leak. It does not invalidate a key that an attacker already copied.\">\n<p class=\"kicker\">Quick check</p>\n<h2>Recover from a leaked key</h2>\n<fieldset><legend>A key was already copied from an old request log. Which action stops the attacker from reusing that copied value?</legend>\n<label><input type=\"radio\" name=\"api-key-recovery\" value=\"header\"> Move the key to a request header.</label>\n<label><input type=\"radio\" name=\"api-key-recovery\" value=\"revocation\" data-correct=\"true\"> Revoke the exposed key and issue a replacement.</label>\n<label><input type=\"radio\" name=\"api-key-recovery\" value=\"length\"> Make future keys longer.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button><p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n</section>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "course-next"
+      },
+      "html": "\n<p class=\"course-next\"><strong>Next:</strong> continue to <a href=\"../hmac-request-signing/index.html\">module 2, HMAC request signing</a>.</p>"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "layer",
+        "id": "reference",
+        "style": "margin-top:3rem"
+      },
+      "html": "\n<span class=\"layer\" id=\"reference\" style=\"margin-top:3rem\">Reference</span>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {
+        "style": "border-top:none;margin-top:.5rem"
+      },
+      "html": "\n<h2 style=\"border-top:none;margin-top:.5rem\">Controls</h2>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\"><span class=\"label std\">Standard</span> backed by a cited specification. <span class=\"label base\">Baseline</span> this project's default, with reasoning above. <span class=\"label opt\">Option</span> valid depending on the threat model. This module assigns no Standard labels: its controls are project defaults, not a universal API-key protocol.</p>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "controls"
+      },
+      "html": "\n<ul class=\"controls\">\n<li><span class=\"label base\">Baseline</span>Use HTTPS and the documented credential header. Reject query credentials. See <a href=\"#source-rest\">REST Security</a>.</li>\n<li><span class=\"label base\">Baseline</span>Generate keys from 32 random bytes using a secure generator, such as <code>secrets.token_urlsafe(32)</code>. See <a href=\"#source-python\">Python secrets</a>.</li>\n<li><span class=\"label base\">Baseline</span>Keep credentials out of logs and traces at every hop. Test rejection paths too. See <a href=\"#source-logging\">Logging</a>.</li>\n<li><span class=\"label base\">Baseline</span>Use owned, scoped, expiring credential records and a secrets manager for caller storage. Test replacement and revocation separately from log prevention.</li>\n<li><span class=\"label base\">Baseline</span>Check permissions after authentication; do not treat a valid key as unlimited access.</li>\n<li><span class=\"label opt\">Option</span>Use stronger caller authentication for higher-impact operations. Evaluate request signing in <a href=\"../hmac-request-signing/index.html\">module 2</a>, including its shared-secret limitations.</li>\n</ul>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n<h2>Review checklist items</h2>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\">These are collected into the <a href=\"../../checklist/index.html\">site checklist</a>.</p>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "checks"
+      },
+      "html": "\n<ul class=\"checks\">\n<li data-check=\"api-keys-01\" data-severity=\"High\"><strong>Credentials stay out of URLs and telemetry</strong> <span>Reject query credentials and test every logging layer with generated test values, including failure paths.</span></li>\n<li data-check=\"api-keys-02\" data-severity=\"High\"><strong>Exposed keys can be revoked everywhere</strong> <span>Measure the revocation bound across caches and confirm the old key fails while its replacement works.</span></li>\n<li data-check=\"api-keys-03\" data-severity=\"Critical\"><strong>Key validation is followed by permission checks</strong> <span>Test denied actions and cross-caller resources with an otherwise valid credential.</span></li>\n<li data-check=\"api-keys-04\" data-severity=\"High\"><strong>Keys have secure generation, storage, ownership, and expiry</strong> <span>Keep separate records per caller and environment; the caller retrieves the secret from a secrets manager.</span></li>\n<li data-check=\"api-keys-05\" data-severity=\"High\"><strong>Transport and credential parsing are tested end to end</strong> <span>Require HTTPS, certificate validation, and consistent rejection of missing or ambiguous credentials.</span></li>\n</ul>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n<h2>Sources</h2>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<ul class=\"prose\">\n<li id=\"source-rest\"><a href=\"https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html\">OWASP REST Security Cheat Sheet</a>: HTTPS, API Keys, and Sensitive information in HTTP requests. Living guidance, reviewed 2026-09-24.</li>\n<li id=\"source-logging\"><a href=\"https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html\">OWASP Logging Cheat Sheet</a>: Data to exclude and Verification. Living guidance, reviewed 2026-09-24.</li>\n<li id=\"source-python\"><a href=\"https://docs.python.org/3.14/library/secrets.html\">Python 3.14 secrets documentation</a>: token generation and compare_digest, reviewed 2026-09-24. Library documentation, not an API-key specification.</li>\n</ul>"
+    }
+  ],
+  "main_close": "\n</main>",
+  "footer": "\n<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>",
+  "epilogue": "\n</body>\n</html>\n",
   "page_title": "API keys | API Security in the Age of AI",
   "lesson_key": "api-keys",
   "title": "API keys",
   "kicker": "Part 1: Proving who is calling &middot; Module 1",
   "reviewed": "2026-09-24",
   "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 2 of 26</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
+  "intro_prose": [
+    "<div class=\"prose\">\n<p><strong>Objective.</strong> Find an API key leak in a request log, explain why someone can reuse the key, and test both prevention and recovery.</p>\n<p><strong>Before you start.</strong> You should be able to read a URL and a Python function. An <a href=\"../../glossary/index.html#api-key\">API key</a> is a credential issued to an application. Here it is a <a href=\"../../glossary/index.html#bearer-credential\">bearer credential</a>: whoever presents it can act within its assigned permissions.</p>\n</div>"
+  ],
   "sections": [
     {
       "heading": "1. The attack",
@@ -67,7 +351,7 @@
     {
       "heading": "Sources",
       "heading_text": "Sources",
-      "html": "<ul class=\"prose\">\n<li id=\"source-rest\"><a href=\"https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html\">OWASP REST Security Cheat Sheet</a>: HTTPS, API Keys, and Sensitive information in HTTP requests. Living guidance, reviewed 2026-09-24.</li>\n<li id=\"source-logging\"><a href=\"https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html\">OWASP Logging Cheat Sheet</a>: Data to exclude and Verification. Living guidance, reviewed 2026-09-24.</li>\n<li id=\"source-python\"><a href=\"https://docs.python.org/3.14/library/secrets.html\">Python 3.14 secrets documentation</a>: token generation and compare_digest, reviewed 2026-09-24. Library documentation, not an API-key specification.</li>\n</ul>\n</main>\n<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>\n</body>\n</html>"
+      "html": "<ul class=\"prose\">\n<li id=\"source-rest\"><a href=\"https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html\">OWASP REST Security Cheat Sheet</a>: HTTPS, API Keys, and Sensitive information in HTTP requests. Living guidance, reviewed 2026-09-24.</li>\n<li id=\"source-logging\"><a href=\"https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html\">OWASP Logging Cheat Sheet</a>: Data to exclude and Verification. Living guidance, reviewed 2026-09-24.</li>\n<li id=\"source-python\"><a href=\"https://docs.python.org/3.14/library/secrets.html\">Python 3.14 secrets documentation</a>: token generation and compare_digest, reviewed 2026-09-24. Library documentation, not an API-key specification.</li>\n</ul>\n</main>"
     }
   ],
   "layers": [

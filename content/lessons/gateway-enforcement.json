@@ -2,12 +2,334 @@
   "slug": "gateway-enforcement",
   "source": "topics/gateway-enforcement/index.html",
   "kind": "topics",
+  "prologue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Gateway enforcement | API Security in the Age of AI</title>\n<link rel=\"stylesheet\" href=\"../../assets/site.css\">\n<script src=\"../../assets/course.js\" defer></script>\n</head>\n<body data-course-lesson=\"gateway-enforcement\">",
+  "nav": "\n<nav class=\"site-nav\" aria-label=\"Site\"><div><a class=\"home\" href=\"../../index.html\">API Security in the Age of AI</a><a href=\"../../index.html#course\">Course</a><a href=\"../../index.html#path\">Modules</a><a href=\"../../roadmap/index.html\">Roadmap</a><a href=\"../../checklist/index.html\">Checklist</a><a href=\"../../glossary/index.html\">Glossary</a></div></nav>",
+  "main_open": "\n<main>",
+  "blocks": [
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "kicker"
+      },
+      "html": "\n<p class=\"kicker\">Part 3: Edges and boundaries &middot; Module 12</p>"
+    },
+    {
+      "tag": "h1",
+      "attrs": {},
+      "html": "\n<h1>Gateway enforcement</h1>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "meta"
+      },
+      "html": "\n<p class=\"meta\">Last reviewed 2026-09-30 &middot; <a class=\"jump\" href=\"#reference\">Jump to reference</a></p>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n\n<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can list every path that reaches a service, tell the controls a gateway can carry from the ones it cannot, explain why a header the gateway sets is a credential, and reconcile an architecture diagram against the connections that actually exist.</p>\n<p><strong>Before you start.</strong> Parts 1 and 2 put checks in handlers. This module is about the network those handlers sit on, and it reuses the reconciliation habit from <a href=\"../credential-lifecycle/index.html\">module 8</a>: a document is a claim until it has been compared with the thing it describes.</p>\n</div>"
+    },
+    {
+      "tag": "section",
+      "attrs": {
+        "class": "lesson-status",
+        "aria-label": "Lesson progress"
+      },
+      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 13 of 26</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "layer",
+        "id": "learn"
+      },
+      "html": "\n\n<span class=\"layer\" id=\"learn\">Learn</span>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>1. The attack</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Running example: ExampleAir's booking, loyalty and reporting services behind an API gateway. Company names are fictional. The gateway authenticates every request, applies rate limits, validates against the schema and logs everything. The diagram is accurate about what the gateway does.</p>\n<p>It is wrong about something else: the arrow. The diagram shows one arrow into each service, and there are more. A batch job calls reporting directly because that was simpler than issuing it a token. The loyalty service calls booking over the cluster network because they are neighbours. A partner reaches an old version over a VPN that was set up for a migration. A staging deployment with production data is answering on the public internet because a load balancer rule outlived the test it was created for.</p>\n<p>None of those is an attack. They are four ordinary decisions, each sensible at the time, and together they mean the gateway is enforcing nothing for any of the services behind it, for any caller who can reach them another way.</p>\n</div>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "wrap"
+      },
+      "html": "\n<div class=\"wrap\"><table>\n<thead><tr><th>The caller reaches the service</th><th>Through the gateway</th><th>By any other path</th></tr></thead>\n<tbody>\n<tr><td>Without a credential</td><td class=\"no\">Refused</td><td class=\"yes\">Served, if the service trusts the gateway to have checked</td></tr>\n<tr><td>Claiming to be someone else</td><td class=\"no\">The gateway sets the identity header</td><td class=\"yes\">The caller sets the identity header</td></tr>\n<tr><td>Faster than the limit allows</td><td class=\"no\">Throttled</td><td class=\"yes\">Unthrottled</td></tr>\n<tr><td>With a body the schema forbids</td><td class=\"no\">Rejected</td><td class=\"yes\">Accepted</td></tr>\n<tr><td>To an older version of the service</td><td class=\"yes\">Depends whether the gateway routes to it</td><td class=\"yes\">Reachable</td></tr>\n<tr><td>To a staging deployment holding real data</td><td class=\"yes\">Depends whether anyone thought about it</td><td class=\"yes\">Reachable</td></tr>\n<tr><td>Leaving no trace in the access log</td><td class=\"no\">Logged</td><td class=\"yes\">Not logged, so the bypass is also invisible</td></tr>\n</tbody></table></div>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<p class=\"prose\">The last row is the one that makes this hard to find. Every other defect in this course leaves evidence in the place you would look. A request that never reached the gateway is absent from the gateway's logs, which is the source most teams use to answer \"who is calling this service\".</p>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>2. Why it works</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>An <a href=\"../../glossary/index.html#api-gateway\">API gateway</a> is a choke point, and a choke point is a control only while it is the only way through. That sounds obvious stated plainly and is easy to lose, because the gateway is genuinely enforcing those controls on the traffic it sees, and the traffic it sees is the traffic anyone looks at.</p>\n<p>NIST SP 800-207 puts the underlying principle as a tenet of zero trust: \"All communication is secured regardless of network location\", and \"network location alone does not imply trust\". Being inside the cluster is not a credential. In the running example, the loyalty service is a well-behaved internal component, and the reason it can call booking without authenticating is not that anyone decided it should be allowed to, it is that nothing stopped it.</p>\n<p>The second mechanism is the header. A gateway that authenticates typically tells the service who the caller is, in a header. That header is now a credential, and it has the property every credential must not have: anything that can reach the service can set it. RFC 7239, defining <code>Forwarded</code>, states the general case precisely: such a field \"cannot be relied upon to be correct, as it may be modified, whether mistakenly or for malicious reasons, by every node on the way to the server, including the client making the request\". The same is true of <code>X-Caller-Id</code> or whatever your gateway uses, and unlike <code>Forwarded</code> it usually has no specification at all telling anyone to be careful with it.</p>\n<p>The third is inventory. OWASP's API9:2023 is about knowing what exists, and its questions are exactly the ones this exercise asks: \"Which environment is the API running in (e.g. production, staging, test, development)? Who should have network access to the API (e.g. public, internal, partners)? Which API version is running?\" A service you cannot answer those three questions about is not protected by a gateway, whatever the diagram says, because nobody knows whether it is behind one.</p>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>3. The control</h2>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n<h3>Which controls a gateway can carry, and which it cannot</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>This is the distinction that makes the rest of the module tractable. Some controls need only the request, and a gateway has the whole request. Others need the object, the caller's relationship to it, or the business state, and a gateway has none of those.</p>\n</div>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "wrap"
+      },
+      "html": "\n<div class=\"wrap\"><table>\n<thead><tr><th>Control</th><th>A gateway can</th><th>The service must</th></tr></thead>\n<tbody>\n<tr><td>Authentication</td><td>Validate the credential and reject a bad one</td><td>Validate it too, because the gateway is not the only path</td></tr>\n<tr><td>Object authorization</td><td>Nothing: it has not loaded the object</td><td>All of it. <a href=\"../object-level-authorization/index.html\">Module 9</a></td></tr>\n<tr><td>Property authorization</td><td>Nothing: it does not know which fields mean what</td><td>All of it. <a href=\"../property-and-function-authorization/index.html\">Module 10</a></td></tr>\n<tr><td>Function authorization</td><td>Refuse a method and path a role may not use</td><td>Enforce it too, for the same reason as authentication</td></tr>\n<tr><td>Rate limiting</td><td>Apply a shared limit across callers</td><td>Apply its own where the limit protects something the service owns</td></tr>\n<tr><td>Schema validation</td><td>Reject a body that does not match the contract</td><td>Validate its own input regardless</td></tr>\n<tr><td>Request size and timeouts</td><td>Enforce them, and this is worth having at the edge</td><td>Enforce its own, because a bypass path has none</td></tr>\n<tr><td>Access logging</td><td>Log every request it sees</td><td>Log too, or bypass traffic is invisible</td></tr>\n</tbody></table></div>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\">Read the middle column as \"worth doing at the edge\" and the right column as \"the thing that is actually load bearing\". A gateway is a good place to stop obvious traffic cheaply and early. It is a poor place to be the only thing standing between a caller and a decision.</p>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>The exercise</h3>"
+    },
+    {
+      "tag": "ol",
+      "attrs": {
+        "class": "steps prose"
+      },
+      "html": "\n<ol class=\"steps prose\">\n<li><strong>List the services</strong>, and for each one record its environment, its version, whether it is the current version, and whether it holds production data. These are OWASP API9's questions.</li>\n<li><strong>List the paths</strong>, meaning every source that can open a connection to it: the gateway, other services, batch jobs, partner networks, operator tooling, anything.</li>\n<li><strong>Get that list from the network, not from the diagram.</strong> Connection logs, service mesh telemetry, security group rules, whatever your platform can tell you. The diagram is the claim being tested.</li>\n<li><strong>For each path that does not cross the gateway</strong>, ask what the service does for itself, and treat every gateway control as absent on that path.</li>\n<li><strong>For every identity header</strong>, ask which paths can set it. If any path that reaches the service can, the header is not evidence of anything.</li>\n<li><strong>Record the date.</strong> The answer is true as of the reconciliation and decays from there, exactly as in module 8.</li>\n</ol>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>The whole system</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "diagram"
+      },
+      "html": "\n<div class=\"diagram\">\n<svg viewBox=\"0 0 1100 380\" width=\"100%\" style=\"min-width:900px\" role=\"img\">\n<title>The documented path to a service and the paths that also exist</title>\n<desc>The upper band shows the architecture as documented: traffic from the internet reaches the gateway, which authenticates, rate limits, validates and logs, and then reaches the service. The lower band shows four further paths observed in the connection logs that do not cross the gateway: another service calling over the cluster network, a batch job, a partner network reaching an older version, and the public internet reaching a staging deployment holding production data. A note records that on each of those paths every gateway control is absent and the requests appear in no gateway log.</desc>\n<defs><marker id=\"a\" viewBox=\"0 0 10 10\" refX=\"8\" refY=\"5\" markerWidth=\"6\" markerHeight=\"6\" orient=\"auto-start-reverse\"><path d=\"M2 1L8 5L2 9\" fill=\"none\" stroke=\"context-stroke\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></marker></defs>\n\n<text class=\"lab\" x=\"36\" y=\"28\">As documented.</text>\n<rect class=\"zone\" x=\"20\" y=\"40\" width=\"1060\" height=\"104\" rx=\"12\"/>\n<g class=\"p\"><rect x=\"50\" y=\"68\" width=\"200\" height=\"54\" rx=\"8\"/><text class=\"th\" x=\"150\" y=\"90\" text-anchor=\"middle\">Internet</text><text class=\"ts\" x=\"150\" y=\"109\" text-anchor=\"middle\">every caller</text></g>\n<g class=\"h\"><rect x=\"330\" y=\"68\" width=\"320\" height=\"54\" rx=\"8\"/><text class=\"th\" x=\"490\" y=\"90\" text-anchor=\"middle\">Gateway</text><text class=\"ts\" x=\"490\" y=\"109\" text-anchor=\"middle\">authn, rate limit, schema, logging</text></g>\n<g class=\"s\"><rect x=\"730\" y=\"68\" width=\"300\" height=\"54\" rx=\"8\"/><text class=\"th\" x=\"880\" y=\"90\" text-anchor=\"middle\">Service</text><text class=\"ts\" x=\"880\" y=\"109\" text-anchor=\"middle\">trusts all of the above</text></g>\n<line class=\"arr\" x1=\"250\" y1=\"95\" x2=\"326\" y2=\"95\" marker-end=\"url(#a)\"/>\n<line class=\"arr\" x1=\"650\" y1=\"95\" x2=\"726\" y2=\"95\" marker-end=\"url(#a)\"/>\n\n<text class=\"lab\" x=\"36\" y=\"180\">As observed. None of these crosses the gateway.</text>\n<rect class=\"zone\" x=\"20\" y=\"192\" width=\"1060\" height=\"176\" rx=\"12\"/>\n<g class=\"r\"><rect x=\"50\" y=\"216\" width=\"230\" height=\"52\" rx=\"8\"/><text class=\"th\" x=\"165\" y=\"237\" text-anchor=\"middle\">Another service</text><text class=\"ts\" x=\"165\" y=\"256\" text-anchor=\"middle\">cluster network</text></g>\n<g class=\"r\"><rect x=\"310\" y=\"216\" width=\"230\" height=\"52\" rx=\"8\"/><text class=\"th\" x=\"425\" y=\"237\" text-anchor=\"middle\">Batch job</text><text class=\"ts\" x=\"425\" y=\"256\" text-anchor=\"middle\">sets its own headers</text></g>\n<g class=\"r\"><rect x=\"570\" y=\"216\" width=\"230\" height=\"52\" rx=\"8\"/><text class=\"th\" x=\"685\" y=\"237\" text-anchor=\"middle\">Partner VPN</text><text class=\"ts\" x=\"685\" y=\"256\" text-anchor=\"middle\">an older version</text></g>\n<g class=\"r\"><rect x=\"830\" y=\"216\" width=\"200\" height=\"52\" rx=\"8\"/><text class=\"th\" x=\"930\" y=\"237\" text-anchor=\"middle\">Internet</text><text class=\"ts\" x=\"930\" y=\"256\" text-anchor=\"middle\">staging, real data</text></g>\n<line class=\"rej\" x1=\"165\" y1=\"268\" x2=\"165\" y2=\"300\" marker-end=\"url(#a)\"/>\n<line class=\"rej\" x1=\"425\" y1=\"268\" x2=\"425\" y2=\"300\" marker-end=\"url(#a)\"/>\n<line class=\"rej\" x1=\"685\" y1=\"268\" x2=\"685\" y2=\"300\" marker-end=\"url(#a)\"/>\n<line class=\"rej\" x1=\"930\" y1=\"268\" x2=\"930\" y2=\"300\" marker-end=\"url(#a)\"/>\n<g class=\"g\"><rect x=\"150\" y=\"304\" width=\"800\" height=\"48\" rx=\"8\"/><text class=\"th\" x=\"550\" y=\"325\" text-anchor=\"middle\">The same service, with none of the gateway's controls</text><text class=\"ts\" x=\"550\" y=\"343\" text-anchor=\"middle\">and no entry in the gateway's log, so the bypass is invisible there too</text></g>\n</svg>\n<div class=\"legend\"><span class=\"lg-p\">Callers</span><span class=\"lg-h\">Gateway</span><span class=\"lg-s\">Service</span><span class=\"lg-r\">Paths that skip it</span></div>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>4. Defaults and when to change them</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "wrap"
+      },
+      "html": "\n<div class=\"wrap\"><table>\n<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>\n<tbody>\n<tr><td>Where authentication happens</td><td>In the service, on every request, whatever the gateway did</td><td>Never rely on the gateway alone unless you can prove no other path exists, and can keep proving it.</td></tr>\n<tr><td>What the gateway is for</td><td>Stopping obvious traffic early and cheaply</td><td>Treat it as defence in depth. The moment it is the only layer, its coverage is your coverage.</td></tr>\n<tr><td>Identity headers from the gateway</td><td>Do not use them as the identity</td><td>If you must, the service accepts them only on a connection it can attribute to the gateway, such as mutual TLS, and rejects them otherwise.</td></tr>\n<tr><td>Service-to-service calls</td><td>Authenticated, with an identity of their own</td><td>Being on the same network is not a credential. NIST SP 800-207 states this directly.</td></tr>\n<tr><td>Batch jobs and operator tooling</td><td>Their own credentials, through the same checks</td><td>These are the paths that get built quickly and documented never.</td></tr>\n<tr><td>Non-production deployments</td><td>No production data, and not publicly reachable</td><td>OWASP: if production data is unavoidable there, give it the same security treatment as production.</td></tr>\n<tr><td>Older versions</td><td>A retirement date at the point a successor ships</td><td>Without one, the old version is reachable forever and is nobody's job. Module 18 covers the rest of this.</td></tr>\n<tr><td>Path inventory</td><td>Read from the network, monthly</td><td>More often where services are deployed frequently. The date of the last reconciliation is part of the answer.</td></tr>\n<tr><td>Logging</td><td>In the service as well as the gateway</td><td>Otherwise the traffic that bypassed the gateway is also the traffic you cannot see.</td></tr>\n</tbody></table></div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>5. What it proves, and what it doesn't</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p><strong>Proves:</strong> for the paths you have enumerated, which controls apply on each one, and which services are relying on a control that is not present on every route to them.</p>\n<p><strong>Doesn't prove:</strong> that you enumerated them all. This is module 8's limit in a different domain: the answer is exactly as complete as the path list, the path list has to come from the network rather than the diagram, and it is accurate on the day it is produced. A connection made the following week is in nobody's review.</p>\n<div class=\"callout warn\"><strong>A gateway is not a bad control. It is a control with a precondition.</strong> The precondition is that it is the only path, and that is a property of your network rather than of the gateway. Nothing about buying, configuring or tuning the gateway establishes it, and it stops being true quietly, by way of a change nobody thought was a security change.</div>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>6. Prove it</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>For each service:</p>\n<ul>\n<li>A list of every source that can open a connection to it, produced from the network rather than from a diagram, and dated.</li>\n<li>For each path, which of the gateway's controls apply, stated explicitly rather than assumed.</li>\n<li>Evidence that a request without a credential is refused by the service itself, tested on a path that does not cross the gateway.</li>\n<li>For every identity header the service reads, the list of paths that can set it, and what makes the gateway distinguishable from them.</li>\n<li>The environment, version and intended audience of the deployment, which are OWASP API9's three questions.</li>\n<li>For every non-current version reachable at all, a retirement date.</li>\n<li>For every non-production deployment, evidence it holds no production data or has production controls.</li>\n<li>Service-side access logs, so traffic that skipped the gateway is still visible somewhere.</li>\n</ul>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>7. Exercise</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Download <a href=\"../../labs/gateway_paths_lab.py\"><code>labs/gateway_paths_lab.py</code></a>. It needs nothing beyond Python 3.</p>\n</div>"
+    },
+    {
+      "tag": "pre",
+      "attrs": {},
+      "html": "\n<pre><code>Windows              macOS and Linux\npy -3 labs/gateway_paths_lab.py    python3 labs/gateway_paths_lab.py</code></pre>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The exercise holds five services and two path lists: the one in the architecture document and the one the connection logs show.</p>\n</div>"
+    },
+    {
+      "tag": "pre",
+      "attrs": {},
+      "html": "\n<pre><code>$ python3 labs/gateway_paths_lab.py\nthe gateway performs authentication, rate limiting, schema validation\nand request logging for every service behind it\n\nPart A: the architecture as documented.\n  internet -> svc-booking            gateway   clean\n  internet -> svc-loyalty            gateway   clean\n  internet -> svc-reporting          gateway   clean\n\n 1. paths in the document                              3\n 2. findings across all of them                        0\n\nPart B: reconcile the document against observed connections.\n 3. paths actually observed                            7\n 4. paths absent from the document                     4\n 5. services absent from the document                  2\n\nPart C: the same rules over the paths that exist.\n  svc-loyalty -> svc-booking         direct    2 findings\n                                       Critical reachable without authentication\n                                       Medium   gateway-only controls absent: schema, size limits, request logging\n  batch-nightly -> svc-reporting     direct    4 findings\n                                       Critical reachable without authentication\n                                       Critical caller identity is a header this path can set\n                                       High     no authorization of its own\n                                       Medium   gateway-only controls absent: schema, size limits, request logging\n  partner-vpn -> svc-booking-v1      direct    3 findings\n                                       Critical reachable without authentication\n                                       High     older version reachable with no retirement date\n                                       Medium   gateway-only controls absent: schema, size limits, request logging\n  internet -> svc-booking-staging    direct    3 findings\n                                       Critical reachable without authentication\n                                       Critical non-production deployment, production data, publicly reachable\n                                       Medium   gateway-only controls absent: schema, size limits, request logging\n\n 6. svc-loyalty -> svc-booking                         Critical: reachable without authentication\n 7. batch-nightly -> svc-reporting                     Critical: reachable without authentication\n 8. partner-vpn -> svc-booking-v1                      Critical: reachable without authentication\n 9. internet -> svc-booking-staging                    Critical: reachable without authentication\n10. staging's second critical finding                  non-production deployment, production data, publicly reachable\n\nPart D: after the remediation.\n11. svc-loyalty -> svc-booking after remediation       Medium: gateway-only controls absent: schema, size limits, request logging\n12. batch-nightly -> svc-reporting after remediation   Medium: gateway-only controls absent: schema, size limits, request logging\n13. partner-vpn -> svc-booking-v1 after remediation    Medium: gateway-only controls absent: schema, size limits, request logging\n14. internet -> svc-booking-staging after remediation  Medium: gateway-only controls absent: schema, size limits, request logging\n15. critical findings remaining                        0\n\nPart E: what the remediation does not reach.\n16. paths still missing the gateway's own controls     4\n17. connections made since the reconciliation          1\n18. Part C checks that covered them                    0\n19. findings they produce once reviewed                1\n\nall lab checks passed</code></pre>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Part A is the part that makes this defect survive reviews. Three paths, all through the gateway, no findings, and every statement in the architecture document is true. A review that reads the document and stops here concludes correctly from the evidence it was given.</p>\n<p>Part B is the same reconciliation module 8 applied to credentials, in a different domain. Seven paths exist and three were written down, and two of the five services appear in no document at all. Those two are the staging deployment and the old version, which is not a coincidence: the services nobody documents are disproportionately the ones nobody has thought about since they were created.</p>\n<p>In Part C, <code>batch-nightly -> svc-reporting</code> collects four findings, and the second one is the header. The reporting service reads the caller's identity from a header the gateway sets, and the batch job reaching it directly can set that header to anything. The identity is not weakly authenticated; it is supplied by the caller.</p>\n<p>Part D closes every Critical by moving authentication and authorization into the services, and every path keeps one finding. That residue is honest: schema validation, size limits and request logging really were the gateway's, and on a path that skips it they really are absent. The fix for those is either to remove the path or to implement them in the service.</p>\n<p>Part E is the standing cost. One connection made after the review is in none of Part C's checks, not because it is safe but because the review had already run.</p>\n<p><strong>Try next:</strong></p>\n<ul>\n<li>Set <code>can_set_headers</code> to false on the batch job path and rerun. One Critical disappears. Now decide what would have to be true of your network for that to be a claim you could defend.</li>\n<li>Give <code>svc-booking</code> <code>own_authn=True</code> in <code>SERVICES</code> and rerun Part C. Count how many findings move, and notice which services you have to fix one at a time.</li>\n<li>Add a path from <code>internet</code> to <code>svc-loyalty</code> that skips the gateway. Compare the findings with the same path through it.</li>\n<li>Write the two lists for a system you work on: the services, and every source that can open a connection to each. Then find out which list you could not complete without asking someone.</li>\n</ul>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>8. Check your understanding</h2>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Your gateway authenticates every request. Which services are protected by that?</summary><p>The ones that cannot be reached any other way. For every other service the statement is about the traffic the gateway happens to see, which is not the same as the traffic the service receives. The way to find out is to enumerate the paths from the network, not to read the architecture diagram.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>The gateway strips client-supplied identity headers and sets its own. Is the service safe to trust them?</summary><p>Only on connections that came from the gateway, and only if the service can tell. Anything else that can reach the service can set the same header, and RFC 7239 makes the general point about forwarding headers: they can be modified by every node on the way, including the client. Either give the gateway a connection the service can authenticate, such as mutual TLS, or have the service validate the original credential itself.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Which of the controls in this course can a gateway actually perform?</summary><p>The ones that need only the request: credential validation, method and path rules, rate limits, schema validation, size limits, logging. Not the ones that need the object or the business state, so not object authorization, not property authorization, and not anything about whether this particular caller should have this particular record. Those have to be in the service because only the service has loaded the data.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>A service-to-service call inside the cluster does not authenticate. What is the argument against fixing it?</summary><p>Usually that the network is trusted, which NIST SP 800-207 addresses in one sentence: network location alone does not imply trust. The practical version is that the boundary protecting that call is a network control somebody else maintains, and you will not be told when it changes.</p></details>"
+    },
+    {
+      "tag": "section",
+      "attrs": {
+        "class": "course-quiz",
+        "data-quiz": null,
+        "data-quiz-id": "gateway-enforcement-check",
+        "data-correct-feedback": "Correct. A gateway has the request but not the object, so it cannot compare the caller with the owner of the record being asked for. That check only exists where the data is loaded.",
+        "data-incorrect-feedback": "Not quite. Credential validation, rate limits and schema validation all need only the request, which a gateway has in full. Object-level authorization needs the record, which the gateway never loads."
+      },
+      "html": "\n\n<section class=\"course-quiz\" data-quiz data-quiz-id=\"gateway-enforcement-check\" data-correct-feedback=\"Correct. A gateway has the request but not the object, so it cannot compare the caller with the owner of the record being asked for. That check only exists where the data is loaded.\" data-incorrect-feedback=\"Not quite. Credential validation, rate limits and schema validation all need only the request, which a gateway has in full. Object-level authorization needs the record, which the gateway never loads.\">\n<p class=\"kicker\">Quick check</p>\n<h2>What a gateway cannot do</h2>\n<fieldset><legend>Which control can a gateway not perform on your behalf, however it is configured?</legend>\n<label><input type=\"radio\" name=\"gw\" value=\"authn\"> Validating the caller's credential.</label>\n<label><input type=\"radio\" name=\"gw\" value=\"object\" data-correct=\"true\"> Checking that the caller owns the record they asked for.</label>\n<label><input type=\"radio\" name=\"gw\" value=\"rate\"> Applying a rate limit across callers.</label>\n<label><input type=\"radio\" name=\"gw\" value=\"schema\"> Rejecting a body that does not match the schema.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button><p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n</section>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "course-next"
+      },
+      "html": "\n<p class=\"course-next\"><strong>Course progress:</strong> return to the <a href=\"../../index.html#course\">course dashboard</a> to see your published-module progress.</p>"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "layer",
+        "id": "reference",
+        "style": "margin-top:3rem"
+      },
+      "html": "\n<span class=\"layer\" id=\"reference\" style=\"margin-top:3rem\">Reference</span>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {
+        "style": "border-top:none;margin-top:.5rem"
+      },
+      "html": "\n<h2 style=\"border-top:none;margin-top:.5rem\">Controls</h2>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\"><span class=\"label std\">Standard</span> backed by a cited specification. <span class=\"label base\">Baseline</span> this project's default, with reasoning above. <span class=\"label opt\">Option</span> valid depending on the threat model.</p>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "controls"
+      },
+      "html": "\n<ul class=\"controls\">\n<li><span class=\"label std\">Standard</span>\"All communication is secured regardless of network location\", and \"network location alone does not imply trust\". NIST SP 800-207 section 2.1.</li>\n<li><span class=\"label std\">Standard</span>A forwarding header \"cannot be relied upon to be correct, as it may be modified, whether mistakenly or for malicious reasons, by every node on the way to the server, including the client making the request\". RFC 7239 section 8.1. The same applies to any identity header a gateway injects.</li>\n<li><span class=\"label std\">Standard</span>RFC 7239 section 8.1 also notes that whitelisting trusted proxies is limited, because the chain before the proxy cannot be trusted and, \"unless the communication between proxies and the endpoint is secured, the data can be modified by an attacker with access to the network\".</li>\n<li><span class=\"label std\">Standard</span>A forwarding header \"should never be copied into response messages\", as it reveals the proxy chain to the client. RFC 7239 section 8.2.</li>\n<li><span class=\"label std\">Standard</span>Be able to answer, for every API host: which environment it runs in, who should have network access to it, and which version is running. OWASP API9:2023.</li>\n<li><span class=\"label std\">Standard</span>\"Avoid using production data with non-production API deployments. If this is unavoidable, these endpoints should get the same security treatment as the production ones.\" OWASP API9:2023, How To Prevent.</li>\n<li><span class=\"label std\">Standard</span>Apply protective measures to all exposed versions of an API, not only the current production one. OWASP API9:2023, How To Prevent.</li>\n<li><span class=\"label base\">Baseline</span>Authenticate in the service on every request, regardless of what the gateway did.</li>\n<li><span class=\"label base\">Baseline</span>Produce the path list from the network, not the diagram, and record the date it was produced.</li>\n<li><span class=\"label base\">Baseline</span>Treat every gateway control as absent on any path that does not cross the gateway, and write down which those are.</li>\n<li><span class=\"label base\">Baseline</span>Do not use a gateway-injected identity header as the caller's identity unless the service can authenticate the connection it arrived on.</li>\n<li><span class=\"label base\">Baseline</span>Give service-to-service calls, batch jobs and operator tooling credentials of their own.</li>\n<li><span class=\"label base\">Baseline</span>Log in the service as well as at the gateway, so bypass traffic is visible somewhere.</li>\n<li><span class=\"label opt\">Option</span>Use mutual TLS between the gateway and the services, so an injected header arrives on a connection the service can attribute. This makes the header meaningful; it does not make the gateway the only path.</li>\n<li><span class=\"label opt\">Option</span>Enforce at the network layer that only the gateway can reach the service, which is worth doing and is a second control to maintain rather than a replacement for the first.</li>\n</ul>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>Review checklist items</h2>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\">These are collected into the <a href=\"../../checklist/index.html\">site checklist</a>.</p>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "checks"
+      },
+      "html": "\n<ul class=\"checks\">\n<li data-check=\"gw-01\" data-severity=\"Critical\"><strong>Every service authenticates for itself, on every path</strong> <span>Tested from a path that does not cross the gateway. A service that only works because the gateway checked is unauthenticated on every other route.</span></li>\n<li data-check=\"gw-02\" data-severity=\"Critical\"><strong>The path list comes from the network and is dated</strong> <span>Connection logs, mesh telemetry or firewall rules. A diagram is the claim being tested, not the evidence.</span></li>\n<li data-check=\"gw-03\" data-severity=\"Critical\"><strong>No gateway-injected identity header is trusted without an authenticated connection</strong> <span>List every path that can set it. If any path that reaches the service can, the header is caller-supplied.</span></li>\n<li data-check=\"gw-04\" data-severity=\"High\"><strong>Non-production deployments hold no production data and are not publicly reachable</strong> <span>Or they carry production controls, which OWASP states as the alternative.</span></li>\n<li data-check=\"gw-05\" data-severity=\"High\"><strong>Every reachable non-current version has a retirement date</strong> <span>Reachability is the test, not whether the gateway routes to it.</span></li>\n<li data-check=\"gw-06\" data-severity=\"High\"><strong>Service-to-service calls, batch jobs and operator tooling carry their own credentials</strong> <span>Network position is not a credential.</span></li>\n<li data-check=\"gw-07\" data-severity=\"Medium\"><strong>Each gateway control is recorded as present or absent per path</strong> <span>Schema validation, size limits, rate limits and logging are absent on any path that skips the gateway. Say so explicitly.</span></li>\n<li data-check=\"gw-08\" data-severity=\"Medium\"><strong>Services log requests themselves</strong> <span>Otherwise the traffic that bypassed the gateway is also the traffic that left no record.</span></li>\n</ul>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>Sources</h2>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<ul class=\"prose\">\n<li><a href=\"https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-207.pdf\">NIST SP 800-207: Zero Trust Architecture</a>, August 2020. Section 2.1, the tenets.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc7239\">RFC 7239: Forwarded HTTP Extension</a>, June 2014. Sections 8.1 and 8.2.</li>\n<li><a href=\"https://api-security.owasp.org/editions/2023/en/0xa9-improper-inventory-management/\">OWASP API Security Top 10 2023, API9:2023 Improper Inventory Management</a>.</li>\n</ul>"
+    }
+  ],
+  "main_close": "\n</main>",
+  "footer": "\n<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>",
+  "epilogue": "\n</body>\n</html>\n",
   "page_title": "Gateway enforcement | API Security in the Age of AI",
   "lesson_key": "gateway-enforcement",
   "title": "Gateway enforcement",
   "kicker": "Part 3: Edges and boundaries &middot; Module 12",
   "reviewed": "2026-09-30",
   "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 13 of 26</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
+  "intro_prose": [
+    "<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can list every path that reaches a service, tell the controls a gateway can carry from the ones it cannot, explain why a header the gateway sets is a credential, and reconcile an architecture diagram against the connections that actually exist.</p>\n<p><strong>Before you start.</strong> Parts 1 and 2 put checks in handlers. This module is about the network those handlers sit on, and it reuses the reconciliation habit from <a href=\"../credential-lifecycle/index.html\">module 8</a>: a document is a claim until it has been compared with the thing it describes.</p>\n</div>"
+  ],
   "sections": [
     {
       "heading": "1. The attack",
@@ -67,7 +389,7 @@
     {
       "heading": "Sources",
       "heading_text": "Sources",
-      "html": "<ul class=\"prose\">\n<li><a href=\"https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-207.pdf\">NIST SP 800-207: Zero Trust Architecture</a>, August 2020. Section 2.1, the tenets.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc7239\">RFC 7239: Forwarded HTTP Extension</a>, June 2014. Sections 8.1 and 8.2.</li>\n<li><a href=\"https://api-security.owasp.org/editions/2023/en/0xa9-improper-inventory-management/\">OWASP API Security Top 10 2023, API9:2023 Improper Inventory Management</a>.</li>\n</ul>\n</main>\n<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>\n</body>\n</html>"
+      "html": "<ul class=\"prose\">\n<li><a href=\"https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-207.pdf\">NIST SP 800-207: Zero Trust Architecture</a>, August 2020. Section 2.1, the tenets.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc7239\">RFC 7239: Forwarded HTTP Extension</a>, June 2014. Sections 8.1 and 8.2.</li>\n<li><a href=\"https://api-security.owasp.org/editions/2023/en/0xa9-improper-inventory-management/\">OWASP API Security Top 10 2023, API9:2023 Improper Inventory Management</a>.</li>\n</ul>\n</main>"
     }
   ],
   "layers": [

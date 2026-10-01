@@ -2,12 +2,320 @@
   "slug": "versioning-and-deprecation",
   "source": "topics/versioning-and-deprecation/index.html",
   "kind": "topics",
+  "prologue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Versioning and deprecation | API Security in the Age of AI</title>\n<link rel=\"stylesheet\" href=\"../../assets/site.css\">\n<script src=\"../../assets/course.js\" defer></script>\n</head>\n<body data-course-lesson=\"versioning-and-deprecation\">",
+  "nav": "\n<nav class=\"site-nav\" aria-label=\"Site\"><div><a class=\"home\" href=\"../../index.html\">API Security in the Age of AI</a><a href=\"../../index.html#course\">Course</a><a href=\"../../index.html#path\">Modules</a><a href=\"../../roadmap/index.html\">Roadmap</a><a href=\"../../checklist/index.html\">Checklist</a><a href=\"../../glossary/index.html\">Glossary</a></div></nav>",
+  "main_open": "\n<main>",
+  "blocks": [
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "kicker"
+      },
+      "html": "\n<p class=\"kicker\">Part 3: Edges and boundaries &middot; Module 18</p>"
+    },
+    {
+      "tag": "h1",
+      "attrs": {},
+      "html": "\n<h1>Versioning and deprecation</h1>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "meta"
+      },
+      "html": "\n<p class=\"meta\">Last reviewed 2026-09-30 &middot; <a class=\"jump\" href=\"#reference\">Jump to reference</a></p>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n\n<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can announce a deprecation in a way machines can act on, set the two dates in the order the specification requires, tell what a client can work out at any point on that timeline, and say why announcing perfectly changes nothing on its own.</p>\n<p><strong>Before you start.</strong> Every module in this course has assumed there is one version of the service to secure. There is rarely one, and the extra ones are where every control you have built is a version behind.</p>\n</div>"
+    },
+    {
+      "tag": "section",
+      "attrs": {
+        "class": "lesson-status",
+        "aria-label": "Lesson progress"
+      },
+      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 18 of 26</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "layer",
+        "id": "learn"
+      },
+      "html": "\n\n<span class=\"layer\" id=\"learn\">Learn</span>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>1. The attack</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Running example: ExampleAir's booking API, currently on v3. Company names are fictional. Five deployments answer requests. Three are in the documentation.</p>\n<p>The attack is picking the oldest one. Old versions are where the object check from <a href=\"../object-level-authorization/index.html\">module 9</a> had not been written yet, where the response still carries the fields <a href=\"../property-and-function-authorization/index.html\">module 10</a> removed, where the rate limit is the one you set two years ago. None of that was a mistake at the time. It became one when the fix shipped to v3 and stopped there.</p>\n<p>OWASP files this as <strong>API9:2023 Improper Inventory Management</strong>, and its advice is pointed: apply protective measures \"for all exposed versions of your APIs, not just for the current production version\". The word doing the work is <em>exposed</em>, which is a fact about your network rather than about your documentation.</p>\n</div>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "wrap"
+      },
+      "html": "\n<div class=\"wrap\"><table>\n<thead><tr><th>An attacker looks for</th><th>The current version</th><th>A superseded version still answering</th></tr></thead>\n<tbody>\n<tr><td>A missing object check</td><td class=\"no\">Fixed</td><td class=\"yes\">Fixed in v3 only</td></tr>\n<tr><td>A response with too many fields</td><td class=\"no\">Narrowed</td><td class=\"yes\">Still wide</td></tr>\n<tr><td>An old rate limit</td><td class=\"no\">Current</td><td class=\"yes\">Whatever it was</td></tr>\n<tr><td>An endpoint that was removed</td><td class=\"no\">Gone</td><td class=\"yes\">Still there</td></tr>\n<tr><td>Somewhere nobody is watching</td><td class=\"no\">Monitored</td><td class=\"yes\">Nobody owns the dashboard</td></tr>\n<tr><td>A version nobody documented</td><td class=\"no\">Not applicable</td><td class=\"yes\">Not in the inventory at all</td></tr>\n<tr><td>A version whose sunset date has passed</td><td class=\"no\">Not applicable</td><td class=\"yes\">Still answering, and someone believes it is gone</td></tr>\n</tbody></table></div>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<p class=\"prose\">The last two rows are the ones this module is really about, because they are not decisions anybody made. They are what remains when a plan was announced and never finished.</p>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>2. Why it works</h2>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n<h3>Two headers, two dates, one ordering rule</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>There are two RFCs for saying this in a way a client can act on, and they are short.</p>\n<p><strong>RFC 9745</strong>, published March 2025, defines the <code>Deprecation</code> response header field, \"used to signal to consumers of a resource (identified by a URI) that the resource will be or has been deprecated\". Its value is a date, so a future date announces a deprecation that has not happened yet and a past date says it already has.</p>\n<p><strong>RFC 8594</strong>, from May 2019, defines <code>Sunset</code>, which \"indicates that a URI is likely to become unresponsive at a specified point in the future\". It is honest about what happens afterwards: \"after the Sunset time has arrived, it is likely that interactions with the resource will result in client-side errors (HTTP 4xx status codes), redirect responses (HTTP 3xx status codes), or the client might not be able to interact with the resource at all\".</p>\n<p>The two are related by one rule, in RFC 9745 section 4: \"the timestamp given in the <code>Sunset</code> HTTP header field MUST NOT be earlier than the one given in the <code>Deprecation</code> header field\". Deprecated, then gone, in that order. It sounds too obvious to state until you have seen a migration plan with the dates the wrong way round, which is what happens when the sunset date comes from a contract and the deprecation date from an engineer.</p>\n<p>Both specifications add the same caution, and it is the point of Part E of the lab: the header is a hint. RFC 8594 and RFC 9745 both say so in their security considerations. A client that ignores it is not doing anything wrong at the protocol level, and your traffic graph is the only thing that knows whether anyone listened.</p>\n</div>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>Why announcing is the easy half</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>A deprecation has four steps and most teams do the first one: announce it, stop new callers, move the existing ones, withdraw it. The gap between the third and the fourth is where the exposure lives, and it is usually held open by the same fact: nobody knows who is still calling.</p>\n<p>That is why the lab treats \"still receiving traffic from callers nobody can name\" as a finding in its own right. A version with traffic and identified callers is a migration. A version with traffic and no identified callers is a version you cannot withdraw, because the decision to break somebody has no one to notify, and so it never gets made.</p>\n<p>This is also where <a href=\"../gateway-enforcement/index.html\">module 12</a> comes back. The question is not which versions you documented, it is which ones answer. The lab's Part D is that comparison, and the two versions it finds are the ones nobody would have thought to look for.</p>\n</div>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>The whole system</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "diagram"
+      },
+      "html": "\n<div class=\"diagram\">\n<svg viewBox=\"0 0 1100 340\" width=\"100%\" style=\"min-width:900px\" role=\"img\">\n<title>The deprecation timeline and what a client can work out at each point</title>\n<desc>A timeline runs left to right through four points: the version is current, the deprecation date passes and the Deprecation header carries that date, the sunset date approaches with the Sunset header giving the end date, and the sunset date passes. Below the timeline, a note records that the specification requires the sunset timestamp not to be earlier than the deprecation timestamp, and a separate box records that withdrawing the deployment is the only step that ends the exposure, because a header is a hint that clients may ignore.</desc>\n<defs><marker id=\"a\" viewBox=\"0 0 10 10\" refX=\"8\" refY=\"5\" markerWidth=\"6\" markerHeight=\"6\" orient=\"auto-start-reverse\"><path d=\"M2 1L8 5L2 9\" fill=\"none\" stroke=\"context-stroke\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></marker></defs>\n\n<text class=\"lab\" x=\"36\" y=\"28\">One version, four points on the calendar.</text>\n<g class=\"h\"><rect x=\"20\" y=\"52\" width=\"240\" height=\"72\" rx=\"8\"/><text class=\"th\" x=\"140\" y=\"78\" text-anchor=\"middle\">Current</text><text class=\"ts\" x=\"140\" y=\"98\" text-anchor=\"middle\">no signal, and none</text><text class=\"ts\" x=\"140\" y=\"114\" text-anchor=\"middle\">is needed</text></g>\n<g class=\"s\"><rect x=\"290\" y=\"52\" width=\"240\" height=\"72\" rx=\"8\"/><text class=\"th\" x=\"410\" y=\"78\" text-anchor=\"middle\">Deprecated</text><text class=\"ts\" x=\"410\" y=\"98\" text-anchor=\"middle\">Deprecation: a past date</text><text class=\"ts\" x=\"410\" y=\"114\" text-anchor=\"middle\">Link: the successor</text></g>\n<g class=\"g\"><rect x=\"560\" y=\"52\" width=\"240\" height=\"72\" rx=\"8\"/><text class=\"th\" x=\"680\" y=\"78\" text-anchor=\"middle\">Counting down</text><text class=\"ts\" x=\"680\" y=\"98\" text-anchor=\"middle\">Sunset: the end date</text><text class=\"ts\" x=\"680\" y=\"114\" text-anchor=\"middle\">clients can compute the gap</text></g>\n<g class=\"r\"><rect x=\"830\" y=\"52\" width=\"250\" height=\"72\" rx=\"8\"/><text class=\"th\" x=\"955\" y=\"78\" text-anchor=\"middle\">Past sunset</text><text class=\"ts\" x=\"955\" y=\"98\" text-anchor=\"middle\">still answering unless</text><text class=\"ts\" x=\"955\" y=\"114\" text-anchor=\"middle\">somebody withdrew it</text></g>\n<line class=\"arr\" x1=\"260\" y1=\"88\" x2=\"286\" y2=\"88\" marker-end=\"url(#a)\"/>\n<line class=\"arr\" x1=\"530\" y1=\"88\" x2=\"556\" y2=\"88\" marker-end=\"url(#a)\"/>\n<line class=\"arr\" x1=\"800\" y1=\"88\" x2=\"826\" y2=\"88\" marker-end=\"url(#a)\"/>\n\n<rect class=\"zone\" x=\"20\" y=\"150\" width=\"1060\" height=\"64\" rx=\"12\"/>\n<text class=\"ts\" x=\"550\" y=\"178\" text-anchor=\"middle\">RFC 9745 section 4: the Sunset timestamp MUST NOT be earlier than the Deprecation timestamp.</text>\n<text class=\"ts\" x=\"550\" y=\"198\" text-anchor=\"middle\">Deprecated, then gone, in that order.</text>\n\n<g class=\"r\"><rect x=\"150\" y=\"240\" width=\"800\" height=\"72\" rx=\"8\"/><text class=\"th\" x=\"550\" y=\"266\" text-anchor=\"middle\">Only the fourth step ends the exposure</text><text class=\"ts\" x=\"550\" y=\"287\" text-anchor=\"middle\">both specifications call the header a hint; a client may ignore it, and many do</text><text class=\"ts\" x=\"550\" y=\"304\" text-anchor=\"middle\">traffic after the sunset date is the evidence, and it is usually not zero</text></g>\n</svg>\n<div class=\"legend\"><span class=\"lg-h\">Current</span><span class=\"lg-s\">Announced</span><span class=\"lg-r\">What announcing does not do</span></div>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>3. The control</h2>"
+    },
+    {
+      "tag": "ol",
+      "attrs": {
+        "class": "steps prose"
+      },
+      "html": "\n<ol class=\"steps prose\">\n<li><strong>Inventory by reachability, not by documentation.</strong> The list is every deployment that answers, produced from the network. Module 12's argument, one layer up.</li>\n<li><strong>Give every superseded version a deprecation date and a sunset date,</strong> in that order, at the moment its successor ships rather than later.</li>\n<li><strong>Emit both headers</strong> from the deprecated version, with a <code>Link</code> to the documentation, so the announcement reaches a machine and not only a changelog.</li>\n<li><strong>Name the remaining callers.</strong> A version with traffic and no identified callers cannot be withdrawn, which is why it never is.</li>\n<li><strong>Apply current controls to every exposed version</strong> until it is gone. OWASP is explicit that protection covers all exposed versions, not just the current one.</li>\n<li><strong>Withdraw it on the date.</strong> This is the only step that changes anything, and the previous four exist to make it possible rather than to replace it.</li>\n<li><strong>Verify afterwards</strong> that it stopped answering, from the network, the way you verified it was reachable in the first place.</li>\n</ol>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>4. Defaults and when to change them</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "wrap"
+      },
+      "html": "\n<div class=\"wrap\"><table>\n<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>\n<tbody>\n<tr><td>When dates are set</td><td>At the moment the successor ships</td><td>Later means never. The version with no end date is the one still running in three years.</td></tr>\n<tr><td>Date order</td><td>Deprecation first, sunset after</td><td>RFC 9745 requires it. Check it in the build, since the two dates usually come from different people.</td></tr>\n<tr><td>Signalling</td><td><code>Deprecation</code>, <code>Sunset</code> and a <code>Link</code> to the migration guide</td><td>A changelog entry is not a signal a client can act on.</td></tr>\n<tr><td>Migration window</td><td>Long enough for your slowest known caller, stated once</td><td>Extending it repeatedly teaches callers the date is negotiable, which makes the next one longer.</td></tr>\n<tr><td>Unknown callers</td><td>Treated as a finding, not a reason to wait</td><td>Identify them from logs before the window closes, or the window will not close.</td></tr>\n<tr><td>Security fixes on old versions</td><td>Applied while the version is exposed</td><td>OWASP's instruction. \"It's deprecated\" is not a remediation.</td></tr>\n<tr><td>Traffic after sunset</td><td>Measured, and the version withdrawn anyway</td><td>The measurement decides who you call afterwards, not whether you proceed.</td></tr>\n<tr><td>Non-production and internal versions</td><td>In the same inventory</td><td>These are the ones that do not appear in the documentation, which is exactly why they last.</td></tr>\n</tbody></table></div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>5. What it proves, and what it doesn't</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p><strong>Proves:</strong> that every version you know about has an announced end, that the announcement reaches machines, and that the dates are in an order the specification permits.</p>\n<p><strong>Doesn't prove:</strong> that anybody acted on it. Both RFCs describe their header as a hint, so a client that ignores it is not misbehaving, and the only measurement that matters is traffic. It also proves nothing about versions that were never in the inventory, which is the case the lab's Part D is built around.</p>\n<div class=\"callout warn\"><strong>Announcing is not deprecating.</strong> A version with perfect headers, a clear migration guide, a date that has passed, and a live deployment is exactly as exposed as one with none of those things. Part E of the lab gives v1 a flawless announcement and a fresh sunset date, and the finding that survives is the 9,400 requests a month from callers nobody can name.</div>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>6. Prove it</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<ul>\n<li>A list of every version that answers, produced from the network and dated.</li>\n<li>Every entry on that list appears in the documentation, or has a finding against it.</li>\n<li>Every superseded version has a deprecation date and a sunset date, in that order.</li>\n<li>Every deprecated version emits <code>Deprecation</code>, <code>Sunset</code> and a <code>Link</code>, verified against a live response rather than a design document.</li>\n<li>For each version with remaining traffic, a named list of callers.</li>\n<li>Evidence that current security fixes reached every exposed version.</li>\n<li>For each version past its sunset date, either it no longer answers or there is a dated decision saying why.</li>\n<li>A check in the build that fails when a sunset date precedes a deprecation date.</li>\n</ul>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>7. Exercise</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Download <a href=\"../../labs/versions_lab.py\"><code>labs/versions_lab.py</code></a>. It needs nothing beyond Python 3.</p>\n</div>"
+    },
+    {
+      "tag": "pre",
+      "attrs": {},
+      "html": "\n<pre><code>Windows              macOS and Linux\npy -3 labs/versions_lab.py    python3 labs/versions_lab.py</code></pre>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The dates are real date arithmetic against a fixed today. Reachability and traffic are inventory data, so nothing connects to anything.</p>\n</div>"
+    },
+    {
+      "tag": "pre",
+      "attrs": {},
+      "html": "\n<pre><code>$ python3 labs/versions_lab.py\ntoday is 2026-09-30; five deployments answer on the booking API\n\nPart A: what each version announces, and what it emits.\n  v3           current                    deprecated never        sunset never        emits nothing\n  v2           superseded                 deprecated 2026-03-01   sunset 2026-12-31   emits Deprecation,Sunset,Link\n  v1           superseded                 deprecated 2025-06-01   sunset 2026-06-30   emits nothing\n  v1-internal  retired in the documentation deprecated 2024-01-01   sunset 2024-06-30   emits nothing\n\n 1. v2, deprecated and saying so                       clean\n 2. v1, its worst finding                              Critical: past its sunset date and still answering\n 3. v1, its header finding as well                     deprecated, but emits no Deprecation header\n\nPart B: the ordering constraint on the two dates.\n 4. a sunset date before the deprecation date          High: sunset date is earlier than the deprecation date\n 5. the same version with the dates in order           clean\n\nPart C: what a client can work out from the dates alone.\n 6. v2 before the announcement                         announced, not yet deprecated\n 7. v2 the day it was deprecated                       deprecated, 305 days left\n 8. v2 today                                           deprecated, 92 days left\n 9. v2 the day it sunsets                              sunsets today\n10. v2 a month later                                   past sunset by 31 days\n11. v0-beta, which announced nothing                   no signal\n\nPart D: the documentation against what is reachable.\n12. versions in the documentation                      3\n13. versions actually answering                        5\n14. answering but undocumented                         ['v0-beta', 'v1-internal']\n15. requests to them in 30 days                        2440\n16.   v0-beta                                          Critical: no deprecation date has ever been announced\n17.   v1-internal                                      Critical: retired in the documentation and still answering\n18. v1, past its sunset date                           Critical: past its sunset date and still answering\n\nPart E: what the headers do not do.\n19. findings after withdrawing the three               0\n20. v1 with a perfect announcement and a new sunset date High: still receiving traffic from callers nobody can name\n21.   requests it still received in 30 days            9400\n\nall lab checks passed</code></pre>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>v2 is what this is supposed to look like: dates in order, both headers emitted, a link to the guide, and a client able to compute how long it has. Check 1 is the only clean line in the exercise.</p>\n<p>Checks 6 to 11 are the same version read at five points on the calendar, and they are worth running because the states are the ones a client library has to handle. A date in the future means the deprecation has not happened yet. A date in the past with no sunset means deprecated with no end. And check 11 is the version that said nothing at all, where there is no signal for a client to act on, ever.</p>\n<p>Check 17 is the finding that is hardest to defend in a review. <code>v1-internal</code> is recorded as retired, and it answered 2,300 requests in the last thirty days. Somebody believes that deployment is gone. Somebody else is calling it.</p>\n<p>Part E is the point of the module. Check 19 withdraws the three offending deployments and every finding disappears, because withdrawal is what removes exposure. Check 20 does the opposite experiment: v1 gets a flawless announcement, both headers, and a new sunset date nine months out, and the finding that survives is that 9,400 requests a month come from callers nobody can name. That version is not going to be withdrawn on its new date either, for exactly the same reason it was not withdrawn on its old one.</p>\n<p><strong>Try next:</strong></p>\n<ul>\n<li>Set <code>v1</code>'s <code>callers_known</code> to true and rerun. One finding goes, and it is the one that was blocking the decision.</li>\n<li>Move <code>TODAY</code> to 2027-01-15 and rerun. Watch v2 cross its own sunset date and join the others.</li>\n<li>Add a sixth deployment that is reachable, undocumented and has zero traffic. Decide whether zero traffic makes it safe or makes it easier to remove.</li>\n<li>Write the same table for an API you work on: every version that answers, its two dates, and who still calls it. The column you cannot fill is this module's finding.</li>\n</ul>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>8. Check your understanding</h2>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>What is the difference between the Deprecation and Sunset headers?</summary><p><code>Deprecation</code> carries the date a resource became or will become deprecated, which is a statement about support. <code>Sunset</code> carries the date it is likely to stop responding, which is a statement about availability. RFC 9745 requires the sunset timestamp not to be earlier than the deprecation one: deprecated first, gone afterwards.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Your deprecated version emits both headers correctly and traffic has not dropped. What does that tell you?</summary><p>That the headers are a hint, which both specifications say plainly, and that whoever is calling either has not noticed or cannot move yet. The signal has done its job; the migration has not started. Identify the callers from the logs, because that is the step that has actually stalled.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Why is a version missing from the documentation worse than one that is deprecated?</summary><p>Because every process you have operates on the documented list. A deprecated version is being tracked, has dates, and someone can name it in a meeting. An undocumented one gets no security fixes, no dashboard, no review and no end date, and the only way it appears is by comparing the documentation with what actually answers.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>A version is past its sunset date and still answering. Who should act?</summary><p>Whoever owns the deployment, and the action is to withdraw it. Announcing again does not change the exposure, and extending the date teaches every caller that the next date is negotiable too. Measure the remaining traffic so you know who to call afterwards, then withdraw it.</p></details>"
+    },
+    {
+      "tag": "section",
+      "attrs": {
+        "class": "course-quiz",
+        "data-quiz": null,
+        "data-quiz-id": "versioning-and-deprecation-check",
+        "data-correct-feedback": "Correct. Both RFCs describe the header as a hint, and a version with a perfect announcement is exactly as exposed as one with none until the deployment stops answering.",
+        "data-incorrect-feedback": "Not quite. Correct headers, a link to the migration guide and a published date are all worth having, and none of them changes what an attacker can reach. Only withdrawing the deployment does that."
+      },
+      "html": "\n\n<section class=\"course-quiz\" data-quiz data-quiz-id=\"versioning-and-deprecation-check\" data-correct-feedback=\"Correct. Both RFCs describe the header as a hint, and a version with a perfect announcement is exactly as exposed as one with none until the deployment stops answering.\" data-incorrect-feedback=\"Not quite. Correct headers, a link to the migration guide and a published date are all worth having, and none of them changes what an attacker can reach. Only withdrawing the deployment does that.\">\n<p class=\"kicker\">Quick check</p>\n<h2>What ends the exposure</h2>\n<fieldset><legend>A superseded version emits <code>Deprecation</code> and <code>Sunset</code> correctly, links to the migration guide, and its sunset date has passed. What has reduced the risk?</legend>\n<label><input type=\"radio\" name=\"ver\" value=\"headers\"> The headers, which tell clients to move.</label>\n<label><input type=\"radio\" name=\"ver\" value=\"date\"> The date passing, which ends support.</label>\n<label><input type=\"radio\" name=\"ver\" value=\"nothing\" data-correct=\"true\"> Nothing yet, until the deployment stops answering.</label>\n<label><input type=\"radio\" name=\"ver\" value=\"link\"> The link to the migration guide.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button><p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n</section>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "course-next"
+      },
+      "html": "\n<p class=\"course-next\"><strong>Course progress:</strong> return to the <a href=\"../../index.html#course\">course dashboard</a> to see your published-module progress.</p>"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "layer",
+        "id": "reference",
+        "style": "margin-top:3rem"
+      },
+      "html": "\n<span class=\"layer\" id=\"reference\" style=\"margin-top:3rem\">Reference</span>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {
+        "style": "border-top:none;margin-top:.5rem"
+      },
+      "html": "\n<h2 style=\"border-top:none;margin-top:.5rem\">Controls</h2>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\"><span class=\"label std\">Standard</span> backed by a cited specification. <span class=\"label base\">Baseline</span> this project's default, with reasoning above. <span class=\"label opt\">Option</span> valid depending on the threat model.</p>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "controls"
+      },
+      "html": "\n<ul class=\"controls\">\n<li><span class=\"label std\">Standard</span>The <code>Deprecation</code> response header field \"is used to signal to consumers of a resource (identified by a URI) that the resource will be or has been deprecated\". Its value is a date. RFC 9745, March 2025, sections 1 and 2.1.</li>\n<li><span class=\"label std\">Standard</span>The <code>Sunset</code> response header field \"indicates that a URI is likely to become unresponsive at a specified point in the future\", with an HTTP-date value. RFC 8594, May 2019, section 3.</li>\n<li><span class=\"label std\">Standard</span>\"The timestamp given in the <code>Sunset</code> HTTP header field MUST NOT be earlier than the one given in the <code>Deprecation</code> header field.\" RFC 9745 section 4.</li>\n<li><span class=\"label std\">Standard</span>RFC 8594 section 3 states that after the sunset time \"it is likely that interactions with the resource will result in client-side errors (HTTP 4xx status codes), redirect responses (HTTP 3xx status codes), or the client might not be able to interact with the resource at all\".</li>\n<li><span class=\"label std\">Standard</span>Both specifications treat the field as a hint rather than a guarantee, in their security considerations: RFC 9745 section 7 and RFC 8594 section 8.</li>\n<li><span class=\"label std\">Standard</span>Use a <code>Link</code> header with the <code>deprecation</code> relation type to point at the documentation. RFC 9745 section 3. RFC 8594 section 6 defines a <code>sunset</code> relation type for the same purpose.</li>\n<li><span class=\"label std\">Standard</span>Apply protective measures \"for all exposed versions of your APIs, not just for the current production version\", and be able to say which environment each host runs, who should have network access to it, and which version it is. OWASP API9:2023.</li>\n<li><span class=\"label base\">Baseline</span>Produce the version list from the network, not the documentation, and date it.</li>\n<li><span class=\"label base\">Baseline</span>Set both dates at the moment the successor ships, in the required order, and check that order in the build.</li>\n<li><span class=\"label base\">Baseline</span>Emit both headers plus a <code>Link</code>, and verify them against a live response.</li>\n<li><span class=\"label base\">Baseline</span>Treat a version with traffic and unidentified callers as a finding, because it cannot be withdrawn until they are named.</li>\n<li><span class=\"label base\">Baseline</span>Withdraw on the date, then verify from the network that it stopped answering.</li>\n<li><span class=\"label base\">Baseline</span>Keep internal and non-production versions in the same inventory as the public ones.</li>\n<li><span class=\"label opt\">Option</span>Return 410 Gone rather than 404 for a withdrawn version where you want clients to distinguish a retired resource from a wrong path.</li>\n<li><span class=\"label opt\">Option</span>Throttle a deprecated version progressively as its sunset approaches, so that the migration pressure is felt before the date rather than at it.</li>\n</ul>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>Review checklist items</h2>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\">These are collected into the <a href=\"../../checklist/index.html\">site checklist</a>.</p>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "checks"
+      },
+      "html": "\n<ul class=\"checks\">\n<li data-check=\"ver-01\" data-severity=\"Critical\"><strong>The version list comes from the network and is dated</strong> <span>Every deployment that answers, not every version in the documentation. Compare the two and act on the difference.</span></li>\n<li data-check=\"ver-02\" data-severity=\"Critical\"><strong>No version answers after its sunset date</strong> <span>Or there is a dated decision recording why, owned by a named person.</span></li>\n<li data-check=\"ver-03\" data-severity=\"Critical\"><strong>Current security fixes reach every exposed version</strong> <span>OWASP's instruction. \"It is deprecated\" is not a remediation while it still answers.</span></li>\n<li data-check=\"ver-04\" data-severity=\"High\"><strong>Every superseded version has both dates, in the required order</strong> <span>RFC 9745 forbids a sunset earlier than the deprecation. Check it in the build; the two dates usually come from different people.</span></li>\n<li data-check=\"ver-05\" data-severity=\"High\"><strong>Deprecated versions emit Deprecation, Sunset and a Link</strong> <span>Verified against a live response, not a design document.</span></li>\n<li data-check=\"ver-06\" data-severity=\"High\"><strong>Remaining callers are named for every version with traffic</strong> <span>A version with traffic and no identified callers cannot be withdrawn, which is why it never is.</span></li>\n<li data-check=\"ver-07\" data-severity=\"Medium\"><strong>Internal and non-production versions are in the same inventory</strong> <span>These are the ones missing from the documentation, which is why they last longest.</span></li>\n<li data-check=\"ver-08\" data-severity=\"Medium\"><strong>Withdrawal is verified from the network afterwards</strong> <span>The same way reachability was established in the first place.</span></li>\n</ul>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>Sources</h2>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<ul class=\"prose\">\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc9745\">RFC 9745: The Deprecation HTTP Response Header Field</a>, March 2025. Sections 1, 2.1, 3, 4 and 7.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc8594\">RFC 8594: The Sunset HTTP Header Field</a>, May 2019. Sections 3, 6 and 8.</li>\n<li><a href=\"https://api-security.owasp.org/editions/2023/en/0xa9-improper-inventory-management/\">OWASP API Security Top 10 2023, API9:2023 Improper Inventory Management</a>.</li>\n</ul>"
+    }
+  ],
+  "main_close": "\n</main>",
+  "footer": "\n<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>",
+  "epilogue": "\n</body>\n</html>\n",
   "page_title": "Versioning and deprecation | API Security in the Age of AI",
   "lesson_key": "versioning-and-deprecation",
   "title": "Versioning and deprecation",
   "kicker": "Part 3: Edges and boundaries &middot; Module 18",
   "reviewed": "2026-09-30",
   "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 18 of 26</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
+  "intro_prose": [
+    "<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can announce a deprecation in a way machines can act on, set the two dates in the order the specification requires, tell what a client can work out at any point on that timeline, and say why announcing perfectly changes nothing on its own.</p>\n<p><strong>Before you start.</strong> Every module in this course has assumed there is one version of the service to secure. There is rarely one, and the extra ones are where every control you have built is a version behind.</p>\n</div>"
+  ],
   "sections": [
     {
       "heading": "1. The attack",
@@ -67,7 +375,7 @@
     {
       "heading": "Sources",
       "heading_text": "Sources",
-      "html": "<ul class=\"prose\">\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc9745\">RFC 9745: The Deprecation HTTP Response Header Field</a>, March 2025. Sections 1, 2.1, 3, 4 and 7.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc8594\">RFC 8594: The Sunset HTTP Header Field</a>, May 2019. Sections 3, 6 and 8.</li>\n<li><a href=\"https://api-security.owasp.org/editions/2023/en/0xa9-improper-inventory-management/\">OWASP API Security Top 10 2023, API9:2023 Improper Inventory Management</a>.</li>\n</ul>\n</main>\n<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>\n</body>\n</html>"
+      "html": "<ul class=\"prose\">\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc9745\">RFC 9745: The Deprecation HTTP Response Header Field</a>, March 2025. Sections 1, 2.1, 3, 4 and 7.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc8594\">RFC 8594: The Sunset HTTP Header Field</a>, May 2019. Sections 3, 6 and 8.</li>\n<li><a href=\"https://api-security.owasp.org/editions/2023/en/0xa9-improper-inventory-management/\">OWASP API Security Top 10 2023, API9:2023 Improper Inventory Management</a>.</li>\n</ul>\n</main>"
     }
   ],
   "layers": [

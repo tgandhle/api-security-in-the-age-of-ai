@@ -2,12 +2,339 @@
   "slug": "jwks-and-revocation",
   "source": "topics/jwks-and-revocation/index.html",
   "kind": "topics",
+  "prologue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>JWKS, revocation and introspection | API Security in the Age of AI</title>\n<link rel=\"stylesheet\" href=\"../../assets/site.css\">\n<script src=\"../../assets/course.js\" defer></script>\n</head>\n<body data-course-lesson=\"jwks-and-revocation\">",
+  "nav": "\n<nav class=\"site-nav\" aria-label=\"Site\"><div><a class=\"home\" href=\"../../index.html\">API Security in the Age of AI</a><a href=\"../../index.html#course\">Course</a><a href=\"../../index.html#path\">Modules</a><a href=\"../../roadmap/index.html\">Roadmap</a><a href=\"../../checklist/index.html\">Checklist</a><a href=\"../../glossary/index.html\">Glossary</a></div></nav>",
+  "main_open": "\n<main>",
+  "blocks": [
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "kicker"
+      },
+      "html": "\n<p class=\"kicker\">Part 1: Proving who is calling &middot; Module 6</p>"
+    },
+    {
+      "tag": "h1",
+      "attrs": {},
+      "html": "\n<h1>JWKS, revocation and introspection</h1>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "meta"
+      },
+      "html": "\n<p class=\"meta\">Last reviewed 2026-09-30 &middot; <a class=\"jump\" href=\"#reference\">Jump to reference</a></p>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n\n<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can say which key a verifier will use and why, write down which refresh outcomes are allowed to change what it holds, measure how long a withdrawn grant keeps working, and test the failure states rather than the happy path.</p>\n<p><strong>Before you start.</strong> Module 5 covers <a href=\"../../glossary/index.html#jwt\">JWT</a> validation and the <a href=\"../../glossary/index.html#token-profile\">token profile</a>. This module is the two questions that module deliberately left open: where the verifying key comes from, and what happens when a grant is withdrawn before the token expires.</p>\n</div>"
+    },
+    {
+      "tag": "section",
+      "attrs": {
+        "class": "lesson-status",
+        "aria-label": "Lesson progress"
+      },
+      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 7 of 26</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "layer",
+        "id": "learn"
+      },
+      "html": "\n\n<span class=\"layer\" id=\"learn\">Learn</span>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>1. The attack</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Running example: ExampleHotels publishes its signing keys at a <a href=\"../../glossary/index.html#jwks\">JWKS</a> endpoint, and the balance API verifies tokens against them. Company names are fictional.</p>\n<p>Module 5's verifier had a key. This module asks where it came from, and the answer is a cache that was filled over the network at some point in the past. That cache is a state machine, and most implementations only ever exercise one of its states.</p>\n</div>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "wrap"
+      },
+      "html": "\n<div class=\"wrap\"><table>\n<thead><tr><th>What happens</th><th>Refresh only on unknown <code>kid</code></th><th>Scheduled refresh added</th><th>Plus a defined failure policy</th></tr></thead>\n<tbody>\n<tr><td>A key is rotated in, with an overlap</td><td class=\"no\">Handled</td><td class=\"no\">Handled</td><td class=\"no\">Handled</td></tr>\n<tr><td>A key is rotated out after the overlap</td><td class=\"yes\">Still accepted</td><td class=\"no\">Rejected</td><td class=\"no\">Rejected</td></tr>\n<tr><td>The issuer serves an empty key set</td><td class=\"yes\">Still accepted</td><td class=\"no\">Rejected</td><td class=\"no\">Rejected</td></tr>\n<tr><td>The endpoint returns a 502 error page</td><td class=\"yes\">Cache silently emptied, or kept, undefined</td><td class=\"yes\">Undefined</td><td class=\"no\">Last known good kept, that request fails</td></tr>\n<tr><td>Two keys share one <code>kid</code></td><td class=\"yes\">First one wins, silently</td><td class=\"yes\">First one wins</td><td class=\"no\">Rejected as ambiguous</td></tr>\n<tr><td>A grant is withdrawn before the token expires</td><td class=\"yes\">Accepted until expiry</td><td class=\"yes\">Accepted until expiry</td><td class=\"yes\">Accepted until expiry</td></tr>\n</tbody></table></div>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<p class=\"prose\">The last row never turns green, because none of it is a key problem. Local validation describes the token, not the grant. That is section 5.</p>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>2. Why it works</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Three assumptions do the damage.</p>\n<ul>\n<li><strong>\"The cache is a performance detail.\"</strong> It is the thing that decides which keys are trusted. Every refresh outcome is a decision about whether to keep trusting what you hold, and if you never wrote those decisions down, your library made them for you.</li>\n<li><strong>\"A failed refresh and an empty answer are the same thing.\"</strong> They are opposites. A 502 page or a timeout means you learned nothing, so the last known good set should stand. A successful, well-formed set containing no usable signing keys means the issuer just told you something, and ignoring it is how a key that was deliberately withdrawn keeps working. Systems that treat both as \"keep what we have\" cannot revoke a key. Systems that treat both as \"empty the cache\" fall over when the endpoint hiccups.</li>\n<li><strong>\"Expiry is revocation.\"</strong> It is not. A self-contained token is a signed statement about the past. Nothing in it changes when the account is disabled. RFC 7009 says so plainly: \"In practice, there could be a propagation delay, for example, in which some servers know about the invalidation while others do not.\"</li>\n</ul>\n<p>The ambiguity case is quieter. RFC 7517 section 4.5 says different keys in a set SHOULD use distinct <code>kid</code> values, and FAPI 2.0 section 5.4.2 says a server \"should not serve a JWK set with multiple keys with the same <code>kid</code>\". Both are recommendations, so a set with duplicates is malformed-ish rather than illegal, and a verifier that picks the first match will silently accept a token signed by whichever key the issuer happened to list first.</p>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>3. The control</h2>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n<h3>Write the state machine down</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\"><p>Six outcomes, and each one needs an answer before you ship. Two of them are project baselines here, because no specification settles them.</p></div>"
+    },
+    {
+      "tag": "pre",
+      "attrs": {},
+      "html": "\n<pre><code>refresh outcome                  authoritative?   what the caller sees\n-------------------------------- ---------------- --------------------\n200, well formed, keys present   yes, replace     verify against the new set\n200, well formed, zero keys      yes, replace     reject, nothing verifies\n200, malformed or truncated      no, keep         this request fails\nnon-2xx status                   no, keep         this request fails\ntransport failure or timeout     no, keep         this request fails\nunknown kid after a refresh      n/a              reject, unknown kid</code></pre>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "meta"
+      },
+      "html": "\n<p class=\"meta\">Rows two and three are the pair that matters. Getting them the same way round is the defect.</p>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>How the verifier resolves a key</h3>"
+    },
+    {
+      "tag": "ol",
+      "attrs": {
+        "class": "steps prose"
+      },
+      "html": "\n<ol class=\"steps prose\">\n<li>If the set is older than its maximum age, refresh on your own schedule. Without this, a key the issuer removed keeps verifying for as long as its <code>kid</code> stays in the cache.</li>\n<li>Look up the <code>kid</code> from the token header. Use it only to select from keys you already trust; never to fetch anything.</li>\n<li>If the <code>kid</code> is missing from the set, allow one bounded refresh, with request coalescing so concurrent misses cause one fetch, and a cooldown so a stream of unknown <code>kid</code> values cannot drive a fetch storm against your issuer.</li>\n<li>If two eligible keys share that <code>kid</code>, reject as ambiguous. Do not select by array order.</li>\n<li>Check the key is meant for this job: <code>use</code> of <code>sig</code>, and an <code>alg</code> your profile allows. A key published for encryption is not a verification key.</li>\n<li>Verify the signature, then apply the module 5 profile in full.</li>\n<li>For anything where a withdrawn grant must stop working sooner than the token expires, consult current state as well. That is <a href=\"../../glossary/index.html#introspection\">introspection</a>, a denylist, or a gateway lookup, and it is a separate decision with its own freshness.</li>\n</ol>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>The whole system</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "diagram"
+      },
+      "html": "\n<div class=\"diagram\">\n<svg viewBox=\"0 0 1100 470\" width=\"100%\" style=\"min-width:900px\" role=\"img\">\n<title>Key resolution through a cache, then an active-state check</title>\n<desc>Top band: the issuer publishes a key set over TLS, which a cache fetches on a schedule and on an unknown key id with a cooldown. The cache records whether each refresh outcome is authoritative. Bottom band: a token arrives, the verifier resolves its key id against the cache, verifies the signature and profile, then consults current grant state through introspection with its own cache before the request is authorized. Failed checks go to a reject box.</desc>\n<defs><marker id=\"a\" viewBox=\"0 0 10 10\" refX=\"8\" refY=\"5\" markerWidth=\"6\" markerHeight=\"6\" orient=\"auto-start-reverse\"><path d=\"M2 1L8 5L2 9\" fill=\"none\" stroke=\"context-stroke\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></marker></defs>\n\n<rect class=\"zone\" x=\"20\" y=\"16\" width=\"1060\" height=\"140\" rx=\"12\"/>\n<text class=\"lab\" x=\"36\" y=\"38\">The issuer's side. Fetched over TLS, never from the token.</text>\n<g class=\"h\"><rect x=\"40\" y=\"58\" width=\"240\" height=\"56\" rx=\"8\"/><text class=\"th\" x=\"160\" y=\"80\" text-anchor=\"middle\">jwks_uri</text><text class=\"ts\" x=\"160\" y=\"100\" text-anchor=\"middle\">Published key set</text></g>\n<g class=\"s\"><rect x=\"360\" y=\"58\" width=\"260\" height=\"56\" rx=\"8\"/><text class=\"th\" x=\"490\" y=\"80\" text-anchor=\"middle\">Key cache</text><text class=\"ts\" x=\"490\" y=\"100\" text-anchor=\"middle\">Scheduled + on miss, with cooldown</text></g>\n<g class=\"s\"><rect x=\"700\" y=\"58\" width=\"360\" height=\"56\" rx=\"8\"/><text class=\"th\" x=\"880\" y=\"80\" text-anchor=\"middle\">Refresh policy</text><text class=\"ts\" x=\"880\" y=\"100\" text-anchor=\"middle\">Which outcomes may replace what we hold</text></g>\n<line class=\"arr\" x1=\"280\" y1=\"86\" x2=\"356\" y2=\"86\" marker-end=\"url(#a)\"/>\n<line class=\"leader\" x1=\"620\" y1=\"86\" x2=\"696\" y2=\"86\"/>\n<text class=\"ts\" x=\"880\" y=\"136\" text-anchor=\"middle\">a 502 is not an empty key set</text>\n\n<text class=\"lab\" x=\"36\" y=\"192\">Each request</text>\n<rect class=\"zone\" x=\"20\" y=\"204\" width=\"1060\" height=\"246\" rx=\"12\"/>\n<g class=\"p\"><rect x=\"40\" y=\"256\" width=\"200\" height=\"56\" rx=\"8\"/><text class=\"th\" x=\"140\" y=\"278\" text-anchor=\"middle\">Access token</text><text class=\"ts\" x=\"140\" y=\"298\" text-anchor=\"middle\">Carries a kid</text></g>\n<g class=\"h\"><rect x=\"290\" y=\"256\" width=\"220\" height=\"56\" rx=\"8\"/><text class=\"th\" x=\"400\" y=\"278\" text-anchor=\"middle\">Verifier</text><text class=\"ts\" x=\"400\" y=\"298\" text-anchor=\"middle\">Key, signature, profile</text></g>\n<g class=\"h\"><rect x=\"560\" y=\"256\" width=\"220\" height=\"56\" rx=\"8\"/><text class=\"th\" x=\"670\" y=\"278\" text-anchor=\"middle\">Active state</text><text class=\"ts\" x=\"670\" y=\"298\" text-anchor=\"middle\">Is the grant still live?</text></g>\n<g class=\"h\"><rect x=\"830\" y=\"256\" width=\"120\" height=\"56\" rx=\"8\"/><text class=\"th\" x=\"890\" y=\"278\" text-anchor=\"middle\">Handler</text><text class=\"ts\" x=\"890\" y=\"298\" text-anchor=\"middle\">Authorize</text></g>\n<g class=\"r\"><rect x=\"970\" y=\"256\" width=\"90\" height=\"56\" rx=\"8\"/><text class=\"th\" x=\"1015\" y=\"278\" text-anchor=\"middle\">Reject</text><text class=\"ts\" x=\"1015\" y=\"298\" text-anchor=\"middle\">401</text></g>\n<line class=\"arr\" x1=\"240\" y1=\"284\" x2=\"286\" y2=\"284\" marker-end=\"url(#a)\"/>\n<line class=\"arr\" x1=\"510\" y1=\"284\" x2=\"556\" y2=\"284\" marker-end=\"url(#a)\"/>\n<line class=\"arr\" x1=\"780\" y1=\"284\" x2=\"826\" y2=\"284\" marker-end=\"url(#a)\"/>\n<line class=\"rej\" x1=\"950\" y1=\"284\" x2=\"966\" y2=\"284\" marker-end=\"url(#a)\"/>\n<line class=\"arr\" x1=\"490\" y1=\"158\" x2=\"400\" y2=\"252\" marker-end=\"url(#a)\"/>\n<g class=\"s\"><rect x=\"560\" y=\"360\" width=\"220\" height=\"56\" rx=\"8\"/><text class=\"th\" x=\"670\" y=\"382\" text-anchor=\"middle\">Introspection cache</text><text class=\"ts\" x=\"670\" y=\"402\" text-anchor=\"middle\">Its TTL is your blind window</text></g>\n<line class=\"leader\" x1=\"670\" y1=\"312\" x2=\"670\" y2=\"360\"/>\n</svg>\n<div class=\"legend\"><span class=\"lg-p\">Untrusted input</span><span class=\"lg-h\">Server decisions</span><span class=\"lg-s\">Cached state</span><span class=\"lg-r\">Rejection path</span></div>\n</div>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\">Two caches sit on the request path, and each one has its own staleness. The key cache decides which signatures you still trust. The introspection cache decides how long a withdrawn grant keeps working.</p>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>4. Defaults and when to change them</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "wrap"
+      },
+      "html": "\n<div class=\"wrap\"><table>\n<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>\n<tbody>\n<tr><td>Scheduled refresh</td><td>Refresh the key set when it passes 10 minutes old</td><td>Your issuer documents a different rotation cadence. Removing the schedule entirely is what makes a withdrawn key keep working.</td></tr>\n<tr><td>Refresh on unknown <code>kid</code></td><td>One bounded attempt, coalesced across concurrent requests, with a 5 minute cooldown</td><td>Never remove the cooldown. Without it, a stream of invented <code>kid</code> values is a denial of service aimed at your issuer.</td></tr>\n<tr><td>Successful set with zero keys</td><td>Authoritative. Replace what you hold, and reject everything after it</td><td>Project baseline, not a specification requirement. If you invert it, write down that a deliberately emptied key set will not take effect.</td></tr>\n<tr><td>Malformed or failed refresh</td><td>Not authoritative. Keep the last known good set, and fail the request that needed the refresh</td><td>Project baseline. Inverting it means one bad gateway response logs out every caller.</td></tr>\n<tr><td>Duplicate <code>kid</code></td><td>Reject as ambiguous</td><td>Never select by array order. RFC 7517 and FAPI 2.0 both recommend against publishing duplicates, so treat a set containing them as a fault to report.</td></tr>\n<tr><td>Revocation bound</td><td>A documented number, tested, not an aspiration</td><td>Choose it from the impact of a compromised token. The number you can defend is the token lifetime plus every cache TTL on the path.</td></tr>\n<tr><td>Introspection caching</td><td>Cache only if you can state the resulting blind window</td><td>RFC 7662 allows caching \"at the cost of liveness\", and requires that a response carrying <code>exp</code> is not cached beyond it.</td></tr>\n</tbody></table></div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>5. What it proves, and what it doesn't</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p><strong>Proves:</strong> that the signature was made by a key the issuer publishes now, or published recently enough that your cache still holds it, and, if you consult active state, that the grant was live at the moment you asked.</p>\n<p><strong>Doesn't prove:</strong> that the grant is live now. Every answer you have is as old as the cache it came from.</p>\n<div class=\"callout warn\"><strong>Your revocation bound is a sum, not a setting.</strong> It is the access token lifetime, plus the key cache maximum age where key removal is the mechanism, plus the introspection cache TTL, plus any gateway or CDN cache in front. Teams quote the token lifetime and forget the rest. Measure it end to end by disabling an account and timing how long a request keeps succeeding, at every layer that answers.</div>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>6. Prove it</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>These are the states a working implementation must get right. Most only ever test the first one:</p>\n<ul>\n<li>A token signed by the current key, with a cold cache.</li>\n<li>A token whose <code>kid</code> is not in the cache, where exactly one refresh happens no matter how many requests arrive at once.</li>\n<li>A second unknown <code>kid</code> inside the cooldown, which must not cause another fetch.</li>\n<li>A key rotated in during an overlap, where both old and new tokens verify.</li>\n<li>A key rotated out after the overlap, which must stop verifying without anyone restarting the service.</li>\n<li>A successful response containing an empty key list.</li>\n<li>A refresh returning a 502 error page, a truncated body, or a timeout, where the last known good set must survive and the triggering request must still fail.</li>\n<li>A set containing two keys with the same <code>kid</code>.</li>\n<li>A <code>kid</code> naming a key published with <code>use</code> of <code>enc</code>.</li>\n<li>A token header carrying <code>jku</code> or <code>x5u</code>, which must change nothing.</li>\n<li>A grant withdrawn while a token is still within its lifetime, measured at every cache on the path.</li>\n</ul>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>7. Lab</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Download <a href=\"../../labs/jwks_lab.py\"><code>labs/jwks_lab.py</code></a>. Like module 5 it needs one package:</p>\n<p>Install it into a virtual environment, so it does not change the Python the rest of your machine uses:</p>\n</div>"
+    },
+    {
+      "tag": "pre",
+      "attrs": {},
+      "html": "\n<pre><code>Windows              macOS and Linux\npy -3 -m venv .venv          python3 -m venv .venv\n.venv\\Scripts\\Activate.ps1    source .venv/bin/activate\npython -m pip install cryptography==50.0.1\npython labs/jwks_lab.py</code></pre>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Inside an activated environment use <code>python</code>, not <code>py -3</code>. The Windows launcher ignores an active environment when you give it an explicit version: \"To run the global interpreter, either deactivate the virtual environment, or explicitly specify the global Python version\" (Python documentation, Using Python on Windows, Virtual environments). Outside an environment, <code>py -3</code> is still the right command on Windows.</p>\n<p>The issuer's key endpoint and the introspection endpoint are stubs in the process, the clock is a variable, and no sockets are opened.</p>\n</div>"
+    },
+    {
+      "tag": "pre",
+      "attrs": {},
+      "html": "\n<pre><code>$ python3 labs/jwks_lab.py\nkey source: RSA generated for this run; keys and tokens never printed\n\nPart A: choosing a key.\n 1. token signed by the key in the set          accept\n 2. unknown kid, one bounded refresh finds it   accept\n 3. unknown kid again, inside the cooldown      reject: unknown kid\n 4. no second fetch during the cooldown         pass: fetches unchanged\n 5. two keys sharing one kid in the set         reject: ambiguous kid\n 6. kid names a key marked use=enc              reject: key not for signatures\n 7. jku in the header is ignored                reject: unknown kid\n\nPart B: the cache as a state machine.\n 8. initial load, token verifies                accept\n 9. rotation overlap, old token still works     accept\n10. old key removed after the overlap           reject: unknown kid\n11. a successful empty set evicts the old key   reject: unknown kid\n12. malformed refresh, the request needing it   reject: key set refresh failed\n13. malformed refresh kept the last good set    accept\n14. transport failure, the request needing it   reject: key set refresh failed\n15. transport failure kept the last good set    accept\n\nPart C: revocation.\n16. before revocation                           accept\n17. after revocation, local validation only     accept\n18. after revocation, active state consulted    reject: token not active\n19. first call fills the active-state cache     accept\n20. revoked, but inside the cache window        accept\n21. the same token once the cache expires       reject: token not active\n\nall lab checks passed</code></pre>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Check 11 is the one worth sitting with. The issuer emptied its key set, which is what you would do if a signing key leaked, and the cache honoured it. A verifier that treats an empty set as \"nothing to learn here\" keeps accepting the compromised key indefinitely, and nothing in its logs looks wrong. Compare it with checks 12 and 14, where the refresh genuinely failed and keeping the old set is the right answer.</p>\n<p>Checks 17, 20 and 21 are the revocation bound made visible: local validation never notices, the introspection cache extends the window by its TTL, and only after that does the token stop working.</p>\n<p><strong>Try next:</strong></p>\n<ul>\n<li>In <code>KeyCache._absorb</code>, keep the old keys when the new set is empty. Check 11 flips to accept. You have just built the defect this module exists for.</li>\n<li>Delete the <code>max_age</code> branch in <code>resolve</code>. Two checks change. Which key can now never be withdrawn?</li>\n<li>Set <code>cache_ttl</code> on the resource server to 3600 and rerun. Check 21 changes. State the new revocation bound in seconds, then add the token lifetime to it.</li>\n</ul>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>8. Check your understanding</h2>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Why is a 502 from the JWKS endpoint treated differently from a 200 carrying an empty key list?</summary><p>A 502 means you learned nothing, so the safe move is to keep the set you already trust and fail only the request that needed a refresh. An empty 200 is the issuer telling you something. Treating it as a failure means a key the issuer deliberately withdrew keeps verifying, which is the opposite of what was intended.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Two keys in the set share a <code>kid</code>. Your library picks the first and the token verifies. What is wrong?</summary><p>Which key verified your token is now decided by array order in someone else's document. RFC 7517 and FAPI 2.0 both recommend against publishing duplicates, so a set containing them is a fault at the issuer. Rejecting as ambiguous surfaces it; selecting silently hides it.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Your tokens live 15 minutes and you cache introspection for 5. What is your revocation bound?</summary><p>Not 15 minutes. It is up to 15 minutes for a token issued just before the withdrawal, plus up to 5 more if the last introspection answer was cached just before it, plus anything a gateway or CDN holds. Quote the sum, and test it rather than calculating it.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Why does an unknown <code>kid</code> need a cooldown rather than just triggering a refresh?</summary><p>Because the <code>kid</code> comes from the caller. Without a cooldown, an attacker sending tokens with invented key identifiers turns your resource servers into a load generator aimed at your own issuer, and the outage looks like the issuer's fault.</p></details>"
+    },
+    {
+      "tag": "section",
+      "attrs": {
+        "class": "course-quiz",
+        "data-quiz": null,
+        "data-quiz-id": "jwks-and-revocation-check",
+        "data-correct-feedback": "Correct. A successful, well formed response is the issuer telling you something, including when it contains no keys. Keeping the old set there is how a withdrawn key keeps verifying.",
+        "data-incorrect-feedback": "Not quite. A failed or malformed refresh means you learned nothing, so keeping the last known good set is right there. The empty set is the case that must replace what you hold."
+      },
+      "html": "\n\n<section class=\"course-quiz\" data-quiz data-quiz-id=\"jwks-and-revocation-check\" data-correct-feedback=\"Correct. A successful, well formed response is the issuer telling you something, including when it contains no keys. Keeping the old set there is how a withdrawn key keeps verifying.\" data-incorrect-feedback=\"Not quite. A failed or malformed refresh means you learned nothing, so keeping the last known good set is right there. The empty set is the case that must replace what you hold.\">\n<p class=\"kicker\">Quick check</p>\n<h2>Which refresh outcome replaces your cached keys?</h2>\n<fieldset><legend>Your key cache refreshes. Which outcome should replace the keys you currently hold?</legend>\n<label><input type=\"radio\" name=\"jwks-refresh\" value=\"timeout\"> The request times out.</label>\n<label><input type=\"radio\" name=\"jwks-refresh\" value=\"empty\" data-correct=\"true\"> A 200 response with a well formed but empty key list.</label>\n<label><input type=\"radio\" name=\"jwks-refresh\" value=\"malformed\"> A 200 response whose body is a 502 error page.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button><p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n</section>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "course-next"
+      },
+      "html": "\n<p class=\"course-next\"><strong>Course progress:</strong> return to the <a href=\"../../index.html#course\">course dashboard</a> to see your published-module progress.</p>"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "layer",
+        "id": "reference",
+        "style": "margin-top:3rem"
+      },
+      "html": "\n<span class=\"layer\" id=\"reference\" style=\"margin-top:3rem\">Reference</span>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {
+        "style": "border-top:none;margin-top:.5rem"
+      },
+      "html": "\n<h2 style=\"border-top:none;margin-top:.5rem\">Controls</h2>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\"><span class=\"label std\">Standard</span> backed by a cited specification. <span class=\"label base\">Baseline</span> this project's default, with reasoning above. <span class=\"label opt\">Option</span> valid depending on the threat model.</p>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "controls"
+      },
+      "html": "\n<ul class=\"controls\">\n<li><span class=\"label std\">Standard</span>A JWK Set is a JSON object that must have a <code>keys</code> member whose value is an array of JWKs. RFC 7517 section 5.</li>\n<li><span class=\"label std\">Standard</span>A server providing a <code>jwks_uri</code> endpoint shall serve it only over TLS. FAPI 2.0 section 5.4.2.</li>\n<li><span class=\"label std\">Standard</span>RFC 7517 section 4.5 recommends that different keys within a set use distinct <code>kid</code> values, and FAPI 2.0 section 5.4.2 recommends against serving a set with multiple keys sharing a <code>kid</code>. Both are recommendations, not requirements.</li>\n<li><span class=\"label std\">Standard</span>FAPI 2.0 section 5.4.2 recommends against using the <code>jku</code> and <code>x5u</code> JOSE headers.</li>\n<li><span class=\"label std\">Standard</span>The <code>use</code> parameter indicates whether a public key is for encryption or for verifying signatures. RFC 7517 section 4.2. The <code>alg</code> parameter is OPTIONAL, section 4.4.</li>\n<li><span class=\"label std\">Standard</span>A revocation endpoint returns HTTP 200 whether the token was revoked or was already invalid, because \"invalid tokens do not cause an error response since the client cannot handle such an error in a reasonable way\". RFC 7009 section 2.2.</li>\n<li><span class=\"label std\">Standard</span>Revoking a refresh token should also invalidate access tokens issued from the same grant, and RFC 7009 section 2.1 warns that \"there could be a propagation delay, for example, in which some servers know about the invalidation while others do not\".</li>\n<li><span class=\"label std\">Standard</span>The introspection <code>active</code> member is a \"Boolean indicator of whether or not the presented token is currently active\". RFC 7662 section 2.2.</li>\n<li><span class=\"label std\">Standard</span>An introspection response may be cached \"at the cost of liveness of the information used by the protected resource to make authorization decisions\", and a response carrying <code>exp</code> must not be cached beyond it. RFC 7662 section 2.2, with the stale-cache risk in section 4.</li>\n<li><span class=\"label base\">Baseline</span>Refresh the key set on a schedule once it passes a maximum age, independently of whether any <code>kid</code> is missing.</li>\n<li><span class=\"label base\">Baseline</span>On an unknown <code>kid</code>, allow one bounded refresh, coalesce concurrent misses into a single fetch, and apply a cooldown so caller-supplied identifiers cannot drive a fetch storm.</li>\n<li><span class=\"label base\">Baseline</span>A successful, well formed key set is authoritative even when it contains zero usable signing keys. It replaces what you hold.</li>\n<li><span class=\"label base\">Baseline</span>A malformed, truncated, non-success or transport-failed refresh is not authoritative. Keep the last known good set, and fail the request that required the refresh.</li>\n<li><span class=\"label base\">Baseline</span>Reject a <code>kid</code> that matches more than one eligible key rather than selecting by array order, and report it as an issuer fault.</li>\n<li><span class=\"label base\">Baseline</span>State the revocation bound as a sum of the token lifetime and every cache TTL on the path, and test it by disabling an account and timing the result.</li>\n<li><span class=\"label opt\">Option</span>Use introspection or a denylist at the resource server when the revocation bound must be shorter than the token lifetime. The cost is a live dependency on the authorization server.</li>\n<li><span class=\"label opt\">Option</span>Use short token lifetimes instead, accepting that the bound cannot go below one lifetime and that the authorization server sees more traffic.</li>\n</ul>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>Review checklist items</h2>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\">These are collected into the <a href=\"../../checklist/index.html\">site checklist</a>.</p>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "checks"
+      },
+      "html": "\n<ul class=\"checks\">\n<li data-check=\"jwks-01\" data-severity=\"Critical\"><strong>Every key set refresh outcome has a documented, tested answer</strong> <span>Success with keys, success with zero keys, malformed, non-success status, and transport failure. State which are authoritative and which keep the last known good set.</span></li>\n<li data-check=\"jwks-02\" data-severity=\"Critical\"><strong>A key removed by the issuer stops verifying without a restart</strong> <span>A scheduled refresh exists, not only a refresh on unknown <code>kid</code>. Test rotation out as well as rotation in.</span></li>\n<li data-check=\"jwks-03\" data-severity=\"Critical\"><strong>The verifying key is never fetched from a location named in the token</strong> <span><code>jku</code> and <code>x5u</code> in the header change nothing. Key locations come from configuration or issuer metadata.</span></li>\n<li data-check=\"jwks-04\" data-severity=\"High\"><strong>An unknown <code>kid</code> cannot drive a fetch storm</strong> <span>One bounded refresh, concurrent misses coalesced, a cooldown enforced. Test with a stream of invented key identifiers.</span></li>\n<li data-check=\"jwks-05\" data-severity=\"High\"><strong>A <code>kid</code> matching more than one eligible key is rejected as ambiguous</strong> <span>No selection by array order. Keys are also filtered by <code>use</code> and by the algorithms the profile allows.</span></li>\n<li data-check=\"jwks-06\" data-severity=\"High\"><strong>The revocation bound is documented as a sum and measured end to end</strong> <span>Token lifetime plus key cache age plus introspection cache TTL plus any gateway cache. Disable an account and time how long requests keep succeeding.</span></li>\n<li data-check=\"jwks-07\" data-severity=\"Medium\"><strong>Introspection caching states its blind window</strong> <span>A cached response is not used beyond its <code>exp</code>. The window during which a revoked token still works is written down and accepted.</span></li>\n<li data-check=\"jwks-08\" data-severity=\"Medium\"><strong>Key set retrieval is over TLS with certificate validation, and failures are alerted</strong> <span>A key endpoint that has been unreachable for longer than the maximum age is a security event, not just a latency blip.</span></li>\n</ul>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>Sources</h2>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<ul class=\"prose\">\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc7517\">RFC 7517: JSON Web Key (JWK)</a>, May 2015. Sections 4.2, 4.4, 4.5, 5.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc7009\">RFC 7009: OAuth 2.0 Token Revocation</a>, August 2013. Sections 2.1, 2.2.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc7662\">RFC 7662: OAuth 2.0 Token Introspection</a>, October 2015. Sections 2.2, 4.</li>\n<li><a href=\"https://openid.net/specs/fapi-security-profile-2_0-final.html#name-json-web-key-sets\">FAPI 2.0 Security Profile, section 5.4.2, JSON Web Key Sets</a>, OpenID Final Specification, 22 February 2025.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc8725\">RFC 8725: JSON Web Token Best Current Practices</a>, February 2020. Section 3.8, pairing the verifying key with the issuer.</li>\n</ul>"
+    }
+  ],
+  "main_close": "\n</main>",
+  "footer": "\n<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>",
+  "epilogue": "\n</body>\n</html>\n",
   "page_title": "JWKS, revocation and introspection | API Security in the Age of AI",
   "lesson_key": "jwks-and-revocation",
   "title": "JWKS, revocation and introspection",
   "kicker": "Part 1: Proving who is calling &middot; Module 6",
   "reviewed": "2026-09-30",
   "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 7 of 26</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
+  "intro_prose": [
+    "<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can say which key a verifier will use and why, write down which refresh outcomes are allowed to change what it holds, measure how long a withdrawn grant keeps working, and test the failure states rather than the happy path.</p>\n<p><strong>Before you start.</strong> Module 5 covers <a href=\"../../glossary/index.html#jwt\">JWT</a> validation and the <a href=\"../../glossary/index.html#token-profile\">token profile</a>. This module is the two questions that module deliberately left open: where the verifying key comes from, and what happens when a grant is withdrawn before the token expires.</p>\n</div>"
+  ],
   "sections": [
     {
       "heading": "1. The attack",
@@ -67,7 +394,7 @@
     {
       "heading": "Sources",
       "heading_text": "Sources",
-      "html": "<ul class=\"prose\">\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc7517\">RFC 7517: JSON Web Key (JWK)</a>, May 2015. Sections 4.2, 4.4, 4.5, 5.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc7009\">RFC 7009: OAuth 2.0 Token Revocation</a>, August 2013. Sections 2.1, 2.2.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc7662\">RFC 7662: OAuth 2.0 Token Introspection</a>, October 2015. Sections 2.2, 4.</li>\n<li><a href=\"https://openid.net/specs/fapi-security-profile-2_0-final.html#name-json-web-key-sets\">FAPI 2.0 Security Profile, section 5.4.2, JSON Web Key Sets</a>, OpenID Final Specification, 22 February 2025.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc8725\">RFC 8725: JSON Web Token Best Current Practices</a>, February 2020. Section 3.8, pairing the verifying key with the issuer.</li>\n</ul>\n</main>\n<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>\n</body>\n</html>"
+      "html": "<ul class=\"prose\">\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc7517\">RFC 7517: JSON Web Key (JWK)</a>, May 2015. Sections 4.2, 4.4, 4.5, 5.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc7009\">RFC 7009: OAuth 2.0 Token Revocation</a>, August 2013. Sections 2.1, 2.2.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc7662\">RFC 7662: OAuth 2.0 Token Introspection</a>, October 2015. Sections 2.2, 4.</li>\n<li><a href=\"https://openid.net/specs/fapi-security-profile-2_0-final.html#name-json-web-key-sets\">FAPI 2.0 Security Profile, section 5.4.2, JSON Web Key Sets</a>, OpenID Final Specification, 22 February 2025.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc8725\">RFC 8725: JSON Web Token Best Current Practices</a>, February 2020. Section 3.8, pairing the verifying key with the issuer.</li>\n</ul>\n</main>"
     }
   ],
   "layers": [
