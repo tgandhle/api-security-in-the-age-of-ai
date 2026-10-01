@@ -5,19 +5,35 @@ Standard library only. Reads the same page set as tools/build_checklist.py:
 topics/*/index.html and protocols/*/index.html.
 
 Why this exists: a front end that re-types lesson content loses it. The
-react-poc migration of Module 1 dropped 7 of 12 sections, all 8 glossary
+react-poc migration of module 1 dropped 7 of 12 sections, all 8 glossary
 links, all 3 sources and 13 of 20 lab transcript lines. This extractor never
 re-types anything. It records byte offsets into the source file and slices
-the original bytes, so every block it emits is verbatim by construction.
+the original text, so every block it emits is verbatim by construction.
+
+The record partitions the whole page. Every byte of the source file belongs
+to exactly one field, so `render()` reassembles the published page from the
+JSON alone. That is the property a front end needs: anything the data cannot
+reproduce is something a human would have to retype.
+
+Fields:
+  prologue, nav, main_open, blocks[], main_close, footer, epilogue
+      the partition. Concatenated in that order they are the source file.
+  page_title, lesson_key, title, kicker, reviewed, sections, layers,
+  pre_blocks, svg_blocks, table_blocks, glossary_links, checks, sources,
+  source_anchors, quiz
+      views over the same bytes, for a renderer that wants them by name.
 
 Usage:
     python3 tools/extract_lessons.py            # write content/lessons/*.json
     python3 tools/extract_lessons.py --check    # verify, write nothing, exit 1 on loss
 
---check re-reads each source page independently of the extractor's own tree
-and asserts that every countable artifact on the page is present in the
-extracted record, with identical bytes. It is deliberately a second
-implementation: a bug shared by both would have to be written twice.
+--check does two independent things:
+  1. rebuilds each page from its record and compares it to the source byte
+     for byte, which proves the partition is exhaustive;
+  2. re-reads each source page with a separate set of regexes and asserts
+     every countable artifact appears in the record with identical bytes,
+     which proves the named views agree with the page. A bug shared by both
+     readings would have to be written twice.
 """
 
 import html.parser
@@ -29,9 +45,11 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "content" / "lessons"
 
-VERBATIM_TAGS = ("pre", "svg", "table")
 VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link",
         "meta", "source", "track", "wbr"}
+
+PARTITION = ("prologue", "nav", "main_open", "blocks", "main_close",
+             "footer", "epilogue")
 
 
 def pages():
@@ -39,8 +57,16 @@ def pages():
            sorted(ROOT.glob("protocols/*/index.html"))
 
 
+class Element:
+    __slots__ = ("tag", "attrs", "start", "end", "parent")
+
+    def __init__(self, tag, attrs, start, parent):
+        self.tag, self.attrs, self.start, self.parent = tag, attrs, start, parent
+        self.end = None
+
+
 class Offsets(html.parser.HTMLParser):
-    """Builds a flat list of (tag, attrs, start, end) for elements we care about."""
+    """Records byte offsets for every non-void element, with its parent."""
 
     def __init__(self, text):
         super().__init__(convert_charrefs=False)
@@ -49,8 +75,9 @@ class Offsets(html.parser.HTMLParser):
         for line in text.splitlines(keepends=True):
             starts.append(starts[-1] + len(line))
         self.line_starts = starts
-        self.stack = []
+        self.open = []
         self.elements = []
+        self.unclosed = []
 
     def _abs(self):
         line, col = self.getpos()
@@ -59,51 +86,78 @@ class Offsets(html.parser.HTMLParser):
     def handle_starttag(self, tag, attrs):
         if tag in VOID:
             return
-        self.stack.append((tag, dict(attrs), self._abs()))
+        parent = self.open[-1].start if self.open else None
+        el = Element(tag, dict(attrs), self._abs(), parent)
+        self.open.append(el)
 
     def handle_startendtag(self, tag, attrs):
-        return
+        return  # self-closing, contributes no container
 
     def handle_endtag(self, tag):
-        for i in range(len(self.stack) - 1, -1, -1):
-            if self.stack[i][0] == tag:
-                name, attrs, start = self.stack.pop(i)
-                del self.stack[i:]
-                end = self._abs() + len("</%s>" % tag)
-                self.elements.append((name, attrs, start, end))
+        for i in range(len(self.open) - 1, -1, -1):
+            if self.open[i].tag == tag:
+                el = self.open.pop(i)
+                # Anything still open inside it was never closed.
+                self.unclosed.extend(e.tag for e in self.open[i:])
+                del self.open[i:]
+                el.end = self._abs() + len("</%s>" % tag)
+                self.elements.append(el)
                 return
 
-    def outer(self, element):
-        return self.text[element[2]:element[3]]
+    def done(self):
+        self.unclosed.extend(e.tag for e in self.open)
+        self.elements.sort(key=lambda e: e.start)
 
-    def inner(self, element):
-        name = element[0]
-        open_end = self.text.index(">", element[2]) + 1
-        return self.text[open_end:element[3] - len("</%s>" % name)]
+    def outer(self, el):
+        return self.text[el.start:el.end]
+
+    def inner(self, el):
+        open_end = self.text.index(">", el.start) + 1
+        return self.text[open_end:el.end - len("</%s>" % el.tag)]
 
     def find(self, tag, **attr_match):
-        out = []
-        for el in self.elements:
-            if el[0] != tag:
-                continue
-            if all(el[1].get(k) == v for k, v in attr_match.items()):
-                out.append(el)
-        return sorted(out, key=lambda e: e[2])
+        return [e for e in self.elements
+                if e.tag == tag
+                and all(e.attrs.get(k) == v for k, v in attr_match.items())]
+
+    def first(self, tag, **attr_match):
+        found = self.find(tag, **attr_match)
+        return found[0] if found else None
+
+    def children_of(self, el):
+        return [e for e in self.elements if e.parent == el.start]
 
 
 def text_of(fragment):
     return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", fragment)).strip()
 
 
-def extract(path):
+def parse(path):
     text = path.read_text(encoding="utf-8")
     doc = Offsets(text)
     doc.feed(text)
     doc.close()
+    doc.done()
+    if doc.unclosed:
+        raise ValueError("%s: unclosed tags, offsets are unreliable: %s"
+                         % (path, sorted(set(doc.unclosed))))
+    return text, doc
 
-    def first(tag, **kw):
-        found = doc.find(tag, **kw)
-        return found[0] if found else None
+
+def extract(path):
+    text, doc = parse(path)
+
+    body = doc.first("body")
+    nav = doc.first("nav")
+    main = doc.first("main")
+    footer = doc.first("footer")
+    for name, el in (("body", body), ("nav", nav), ("main", main),
+                     ("footer", footer)):
+        if el is None:
+            raise ValueError("%s: no <%s>" % (path, name))
+
+    body_open_end = text.index(">", body.start) + 1
+    main_open_end = text.index(">", main.start) + 1
 
     record = {
         "slug": path.parent.name,
@@ -111,128 +165,140 @@ def extract(path):
         "kind": path.relative_to(ROOT).parts[0],
     }
 
-    title_el = first("title")
+    # --- the partition -----------------------------------------------------
+    record["prologue"] = text[:body_open_end]
+    record["nav"] = text[body_open_end:nav.end]
+    record["main_open"] = text[nav.end:main_open_end]
+
+    blocks = []
+    cursor = main_open_end
+    for child in sorted(doc.children_of(main), key=lambda e: e.start):
+        blocks.append({
+            "tag": child.tag,
+            "attrs": child.attrs,
+            # Includes any whitespace or text since the previous child, so
+            # the concatenation is exact.
+            "html": text[cursor:child.end],
+        })
+        cursor = child.end
+    record["blocks"] = blocks
+    record["main_close"] = text[cursor:main.end]
+    record["footer"] = text[main.end:footer.end]
+    record["epilogue"] = text[footer.end:]
+
+    # --- named views over the same bytes ----------------------------------
+    title_el = doc.first("title")
     record["page_title"] = doc.inner(title_el) if title_el else ""
+    record["lesson_key"] = body.attrs.get("data-course-lesson", "")
 
-    body = first("body")
-    record["lesson_key"] = body[1].get("data-course-lesson", "") if body else ""
-
-    h1 = first("h1")
+    h1 = doc.first("h1")
     record["title"] = doc.inner(h1) if h1 else ""
 
-    kicker = first("p", **{"class": "kicker"})
+    kicker = doc.first("p", **{"class": "kicker"})
     record["kicker"] = doc.inner(kicker) if kicker else ""
 
-    meta = first("p", **{"class": "meta"})
-    meta_text = text_of(doc.inner(meta)) if meta else ""
-    found = re.search(r"Last reviewed (\d{4}-\d{2}-\d{2})", meta_text)
+    meta = doc.first("p", **{"class": "meta"})
+    found = re.search(r"Last reviewed (\d{4}-\d{2}-\d{2})",
+                      text_of(doc.inner(meta)) if meta else "")
     record["reviewed"] = found.group(1) if found else ""
 
-    status = first("section", **{"class": "lesson-status"})
+    status = doc.first("section", **{"class": "lesson-status"})
     record["lesson_status_html"] = doc.outer(status) if status else ""
 
-    # Sections: every h2, with everything between it and the next h2 or the
-    # next layer marker, sliced verbatim from the source.
+    # The intro prose: the prose div before the first h2. This is the
+    # Objective and Before you start text. The first version of this tool
+    # did not capture it.
     headings = doc.find("h2")
+    first_h2 = min((e.start for e in headings), default=len(text))
+    intro = [doc.outer(e) for e in doc.find("div", **{"class": "prose"})
+             if e.end < first_h2]
+    record["intro_prose"] = intro
+
     layers = doc.find("span", **{"class": "layer"})
-    boundaries = sorted([e[2] for e in headings] + [e[2] for e in layers] +
-                        [len(text)])
-    sections = []
-    for el in headings:
-        after = el[3]
-        nxt = min((b for b in boundaries if b >= after), default=len(text))
-        sections.append({
-            "heading": doc.inner(el),
-            "heading_text": text_of(doc.inner(el)),
-            "html": text[after:nxt].strip(),
-        })
-    record["sections"] = sections
+    boundaries = sorted([e.start for e in headings] + [e.start for e in layers] +
+                        [main.end])
+    record["sections"] = [{
+        "heading": doc.inner(el),
+        "heading_text": text_of(doc.inner(el)),
+        "html": text[el.end:min((b for b in boundaries if b >= el.end),
+                                default=main.end)].strip(),
+    } for el in sorted(headings, key=lambda e: e.start)]
 
-    record["layers"] = [{"id": e[1].get("id", ""), "label": doc.inner(e)}
-                        for e in layers]
+    record["layers"] = [{"id": e.attrs.get("id", ""), "label": doc.inner(e)}
+                        for e in sorted(layers, key=lambda e: e.start)]
 
-    for tag in VERBATIM_TAGS:
-        record[tag + "_blocks"] = [doc.outer(e) for e in doc.find(tag)]
+    for tag in ("pre", "svg", "table"):
+        record[tag + "_blocks"] = [doc.outer(e) for e in
+                                   sorted(doc.find(tag), key=lambda e: e.start)]
 
     record["glossary_links"] = [
-        {"href": e[1].get("href", ""), "text": text_of(doc.inner(e))}
-        for e in doc.find("a")
-        if "glossary/index.html#" in e[1].get("href", "")
-    ]
+        {"href": e.attrs.get("href", ""), "text": text_of(doc.inner(e))}
+        for e in sorted(doc.find("a"), key=lambda e: e.start)
+        if "glossary/index.html#" in e.attrs.get("href", "")]
 
     checks = []
     for el in doc.elements:
-        if el[0] != "li" or "data-check" not in el[1]:
+        if el.tag != "li" or "data-check" not in el.attrs:
             continue
         inner = doc.inner(el)
         strong = re.search(r"<strong>(.*?)</strong>", inner, re.S)
         span = re.search(r"<span>(.*?)</span>", inner, re.S)
         checks.append({
-            "id": el[1]["data-check"],
-            "severity": el[1].get("data-severity", "Medium"),
+            "id": el.attrs["data-check"],
+            "severity": el.attrs.get("data-severity", "Medium"),
             "title": strong.group(1) if strong else "",
             "detail": span.group(1) if span else "",
         })
     record["checks"] = sorted(checks, key=lambda c: c["id"])
 
-    # Citations. The template puts them under an h2 reading "Sources",
-    # followed by a list. Some pages also give individual entries an
-    # id="source-..." so the Learn text can link back to them.
+    # Citations sit under an h2 reading "Sources", followed by a list. Some
+    # pages also give an entry an id="source-..." so Learn text can link back.
     sources = []
-    sources_h2 = next((e for e in doc.find("h2")
-                       if text_of(doc.inner(e)) == "Sources"), None)
+    sources_h2 = next((e for e in headings if text_of(doc.inner(e)) == "Sources"),
+                      None)
     if sources_h2 is not None:
-        lists = [e for e in doc.find("ul") if e[2] > sources_h2[3]]
-        if lists:
-            first_list = min(lists, key=lambda e: e[2])
-            for el in doc.find("li"):
-                if first_list[2] < el[2] and el[3] <= first_list[3]:
+        after = [e for e in doc.find("ul") if e.start > sources_h2.end]
+        if after:
+            lst = min(after, key=lambda e: e.start)
+            for el in sorted(doc.find("li"), key=lambda e: e.start):
+                if lst.start < el.start and el.end <= lst.end:
                     inner = doc.inner(el)
                     link = re.search(r'<a href="([^"]+)"[^>]*>(.*?)</a>', inner, re.S)
                     sources.append({
-                        "id": el[1].get("id", ""),
+                        "id": el.attrs.get("id", ""),
                         "href": link.group(1) if link else "",
                         "title": link.group(2) if link else "",
                         "html": inner,
                     })
     record["sources"] = sources
     record["source_anchors"] = sorted(
-        e[1]["id"] for e in doc.elements
-        if e[1].get("id", "").startswith("source-"))
+        e.attrs["id"] for e in doc.elements
+        if e.attrs.get("id", "").startswith("source-"))
 
-    record["quiz"] = [
-        {"summary": re.search(r"<summary>(.*?)</summary>", doc.inner(e), re.S).group(1)
-         if re.search(r"<summary>(.*?)</summary>", doc.inner(e), re.S) else "",
-         "html": doc.inner(e)}
-        for e in doc.find("details")
-    ]
+    record["quiz"] = []
+    for el in sorted(doc.find("details"), key=lambda e: e.start):
+        inner = doc.inner(el)
+        summary = re.search(r"<summary>(.*?)</summary>", inner, re.S)
+        record["quiz"].append({
+            "summary": summary.group(1) if summary else "",
+            "html": inner,
+        })
 
     return record
 
 
-# ---------------------------------------------------------------------------
-# --check: an independent second reading of the same file.
-# ---------------------------------------------------------------------------
+def render(record):
+    """Rebuild the published page from the record alone."""
+    return (record["prologue"] + record["nav"] + record["main_open"]
+            + "".join(b["html"] for b in record["blocks"])
+            + record["main_close"] + record["footer"] + record["epilogue"])
 
-def audit(path):
-    """Count artifacts straight out of the raw text, without the tree above."""
-    t = path.read_text(encoding="utf-8")
-    return {
-        "h2": re.findall(r"<h2[^>]*>(.*?)</h2>", t, re.S),
-        "pre": re.findall(r"<pre>.*?</pre>", t, re.S),
-        "svg": re.findall(r"<svg\b.*?</svg>", t, re.S),
-        "table": re.findall(r"<table>.*?</table>", t, re.S),
-        "glossary": re.findall(r'href="([^"]*glossary/index\.html#[^"]*)"', t),
-        "checks": re.findall(r'data-check="([^"]+)"', t),
-        "severities": re.findall(r'data-check="[^"]+"\s+data-severity="([^"]+)"', t),
-        "anchors": sorted(re.findall(r'id="(source-[^"]+)"', t)),
-        "details": re.findall(r"<details>(.*?)</details>", t, re.S),
-        "citations": sources_citations(t),
-    }
 
+# ---------------------------------------------------------------------------
+# --check
+# ---------------------------------------------------------------------------
 
 def sources_block(t):
-    """The markup from the Sources heading to the end of its list."""
     start = t.find("<h2>Sources</h2>")
     if start == -1:
         return ""
@@ -251,18 +317,53 @@ def sources_citations(t):
     return out
 
 
+def audit(path):
+    """A second reading of the same file, independent of the parser above."""
+    t = path.read_text(encoding="utf-8")
+    return {
+        "h2": re.findall(r"<h2[^>]*>(.*?)</h2>", t, re.S),
+        "pre": re.findall(r"<pre>.*?</pre>", t, re.S),
+        "svg": re.findall(r"<svg\b.*?</svg>", t, re.S),
+        "table": re.findall(r"<table>.*?</table>", t, re.S),
+        "glossary": re.findall(r'href="([^"]*glossary/index\.html#[^"]*)"', t),
+        "checks": re.findall(r'data-check="([^"]+)"', t),
+        "severities": re.findall(
+            r'data-check="[^"]+"\s+data-severity="([^"]+)"', t),
+        "citations": sources_citations(t),
+        "anchors": sorted(re.findall(r'id="(source-[^"]+)"', t)),
+        "details": re.findall(r"<details>(.*?)</details>", t, re.S),
+    }
+
+
+LABELS = ("h2", "pre", "svg", "table", "glossary", "checks", "citations",
+          "anchors", "details")
+
+
 def check():
     failures = []
-    labels = ("h2", "pre", "svg", "table", "glossary", "checks",
-              "citations", "anchors", "details")
-    totals = {k: 0 for k in labels}
+    totals = dict.fromkeys(LABELS, 0)
+    rebuilt = 0
+    block_count = 0
     for path in pages():
         rel = path.relative_to(ROOT).as_posix()
+        source = path.read_text(encoding="utf-8")
         rec = extract(path)
+        block_count += len(rec["blocks"])
+
+        if render(rec) == source:
+            rebuilt += 1
+        else:
+            out = render(rec)
+            at = next((i for i in range(min(len(out), len(source)))
+                       if out[i] != source[i]), min(len(out), len(source)))
+            failures.append("%s: rebuild differs from source at byte %d "
+                            "(rebuilt %d bytes, source %d)"
+                            % (rel, at, len(out), len(source)))
+
         a = audit(path)
 
         def compare(label, expected, actual):
-            totals[label] = totals.get(label, 0) + len(expected)
+            totals[label] += len(expected)
             if len(expected) != len(actual):
                 failures.append("%s: %s count %d extracted, %d in source"
                                 % (rel, label, len(actual), len(expected)))
@@ -276,7 +377,8 @@ def check():
         compare("pre", a["pre"], rec["pre_blocks"])
         compare("svg", a["svg"], rec["svg_blocks"])
         compare("table", a["table"], rec["table_blocks"])
-        compare("glossary", a["glossary"], [g["href"] for g in rec["glossary_links"]])
+        compare("glossary", a["glossary"],
+                [g["href"] for g in rec["glossary_links"]])
         compare("checks", sorted(a["checks"]), [c["id"] for c in rec["checks"]])
         compare("citations", a["citations"], [s["href"] for s in rec["sources"]])
         compare("anchors", a["anchors"], rec["source_anchors"])
@@ -287,38 +389,43 @@ def check():
             for c in rec["checks"]:
                 if by_id.get(c["id"]) != c["severity"]:
                     failures.append("%s: severity for %s is %s, source says %s"
-                                    % (rel, c["id"], c["severity"], by_id.get(c["id"])))
+                                    % (rel, c["id"], c["severity"],
+                                       by_id.get(c["id"])))
 
         for field in ("title", "kicker", "reviewed", "lesson_key"):
             if not rec[field]:
                 failures.append("%s: %s is empty" % (rel, field))
+        if not rec["intro_prose"]:
+            failures.append("%s: no intro prose captured" % rel)
 
+    total = len(pages())
     print("extract_lessons --check")
-    print("  pages                 %d" % len(pages()))
-    for k in labels:
+    print("  pages                 %d" % total)
+    print("  rebuilt byte-identical %d of %d" % (rebuilt, total))
+    print("  blocks in <main>      %d" % block_count)
+    for k in LABELS:
         print("  %-21s %d" % (k, totals[k]))
     if failures:
         print("\n%d problem(s):" % len(failures))
         for f in failures[:40]:
             print("  " + f)
         return 1
-    print("\nall artifacts round-trip with identical bytes")
+    print("\nevery page rebuilds from its record byte for byte")
     return 0
 
 
 def write():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    written = 0
     for path in pages():
         rec = extract(path)
-        target = OUT_DIR / (rec["slug"] + ".json")
-        target.write_text(json.dumps(rec, indent=2, ensure_ascii=False) + "\n",
-                          encoding="utf-8")
-        written += 1
+        (OUT_DIR / (rec["slug"] + ".json")).write_text(
+            json.dumps(rec, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8")
     index = [{"slug": p.stem} for p in sorted(OUT_DIR.glob("*.json"))]
     (OUT_DIR.parent / "index.json").write_text(
         json.dumps(index, indent=2) + "\n", encoding="utf-8")
-    print("wrote %d lesson files to %s" % (written, OUT_DIR.relative_to(ROOT)))
+    print("wrote %d lesson files to %s"
+          % (len(index), OUT_DIR.relative_to(ROOT)))
     return 0
 
 

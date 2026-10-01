@@ -2,12 +2,332 @@
   "slug": "delegation-and-token-exchange",
   "source": "topics/delegation-and-token-exchange/index.html",
   "kind": "topics",
+  "prologue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Delegation and token exchange | API Security in the Age of AI</title>\n<link rel=\"stylesheet\" href=\"../../assets/site.css\">\n<script src=\"../../assets/course.js\" defer></script>\n</head>\n<body data-course-lesson=\"delegation-and-token-exchange\">",
+  "nav": "\n<nav class=\"site-nav\" aria-label=\"Site\"><div><a class=\"home\" href=\"../../index.html\">API Security in the Age of AI</a><a href=\"../../index.html#course\">Course</a><a href=\"../../index.html#path\">Modules</a><a href=\"../../roadmap/index.html\">Roadmap</a><a href=\"../../checklist/index.html\">Checklist</a><a href=\"../../glossary/index.html\">Glossary</a></div></nav>",
+  "main_open": "\n<main>",
+  "blocks": [
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "kicker"
+      },
+      "html": "\n<p class=\"kicker\">Part 4: AI and agents &middot; Module 19</p>"
+    },
+    {
+      "tag": "h1",
+      "attrs": {},
+      "html": "\n<h1>Delegation and token exchange</h1>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "meta"
+      },
+      "html": "\n<p class=\"meta\">Last reviewed 2026-10-01 &middot; <a class=\"jump\" href=\"#reference\">Jump to reference</a></p>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n\n<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can tell delegation from impersonation in a token, name the three parameters RFC 8693 requires and the four it leaves to you, enforce who is allowed to act for whom, and say what an exchange does not fix.</p>\n<p><strong>Before you start.</strong> Every module so far has assumed the caller is the party doing the work. An agent is not. It holds a token that came from somewhere else and it calls on behalf of a person who is nowhere in the request.</p>\n</div>"
+    },
+    {
+      "tag": "section",
+      "attrs": {
+        "class": "lesson-status",
+        "aria-label": "Lesson progress"
+      },
+      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 19 of 26</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "layer",
+        "id": "learn"
+      },
+      "html": "\n\n<span class=\"layer\" id=\"learn\">Learn</span>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>1. The attack</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Running example: a travel assistant agent calling ExampleAir's booking API for a signed-in traveller. Company names are fictional. The traveller's own token carries five scopes. The agent needs one of them, <code>bookings:write</code>, for one booking.</p>\n<p>There are four ways that call gets made in practice, and three of them are the attack. The agent can forward the traveller's token untouched. It can use its own standing service credential and mention the traveller in a request parameter. It can exchange the token for one that claims to be the traveller. Or it can exchange it for one that says an agent is calling for the traveller, which is the only shape that lets the booking service decide correctly.</p>\n<p>What makes this worth a module is that the first three look identical in a design document and identical in a dashboard. They differ in exactly one place: what the downstream service can tell about who is calling. OWASP files the consequences as <strong>ASI03 Identity &amp; Privilege Abuse</strong> in the Top 10 for Agentic Applications, released December 2025, and puts the mechanism plainly: \"Leaked credentials let them operate far beyond their intended scope\".</p>\n</div>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "wrap"
+      },
+      "html": "\n<div class=\"wrap\"><table>\n<thead><tr><th>The downstream service wants to know</th><th>Passthrough</th><th>Service credential</th><th>Delegation token</th></tr></thead>\n<tbody>\n<tr><td>Which user is this for</td><td class=\"no\">The user</td><td class=\"yes\">Not in the token</td><td class=\"no\">The user</td></tr>\n<tr><td>Which agent is calling</td><td class=\"yes\">Not in the token</td><td class=\"no\">The agent</td><td class=\"no\">The agent</td></tr>\n<tr><td>How much authority came with it</td><td class=\"yes\">All five scopes</td><td class=\"yes\">Whatever the service holds</td><td class=\"no\">One scope</td></tr>\n<tr><td>Can I apply an object check</td><td class=\"no\">Yes</td><td class=\"yes\">No, no user to check against</td><td class=\"no\">Yes</td></tr>\n<tr><td>Who to suspend if the agent misbehaves</td><td class=\"yes\">Only the user</td><td class=\"yes\">The service, and every caller of it</td><td class=\"no\">That agent</td></tr>\n<tr><td>What a stolen copy reaches</td><td class=\"yes\">Everything the user can do</td><td class=\"yes\">Everything the service can do</td><td class=\"no\">One scope, one audience</td></tr>\n</tbody></table></div>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<p class=\"prose\">The service-credential row is the <a href=\"../../glossary/index.html#confused-deputy\">confused deputy</a>, and it is the one that survives review most often, because it looks like good hygiene: the agent has its own identity and its own credential. It does. The problem is that the traveller has left the request, so <a href=\"../object-level-authorization/index.html\">module 9</a>'s object check has nothing to compare the booking against.</p>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>2. Why it works</h2>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n<h3>Impersonation and delegation are different, and the specification says so</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>RFC 8693, published January 2020, defines one new grant type for <a href=\"../../glossary/index.html#token-exchange\">token exchange</a>, <code>urn:ietf:params:oauth:grant-type:token-exchange</code>, and spends its first section separating two things people say interchangeably.</p>\n<p><a href=\"../../glossary/index.html#impersonation\">Impersonation</a>: \"When principal A impersonates principal B, A is given all the rights that B has within some defined rights context and is indistinguishable from B in that context.\" Indistinguishable is the operative word. Nothing downstream can tell an agent did this.</p>\n<p><a href=\"../../glossary/index.html#delegation\">Delegation</a>: \"With delegation semantics, principal A still has its own identity separate from B, and it is explicitly understood that while B may have delegated some of its rights to A, any actions taken are being taken by A representing B.\"</p>\n<p>In the protocol the difference is one request parameter. Send <code>subject_token</code> alone and you are asking for impersonation. Send <code>actor_token</code> as well and you are asking for delegation, and the token that comes back carries an <code>act</code> claim naming the actor. Checks 3 and 4 of the lab are that one parameter, and checks 7 and 8 are what the booking service writes in its log as a result.</p>\n</div>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>Three required parameters, and four decisions nobody makes for you</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Section 2.1 marks exactly three parameters REQUIRED: <code>grant_type</code>, <code>subject_token</code> and <code>subject_token_type</code>. One more is conditional: <code>actor_token_type</code> \"is REQUIRED when the <code>actor_token</code> parameter is present in the request but MUST NOT be included otherwise\", which is why checks 14 and 15 of the lab are both refusals.</p>\n<p><code>audience</code>, <code>resource</code>, <code>scope</code> and <code>requested_token_type</code> are all OPTIONAL. Nothing in the specification caps the lifetime of the issued token either. Read that as a list of four decisions that are yours, because the specification will not stop you issuing a token that is broader and longer-lived than the one you were handed. The lab's Part D is those four, each with the policy on and off: check 27 shows a client omitting <code>scope</code> and receiving all five of the traveller's scopes, and check 35 shows a server handing out an hour on the strength of a token with five minutes left.</p>\n<p>Section 5 is three paragraphs long and the third one is the design advice: \"Any time one principal is delegated the rights of another principal, the potential for abuse is a concern. The use of the <code>scope</code> claim (in addition to other typical constraints such as a limited token lifetime) is suggested to mitigate potential for such abuse, as it restricts the contexts in which the delegated rights can be exercised.\"</p>\n</div>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>may_act, and the one MUST on reading the result</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Two JWT claims carry this. The <a href=\"../../glossary/index.html#act-claim\"><code>act</code> claim</a> goes in the issued token and names the current actor. <code>may_act</code> goes in the subject token and names who is allowed to become one: \"The <a href=\"../../glossary/index.html#may-act-claim\"><code>may_act</code></a> claim makes a statement that one party is authorized to become the actor and act on behalf of another party.\" It is how the traveller's token says which agent may act for the traveller, decided when that token was issued rather than at the moment an agent asks.</p>\n<p>Match it on issuer and subject together. A <code>sub</code> is only unique within an issuer, so an agent registered somewhere else can hold the same <code>sub</code> as yours, which is check 24 of the lab.</p>\n<p>Chains nest. \"A chain of delegation can be expressed by nesting one <code>act</code> claim within another. The outermost <code>act</code> claim represents the current actor while nested <code>act</code> claims represent prior actors.\" And then the sentence that decides how your resource server reads it: \"For the purpose of applying access control policy, the consumer of a token MUST only consider the token's top-level claims and the party identified as the current actor by the <code>act</code> claim.\"</p>\n<p>That MUST exists because the obvious implementation violates it. Given a nested chain and a list of allowed actors, walking the chain until something matches feels tolerant and reads as defensive coding. It means any service that ever appears in a chain can act through any service that comes after it. Checks 38 and 39 are the same token read both ways, and they disagree.</p>\n</div>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>The whole system</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "diagram"
+      },
+      "html": "\n<div class=\"diagram\">\n<svg viewBox=\"0 0 1100 360\" width=\"100%\" style=\"min-width:920px\" role=\"img\">\n<title>Four ways an agent can call a downstream service, and what each one tells it</title>\n<desc>Four boxes compare the shapes of a call made by an agent. Passthrough forwards the user's own token, so the agent is not named and all of the user's authority travels with it. A standing service credential names the agent but not the user, so no object check is possible. An impersonation token is an exchange without an actor token, and the result is indistinguishable from the user. A delegation token is an exchange with an actor token, and it names the agent as the current actor and the user as the subject. Below them, a note records that RFC 8693 requires the consumer of a token to consider only the top-level claims and the current actor, and a final box records the three things an exchange does not do: it does not bind the token to a holder, it does not revoke tokens already issued, and it does not narrow anything you did not ask it to narrow.</desc>\n<text class=\"lab\" x=\"36\" y=\"28\">One agent, one booking, four shapes of call.</text>\n<g class=\"r\"><rect x=\"20\" y=\"48\" width=\"250\" height=\"96\" rx=\"8\"/><text class=\"th\" x=\"145\" y=\"74\" text-anchor=\"middle\">Passthrough</text><text class=\"ts\" x=\"145\" y=\"95\" text-anchor=\"middle\">the user's token, forwarded</text><text class=\"ts\" x=\"145\" y=\"112\" text-anchor=\"middle\">calling: the user</text><text class=\"ts\" x=\"145\" y=\"129\" text-anchor=\"middle\">agent named nowhere</text></g>\n<g class=\"r\"><rect x=\"290\" y=\"48\" width=\"250\" height=\"96\" rx=\"8\"/><text class=\"th\" x=\"415\" y=\"74\" text-anchor=\"middle\">Service credential</text><text class=\"ts\" x=\"415\" y=\"95\" text-anchor=\"middle\">the agent's standing token</text><text class=\"ts\" x=\"415\" y=\"112\" text-anchor=\"middle\">calling: the agent</text><text class=\"ts\" x=\"415\" y=\"129\" text-anchor=\"middle\">user named nowhere</text></g>\n<g class=\"r\"><rect x=\"560\" y=\"48\" width=\"250\" height=\"96\" rx=\"8\"/><text class=\"th\" x=\"685\" y=\"74\" text-anchor=\"middle\">Impersonation</text><text class=\"ts\" x=\"685\" y=\"95\" text-anchor=\"middle\">exchange, no actor_token</text><text class=\"ts\" x=\"685\" y=\"112\" text-anchor=\"middle\">calling: the user</text><text class=\"ts\" x=\"685\" y=\"129\" text-anchor=\"middle\">indistinguishable from them</text></g>\n<g class=\"h\"><rect x=\"830\" y=\"48\" width=\"250\" height=\"96\" rx=\"8\"/><text class=\"th\" x=\"955\" y=\"74\" text-anchor=\"middle\">Delegation</text><text class=\"ts\" x=\"955\" y=\"95\" text-anchor=\"middle\">exchange with actor_token</text><text class=\"ts\" x=\"955\" y=\"112\" text-anchor=\"middle\">calling: the agent</text><text class=\"ts\" x=\"955\" y=\"129\" text-anchor=\"middle\">for: the user, in act</text></g>\n\n<rect class=\"zone\" x=\"20\" y=\"172\" width=\"1060\" height=\"66\" rx=\"12\"/>\n<text class=\"ts\" x=\"550\" y=\"198\" text-anchor=\"middle\">RFC 8693 section 4.1: the consumer of a token MUST only consider the top-level claims and the current actor.</text>\n<text class=\"ts\" x=\"550\" y=\"220\" text-anchor=\"middle\">Walking a nested chain until something matches lets any prior actor act through any later one.</text>\n\n<g class=\"r\"><rect x=\"110\" y=\"258\" width=\"880\" height=\"86\" rx=\"8\"/><text class=\"th\" x=\"550\" y=\"284\" text-anchor=\"middle\">What the exchange does not do</text><text class=\"ts\" x=\"550\" y=\"305\" text-anchor=\"middle\">it adds no cnf claim, so the issued token is bearer: whoever holds it can use it</text><text class=\"ts\" x=\"550\" y=\"322\" text-anchor=\"middle\">revoking the subject token does not reach tokens already issued from it</text><text class=\"ts\" x=\"550\" y=\"339\" text-anchor=\"middle\">it narrows nothing you did not ask it to narrow</text></g>\n</svg>\n<div class=\"legend\"><span class=\"lg-r\">Something the service cannot tell</span><span class=\"lg-h\">Both parties stated</span></div>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>3. The control</h2>"
+    },
+    {
+      "tag": "ol",
+      "attrs": {
+        "class": "steps prose"
+      },
+      "html": "\n<ol class=\"steps prose\">\n<li><strong>Exchange, do not forward.</strong> A user token that leaves the service it was issued for is a credential with no stated holder. If the agent needs to call downstream, it exchanges.</li>\n<li><strong>Send <code>actor_token</code>.</strong> Delegation is one parameter more than impersonation and it is the parameter that makes the log useful.</li>\n<li><strong>State <code>audience</code> and <code>scope</code> on every exchange,</strong> and refuse the request at the authorization server when they are missing. The default of copying the subject token's scope is the worst one available.</li>\n<li><strong>Enforce <code>may_act</code>,</strong> matched on issuer and subject together, so the subject token decides which agents may act for it.</li>\n<li><strong>Cap the issued lifetime</strong> at what remains on the subject token, and shorter where the task is short.</li>\n<li><strong>Read the token the way section 4.1 requires:</strong> top-level claims plus the current actor, and nothing else in the chain.</li>\n<li><strong>Log both parties.</strong> Every downstream decision records the subject and the current actor, because an incident needs to know which agent to suspend without suspending the user.</li>\n<li><strong>Bind the issued token to its holder</strong> where the threat model warrants it, with the mechanisms from <a href=\"../sender-constrained-tokens/index.html\">module 8</a>. An exchange adds no binding of its own.</li>\n</ol>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>4. Defaults and when to change them</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "wrap"
+      },
+      "html": "\n<div class=\"wrap\"><table>\n<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>\n<tbody>\n<tr><td>How an agent calls downstream</td><td>Delegation, with <code>actor_token</code></td><td>Impersonation only where the downstream service must not learn an agent exists, and then say so in writing.</td></tr>\n<tr><td>Forwarding the user's token</td><td>Never</td><td>No exception. The token's audience says who it was for.</td></tr>\n<tr><td><code>scope</code> on the exchange</td><td>Required, and the narrowest the task needs</td><td>RFC 8693 makes it optional. Your server should not.</td></tr>\n<tr><td><code>audience</code> or <code>resource</code></td><td>Required, one target per exchange</td><td>A token with no audience is a token every service has to decide about on its own.</td></tr>\n<tr><td>Issued lifetime</td><td>Capped at the subject token's remaining life, and shorter for short tasks</td><td>Longer only where a task genuinely outlives its trigger, and then with a refresh path rather than a long token.</td></tr>\n<tr><td><code>may_act</code></td><td>Enforced, matched on issuer and subject</td><td>Matching <code>sub</code> alone is the bug. Matching nothing means any registered agent can act for any user.</td></tr>\n<tr><td>Reading a delegation chain</td><td>Current actor only</td><td>Never. Section 4.1 states it as a MUST.</td></tr>\n<tr><td>Chain depth</td><td>Bounded, and the bound is small</td><td>A chain long enough to be interesting is usually a design you can shorten instead.</td></tr>\n<tr><td>Holder binding on the issued token</td><td>Added separately where it matters</td><td>The exchange will not do it. Bearer is the default you get.</td></tr>\n</tbody></table></div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>5. What it proves, and what it doesn't</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p><strong>Proves:</strong> that the downstream service knows which agent is calling and which user it is for, that the authority travelling with the call is the authority the task needs, and that an agent acting for a user was one the user's token permitted.</p>\n<p><strong>Doesn't prove:</strong> that the agent is doing what the user asked. A delegation token is a correct answer to \"may this agent act for this user, here, now\". It says nothing about whether the booking is the one the traveller wanted, which is <a href=\"../../roadmap/index.html#part-4\">later in Part 4</a>.</p>\n<div class=\"callout warn\"><strong>An exchange is not a revocation boundary.</strong> Check 40 of the lab revokes the traveller's token and the next exchange is refused. Check 41 takes the token that was issued a moment earlier and it still works, for the full 300 seconds it was granted, because nothing links the two. Short lifetimes are the control here, not revocation lists.</div>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>6. Prove it</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<ul>\n<li>A list of every path where a service calls another service on a user's behalf, and which of the four shapes each one uses.</li>\n<li>No path on that list forwards a token outside the audience it was issued for.</li>\n<li>Every exchange in the code states <code>audience</code> and <code>scope</code>, verified by reading the calls rather than the design.</li>\n<li>The authorization server refuses an exchange with no scope stated, and the refusal is tested.</li>\n<li>The authorization server enforces <code>may_act</code> on issuer and subject, and the test includes a same-<code>sub</code> agent from another issuer.</li>\n<li>Issued lifetimes are capped at the subject token's remaining life, with the cap tested.</li>\n<li>Resource servers authorize on the current actor only, with a test that a prior actor in a nested chain does not grant access.</li>\n<li>Access logs carry both the subject and the current actor for every delegated call.</li>\n</ul>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>7. Exercise</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Download <a href=\"../../labs/token_exchange_lab.py\"><code>labs/token_exchange_lab.py</code></a>. It needs nothing beyond Python 3.</p>\n</div>"
+    },
+    {
+      "tag": "pre",
+      "attrs": {},
+      "html": "\n<pre><code>Windows                             macOS and Linux\npy -3 labs/token_exchange_lab.py    python3 labs/token_exchange_lab.py</code></pre>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The tokens are real HS256 JWTs, minted with <code>hmac</code>, compared with <code>hmac.compare_digest</code> and decoded with <code>json</code>. The signing keys are generated for the run and never printed, so no token text appears in the output and the output is the same every time.</p>\n</div>"
+    },
+    {
+      "tag": "pre",
+      "attrs": {},
+      "html": "\n<pre><code>$ python3 labs/token_exchange_lab.py\nsigning key: random, this run only; no key or token text is printed\nclock is fixed at 1790000000\n\nPart A: four ways an agent can call a downstream service.\n  each line is: who the token says is calling / who it is for\n 1. passthrough, the user's own token forwarded          traveller-8812 / traveller-8812\n 2. the agent's own service credential                   https://pricing.exampleair.example / https://pricing.exampleair.example\n 3. impersonation, an exchange with no actor_token       traveller-8812 / traveller-8812\n 4. delegation, an exchange with an actor_token          https://assistant.exampleagent.example / traveller-8812\n 5. the act claim on the impersonation token             absent\n 6. the act claim on the delegation token                present\n 7. what the booking service logs for impersonation      allowed, caller is traveller-8812\n 8. what it logs for delegation                          allowed, https://assistant.exampleagent.example for traveller-8812\n 9. operations passthrough reaches, of five              5\n10. operations the delegated token reaches, of five      1\n\nPart B: the parameter rules RFC 8693 states.\n11. no subject_token at all                              invalid_request\n12. a subject_token with no subject_token_type           invalid_request\n13. a subject_token_type nobody registered               invalid_request\n14. an actor_token with no actor_token_type              invalid_request\n15. an actor_token_type with no actor_token              invalid_request\n16. an authorization code grant sent here                unsupported_grant_type\n17. issued_token_type when a jwt was requested           urn:ietf:params:oauth:token-type:jwt\n18. token_type alongside it                              Bearer\n19. token_type when an id_token was requested            N_A\n\nPart C: may_act, the subject's say in who may act for it.\n20. the actor the subject token names                    issued\n21. a different agent, same request                      invalid_request\n22. a subject token with no may_act claim                invalid_request\n23. the same request to a server that does not check     issued\n24. an agent with the same sub from another issuer       invalid_request\n\nPart D: scope and audience, the only two bounds on what comes out.\n25. scopes the user's own token carries                  5\n26. scopes in the token issued for bookings:write        1\n27. scopes when the client omits scope entirely          5\n28. the same omission on a server that insists           invalid_request\n29. asking for a scope the subject does not hold         invalid_request\n30. a target service this server has never heard of      invalid_target\n31. a bookings token presented to the payments service   refused: wrong audience\n32. aud on a token issued with no target named           None\n33. seconds left on the user's token                     300\n34. expires_in on the exchanged token                    300\n35. the same exchange on a server that does not cap it   3600\n\nPart E: the delegation chain, and the one MUST on reading it.\n36. the sub after three hops                             traveller-8812\n37. actors in the token, current first                   ['https://seats.exampleair.example', 'https://pricing.exampleair.example', 'https://assistant.exampleagent.example']\n38. the booking service, reading only the current actor  refused: https://seats.exampleair.example is not an allowed actor\n39. the same service, walking the chain instead          allowed, https://seats.exampleair.example for traveller-8812 on a prior actor\n\nPart F: what the exchange does not do.\n40. exchanging the user's token after it is revoked      invalid_request\n41. the token issued before that, used after it          allowed, https://assistant.exampleagent.example for traveller-8812\n42. a cnf claim binding the issued token to a holder     absent\n43. seconds that token stays usable anyway               300\n44. the same token once it expires                       refused: expired\n\nall lab checks passed</code></pre>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Checks 1 to 4 are the module in four lines. Three of the four shapes print the same identity twice, and each one is missing a different half of the answer. Only line 4 names both parties, and the difference between line 3 and line 4 is one request parameter.</p>\n<p>Checks 9 and 10 are the same comparison measured as blast radius. The forwarded token reaches all five of the traveller's operations. The delegated one reaches the single scope it was issued for. Neither number is a property of the protocol; the second one is a property of the request the agent chose to make, which is why check 27 matters: omit <code>scope</code> and you are back to five.</p>\n<p>Part C is worth running twice. Check 22 refuses an exchange because the traveller's token names no authorized actor, and check 23 is the same request to a server that does not look, which issues it. Both servers are implementing RFC 8693 correctly, because the specification never tells you to check. Check 24 is the version of this that gets through review: an agent with the right <code>sub</code> and the wrong issuer.</p>\n<p>Checks 38 and 39 are the one place the specification makes the decision for you. The chain is traveller to assistant to pricing service to seat-map service. The seat-map service is not an allowed actor on the booking service, so reading the current actor refuses the call. Walking the chain finds the assistant three levels down and allows it. Section 4.1's MUST is there to forbid the second one.</p>\n<p>Part F is the honest accounting. The exchange refuses to mint anything new from a revoked token, and the token minted thirty seconds before revocation keeps working until it expires. There is no <code>cnf</code> claim, so the issued token is a bearer token like any other: the exchange narrowed what the token can do and did nothing about who can present it.</p>\n<p><strong>Try next:</strong></p>\n<ul>\n<li>Set <code>require_may_act=False</code> on the main server and rerun. Three checks fail, and they are the three that decide whether an agent can act for a user who never said it could.</li>\n<li>Change the resource server's chain walk to stop after one level instead of all of them. Decide whether that is a fix or a smaller version of the same bug.</li>\n<li>Add a fifth hop to Part E and print the chain. Decide what depth you would refuse at, and what you would do with a token that exceeded it.</li>\n<li>Remove the <code>min()</code> in the lifetime cap and rerun. One check fails, and the token it issues outlives the session it came from.</li>\n<li>For a service you work on: list the paths where it calls another service on a user's behalf, and mark which of the four shapes each one is. The ones you cannot classify are the finding.</li>\n</ul>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>8. Check your understanding</h2>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>What is the protocol difference between impersonation and delegation?</summary><p>One request parameter. An exchange with <code>subject_token</code> alone asks for impersonation, and RFC 8693 says the result is \"indistinguishable from B in that context\". Adding <code>actor_token</code>, with <code>actor_token_type</code>, asks for delegation, and the issued token carries an <code>act</code> claim naming the actor. The downstream service can then authorize the agent and attribute the action to the user.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Your agent has its own client credentials and calls the booking API with them, passing the user's ID as a parameter. What is wrong with that?</summary><p>The user is not in the token, so the booking service has nothing to compare the requested booking against. Any object check it performs is checking against a user ID supplied by the caller, which is <a href=\"../object-level-authorization/index.html\">module 9</a>'s first trap. The token's authority is also the service's, not the user's, so it is the same for every user the agent serves.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>A resource server receives a token with a nested chain of actors and finds an allowed service three levels down. May it allow the call?</summary><p>No. RFC 8693 section 4.1 states that for applying access control policy the consumer MUST only consider the token's top-level claims and the party identified as the current actor. Allowing on a prior actor means any service that has ever appeared in a chain can act through any service that follows it.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>You revoke a user's session. What happens to the delegated tokens already issued from it?</summary><p>Nothing, unless you built something that links them. The exchange refuses to issue more, and the ones already out keep working until they expire. That is why the issued lifetime is a control rather than a detail, and why capping it at the subject token's remaining life is the starting default.</p></details>"
+    },
+    {
+      "tag": "section",
+      "attrs": {
+        "class": "course-quiz",
+        "data-quiz": null,
+        "data-quiz-id": "delegation-and-token-exchange-check",
+        "data-correct-feedback": "Correct. The act claim is the whole difference: the downstream service can authorize the agent and still attribute the action to the user.",
+        "data-incorrect-feedback": "Not quite. All four tokens verify and all four can carry a narrow scope. Only the delegation token names the agent as the current actor and the user as the subject, which is what lets the downstream service decide and attribute separately."
+      },
+      "html": "\n\n<section class=\"course-quiz\" data-quiz data-quiz-id=\"delegation-and-token-exchange-check\" data-correct-feedback=\"Correct. The act claim is the whole difference: the downstream service can authorize the agent and still attribute the action to the user.\" data-incorrect-feedback=\"Not quite. All four tokens verify and all four can carry a narrow scope. Only the delegation token names the agent as the current actor and the user as the subject, which is what lets the downstream service decide and attribute separately.\">\n<p class=\"kicker\">Quick check</p>\n<h2>What delegation adds</h2>\n<fieldset><legend>An agent calls the booking service for a signed-in traveller. Which property does only a delegation token give the booking service?</legend>\n<label><input type=\"radio\" name=\"dlg\" value=\"scope\"> A narrow scope.</label>\n<label><input type=\"radio\" name=\"dlg\" value=\"both\" data-correct=\"true\"> The agent's identity and the traveller's, separately.</label>\n<label><input type=\"radio\" name=\"dlg\" value=\"sig\"> A signature it can verify.</label>\n<label><input type=\"radio\" name=\"dlg\" value=\"short\"> A short lifetime.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button><p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n</section>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "course-next"
+      },
+      "html": "\n<p class=\"course-next\"><strong>Course progress:</strong> return to the <a href=\"../../index.html#course\">course dashboard</a> to see your published-module progress.</p>"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "layer",
+        "id": "reference",
+        "style": "margin-top:3rem"
+      },
+      "html": "\n<span class=\"layer\" id=\"reference\" style=\"margin-top:3rem\">Reference</span>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {
+        "style": "border-top:none;margin-top:.5rem"
+      },
+      "html": "\n<h2 style=\"border-top:none;margin-top:.5rem\">Controls</h2>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\"><span class=\"label std\">Standard</span> backed by a cited specification. <span class=\"label base\">Baseline</span> this project's default, with reasoning above. <span class=\"label opt\">Option</span> valid depending on the threat model.</p>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "controls"
+      },
+      "html": "\n<ul class=\"controls\">\n<li><span class=\"label std\">Standard</span>Token exchange uses the grant type <code>urn:ietf:params:oauth:grant-type:token-exchange</code>. RFC 8693 section 2.1.</li>\n<li><span class=\"label std\">Standard</span>Impersonation makes the actor \"indistinguishable from B in that context\"; delegation keeps A's own identity and records that \"any actions taken are being taken by A representing B\". RFC 8693 section 1.1.</li>\n<li><span class=\"label std\">Standard</span><code>grant_type</code>, <code>subject_token</code> and <code>subject_token_type</code> are REQUIRED. <code>actor_token_type</code> \"is REQUIRED when the <code>actor_token</code> parameter is present in the request but MUST NOT be included otherwise\". RFC 8693 section 2.1.</li>\n<li><span class=\"label std\">Standard</span><code>audience</code>, <code>resource</code>, <code>scope</code> and <code>requested_token_type</code> are OPTIONAL, and no lifetime limit is specified. RFC 8693 section 2.1.</li>\n<li><span class=\"label std\">Standard</span>The response carries <code>access_token</code>, <code>issued_token_type</code> and <code>token_type</code> as REQUIRED; <code>scope</code> is \"OPTIONAL if the scope of the issued security token is identical to the scope requested by the client; otherwise, it is REQUIRED\". RFC 8693 section 2.2.1.</li>\n<li><span class=\"label std\">Standard</span>\"If the issued token is not an access token or usable as an access token, then the <code>token_type</code> value <code>N_A</code> is used.\" RFC 8693 section 2.2.1.</li>\n<li><span class=\"label std\">Standard</span>An invalid request, or a <code>subject_token</code> or <code>actor_token</code> that is invalid or \"unacceptable based on policy\", MUST return the <code>invalid_request</code> error code; <code>invalid_target</code> SHOULD be used when the server is unwilling or unable to issue for the requested target, and \"other error codes may also be used, as appropriate\". RFC 8693 section 2.2.2, with the error response format and codes from RFC 6749 section 5.2.</li>\n<li><span class=\"label std\">Standard</span>\"The outermost <code>act</code> claim represents the current actor while nested <code>act</code> claims represent prior actors.\" RFC 8693 section 4.1.</li>\n<li><span class=\"label std\">Standard</span>\"For the purpose of applying access control policy, the consumer of a token MUST only consider the token's top-level claims and the party identified as the current actor by the <code>act</code> claim.\" RFC 8693 section 4.1.</li>\n<li><span class=\"label std\">Standard</span>The <code>may_act</code> claim \"makes a statement that one party is authorized to become the actor and act on behalf of another party\", and helps the authorization server decide whether the requested delegation is permitted. RFC 8693 section 4.4.</li>\n<li><span class=\"label std\">Standard</span>\"The use of the <code>scope</code> claim (in addition to other typical constraints such as a limited token lifetime) is suggested to mitigate potential for such abuse, as it restricts the contexts in which the delegated rights can be exercised.\" RFC 8693 section 5.</li>\n<li><span class=\"label std\">Standard</span>Leaked or over-broad agent credentials let an agent \"operate far beyond their intended scope\". OWASP Top 10 for Agentic Applications, ASI03 Identity &amp; Privilege Abuse.</li>\n<li><span class=\"label base\">Baseline</span>Exchange rather than forward. A user's token does not leave the audience it was issued for.</li>\n<li><span class=\"label base\">Baseline</span>Send <code>actor_token</code>, so the downstream decision and the audit record name the agent and the user separately.</li>\n<li><span class=\"label base\">Baseline</span>Require <code>audience</code> and <code>scope</code> on every exchange at the authorization server, rather than defaulting to the subject token's scope.</li>\n<li><span class=\"label base\">Baseline</span>Enforce <code>may_act</code>, matched on issuer and subject together.</li>\n<li><span class=\"label base\">Baseline</span>Cap the issued lifetime at the subject token's remaining life.</li>\n<li><span class=\"label base\">Baseline</span>Authorize on the current actor only, and bound the depth of chains you accept.</li>\n<li><span class=\"label base\">Baseline</span>Log the subject and the current actor on every delegated call.</li>\n<li><span class=\"label opt\">Option</span>Bind the issued token to its holder with the mechanisms in <a href=\"../sender-constrained-tokens/index.html\">module 8</a> where a stolen bearer token is in the threat model.</li>\n<li><span class=\"label opt\">Option</span>Issue impersonation tokens where a downstream service must not learn that an agent is involved, recording the decision and accepting that attribution is lost.</li>\n<li><span class=\"label opt\">Option</span>Keep an exchange record per issued token, so a revoked session can be traced to the tokens minted from it even though it cannot recall them.</li>\n</ul>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>Review checklist items</h2>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\">These are collected into the <a href=\"../../checklist/index.html\">site checklist</a>.</p>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "checks"
+      },
+      "html": "\n<ul class=\"checks\">\n<li data-check=\"dlg-01\" data-severity=\"Critical\"><strong>No service forwards a user's token outside the audience it was issued for</strong> <span>Verified by reading the outbound calls. A forwarded token carries all of the user's authority and names no agent.</span></li>\n<li data-check=\"dlg-02\" data-severity=\"Critical\"><strong>Calls made on a user's behalf carry the user in the token, not in a parameter</strong> <span>Otherwise the object check compares against a user ID the caller supplied.</span></li>\n<li data-check=\"dlg-03\" data-severity=\"Critical\"><strong>Resource servers authorize on the current actor only</strong> <span>RFC 8693 section 4.1 states it as a MUST. Test that a prior actor in a nested chain does not grant access.</span></li>\n<li data-check=\"dlg-04\" data-severity=\"High\"><strong>Every exchange states audience and scope, and the server refuses without them</strong> <span>Both are OPTIONAL in the specification. Defaulting to the subject token's scope copies everything.</span></li>\n<li data-check=\"dlg-05\" data-severity=\"High\"><strong>may_act is enforced, matched on issuer and subject together</strong> <span>A sub is unique only within an issuer. Include a same-sub, different-issuer case in the test.</span></li>\n<li data-check=\"dlg-06\" data-severity=\"High\"><strong>Issued lifetimes are capped at the subject token's remaining life</strong> <span>Nothing in RFC 8693 caps it. A revoked session cannot recall tokens already minted from it.</span></li>\n<li data-check=\"dlg-07\" data-severity=\"Medium\"><strong>Delegation chain depth is bounded</strong> <span>And the bound is small enough that exceeding it is a design question rather than an alert.</span></li>\n<li data-check=\"dlg-08\" data-severity=\"Medium\"><strong>Access logs record the subject and the current actor separately</strong> <span>An incident needs to suspend one agent without suspending the user.</span></li>\n</ul>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>Sources</h2>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<ul class=\"prose\">\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc8693\">RFC 8693: OAuth 2.0 Token Exchange</a>, January 2020. Sections 1.1, 2.1, 2.2.1, 2.2.2, 3, 4.1, 4.4 and 5.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc6749\">RFC 6749: The OAuth 2.0 Authorization Framework</a>, October 2012. Section 5.2, the token endpoint error response and its error codes.</li>\n<li><a href=\"https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/\">OWASP Top 10 for Agentic Applications</a>, OWASP GenAI Security Project, released 9 December 2025. ASI03 Identity &amp; Privilege Abuse.</li>\n</ul>"
+    }
+  ],
+  "main_close": "\n</main>",
+  "footer": "\n<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>",
+  "epilogue": "\n</body>\n</html>\n",
   "page_title": "Delegation and token exchange | API Security in the Age of AI",
   "lesson_key": "delegation-and-token-exchange",
   "title": "Delegation and token exchange",
   "kicker": "Part 4: AI and agents &middot; Module 19",
   "reviewed": "2026-10-01",
   "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 19 of 26</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
+  "intro_prose": [
+    "<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can tell delegation from impersonation in a token, name the three parameters RFC 8693 requires and the four it leaves to you, enforce who is allowed to act for whom, and say what an exchange does not fix.</p>\n<p><strong>Before you start.</strong> Every module so far has assumed the caller is the party doing the work. An agent is not. It holds a token that came from somewhere else and it calls on behalf of a person who is nowhere in the request.</p>\n</div>"
+  ],
   "sections": [
     {
       "heading": "1. The attack",
@@ -67,7 +387,7 @@
     {
       "heading": "Sources",
       "heading_text": "Sources",
-      "html": "<ul class=\"prose\">\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc8693\">RFC 8693: OAuth 2.0 Token Exchange</a>, January 2020. Sections 1.1, 2.1, 2.2.1, 2.2.2, 3, 4.1, 4.4 and 5.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc6749\">RFC 6749: The OAuth 2.0 Authorization Framework</a>, October 2012. Section 5.2, the token endpoint error response and its error codes.</li>\n<li><a href=\"https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/\">OWASP Top 10 for Agentic Applications</a>, OWASP GenAI Security Project, released 9 December 2025. ASI03 Identity &amp; Privilege Abuse.</li>\n</ul>\n</main>\n<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>\n</body>\n</html>"
+      "html": "<ul class=\"prose\">\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc8693\">RFC 8693: OAuth 2.0 Token Exchange</a>, January 2020. Sections 1.1, 2.1, 2.2.1, 2.2.2, 3, 4.1, 4.4 and 5.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc6749\">RFC 6749: The OAuth 2.0 Authorization Framework</a>, October 2012. Section 5.2, the token endpoint error response and its error codes.</li>\n<li><a href=\"https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/\">OWASP Top 10 for Agentic Applications</a>, OWASP GenAI Security Project, released 9 December 2025. ASI03 Identity &amp; Privilege Abuse.</li>\n</ul>\n</main>"
     }
   ],
   "layers": [

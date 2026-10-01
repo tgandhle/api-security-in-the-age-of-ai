@@ -2,12 +2,337 @@
   "slug": "ssrf-and-unsafe-consumption",
   "source": "topics/ssrf-and-unsafe-consumption/index.html",
   "kind": "topics",
+  "prologue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>SSRF and unsafe consumption of APIs | API Security in the Age of AI</title>\n<link rel=\"stylesheet\" href=\"../../assets/site.css\">\n<script src=\"../../assets/course.js\" defer></script>\n</head>\n<body data-course-lesson=\"ssrf-and-unsafe-consumption\">",
+  "nav": "\n<nav class=\"site-nav\" aria-label=\"Site\"><div><a class=\"home\" href=\"../../index.html\">API Security in the Age of AI</a><a href=\"../../index.html#course\">Course</a><a href=\"../../index.html#path\">Modules</a><a href=\"../../roadmap/index.html\">Roadmap</a><a href=\"../../checklist/index.html\">Checklist</a><a href=\"../../glossary/index.html\">Glossary</a></div></nav>",
+  "main_open": "\n<main>",
+  "blocks": [
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "kicker"
+      },
+      "html": "\n<p class=\"kicker\">Part 3: Edges and boundaries &middot; Module 14</p>"
+    },
+    {
+      "tag": "h1",
+      "attrs": {},
+      "html": "\n<h1>SSRF and unsafe consumption of APIs</h1>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "meta"
+      },
+      "html": "\n<p class=\"meta\">Last reviewed 2026-09-30 &middot; <a class=\"jump\" href=\"#reference\">Jump to reference</a></p>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n\n<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can explain why a check on a URL string never holds, normalise a host through every spelling an address has, place the check where a redirect cannot go around it, and say what is still open once the URL is validated.</p>\n<p><strong>Before you start.</strong> Every module so far has been about requests arriving. This one is about the requests your service makes because something in an arriving request asked it to, and about how much you trust what comes back.</p>\n</div>"
+    },
+    {
+      "tag": "section",
+      "attrs": {
+        "class": "lesson-status",
+        "aria-label": "Lesson progress"
+      },
+      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 15 of 26</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "layer",
+        "id": "learn"
+      },
+      "html": "\n\n<span class=\"layer\" id=\"learn\">Learn</span>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>1. The attack</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Running example: ExampleAir lets a partner supply a URL for their logo, and fetches it. Company names are fictional. <code>169.254.169.254</code> is a link-local address, the one instance metadata services conventionally answer on, and it is the address in most published SSRF write-ups for a reason: it is reachable from inside and it hands out credentials.</p>\n<p>OWASP states the class in one sentence, as <strong>API7:2023 Server Side Request Forgery</strong>: \"SSRF flaws occur when an API is fetching a remote resource without validating the user-supplied URL.\"</p>\n<p>The interesting part is not that validation is missing. It is that the validation people write first does not work, and looks like it does. A check that the partner's hostname appears in the URL passes for all three of these:</p>\n</div>"
+    },
+    {
+      "tag": "pre",
+      "attrs": {},
+      "html": "\n<pre><code>https://api.partner.example/v1/logo.png                       the real one\nhttp://api.partner.example@169.254.169.254/latest/meta-data/  userinfo, before an @\nhttp://169.254.169.254#@api.partner.example/                  inside a fragment\nhttp://api.partner.example.attacker.example/v1/logo.png       a subdomain prefix</code></pre>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "wrap"
+      },
+      "html": "\n<div class=\"wrap\"><table>\n<thead><tr><th>The partner supplies</th><th>Name appears in the URL</th><th>Parse, normalise, classify</th></tr></thead>\n<tbody>\n<tr><td>The logo URL you expected</td><td class=\"no\">Fetched</td><td class=\"no\">Fetched</td></tr>\n<tr><td>The name as userinfo before an <code>@</code></td><td class=\"yes\">Fetches the metadata service</td><td class=\"no\">Refused</td></tr>\n<tr><td>The name inside a fragment</td><td class=\"yes\">Fetches the metadata service</td><td class=\"no\">Refused</td></tr>\n<tr><td>The name as a subdomain of their own domain</td><td class=\"yes\">Fetches their host</td><td class=\"no\">Refused</td></tr>\n<tr><td>The address in decimal, hex or octal</td><td class=\"yes\">Fetched</td><td class=\"no\">Refused</td></tr>\n<tr><td>A URL that redirects to an internal address</td><td class=\"yes\">Fetched</td><td class=\"yes\">Fetched, unless the target is checked too</td></tr>\n<tr><td>A name that resolves differently the second time</td><td class=\"yes\">Fetched</td><td class=\"yes\">Fetched, unless you connect to the address you checked</td></tr>\n</tbody></table></div>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<p class=\"prose\">The last two rows are where this module spends its second half, because they survive a correct URL check. Both of them work by making the thing you validated and the thing you connected to different objects.</p>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>2. Why it works</h2>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n<h3>A URL is not a string</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Every bypass in the table above comes from treating a URL as text. A URL has a grammar, and the host is one specific part of it, and every other part can contain characters that look like a host to a human reading the line. OWASP's prevention list says it directly: \"use a well-tested and maintained URL parser to avoid issues caused by URL parsing inconsistencies\". Parse it, then look only at the host the parser returned.</p>\n<p>Which gets you to the second problem: one address has several spellings. <code>169.254.169.254</code>, <code>2852039166</code>, <code>0xA9FEA9FE</code>, <code>025177524776</code> and <code>::ffff:169.254.169.254</code> are all the same destination, and only the first looks like one. A blocklist of dotted-quad strings stops the spelling everyone writes in the write-up and nothing else. The lab does this normalisation in about fifteen lines, and one of them is the note that the base is decided by the prefix rather than by trying each in turn, because <code>025177524776</code> read as decimal is a completely different address.</p>\n<p>Then classify what you get. IANA maintains special-purpose address registries, restructured by RFC 6890, and the entries that matter here are <code>169.254.0.0/16</code> as Link Local, <code>127.0.0.0/8</code> as Loopback, and <code>10.0.0.0/8</code>, <code>172.16.0.0/12</code> and <code>192.168.0.0/16</code> as Private-Use. Any decent standard library knows these; in Python it is three attribute reads on an <code>ipaddress</code> object.</p>\n</div>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>The redirect, and the second resolution</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Both remaining rows have the same shape: you validate one thing and connect to another.</p>\n<p>A redirect is the obvious version. The URL you checked returns 302 and the client follows it to an address nobody checked. OWASP's advice is blunt, \"disable HTTP redirections\", and API10:2023 adds the version for responses you consume: \"maintain an allowlist of well-known locations integrated APIs may redirect to: do not blindly follow redirects\". If you must follow one, the target is a new URL and gets the whole check again, including the resolution.</p>\n<p>The subtler version is the name. You resolved <code>api.partner.example</code>, got a public address, approved it, and handed the name to your HTTP client, which resolved it again. Nothing says the two answers match. The fix is not a better check, it is connecting to the address the check returned rather than to the name it was given.</p>\n</div>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>And then the response</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>OWASP's API10:2023 is about the half of this that happens after the fetch: developers \"tend to trust data from third-party APIs more than user input\", and apply weaker validation to it. Three of its vulnerability indicators are about exactly this flow: the API \"blindly follows redirections\", \"does not limit the number of resources available to process third-party services responses\", and \"does not implement timeouts for interactions with third-party services\".</p>\n<p>So a response you fetched is input. It goes through <a href=\"../request-and-response-contracts/index.html\">module 13</a>'s limits, because it is somebody else's request body arriving at your parser, and any URL inside it is a URL a caller supplied. And the response does not go back to the caller unchanged: \"do not send raw responses to clients\", because what came back may be a page from a service the caller was never supposed to know exists. That includes your own error text. A rejection that says the address was private has told the caller that the address exists and is internal.</p>\n</div>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>The whole system</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "diagram"
+      },
+      "html": "\n<div class=\"diagram\">\n<svg viewBox=\"0 0 1100 380\" width=\"100%\" style=\"min-width:900px\" role=\"img\">\n<title>Where an outbound URL is checked, and the two ways a check is bypassed</title>\n<desc>A partner-supplied URL passes through four steps: parse it with a real URL parser, normalise the host through every spelling an address can have, classify the resulting address against the special-purpose registries, and connect to that address rather than to the name. Two paths below show the bypasses: a redirect, where the validated URL returns a redirect to an unvalidated address, and a second resolution, where the name is resolved again when the socket opens and answers differently. A note records that the response itself is untrusted input and is not returned to the caller unchanged.</desc>\n<defs><marker id=\"a\" viewBox=\"0 0 10 10\" refX=\"8\" refY=\"5\" markerWidth=\"6\" markerHeight=\"6\" orient=\"auto-start-reverse\"><path d=\"M2 1L8 5L2 9\" fill=\"none\" stroke=\"context-stroke\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></marker></defs>\n\n<text class=\"lab\" x=\"36\" y=\"28\">The check, in four steps.</text>\n<g class=\"p\"><rect x=\"20\" y=\"52\" width=\"240\" height=\"70\" rx=\"8\"/><text class=\"th\" x=\"140\" y=\"79\" text-anchor=\"middle\">1. Parse</text><text class=\"ts\" x=\"140\" y=\"99\" text-anchor=\"middle\">a real URL parser,</text><text class=\"ts\" x=\"140\" y=\"115\" text-anchor=\"middle\">then read only the host</text></g>\n<g class=\"h\"><rect x=\"290\" y=\"52\" width=\"240\" height=\"70\" rx=\"8\"/><text class=\"th\" x=\"410\" y=\"79\" text-anchor=\"middle\">2. Normalise</text><text class=\"ts\" x=\"410\" y=\"99\" text-anchor=\"middle\">decimal, hex, octal,</text><text class=\"ts\" x=\"410\" y=\"115\" text-anchor=\"middle\">IPv4-mapped IPv6</text></g>\n<g class=\"s\"><rect x=\"560\" y=\"52\" width=\"240\" height=\"70\" rx=\"8\"/><text class=\"th\" x=\"680\" y=\"79\" text-anchor=\"middle\">3. Classify</text><text class=\"ts\" x=\"680\" y=\"99\" text-anchor=\"middle\">loopback, link-local,</text><text class=\"ts\" x=\"680\" y=\"115\" text-anchor=\"middle\">private, reserved</text></g>\n<g class=\"g\"><rect x=\"830\" y=\"52\" width=\"250\" height=\"70\" rx=\"8\"/><text class=\"th\" x=\"955\" y=\"79\" text-anchor=\"middle\">4. Connect</text><text class=\"ts\" x=\"955\" y=\"99\" text-anchor=\"middle\">to the address you</text><text class=\"ts\" x=\"955\" y=\"115\" text-anchor=\"middle\">classified, not the name</text></g>\n<line class=\"arr\" x1=\"260\" y1=\"87\" x2=\"286\" y2=\"87\" marker-end=\"url(#a)\"/>\n<line class=\"arr\" x1=\"530\" y1=\"87\" x2=\"556\" y2=\"87\" marker-end=\"url(#a)\"/>\n<line class=\"arr\" x1=\"800\" y1=\"87\" x2=\"826\" y2=\"87\" marker-end=\"url(#a)\"/>\n\n<text class=\"lab\" x=\"36\" y=\"172\">Two ways to be somewhere else by the time you connect.</text>\n<rect class=\"zone\" x=\"20\" y=\"184\" width=\"1060\" height=\"108\" rx=\"12\"/>\n<g class=\"r\"><rect x=\"60\" y=\"210\" width=\"460\" height=\"62\" rx=\"8\"/><text class=\"th\" x=\"290\" y=\"234\" text-anchor=\"middle\">The redirect</text><text class=\"ts\" x=\"290\" y=\"255\" text-anchor=\"middle\">the validated URL answers 302 to an address nobody checked</text></g>\n<g class=\"r\"><rect x=\"580\" y=\"210\" width=\"460\" height=\"62\" rx=\"8\"/><text class=\"th\" x=\"810\" y=\"234\" text-anchor=\"middle\">The second resolution</text><text class=\"ts\" x=\"810\" y=\"255\" text-anchor=\"middle\">the name is resolved again when the socket opens</text></g>\n\n<text class=\"ts\" x=\"550\" y=\"322\" text-anchor=\"middle\">and what comes back is untrusted input: it goes through module 13's limits</text>\n<text class=\"ts\" x=\"550\" y=\"344\" text-anchor=\"middle\">and it does not go back to the caller unchanged, error text included</text>\n</svg>\n<div class=\"legend\"><span class=\"lg-p\">Parse</span><span class=\"lg-h\">Normalise</span><span class=\"lg-s\">Classify</span><span class=\"lg-r\">The bypasses</span></div>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>3. The control</h2>"
+    },
+    {
+      "tag": "ol",
+      "attrs": {
+        "class": "steps prose"
+      },
+      "html": "\n<ol class=\"steps prose\">\n<li><strong>Parse with a real parser</strong> and use only the host component. Never a substring test, a prefix test or a regular expression over the whole URL.</li>\n<li><strong>Allowlist the scheme</strong>, and the port if you accept one. OWASP names both: an allow list of \"URL schemes and ports\".</li>\n<li><strong>Refuse address literals outright</strong> where the partner is supposed to give you a name. If you must accept them, normalise every spelling first.</li>\n<li><strong>Allowlist the host</strong> against exact names. \"Ends with our partner's domain\" is the subdomain bypass written as a rule.</li>\n<li><strong>Resolve, and classify the address</strong> against the special-purpose ranges. Refuse loopback, link-local, private, reserved, multicast and unspecified.</li>\n<li><strong>Connect to the address you classified.</strong> This is the step that makes the check hold: the name resolved once, and the socket goes to the answer you checked.</li>\n<li><strong>Do not follow redirects.</strong> If you must, apply steps 1 to 6 to the target as a new URL, and bound the number of hops.</li>\n<li><strong>Treat the response as input.</strong> Size limits, timeouts, and <a href=\"../request-and-response-contracts/index.html\">module 13</a>'s parsing limits. Any URL inside it is a caller-supplied URL.</li>\n<li><strong>Do not return the raw response, or the raw reason for a refusal.</strong> One status, one message, no detail about what was found.</li>\n</ol>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>4. Defaults and when to change them</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "wrap"
+      },
+      "html": "\n<div class=\"wrap\"><table>\n<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>\n<tbody>\n<tr><td>Accepting URLs at all</td><td>Don't, where an identifier will do</td><td>A partner id you resolve to a URL yourself removes this whole module. Take a URL only when the caller genuinely needs to choose the destination.</td></tr>\n<tr><td>How the URL is checked</td><td>Parsed, with only the host inspected</td><td>Never a string test. Every bypass in the lab's Part A beats one.</td></tr>\n<tr><td>Schemes</td><td><code>https</code> only</td><td>Adding <code>http</code> is a decision about confidentiality. <code>file</code>, <code>gopher</code> and the rest are never on the list.</td></tr>\n<tr><td>Hosts</td><td>An exact-match allowlist</td><td>Suffix matching is the subdomain bypass. If the set is too large to enumerate, that is a design finding.</td></tr>\n<tr><td>Address literals</td><td>Refused</td><td>Accept them only with full normalisation, and then classify.</td></tr>\n<tr><td>Address classes refused</td><td>Loopback, link-local, private, reserved, multicast, unspecified</td><td>Use the library that knows the registries rather than a list of ranges you typed.</td></tr>\n<tr><td>Connecting</td><td>To the address you validated</td><td>Handing the name to the HTTP client resolves it a second time, and the second answer is not the one you checked.</td></tr>\n<tr><td>Redirects</td><td>Disabled</td><td>If a partner requires them, revalidate each target and bound the hop count.</td></tr>\n<tr><td>The response</td><td>Size limit, timeout, parsed under module 13's rules</td><td>It is input. OWASP lists missing limits and timeouts on third-party responses as vulnerability indicators.</td></tr>\n<tr><td>What the caller sees</td><td>One status, no detail</td><td>Both the body and the reason for a refusal are information about your internal network.</td></tr>\n<tr><td>Egress</td><td>Restricted at the network, to the destinations you expect</td><td>Worth having, and it is a second control rather than a replacement. Module 12's argument applies here too.</td></tr>\n</tbody></table></div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>5. What it proves, and what it doesn't</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p><strong>Proves:</strong> that the request your service made went to an address you classified as external, on a scheme you allow, at a host you listed.</p>\n<p><strong>Doesn't prove:</strong> anything about what came back. A response from an allowed host is still input, and it can be large, slow, malformed, or contain a URL designed to start this again. It also proves nothing about hosts an attacker legitimately controls: if a partner's own server is the attacker, every check here passes, and what protects you is what you do with the response.</p>\n<div class=\"callout warn\"><strong>The check and the connection have to be the same act.</strong> Every remaining bypass in this module is a gap between them: a redirect opens one, a second DNS lookup opens one, a validation that runs in a different process from the fetch opens one. Validate and connect in one place, to one address, or you are checking a claim about a request you have not made yet.</div>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>6. Prove it</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>For every place your service fetches a URL that came from outside:</p>\n<ul>\n<li>A URL with the allowed host as userinfo before an <code>@</code> is refused.</li>\n<li>A URL with the allowed host as a subdomain of another domain is refused.</li>\n<li>The metadata address in decimal, hexadecimal, octal and IPv4-mapped IPv6 form is refused.</li>\n<li>Loopback, private and link-local destinations are refused, including by name.</li>\n<li>A URL that redirects to an internal address is refused, and the test proves which hop refused it.</li>\n<li>The connection goes to the address validation returned, demonstrated rather than asserted.</li>\n<li>The response has a size limit and a timeout, and both are tested.</li>\n<li>Neither the response nor the refusal reason reaches the caller unchanged.</li>\n<li>Every one of the above is a test in the build.</li>\n</ul>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>7. Lab</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Download <a href=\"../../labs/ssrf_lab.py\"><code>labs/ssrf_lab.py</code></a>. It needs nothing beyond Python 3.</p>\n</div>"
+    },
+    {
+      "tag": "pre",
+      "attrs": {},
+      "html": "\n<pre><code>Windows              macOS and Linux\npy -3 labs/ssrf_lab.py    python3 labs/ssrf_lab.py</code></pre>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The URL parsing and the address classification are real, using <code>urllib.parse</code> and <code>ipaddress</code>. The fetching and the name resolution are stubs, so the lab opens no sockets and reaches no network. The address standing in for a public one is from RFC 5737's documentation range, which Python's <code>ipaddress</code> correctly reports as not globally routable, so the lab names those ranges explicitly rather than letting them pass by accident.</p>\n</div>"
+    },
+    {
+      "tag": "pre",
+      "attrs": {},
+      "html": "\n<pre><code>$ python3 labs/ssrf_lab.py\nthe partner supplies a URL and the service fetches it\n\nPart A: a check on the URL string.\n 1. the intended URL                                     True\n 2. the partner's name as userinfo, before an @          True\n 3.   where that one actually points                     169.254.169.254\n 4. the partner's name inside a fragment                 True\n 5.   where that one actually points                     169.254.169.254\n 6. the partner's name as a subdomain prefix             True\n 7.   where that one actually points                     api.partner.example.attacker.example\n\nPart B: parse the URL, normalise the host, classify the address.\n 8. the intended URL                                     accept\n 9. the userinfo URL                                     reject: scheme not allowed\n10.   the same over https                                reject: address literal, link-local\n11. the subdomain URL over https                         reject: host not on the allowlist\n12. 169.254.169.254 written in decimal                   reject: address literal, link-local\n13. the same written in hexadecimal                      reject: address literal, link-local\n14. the same written in octal                            reject: address literal, link-local\n15. the same as an IPv4-mapped IPv6 address              reject: address literal, link-local\n16. 127.0.0.1                                            reject: address literal, loopback\n17. 10.0.0.5                                             reject: address literal, private\n18. file:///etc/passwd                                   reject: scheme not allowed\n\nPart C: the redirect.\n19. the URL passes every check in Part B                 accept: connect to 203.0.113.10\n20. fetched, following redirects                         fetched 169.254.169.254\n21. the same, redirects disabled                         stopped at the redirect\n22. the same, redirect target revalidated                redirect target refused\n23. no redirect, redirects disabled                      fetched api.partner.example\n\nPart D: what URL validation does not settle.\n24. validation resolved the name to                      203.0.113.10\n25. the connection resolved it again to                  169.254.169.254\n26. the two agree                                        False\n27. the rejection reason, returned to the caller verbatim reject: address literal, private\n28. what the caller learns from it                       the address exists and is internal\n29. a URL in that response, fetched without checks       reject: address literal, link-local\n\nall lab checks passed</code></pre>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Checks 1 to 7 are the whole argument against string checks, in seven lines. Three URLs contain the partner's hostname, one of them points at the partner, and the check cannot tell them apart because it is not looking at the host, it is looking at the line.</p>\n<p>Checks 12 to 15 are the same address four times. If your defence is a list of bad addresses written the way people write them, it stops the first of these. The normalisation that catches the other three is short, and the comment in it matters: the base is decided by the prefix, because <code>025177524776</code> read as decimal is somewhere else entirely.</p>\n<p>Checks 19 to 22 are the redirect, and they are a sequence rather than four separate cases. Check 19 is a URL that passes every check in Part B, correctly. Check 20 follows its redirect and fetches the metadata service. Checks 21 and 22 are the two fixes, and the second is the one to use if you cannot use the first.</p>\n<p>Checks 24 to 26 are the case that survives everything above. Validation resolved the name and got a public address. The connection resolved it again and got the metadata service. Both lookups were correct, nothing was bypassed, and the request went somewhere you refused. The fix is in step 6 of the control: connect to the address, not the name.</p>\n<p>Checks 27 and 28 are the smallest finding here and the easiest to ship: a refusal that explains itself. \"Address literal, private\" is a true statement about the caller's input and a fact about your network they did not have before.</p>\n<p><strong>Try next:</strong></p>\n<ul>\n<li>Add <code>\"attacker.example\"</code> to <code>ALLOWED_HOSTS</code> and rerun. Which checks change, and which do not? The ones that do not are the reason host allowlisting is not the whole control.</li>\n<li>Change <code>as_address</code> to try bases 10, 16 and 8 in order rather than by prefix. Check 14 still passes and now passes for the wrong reason: print what the octal form resolves to under that version.</li>\n<li>Make the stub resolver in Part C return <code>127.0.0.1</code>. Check 19 changes and checks 20 to 23 follow it, which shows which step actually refused the request.</li>\n<li>Take a URL fetcher in your own codebase and write down which of the nine control steps it performs. Most perform two.</li>\n</ul>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>8. Check your understanding</h2>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Why does checking that the URL contains your partner's hostname not work?</summary><p>Because a hostname can appear in a URL in places that are not the host: as userinfo before an <code>@</code>, inside a fragment, or as a prefix of somebody else's domain. All three parse to a different destination than a human reading the line expects. Parse the URL and inspect only the host component the parser returned.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>You block 169.254.169.254 and the private ranges by string comparison. What gets through?</summary><p>The same addresses written in decimal, hexadecimal, octal or as IPv4-mapped IPv6, plus any hostname that resolves to them. Normalise the host to an address first, then classify it against the special-purpose registries with a library that knows them.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Your URL validation is correct and the fetch still reached the metadata service. How?</summary><p>Two ways. A redirect, where the URL you validated answered with a new destination that nobody checked; and a second name resolution, where your HTTP client resolved the hostname again when it opened the socket and got a different answer. Disable redirects or revalidate the target, and connect to the address validation returned rather than to the name.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>The fetched host is on your allowlist and it is under an attacker's control. What still protects you?</summary><p>Only what you do with the response. It is input: apply a size limit, a timeout and your parsing limits, do not follow URLs found inside it without the same checks, and do not return it to the caller unchanged. OWASP's API10:2023 exists because responses from integrated services routinely get less validation than user input, not more.</p></details>"
+    },
+    {
+      "tag": "section",
+      "attrs": {
+        "class": "course-quiz",
+        "data-quiz": null,
+        "data-quiz-id": "ssrf-and-unsafe-consumption-check",
+        "data-correct-feedback": "Correct. Validation resolved the name once and the HTTP client resolved it again when it connected. Connecting to the address validation returned closes the gap; nothing about the check itself does.",
+        "data-incorrect-feedback": "Not quite. A stricter allowlist, more address forms and a scheme check all improve the check, and none of them closes the gap between resolving a name and connecting to it. The connection has to go to the address that was validated."
+      },
+      "html": "\n\n<section class=\"course-quiz\" data-quiz data-quiz-id=\"ssrf-and-unsafe-consumption-check\" data-correct-feedback=\"Correct. Validation resolved the name once and the HTTP client resolved it again when it connected. Connecting to the address validation returned closes the gap; nothing about the check itself does.\" data-incorrect-feedback=\"Not quite. A stricter allowlist, more address forms and a scheme check all improve the check, and none of them closes the gap between resolving a name and connecting to it. The connection has to go to the address that was validated.\">\n<p class=\"kicker\">Quick check</p>\n<h2>After a correct URL check</h2>\n<fieldset><legend>Your validator parses the URL, allowlists the host, resolves it and refuses internal addresses. The fetch still reached an internal service, with no redirect involved. What happened?</legend>\n<label><input type=\"radio\" name=\"out\" value=\"forms\"> An address form the normaliser did not cover.</label>\n<label><input type=\"radio\" name=\"out\" value=\"resolve\" data-correct=\"true\"> The HTTP client resolved the name again and got a different answer.</label>\n<label><input type=\"radio\" name=\"out\" value=\"scheme\"> The scheme allowlist was missing.</label>\n<label><input type=\"radio\" name=\"out\" value=\"suffix\"> The host allowlist used suffix matching.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button><p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n</section>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "course-next"
+      },
+      "html": "\n<p class=\"course-next\"><strong>Course progress:</strong> return to the <a href=\"../../index.html#course\">course dashboard</a> to see your published-module progress.</p>"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "layer",
+        "id": "reference",
+        "style": "margin-top:3rem"
+      },
+      "html": "\n<span class=\"layer\" id=\"reference\" style=\"margin-top:3rem\">Reference</span>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {
+        "style": "border-top:none;margin-top:.5rem"
+      },
+      "html": "\n<h2 style=\"border-top:none;margin-top:.5rem\">Controls</h2>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\"><span class=\"label std\">Standard</span> backed by a cited specification. <span class=\"label base\">Baseline</span> this project's default, with reasoning above. <span class=\"label opt\">Option</span> valid depending on the threat model.</p>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "controls"
+      },
+      "html": "\n<ul class=\"controls\">\n<li><span class=\"label std\">Standard</span>\"Server-Side Request Forgery (SSRF) flaws occur when an API is fetching a remote resource without validating the user-supplied URL.\" OWASP API7:2023.</li>\n<li><span class=\"label std\">Standard</span>\"Use a well-tested and maintained URL parser to avoid issues caused by URL parsing inconsistencies.\" OWASP API7:2023, How To Prevent.</li>\n<li><span class=\"label std\">Standard</span>Maintain allow lists of the remote origins users are expected to download resources from, and of URL schemes and ports. OWASP API7:2023, How To Prevent.</li>\n<li><span class=\"label std\">Standard</span>\"Disable HTTP redirections\", and \"do not send raw responses to clients\". OWASP API7:2023, How To Prevent.</li>\n<li><span class=\"label std\">Standard</span>\"Always validate and properly sanitize data received from integrated APIs before using it\", and \"maintain an allowlist of well-known locations integrated APIs may redirect to: do not blindly follow redirects\". OWASP API10:2023, How To Prevent.</li>\n<li><span class=\"label std\">Standard</span>OWASP API10:2023 lists blindly following redirections, not limiting the resources used to process third-party responses, and not implementing timeouts for third-party interactions among its vulnerability indicators.</li>\n<li><span class=\"label std\">Standard</span>Classify resolved addresses against IANA's special-purpose address registries, restructured by RFC 6890: <code>169.254.0.0/16</code> Link Local (RFC 3927), <code>127.0.0.0/8</code> Loopback (RFC 1122), and <code>10.0.0.0/8</code>, <code>172.16.0.0/12</code> and <code>192.168.0.0/16</code> Private-Use (RFC 1918).</li>\n<li><span class=\"label base\">Baseline</span>Prefer an identifier you resolve to a URL yourself over accepting a URL at all.</li>\n<li><span class=\"label base\">Baseline</span>Inspect only the host component the parser returned. Never a substring, prefix or regular-expression test on the whole URL.</li>\n<li><span class=\"label base\">Baseline</span>Allow <code>https</code> only, allowlist hosts by exact match, and refuse address literals.</li>\n<li><span class=\"label base\">Baseline</span>Normalise a host to an address before classifying it, covering decimal, hexadecimal and octal integer forms and IPv4-mapped IPv6, with the base decided by the prefix.</li>\n<li><span class=\"label base\">Baseline</span>Connect to the address validation returned, not to the name it was given.</li>\n<li><span class=\"label base\">Baseline</span>Apply a size limit, a timeout and module 13's parsing limits to every response, and treat any URL inside it as caller-supplied.</li>\n<li><span class=\"label base\">Baseline</span>Return one status and no detail. Neither the response nor the reason for a refusal goes back unchanged.</li>\n<li><span class=\"label opt\">Option</span>Restrict egress at the network to the destinations you expect. Worth having, and a second control rather than a replacement, for the reasons in <a href=\"../gateway-enforcement/index.html\">module 12</a>.</li>\n<li><span class=\"label opt\">Option</span>Perform outbound fetches from a component with no access to internal networks or credentials, so that a bypass reaches nothing worth having.</li>\n</ul>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>Review checklist items</h2>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\">These are collected into the <a href=\"../../checklist/index.html\">site checklist</a>.</p>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "checks"
+      },
+      "html": "\n<ul class=\"checks\">\n<li data-check=\"out-01\" data-severity=\"Critical\"><strong>URLs are parsed, and only the host component is checked</strong> <span>Test the allowed host as userinfo before an <code>@</code>, inside a fragment, and as a subdomain prefix. All three must be refused.</span></li>\n<li data-check=\"out-02\" data-severity=\"Critical\"><strong>Resolved addresses are classified against the special-purpose ranges</strong> <span>Loopback, link-local, private, reserved, multicast and unspecified, using a library that knows the registries.</span></li>\n<li data-check=\"out-03\" data-severity=\"Critical\"><strong>The connection goes to the address that was validated</strong> <span>Demonstrated, not asserted. Resolving the name again when the socket opens is a second, unchecked lookup.</span></li>\n<li data-check=\"out-04\" data-severity=\"Critical\"><strong>Redirects are disabled, or each target is fully revalidated</strong> <span>With a bounded hop count. A test must show which hop refused the request.</span></li>\n<li data-check=\"out-05\" data-severity=\"High\"><strong>Host normalisation covers every spelling of an address</strong> <span>Decimal, hexadecimal, octal and IPv4-mapped IPv6, with the base decided by the prefix.</span></li>\n<li data-check=\"out-06\" data-severity=\"High\"><strong>Schemes and hosts are allowlisted, hosts by exact match</strong> <span>Suffix matching is the subdomain bypass expressed as a rule.</span></li>\n<li data-check=\"out-07\" data-severity=\"High\"><strong>Responses have size limits, timeouts and parsing limits</strong> <span>A response is input. Any URL inside it is a caller-supplied URL.</span></li>\n<li data-check=\"out-08\" data-severity=\"Medium\"><strong>Neither responses nor refusal reasons reach the caller unchanged</strong> <span>One status, no detail. \"Address literal, private\" is a fact about your network.</span></li>\n</ul>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>Sources</h2>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<ul class=\"prose\">\n<li><a href=\"https://api-security.owasp.org/editions/2023/en/0xa7-server-side-request-forgery/\">OWASP API Security Top 10 2023, API7:2023 Server Side Request Forgery</a>.</li>\n<li><a href=\"https://api-security.owasp.org/editions/2023/en/0xaa-unsafe-consumption-of-apis/\">OWASP API Security Top 10 2023, API10:2023 Unsafe Consumption of APIs</a>.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc6890\">RFC 6890: Special-Purpose IP Address Registries</a>, April 2013. The registry entries and the RFCs behind them.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc5737\">RFC 5737: IPv4 Address Blocks Reserved for Documentation</a>, January 2010. \"The blocks 192.0.2.0/24 (TEST-NET-1), 198.51.100.0/24 (TEST-NET-2), and 203.0.113.0/24 (TEST-NET-3) are provided for use in documentation\", and they \"SHOULD NOT appear on the public Internet\". The lab uses one in place of a public address.</li>\n</ul>"
+    }
+  ],
+  "main_close": "\n</main>",
+  "footer": "\n<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>",
+  "epilogue": "\n</body>\n</html>\n",
   "page_title": "SSRF and unsafe consumption of APIs | API Security in the Age of AI",
   "lesson_key": "ssrf-and-unsafe-consumption",
   "title": "SSRF and unsafe consumption of APIs",
   "kicker": "Part 3: Edges and boundaries &middot; Module 14",
   "reviewed": "2026-09-30",
   "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 15 of 26</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
+  "intro_prose": [
+    "<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can explain why a check on a URL string never holds, normalise a host through every spelling an address has, place the check where a redirect cannot go around it, and say what is still open once the URL is validated.</p>\n<p><strong>Before you start.</strong> Every module so far has been about requests arriving. This one is about the requests your service makes because something in an arriving request asked it to, and about how much you trust what comes back.</p>\n</div>"
+  ],
   "sections": [
     {
       "heading": "1. The attack",
@@ -67,7 +392,7 @@
     {
       "heading": "Sources",
       "heading_text": "Sources",
-      "html": "<ul class=\"prose\">\n<li><a href=\"https://api-security.owasp.org/editions/2023/en/0xa7-server-side-request-forgery/\">OWASP API Security Top 10 2023, API7:2023 Server Side Request Forgery</a>.</li>\n<li><a href=\"https://api-security.owasp.org/editions/2023/en/0xaa-unsafe-consumption-of-apis/\">OWASP API Security Top 10 2023, API10:2023 Unsafe Consumption of APIs</a>.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc6890\">RFC 6890: Special-Purpose IP Address Registries</a>, April 2013. The registry entries and the RFCs behind them.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc5737\">RFC 5737: IPv4 Address Blocks Reserved for Documentation</a>, January 2010. \"The blocks 192.0.2.0/24 (TEST-NET-1), 198.51.100.0/24 (TEST-NET-2), and 203.0.113.0/24 (TEST-NET-3) are provided for use in documentation\", and they \"SHOULD NOT appear on the public Internet\". The lab uses one in place of a public address.</li>\n</ul>\n</main>\n<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>\n</body>\n</html>"
+      "html": "<ul class=\"prose\">\n<li><a href=\"https://api-security.owasp.org/editions/2023/en/0xa7-server-side-request-forgery/\">OWASP API Security Top 10 2023, API7:2023 Server Side Request Forgery</a>.</li>\n<li><a href=\"https://api-security.owasp.org/editions/2023/en/0xaa-unsafe-consumption-of-apis/\">OWASP API Security Top 10 2023, API10:2023 Unsafe Consumption of APIs</a>.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc6890\">RFC 6890: Special-Purpose IP Address Registries</a>, April 2013. The registry entries and the RFCs behind them.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc5737\">RFC 5737: IPv4 Address Blocks Reserved for Documentation</a>, January 2010. \"The blocks 192.0.2.0/24 (TEST-NET-1), 198.51.100.0/24 (TEST-NET-2), and 203.0.113.0/24 (TEST-NET-3) are provided for use in documentation\", and they \"SHOULD NOT appear on the public Internet\". The lab uses one in place of a public address.</li>\n</ul>\n</main>"
     }
   ],
   "layers": [

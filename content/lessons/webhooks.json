@@ -2,12 +2,332 @@
   "slug": "webhooks",
   "source": "topics/webhooks/index.html",
   "kind": "topics",
+  "prologue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Webhooks | API Security in the Age of AI</title>\n<link rel=\"stylesheet\" href=\"../../assets/site.css\">\n<script src=\"../../assets/course.js\" defer></script>\n</head>\n<body data-course-lesson=\"webhooks\">",
+  "nav": "\n<nav class=\"site-nav\" aria-label=\"Site\"><div><a class=\"home\" href=\"../../index.html\">API Security in the Age of AI</a><a href=\"../../index.html#course\">Course</a><a href=\"../../index.html#path\">Modules</a><a href=\"../../roadmap/index.html\">Roadmap</a><a href=\"../../checklist/index.html\">Checklist</a><a href=\"../../glossary/index.html\">Glossary</a></div></nav>",
+  "main_open": "\n<main>",
+  "blocks": [
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "kicker"
+      },
+      "html": "\n<p class=\"kicker\">Part 3: Edges and boundaries &middot; Module 16</p>"
+    },
+    {
+      "tag": "h1",
+      "attrs": {},
+      "html": "\n<h1>Webhooks</h1>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "meta"
+      },
+      "html": "\n<p class=\"meta\">Last reviewed 2026-09-30 &middot; <a class=\"jump\" href=\"#reference\">Jump to reference</a></p>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n\n<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can build a receiver that rejects forged and replayed events, say exactly what a signature must cover and why, and tell a duplicate that is an attack from a duplicate that is the sender doing its job.</p>\n<p><strong>Before you start.</strong> This module is <a href=\"../hmac-request-signing/index.html\">module 2</a>'s signature, <a href=\"../business-flows-and-idempotency/index.html\">module 11</a>'s duplicate handling and <a href=\"../request-and-response-contracts/index.html\">module 13</a>'s limits, applied to an endpoint whose whole job is to be posted to by somebody else.</p>\n</div>"
+    },
+    {
+      "tag": "section",
+      "attrs": {
+        "class": "lesson-status",
+        "aria-label": "Lesson progress"
+      },
+      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 17 of 26</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "layer",
+        "id": "learn"
+      },
+      "html": "\n\n<span class=\"layer\" id=\"learn\">Learn</span>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>1. The attack</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Running example: ExampleHotels posts an event to ExampleAir when a payment settles, and ExampleAir credits the account. Company names are fictional.</p>\n<p>The endpoint is a public URL that changes your data. It has no session, no token from a login, and no user. Being on the internet authenticates nobody, so the signature is not an extra layer here: it is the entire authentication, and everything about its strength is decided by what it covers.</p>\n<p>Which means the interesting failures are not \"no signature\". They are signatures that verify correctly on a request you should have refused.</p>\n</div>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "wrap"
+      },
+      "html": "\n<div class=\"wrap\"><table>\n<thead><tr><th>Somebody posts</th><th>No verification</th><th>Signature over the body</th><th>Body and timestamp, window, id recorded</th></tr></thead>\n<tbody>\n<tr><td>A real event from the sender</td><td class=\"no\">Applied</td><td class=\"no\">Applied</td><td class=\"no\">Applied</td></tr>\n<tr><td>An invented event</td><td class=\"yes\">Applied</td><td class=\"no\">Refused</td><td class=\"no\">Refused</td></tr>\n<tr><td>A real event with the amount changed</td><td class=\"yes\">Applied</td><td class=\"no\">Refused</td><td class=\"no\">Refused</td></tr>\n<tr><td>A captured event, replayed a year later</td><td class=\"yes\">Applied</td><td class=\"yes\">Applied</td><td class=\"no\">Refused</td></tr>\n<tr><td>A captured event, replayed within the window</td><td class=\"yes\">Applied</td><td class=\"yes\">Applied</td><td class=\"no\">Applied once</td></tr>\n<tr><td>Two copies arriving before either finishes</td><td class=\"yes\">Applied twice</td><td class=\"yes\">Applied twice</td><td class=\"no\">Applied once</td></tr>\n<tr><td>A refund before the payment it refunds</td><td class=\"yes\">Applied in that order</td><td class=\"yes\">Applied in that order</td><td class=\"yes\">Applied in that order</td></tr>\n</tbody></table></div>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<p class=\"prose\">The last row never turns green, and it is not a security failure. Delivery is at least once and in no particular order, and a receiver that assumes otherwise is wrong about the protocol rather than about the attacker.</p>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>2. Why it works</h2>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n<h3>There is a standard for this, and it is worth knowing</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Most webhook implementations follow a vendor's convention. There is also an IETF answer, and it is specific: RFC 8417 defines a Security Event Token, a JWT describing \"statements of fact from the perspective of an issuer about a subject\", and RFC 8935 defines delivering one over HTTP POST. If you are designing a sender, these are worth reading before inventing a header.</p>\n<p>RFC 8935 section 2 lists what a recipient verifies, and the list is a good checklist whatever format you use: that it can parse the event, that the event \"is authentic (i.e., it was issued by the issuer specified within the SET)\", that the recipient \"is identified as an intended audience\", that the issuer \"is recognized as an issuer that the SET Recipient is willing to receive SETs from\", and that the recipient \"is willing to accept this SET from this SET Transmitter\". Note that the last two are separate questions: who wrote the event and who handed it to you are different, and both need an answer.</p>\n<p>RFC 8417 section 2.2 requires <code>iss</code>, <code>iat</code>, <code>jti</code> and <code>events</code>, and recommends <code>aud</code>. The <code>jti</code> is the one this module leans on: the specification notes it \"MAY be used by clients to track whether a particular SET has already been received\", which is module 11's idempotency key arriving under a different name.</p>\n</div>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>What the signature covers is the whole question</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>A signature over the request body proves the body came from a key holder. It does not say when, so a body captured once is valid forever. Adding a timestamp to the request does nothing on its own, because the attacker sends the timestamp too. The timestamp has to be <em>inside</em> the signed data.</p>\n<p>Once it is, the attacker has no move, and it is worth seeing both halves of that. Replay the original timestamp and the event is too old. Substitute a fresh timestamp and the signature no longer verifies, because the timestamp is part of what was signed. The lab shows the first; the second falls out of the same change.</p>\n<p>Then the window has to actually be compared against the clock, which is a separate line of code from covering the timestamp, and skipping it leaves you exactly where you started.</p>\n</div>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>Duplicates are normal</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>This is the part that gets designed wrong most often, because the instinct is to treat a repeated event as an attack. Delivery is at least once. A sender that does not receive your acknowledgement will send again, and it is right to. RFC 8935 section 2 is explicit about how to respond: when an event has already been received, \"the SET Recipient MUST respond as it would if the SET had not been previously received\".</p>\n<p>That requirement does two things. It keeps honest senders from retrying forever, and it stops the response becoming an oracle: a receiver that answers differently for events it has seen has told a prober which event identifiers are real.</p>\n<p>So record the identifier, apply the event once, and answer the same way both times. And record it before doing the work, not after, for the reason module 11 gave: two copies arriving close together both find nothing recorded, and both apply.</p>\n</div>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>The whole system</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "diagram"
+      },
+      "html": "\n<div class=\"diagram\">\n<svg viewBox=\"0 0 1100 360\" width=\"100%\" style=\"min-width:900px\" role=\"img\">\n<title>What a webhook receiver checks, in order</title>\n<desc>An event arrives at a public endpoint. The receiver checks the size and parses within limits, verifies the signature over the body and the timestamp together, compares the timestamp against its clock, claims the event identifier before doing any work, and then applies the event once. A box below records the three things this does not settle: ordering is not guaranteed, a duplicate is usually a legitimate retry, and the response must be the same whether or not the event was seen before.</desc>\n<defs><marker id=\"a\" viewBox=\"0 0 10 10\" refX=\"8\" refY=\"5\" markerWidth=\"6\" markerHeight=\"6\" orient=\"auto-start-reverse\"><path d=\"M2 1L8 5L2 9\" fill=\"none\" stroke=\"context-stroke\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></marker></defs>\n\n<text class=\"lab\" x=\"36\" y=\"28\">A public URL that changes your data. The signature is the authentication.</text>\n<g class=\"p\"><rect x=\"20\" y=\"52\" width=\"196\" height=\"76\" rx=\"8\"/><text class=\"th\" x=\"118\" y=\"78\" text-anchor=\"middle\">1. Limits</text><text class=\"ts\" x=\"118\" y=\"98\" text-anchor=\"middle\">size, timeout,</text><text class=\"ts\" x=\"118\" y=\"115\" text-anchor=\"middle\">parse within bounds</text></g>\n<g class=\"h\"><rect x=\"240\" y=\"52\" width=\"216\" height=\"76\" rx=\"8\"/><text class=\"th\" x=\"348\" y=\"78\" text-anchor=\"middle\">2. Signature</text><text class=\"ts\" x=\"348\" y=\"98\" text-anchor=\"middle\">over the body AND</text><text class=\"ts\" x=\"348\" y=\"115\" text-anchor=\"middle\">the timestamp</text></g>\n<g class=\"h\"><rect x=\"480\" y=\"52\" width=\"196\" height=\"76\" rx=\"8\"/><text class=\"th\" x=\"578\" y=\"78\" text-anchor=\"middle\">3. Freshness</text><text class=\"ts\" x=\"578\" y=\"98\" text-anchor=\"middle\">compare that</text><text class=\"ts\" x=\"578\" y=\"115\" text-anchor=\"middle\">timestamp to a clock</text></g>\n<g class=\"s\"><rect x=\"700\" y=\"52\" width=\"196\" height=\"76\" rx=\"8\"/><text class=\"th\" x=\"798\" y=\"78\" text-anchor=\"middle\">4. Claim the id</text><text class=\"ts\" x=\"798\" y=\"98\" text-anchor=\"middle\">before the work,</text><text class=\"ts\" x=\"798\" y=\"115\" text-anchor=\"middle\">in a shared store</text></g>\n<g class=\"g\"><rect x=\"920\" y=\"52\" width=\"160\" height=\"76\" rx=\"8\"/><text class=\"th\" x=\"1000\" y=\"78\" text-anchor=\"middle\">5. Apply</text><text class=\"ts\" x=\"1000\" y=\"98\" text-anchor=\"middle\">once, then</text><text class=\"ts\" x=\"1000\" y=\"115\" text-anchor=\"middle\">answer 202</text></g>\n<line class=\"arr\" x1=\"216\" y1=\"90\" x2=\"236\" y2=\"90\" marker-end=\"url(#a)\"/>\n<line class=\"arr\" x1=\"456\" y1=\"90\" x2=\"476\" y2=\"90\" marker-end=\"url(#a)\"/>\n<line class=\"arr\" x1=\"676\" y1=\"90\" x2=\"696\" y2=\"90\" marker-end=\"url(#a)\"/>\n<line class=\"arr\" x1=\"896\" y1=\"90\" x2=\"916\" y2=\"90\" marker-end=\"url(#a)\"/>\n\n<rect class=\"zone\" x=\"20\" y=\"164\" width=\"1060\" height=\"176\" rx=\"12\"/>\n<text class=\"lab\" x=\"550\" y=\"192\" text-anchor=\"middle\">And three things none of that settles</text>\n<g class=\"r\"><rect x=\"60\" y=\"212\" width=\"300\" height=\"60\" rx=\"8\"/><text class=\"th\" x=\"210\" y=\"235\" text-anchor=\"middle\">Order</text><text class=\"ts\" x=\"210\" y=\"255\" text-anchor=\"middle\">a refund can arrive before its payment</text></g>\n<g class=\"r\"><rect x=\"400\" y=\"212\" width=\"300\" height=\"60\" rx=\"8\"/><text class=\"th\" x=\"550\" y=\"235\" text-anchor=\"middle\">Duplicates</text><text class=\"ts\" x=\"550\" y=\"255\" text-anchor=\"middle\">usually the sender retrying, not an attack</text></g>\n<g class=\"r\"><rect x=\"740\" y=\"212\" width=\"300\" height=\"60\" rx=\"8\"/><text class=\"th\" x=\"890\" y=\"235\" text-anchor=\"middle\">The response</text><text class=\"ts\" x=\"890\" y=\"255\" text-anchor=\"middle\">must not reveal what you have seen</text></g>\n<text class=\"ts\" x=\"550\" y=\"306\" text-anchor=\"middle\">delivery is at least once and in no particular order, so the receiver is</text>\n<text class=\"ts\" x=\"550\" y=\"324\" text-anchor=\"middle\">responsible for being safe to call twice and for not assuming a sequence</text>\n</svg>\n<div class=\"legend\"><span class=\"lg-p\">Limits</span><span class=\"lg-h\">Authentication</span><span class=\"lg-s\">Deduplication</span><span class=\"lg-r\">Not settled</span></div>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>3. The control</h2>"
+    },
+    {
+      "tag": "ol",
+      "attrs": {
+        "class": "steps prose"
+      },
+      "html": "\n<ol class=\"steps prose\">\n<li><strong>Apply size limits and a timeout first,</strong> then parse under <a href=\"../request-and-response-contracts/index.html\">module 13</a>'s rules. This is an unauthenticated endpoint until the signature verifies, so the parsing happens before you know who is calling.</li>\n<li><strong>Verify a signature over the body and the timestamp together.</strong> One value, both inputs. A signature over the body alone is valid forever.</li>\n<li><strong>Compare that timestamp against your clock</strong> and refuse anything outside a stated window.</li>\n<li><strong>Compare in constant time</strong>, with a library function built for it.</li>\n<li><strong>Claim the event identifier before doing the work,</strong> in a store every instance shares.</li>\n<li><strong>Answer identically</strong> whether or not you have seen the event. RFC 8935 requires it, and it also keeps the endpoint from being a lookup service for event identifiers.</li>\n<li><strong>Acknowledge fast and process asynchronously.</strong> A sender waiting on your business logic will time out and retry, which produces duplicates you then have to handle anyway.</li>\n<li><strong>Do not trust order.</strong> Make each handler tolerate arriving first, and reconcile against the sender's state rather than assuming a sequence.</li>\n<li><strong>Treat the event as data.</strong> Any URL inside it is a caller-supplied URL, which is <a href=\"../ssrf-and-unsafe-consumption/index.html\">module 14</a>.</li>\n</ol>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>4. Defaults and when to change them</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "wrap"
+      },
+      "html": "\n<div class=\"wrap\"><table>\n<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>\n<tbody>\n<tr><td>Format</td><td>A signed JWT, per RFC 8417, delivered per RFC 8935 if you are designing the sender</td><td>You are the receiver and the sender has already chosen. Then implement theirs and apply everything below to it.</td></tr>\n<tr><td>What is signed</td><td>The timestamp and the raw body, as one value</td><td>Never the body alone. Never a re-serialised body: sign and verify the exact bytes.</td></tr>\n<tr><td>Freshness window</td><td>300 seconds, stated in your documentation</td><td>Tighten where clocks are reliable. The window is the replay window for anything you fail to record.</td></tr>\n<tr><td>Event identifiers</td><td>Recorded before processing, in a shared store, kept longer than the window</td><td>Never per instance, and never recorded after the work.</td></tr>\n<tr><td>The response</td><td>202 on success, the same for a duplicate, 400 on a bad event</td><td>RFC 8935 uses exactly these two codes and requires the duplicate to look like the first.</td></tr>\n<tr><td>Processing</td><td>Acknowledge first, work asynchronously</td><td>Synchronous processing turns your slow day into the sender's retry storm.</td></tr>\n<tr><td>Ordering</td><td>Assume none</td><td>Reconcile against the sender's current state where order genuinely matters.</td></tr>\n<tr><td>Secrets</td><td>One per sender, rotatable with an overlap</td><td>A shared secret across senders means any of them can forge as another. Module 3 applies here too.</td></tr>\n<tr><td>Endpoint URL</td><td>Not a secret</td><td>An unguessable URL is not authentication. It leaks in logs, referrers and support tickets.</td></tr>\n</tbody></table></div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>5. What it proves, and what it doesn't</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p><strong>Proves:</strong> that a key holder produced this exact body recently, and that you have applied it once.</p>\n<p><strong>Doesn't prove:</strong> that it arrived in order, that it is the only event in flight, or that the sender is who the body says they are rather than whoever holds the key. It also says nothing about the contents: a correctly signed event carrying a URL you fetch is module 14's problem, arriving with a valid signature.</p>\n<div class=\"callout warn\"><strong>A duplicate is usually your sender doing the right thing.</strong> The instinct to treat a repeated event as hostile produces receivers that answer differently the second time, which breaks honest retries and tells a prober which identifiers exist. Record the identifier, apply once, answer the same way, and the honest case and the hostile case become the same code path.</div>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>6. Prove it</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>For each webhook endpoint:</p>\n<ul>\n<li>An unsigned post is refused.</li>\n<li>A post signed with another sender's secret is refused.</li>\n<li>A valid body with one byte changed is refused.</li>\n<li>A captured event replayed outside the window is refused, and the test shows which check refused it.</li>\n<li>A captured event replayed with a fresh timestamp is refused, which proves the timestamp is covered.</li>\n<li>The same event delivered twice is applied once, with identical responses.</li>\n<li>Two copies delivered concurrently are applied once, tested against two instances.</li>\n<li>A large or deeply nested body is refused before parsing completes.</li>\n<li>Events arriving out of order leave correct state, or the design says why they cannot.</li>\n<li>All of the above are tests in the build.</li>\n</ul>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>7. Lab</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Download <a href=\"../../labs/webhook_lab.py\"><code>labs/webhook_lab.py</code></a>. It needs nothing beyond Python 3.</p>\n</div>"
+    },
+    {
+      "tag": "pre",
+      "attrs": {},
+      "html": "\n<pre><code>Windows              macOS and Linux\npy -3 labs/webhook_lab.py    python3 labs/webhook_lab.py</code></pre>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. Every signature is a real HMAC over the real bytes. The transport is a stub, so nothing listens on a port. The keys are random per run and no key material is printed, so the output is the same every time.</p>\n</div>"
+    },
+    {
+      "tag": "pre",
+      "attrs": {},
+      "html": "\n<pre><code>$ python3 labs/webhook_lab.py\nkey source: random, this run only; no secret is printed\n\nPart A: a receiver that verifies nothing.\n 1. the real sender posts an event                       202 accepted\n 2. anyone who knows the URL posts one                   202 accepted\n 3. events applied                                       2\n\nPart B: a signature over the body and the timestamp.\n 4. the real sender, correctly signed                    202 accepted\n 5. an unsigned post                                     400 no signature\n 6. signed with the wrong key                            400 signature check failed\n 7. the body altered after signing                       400 signature check failed\n 8. events applied                                       1\n\nPart C: the four details.\n 9. signature over the body alone, replayed a year later 202 accepted\n10. the same replay, timestamp covered and checked       400 event too old\n11. timestamp covered but never compared to the clock    202 accepted\n12. the same event twice, ids not recorded               2 applied\n13. the same event twice, ids recorded                   202 accepted\n14.   and applied only once                              1 applied\n15. id recorded after processing, two copies interleaved 2 applied\n16.   the same interleaving, id claimed first            202 accepted\n17.   events applied                                     1 applied\n\nPart D: what the signature does not settle.\n18. a legitimate retry from the sender                   202 accepted\n19.   the response differs from the first                False\n20.   and it was applied once                            1 applied\n21. a refund applied before the payment it refunds       ['payment.refunded', 'payment.settled']\n22. a prober posts a known id with no signature          400 no signature\n\nall lab checks passed</code></pre>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Check 9 is the one worth sitting with. The signature covers the body and nothing else, so the attacker replays a year-old event and supplies a fresh timestamp of their own, and the freshness check has nothing to object to. The timestamp was present in the request the whole time and it was never evidence of anything, because the attacker wrote it.</p>\n<p>Check 10 is the fix, and it closes both moves at once. Keep the original timestamp and the event is too old. Substitute a fresh one and the signature stops verifying, because the timestamp is part of what was signed. Check 11 is the reminder that covering it and comparing it are two separate lines of code.</p>\n<p>Checks 15 to 17 are two copies of one event interleaved explicitly: both verify before either finishes. With the identifier claimed after the work, both apply. With it claimed first, the second copy is refused and the event happens once.</p>\n<p>Checks 18 to 20 are the case that is not an attack at all. A sender that did not get your acknowledgement retries, which is correct behaviour, and your receiver answers identically and applies nothing. Check 19 is the requirement RFC 8935 states, tested.</p>\n<p><strong>Try next:</strong></p>\n<ul>\n<li>Set <code>cover_timestamp=False</code> on the Part B receiver and rerun. Watch how few checks change, and then reread check 9.</li>\n<li>Replace <code>hmac.compare_digest</code> with <code>==</code> and rerun. Every check still passes, which is module 2's point in a new place.</li>\n<li>Add a third event that depends on the first two and make the handler assume order. Then run them in the order check 21 produces.</li>\n<li>Make the receiver return 409 for an event it has already applied. Then write down what a prober learns by posting identifiers at it.</li>\n</ul>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>8. Check your understanding</h2>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Your webhook signature covers the request body. What can an attacker who captured one event do?</summary><p>Replay it, indefinitely. The signature is valid for as long as the secret is, and the body does not change. Adding a timestamp to the request does not help on its own, because the attacker supplies that too. The timestamp has to be inside the signed value, and then compared against your clock.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Why must a receiver answer the same way for an event it has already applied?</summary><p>RFC 8935 requires it, and for two good reasons. An honest sender that did not get your acknowledgement will keep retrying until it does, and a receiver that answers differently the second time has told anybody who asks which event identifiers exist.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Your endpoint URL is a long random string. How much authentication is that?</summary><p>None. A URL travels in logs, proxies, browser history, support tickets and configuration files, and it is sent on every delivery. Treat it as public and let the signature do the authenticating.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>A refund event arrives before the payment it refunds. Whose bug is that?</summary><p>Nobody's, in most systems. Delivery is at least once and unordered, so a receiver that assumes a sequence has assumed something the protocol never offered. Make each handler tolerate arriving first, or reconcile against the sender's current state where order genuinely matters.</p></details>"
+    },
+    {
+      "tag": "section",
+      "attrs": {
+        "class": "course-quiz",
+        "data-quiz": null,
+        "data-quiz-id": "webhooks-check",
+        "data-correct-feedback": "Correct. The attacker controls every value they send, including the timestamp, so freshness only means something when the timestamp is inside the signed value.",
+        "data-incorrect-feedback": "Not quite. Constant-time comparison, a longer secret and a secret URL are all worth having, and none of them stops a captured event being replayed with a timestamp the attacker chose."
+      },
+      "html": "\n\n<section class=\"course-quiz\" data-quiz data-quiz-id=\"webhooks-check\" data-correct-feedback=\"Correct. The attacker controls every value they send, including the timestamp, so freshness only means something when the timestamp is inside the signed value.\" data-incorrect-feedback=\"Not quite. Constant-time comparison, a longer secret and a secret URL are all worth having, and none of them stops a captured event being replayed with a timestamp the attacker chose.\">\n<p class=\"kicker\">Quick check</p>\n<h2>Replay</h2>\n<fieldset><legend>Your receiver checks an HMAC over the request body and refuses events whose <code>timestamp</code> field is more than five minutes old. What stops a captured event being replayed?</legend>\n<label><input type=\"radio\" name=\"hook\" value=\"window\"> The five-minute window.</label>\n<label><input type=\"radio\" name=\"hook\" value=\"covered\" data-correct=\"true\"> Nothing, until the timestamp is part of what the signature covers.</label>\n<label><input type=\"radio\" name=\"hook\" value=\"constant\"> Comparing the signature in constant time.</label>\n<label><input type=\"radio\" name=\"hook\" value=\"url\"> Keeping the endpoint URL secret.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button><p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n</section>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "course-next"
+      },
+      "html": "\n<p class=\"course-next\"><strong>Course progress:</strong> return to the <a href=\"../../index.html#course\">course dashboard</a> to see your published-module progress.</p>"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "layer",
+        "id": "reference",
+        "style": "margin-top:3rem"
+      },
+      "html": "\n<span class=\"layer\" id=\"reference\" style=\"margin-top:3rem\">Reference</span>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {
+        "style": "border-top:none;margin-top:.5rem"
+      },
+      "html": "\n<h2 style=\"border-top:none;margin-top:.5rem\">Controls</h2>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\"><span class=\"label std\">Standard</span> backed by a cited specification. <span class=\"label base\">Baseline</span> this project's default, with reasoning above. <span class=\"label opt\">Option</span> valid depending on the threat model.</p>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "controls"
+      },
+      "html": "\n<ul class=\"controls\">\n<li><span class=\"label std\">Standard</span>A Security Event Token is a JWT describing \"statements of fact from the perspective of an issuer about a subject\", requiring <code>iss</code>, <code>iat</code>, <code>jti</code> and <code>events</code>, with <code>aud</code> RECOMMENDED. RFC 8417 sections 1.2 and 2.2.</li>\n<li><span class=\"label std\">Standard</span>The <code>jti</code> \"MAY be used by clients to track whether a particular SET has already been received\". RFC 8417 section 2.2.</li>\n<li><span class=\"label std\">Standard</span>Verify that you can parse the event, that it \"is authentic (i.e., it was issued by the issuer specified within the SET)\", that you are \"identified as an intended audience\", that the issuer is one you are \"willing to receive SETs from\", and that you are \"willing to accept this SET from this SET Transmitter\". RFC 8935 section 2. Who wrote it and who delivered it are separate questions.</li>\n<li><span class=\"label std\">Standard</span>Acknowledge a valid event with 202 Accepted, and respond to an error with 400 Bad Request. RFC 8935 sections 2.2 and 2.3.</li>\n<li><span class=\"label std\">Standard</span>For an event already received, \"the SET Recipient MUST respond as it would if the SET had not been previously received\". RFC 8935 section 2.</li>\n<li><span class=\"label std\">Standard</span>Security events carrying personal data or passing through third parties \"MUST be encrypted using JWE or secured for confidentiality by other means\", and integrity requires signing unless ensured by other means. RFC 8417 section 5.1.</li>\n<li><span class=\"label std\">Standard</span>Where the sender signs HTTP requests rather than the payload, use RFC 9421 and cover a body digest, as in <a href=\"../asymmetric-request-signing/index.html\">module 3</a>.</li>\n<li><span class=\"label base\">Baseline</span>Sign the timestamp and the raw body as one value, and verify the exact bytes received rather than a re-serialised form.</li>\n<li><span class=\"label base\">Baseline</span>Compare the covered timestamp against your clock, with a stated window of 300 seconds.</li>\n<li><span class=\"label base\">Baseline</span>Compare signatures in constant time.</li>\n<li><span class=\"label base\">Baseline</span>Claim the event identifier before processing, in a store every instance shares, and keep it longer than the freshness window.</li>\n<li><span class=\"label base\">Baseline</span>Acknowledge first and process asynchronously, so a slow handler does not become a retry storm.</li>\n<li><span class=\"label base\">Baseline</span>Use one secret per sender, rotatable with an overlap. A shared secret lets any sender forge as another.</li>\n<li><span class=\"label base\">Baseline</span>Treat the endpoint URL as public and the event contents as untrusted input, including any URL inside them.</li>\n<li><span class=\"label opt\">Option</span>Have the sender authenticate the connection as well, with mutual TLS, which RFC 8935 section 3 names as one way to establish the transmitter's identity.</li>\n<li><span class=\"label opt\">Option</span>Reconcile periodically against the sender's API rather than relying on delivery alone, which covers both lost events and ordering.</li>\n</ul>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>Review checklist items</h2>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\">These are collected into the <a href=\"../../checklist/index.html\">site checklist</a>.</p>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "checks"
+      },
+      "html": "\n<ul class=\"checks\">\n<li data-check=\"hook-01\" data-severity=\"Critical\"><strong>The signature covers the timestamp as well as the body</strong> <span>Test a replay with the original timestamp and a replay with a fresh one. Both must be refused, for different reasons.</span></li>\n<li data-check=\"hook-02\" data-severity=\"Critical\"><strong>The covered timestamp is compared against a clock</strong> <span>Covering it and checking it are two separate lines. Test an event outside the window.</span></li>\n<li data-check=\"hook-03\" data-severity=\"Critical\"><strong>Event identifiers are claimed before processing, in a shared store</strong> <span>Test two concurrent copies against two instances, not two sequential requests.</span></li>\n<li data-check=\"hook-04\" data-severity=\"High\"><strong>A duplicate gets the same response as the original</strong> <span>RFC 8935 requires it. A different response breaks honest retries and reveals which identifiers exist.</span></li>\n<li data-check=\"hook-05\" data-severity=\"High\"><strong>Size limits and parsing limits apply before the signature check</strong> <span>The endpoint is unauthenticated until the signature verifies, so the parser meets attacker input first.</span></li>\n<li data-check=\"hook-06\" data-severity=\"High\"><strong>One secret per sender, rotatable with an overlap</strong> <span>A shared secret lets any sender forge as another.</span></li>\n<li data-check=\"hook-07\" data-severity=\"Medium\"><strong>Handlers tolerate out-of-order delivery</strong> <span>Or the design states why order is guaranteed. Delivery is at least once and unordered.</span></li>\n<li data-check=\"hook-08\" data-severity=\"Medium\"><strong>The endpoint URL is not treated as a secret</strong> <span>And the event contents are treated as untrusted input, including any URL inside them.</span></li>\n</ul>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>Sources</h2>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<ul class=\"prose\">\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc8417\">RFC 8417: Security Event Token (SET)</a>, July 2018. Sections 1.2, 2.2 and 5.1.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc8935\">RFC 8935: Push-Based Security Event Token (SET) Delivery Using HTTP</a>, November 2020. Sections 2, 2.1, 2.2, 2.3 and 3.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc9421\">RFC 9421: HTTP Message Signatures</a>, February 2024. For senders signing the request rather than the payload.</li>\n</ul>"
+    }
+  ],
+  "main_close": "\n</main>",
+  "footer": "\n<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>",
+  "epilogue": "\n</body>\n</html>\n",
   "page_title": "Webhooks | API Security in the Age of AI",
   "lesson_key": "webhooks",
   "title": "Webhooks",
   "kicker": "Part 3: Edges and boundaries &middot; Module 16",
   "reviewed": "2026-09-30",
   "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 17 of 26</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
+  "intro_prose": [
+    "<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can build a receiver that rejects forged and replayed events, say exactly what a signature must cover and why, and tell a duplicate that is an attack from a duplicate that is the sender doing its job.</p>\n<p><strong>Before you start.</strong> This module is <a href=\"../hmac-request-signing/index.html\">module 2</a>'s signature, <a href=\"../business-flows-and-idempotency/index.html\">module 11</a>'s duplicate handling and <a href=\"../request-and-response-contracts/index.html\">module 13</a>'s limits, applied to an endpoint whose whole job is to be posted to by somebody else.</p>\n</div>"
+  ],
   "sections": [
     {
       "heading": "1. The attack",
@@ -67,7 +387,7 @@
     {
       "heading": "Sources",
       "heading_text": "Sources",
-      "html": "<ul class=\"prose\">\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc8417\">RFC 8417: Security Event Token (SET)</a>, July 2018. Sections 1.2, 2.2 and 5.1.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc8935\">RFC 8935: Push-Based Security Event Token (SET) Delivery Using HTTP</a>, November 2020. Sections 2, 2.1, 2.2, 2.3 and 3.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc9421\">RFC 9421: HTTP Message Signatures</a>, February 2024. For senders signing the request rather than the payload.</li>\n</ul>\n</main>\n<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>\n</body>\n</html>"
+      "html": "<ul class=\"prose\">\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc8417\">RFC 8417: Security Event Token (SET)</a>, July 2018. Sections 1.2, 2.2 and 5.1.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc8935\">RFC 8935: Push-Based Security Event Token (SET) Delivery Using HTTP</a>, November 2020. Sections 2, 2.1, 2.2, 2.3 and 3.</li>\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc9421\">RFC 9421: HTTP Message Signatures</a>, February 2024. For senders signing the request rather than the payload.</li>\n</ul>\n</main>"
     }
   ],
   "layers": [

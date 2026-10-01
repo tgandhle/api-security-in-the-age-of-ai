@@ -2,12 +2,356 @@
   "slug": "business-flows-and-idempotency",
   "source": "topics/business-flows-and-idempotency/index.html",
   "kind": "topics",
+  "prologue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Business flows and idempotency | API Security in the Age of AI</title>\n<link rel=\"stylesheet\" href=\"../../assets/site.css\">\n<script src=\"../../assets/course.js\" defer></script>\n</head>\n<body data-course-lesson=\"business-flows-and-idempotency\">",
+  "nav": "\n<nav class=\"site-nav\" aria-label=\"Site\"><div><a class=\"home\" href=\"../../index.html\">API Security in the Age of AI</a><a href=\"../../index.html#course\">Course</a><a href=\"../../index.html#path\">Modules</a><a href=\"../../roadmap/index.html\">Roadmap</a><a href=\"../../checklist/index.html\">Checklist</a><a href=\"../../glossary/index.html\">Glossary</a></div></nav>",
+  "main_open": "\n<main>",
+  "blocks": [
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "kicker"
+      },
+      "html": "\n<p class=\"kicker\">Part 2: Deciding what they may do &middot; Module 11</p>"
+    },
+    {
+      "tag": "h1",
+      "attrs": {},
+      "html": "\n<h1>Business flows and idempotency</h1>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "meta"
+      },
+      "html": "\n<p class=\"meta\">Last reviewed 2026-09-30 &middot; <a class=\"jump\" href=\"#reference\">Jump to reference</a></p>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n\n<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can say which HTTP methods are idempotent and why that does not help you, implement an idempotency key with the four details that decide whether it works, and tell the duplicate-execution problem apart from the excessive-use problem, which look similar and need different controls.</p>\n<p><strong>Before you start.</strong> <a href=\"../object-level-authorization/index.html\">Module 9</a> and <a href=\"../property-and-function-authorization/index.html\">module 10</a> settled which objects, properties and functions a caller may reach. Every request in this module is one they may make. That is the point.</p>\n</div>"
+    },
+    {
+      "tag": "section",
+      "attrs": {
+        "class": "lesson-status",
+        "aria-label": "Lesson progress"
+      },
+      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 12 of 26</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "layer",
+        "id": "learn"
+      },
+      "html": "\n\n<span class=\"layer\" id=\"learn\">Learn</span>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>1. The attack</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Running example: ExampleAir's loyalty ledger, crediting miles. Company names are fictional. The caller may credit miles, on this account, with these fields. Modules 9 and 10 have both passed.</p>\n<p>Two different things go wrong here, and telling them apart is most of the module.</p>\n<p>The first is not an attack at all to begin with. A client posts a credit, the server commits it, and the response is lost on the way back. The client sees a timeout and does the correct thing: it retries. Now there are two credits and one of them should not exist. Nobody was malicious, and an attacker who notices the behaviour can reproduce it on purpose.</p>\n<p>The second is an attack from the start, and no amount of retry handling touches it. Every request is distinct, every one is deliberate, every one is permitted, and there are two hundred thousand of them. OWASP calls this <strong>API6:2023 Unrestricted Access to Sensitive Business Flows</strong>: \"understanding the business model backed by the API, finding sensitive business flows, and automating access to these flows, causing harm to the business.\"</p>\n</div>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "wrap"
+      },
+      "html": "\n<div class=\"wrap\"><table>\n<thead><tr><th>What happens</th><th>Nothing in place</th><th>Idempotency key</th><th>Flow limits</th></tr></thead>\n<tbody>\n<tr><td>A lost response and an honest retry</td><td class=\"yes\">Two credits</td><td class=\"no\">One credit</td><td class=\"yes\">Two credits</td></tr>\n<tr><td>A retry arriving before the first finishes</td><td class=\"yes\">Two credits</td><td class=\"no\">409, then one credit</td><td class=\"yes\">Two credits</td></tr>\n<tr><td>The same key reused with a different amount</td><td class=\"yes\">Both applied</td><td class=\"no\">422</td><td class=\"yes\">Both applied</td></tr>\n<tr><td>One caller replaying another caller's key</td><td class=\"yes\">Applied</td><td class=\"no\">Blocked, if keys are scoped per caller</td><td class=\"yes\">Applied</td></tr>\n<tr><td>The same request after the key is purged</td><td class=\"yes\">Two credits</td><td class=\"yes\">Two credits</td><td class=\"yes\">Two credits</td></tr>\n<tr><td>Five hundred distinct, permitted requests</td><td class=\"yes\">Five hundred credits</td><td class=\"yes\">Five hundred credits</td><td class=\"no\">Refused past the limit</td></tr>\n<tr><td>The same flow through a different endpoint</td><td class=\"yes\">Works</td><td class=\"yes\">Works</td><td class=\"yes\">Works, unless the limit is on the flow</td></tr>\n</tbody></table></div>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<p class=\"prose\">The two right-hand columns barely overlap, which is the argument for treating them as two controls rather than one. The last row is the one that stays open: a limit attached to an endpoint is not a limit on the business flow, and flows usually have more than one endpoint.</p>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>2. Why it works</h2>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n<h3>Idempotent methods are not the answer</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>RFC 9110 defines a method as idempotent \"if the intended effect on the server of multiple identical requests with that method is the same as the effect for a single such request\", and lists GET, HEAD, PUT, DELETE, OPTIONS and TRACE. It is a property of the method, agreed in advance, so that intermediaries and clients know a retry is safe.</p>\n<p>That list does not contain POST, and the operations that hurt when they happen twice are the ones you model as POST: a payment, a credit, an order, a message. You can sometimes design the operation as a PUT to a client-chosen identifier and get idempotency from the method, which is worth doing when the resource genuinely has a natural identity. Most of the time it does not, and the property has to come from somewhere else.</p>\n</div>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>The idempotency key, and its standing</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>The widely used answer is a client-generated key sent with the request, which the server records so it can recognise a retry. Be clear about what this is: the IETF work on an <code>Idempotency-Key</code> header field, <code>draft-ietf-httpapi-idempotency-key-header</code>, reached revision 07 in October 2025 and <strong>expired on 18 April 2026 without being published as an RFC</strong>. There is no standard for this header. What exists is a convention that many APIs implement compatibly, and an expired draft that describes it well.</p>\n<p>That matters practically. Two services using \"idempotency keys\" have not thereby agreed on anything, so the scope of a key, the retention period, the behaviour on reuse and the error codes are all yours to define and document. The expired draft is a good starting point: it describes the key as \"a unique value generated by the client which the resource uses to recognize subsequent retries of the same request\", and states that the key \"MUST be unique and MUST NOT be reused with another request with a different request payload\".</p>\n<p>Its error behaviour is the part worth copying, because each code corresponds to a distinct situation people otherwise conflate: replay the stored response for a repeat of a completed request, <code>409</code> when a request with that key is still in progress, and <code>422</code> when the key arrives with a different payload.</p>\n</div>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>Where the volume problem comes from instead</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>OWASP's framing of API6:2023 is deliberately not technical: the first prevention step is on the business side, \"identify the business flows that might harm the business if they are excessively used\". The examples it gives are a reseller buying out limited stock, someone reserving most of an aircraft's seats and cancelling late to move the price, and automated signups farmed for referral credit. None of those involves a malformed request.</p>\n<p>So the control cannot be derived from the API surface. It comes from someone saying which flows have a cost when repeated, and at what rate that cost becomes unacceptable. An engineer can then enforce it. An engineer cannot invent it, which is why this defect survives teams that are good at the technical controls.</p>\n</div>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>The whole system</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "diagram"
+      },
+      "html": "\n<div class=\"diagram\">\n<svg viewBox=\"0 0 1100 370\" width=\"100%\" style=\"min-width:900px\" role=\"img\">\n<title>Two different duplicate problems and the controls that address them</title>\n<desc>The upper band shows one request retried after a lost response. An idempotency key recorded before the work lets the server recognise the retry and replay the stored response, so the operation happens once. The lower band shows many distinct requests, each with its own key and each permitted, which the key mechanism cannot help with because none of them is a repeat. A limit on the business flow is what refuses those. A note records that the two controls address different problems and neither substitutes for the other.</desc>\n<defs><marker id=\"a\" viewBox=\"0 0 10 10\" refX=\"8\" refY=\"5\" markerWidth=\"6\" markerHeight=\"6\" orient=\"auto-start-reverse\"><path d=\"M2 1L8 5L2 9\" fill=\"none\" stroke=\"context-stroke\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></marker></defs>\n\n<text class=\"lab\" x=\"36\" y=\"28\">One operation, sent twice. The key recognises the second.</text>\n<rect class=\"zone\" x=\"20\" y=\"40\" width=\"1060\" height=\"126\" rx=\"12\"/>\n<g class=\"p\"><rect x=\"40\" y=\"72\" width=\"230\" height=\"62\" rx=\"8\"/><text class=\"th\" x=\"155\" y=\"96\" text-anchor=\"middle\">Request, then a retry</text><text class=\"ts\" x=\"155\" y=\"116\" text-anchor=\"middle\">same key, same payload</text></g>\n<g class=\"h\"><rect x=\"330\" y=\"72\" width=\"260\" height=\"62\" rx=\"8\"/><text class=\"th\" x=\"460\" y=\"96\" text-anchor=\"middle\">Key store</text><text class=\"ts\" x=\"460\" y=\"116\" text-anchor=\"middle\">reserved before the work</text></g>\n<g class=\"s\"><rect x=\"650\" y=\"72\" width=\"200\" height=\"62\" rx=\"8\"/><text class=\"th\" x=\"750\" y=\"96\" text-anchor=\"middle\">Applied once</text><text class=\"ts\" x=\"750\" y=\"116\" text-anchor=\"middle\">the ledger moves</text></g>\n<g class=\"g\"><rect x=\"890\" y=\"72\" width=\"170\" height=\"62\" rx=\"8\"/><text class=\"th\" x=\"975\" y=\"96\" text-anchor=\"middle\">Replayed</text><text class=\"ts\" x=\"975\" y=\"116\" text-anchor=\"middle\">stored response</text></g>\n<line class=\"arr\" x1=\"270\" y1=\"103\" x2=\"326\" y2=\"103\" marker-end=\"url(#a)\"/>\n<line class=\"arr\" x1=\"590\" y1=\"103\" x2=\"646\" y2=\"103\" marker-end=\"url(#a)\"/>\n<line class=\"arr\" x1=\"850\" y1=\"103\" x2=\"886\" y2=\"103\" marker-end=\"url(#a)\"/>\n\n<text class=\"lab\" x=\"36\" y=\"202\">Five hundred operations, each one different. The key sees no repeat.</text>\n<rect class=\"zone\" x=\"20\" y=\"214\" width=\"1060\" height=\"126\" rx=\"12\"/>\n<g class=\"p\"><rect x=\"40\" y=\"246\" width=\"230\" height=\"62\" rx=\"8\"/><text class=\"th\" x=\"155\" y=\"270\" text-anchor=\"middle\">500 requests</text><text class=\"ts\" x=\"155\" y=\"290\" text-anchor=\"middle\">500 distinct keys</text></g>\n<g class=\"h\"><rect x=\"330\" y=\"246\" width=\"260\" height=\"62\" rx=\"8\"/><text class=\"th\" x=\"460\" y=\"270\" text-anchor=\"middle\">Key store</text><text class=\"ts\" x=\"460\" y=\"290\" text-anchor=\"middle\">no repeat to find</text></g>\n<g class=\"s\"><rect x=\"650\" y=\"246\" width=\"200\" height=\"62\" rx=\"8\"/><text class=\"th\" x=\"750\" y=\"270\" text-anchor=\"middle\">Applied 500 times</text><text class=\"ts\" x=\"750\" y=\"290\" text-anchor=\"middle\">all correct</text></g>\n<g class=\"r\"><rect x=\"890\" y=\"246\" width=\"170\" height=\"62\" rx=\"8\"/><text class=\"th\" x=\"975\" y=\"270\" text-anchor=\"middle\">Flow limit</text><text class=\"ts\" x=\"975\" y=\"290\" text-anchor=\"middle\">the only refusal</text></g>\n<line class=\"arr\" x1=\"270\" y1=\"277\" x2=\"326\" y2=\"277\" marker-end=\"url(#a)\"/>\n<line class=\"arr\" x1=\"590\" y1=\"277\" x2=\"646\" y2=\"277\" marker-end=\"url(#a)\"/>\n<line class=\"rej\" x1=\"850\" y1=\"277\" x2=\"886\" y2=\"277\" marker-end=\"url(#a)\"/>\n</svg>\n<div class=\"legend\"><span class=\"lg-p\">Requests</span><span class=\"lg-h\">Key store</span><span class=\"lg-s\">Effect on the ledger</span><span class=\"lg-r\">Flow limit</span></div>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>3. The control</h2>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n<h3>Four details, each one a way to get it wrong</h3>"
+    },
+    {
+      "tag": "ol",
+      "attrs": {
+        "class": "steps prose"
+      },
+      "html": "\n<ol class=\"steps prose\">\n<li><strong>Record the key before the work, not after.</strong> Reserve it, do the operation, then store the response against it. Recording on completion leaves a window where two copies of the same request both find nothing and both execute, which is the exact failure the key was added to prevent.</li>\n<li><strong>Bind the key to the request it was issued for.</strong> Store a fingerprint of the payload and compare it. The same key with a different payload is a client bug or an attack, and it must be refused rather than treated as a retry of either request.</li>\n<li><strong>Scope the key to the caller.</strong> A global key namespace means one caller can present another caller's key, and the plausible outcomes are that they receive someone else's stored response or that their own operation silently does not happen.</li>\n<li><strong>Decide how long you keep it, and say so.</strong> Keys cannot be kept forever. After they are purged, the same request is a new request, so the retention window is the outer bound on how late a retry can arrive and still be recognised. Publish the number.</li>\n</ol>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\">Storing the response is what makes the replay correct rather than merely harmless. The client that retried still needs an answer, and the right answer is the one the original request produced, including if it was a failure. Recomputing it invites a different answer from a system whose state has since moved.</p>"
+    },
+    {
+      "tag": "h3",
+      "attrs": {},
+      "html": "\n\n<h3>And separately, the flow</h3>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Write down the flows that cost something when repeated: issuing credit, creating accounts, reserving inventory, sending messages, triggering anything with a per-use price. For each one, a rate and a quantity, per caller and in total, with a stated period. Enforce it on the flow rather than on an endpoint, because a flow with three endpoints and a limit on one of them has no limit.</p>\n<p>This is the point where the two halves of this module stop being one subject. An idempotency key is a correctness control with a security benefit. A flow limit is a business decision with a technical enforcement. Neither one is a weaker version of the other.</p>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>4. Defaults and when to change them</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "wrap"
+      },
+      "html": "\n<div class=\"wrap\"><table>\n<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>\n<tbody>\n<tr><td>Which operations take a key</td><td>Every non-idempotent operation with an effect worth having once</td><td>Payments, credits, orders, messages, anything with a cost. A read does not need one.</td></tr>\n<tr><td>Who generates it</td><td>The client, per logical operation, not per attempt</td><td>A key generated per attempt makes every retry a new operation, which is the same as having none.</td></tr>\n<tr><td>When it is recorded</td><td>Reserved before the work begins</td><td>Never on completion. That leaves the window the key exists to close.</td></tr>\n<tr><td>Payload binding</td><td>Store a fingerprint and compare it, refuse a mismatch with 422</td><td>Without it, a key becomes a way to replace one operation with another.</td></tr>\n<tr><td>Scope</td><td>Per caller, and per operation type</td><td>A global namespace lets one caller's key affect another caller's request.</td></tr>\n<tr><td>In-flight requests</td><td>409 while the first is still running</td><td>Not a queue and not a wait. The client retries; by then it is a completed request and gets the replay.</td></tr>\n<tr><td>Stored response</td><td>Store status and body, replay both, including failures</td><td>Recomputing invites a different answer from state that has moved since.</td></tr>\n<tr><td>Retention</td><td>24 hours, published</td><td>Long enough to cover the client's longest retry schedule. Whatever you choose, a retry after it is a new operation.</td></tr>\n<tr><td>Flow limits</td><td>A rate and a quantity per flow, per caller and in total</td><td>Set by someone who knows what the flow costs. This is OWASP's first prevention step and it is not an engineering decision.</td></tr>\n<tr><td>Where the limit sits</td><td>On the flow, across every endpoint that advances it</td><td>A limit on one endpoint of a three-endpoint flow is not a limit.</td></tr>\n</tbody></table></div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>5. What it proves, and what it doesn't</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p><strong>Proves:</strong> that a retried request was applied once, that the client received the answer the original produced, and that a caller cannot use a key to change an operation after the fact or to reach another caller's.</p>\n<p><strong>Doesn't prove:</strong> that the operation should have happened at all. Every check in this module is about one request being counted once. None of them looks at how many requests there are, who is making them, or what the flow is worth. It also does not survive its own retention window: after a key is purged, the identical request is a new one.</p>\n<div class=\"callout warn\"><strong>The two problems present identically in a dashboard.</strong> Duplicate credits from retries and duplicate credits from automation both show up as more credits than expected. The distinguishing evidence is the keys: repeats of one key mean your idempotency handling is wrong, and hundreds of distinct keys mean a flow with no limit. Log the key, and you can tell the difference in a query rather than a meeting.</div>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>6. Prove it</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>For each operation that takes a key:</p>\n<ul>\n<li>The same request sent twice applies once, with the second response identical to the first.</li>\n<li>A second copy sent before the first completes is refused, not queued and not executed.</li>\n<li>The same key with a changed payload is refused, and neither version is applied by that request.</li>\n<li>A key from one caller presented by another is treated as unrelated.</li>\n<li>A failure is replayed as a failure, not retried into a success.</li>\n<li>The retention period is documented and matches the longest retry schedule a client is told to use.</li>\n</ul>\n<p>And for the flows themselves:</p>\n<ul>\n<li>A written list of the flows that cost something when repeated, produced by someone who knows the cost.</li>\n<li>A rate and a quantity for each, per caller and in total, enforced across every endpoint that advances the flow.</li>\n<li>Evidence that the limit refuses, taken from a test that ran the flow past it.</li>\n</ul>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>7. Lab</h2>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Download <a href=\"../../labs/idempotency_lab.py\"><code>labs/idempotency_lab.py</code></a>. It needs nothing beyond Python 3.</p>\n</div>"
+    },
+    {
+      "tag": "pre",
+      "attrs": {},
+      "html": "\n<pre><code>Windows              macOS and Linux\npy -3 labs/idempotency_lab.py    python3 labs/idempotency_lab.py</code></pre>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. Concurrency in Part C is an explicit interleaving rather than threads: the request handler is split into a begin phase and a commit phase, and the checks call them in a stated order. That keeps the output identical on every run and keeps the race visible in the code rather than in the scheduler.</p>\n</div>"
+    },
+    {
+      "tag": "pre",
+      "attrs": {},
+      "html": "\n<pre><code>$ python3 labs/idempotency_lab.py\naccount acct-77 opens with 4200 miles in every part below\n\nPart A: a retry with no idempotency key.\n 1. the first request, response lost in transit          200 credited 10000\n 2. the client retries the same request                  200 credited 10000\n 3. credits applied                                      2\n 4. balance                                              24200\n\nPart B: the same two requests with an idempotency key.\n 5. the first request, response lost in transit          200 credited 10000\n 6. the client retries with the same key                 200 replayed: credited 10000\n 7. credits applied                                      1\n 8. balance                                              14200\n\nPart C: the four details that decide whether the key works.\n 9. request A begins, key reserved first                 carry on\n10. request B begins before A commits                    409 a request with this key is still in progress\n11. credits applied by both                              1\n12. B begins, key recorded only after the work           carry on\n13. credits applied by both                              2\n14. the same key, a different amount                     422 key reused with a different payload\n15. balance after that attempt                           14200\n16. another caller sends the same key, keys scoped globally 200 replayed: credited 10000\n17. acct-91's balance after that                         500\n18. the same request, keys scoped per caller             200 credited 10000\n19. acct-91's balance after that                         10500\n20. acct-91's credits under global scoping alone         0\n21. the same key one hour later                          200 replayed: credited 10000\n22. the same key after the retention window              200 credited 10000\n23. credits applied in total                             2\n\nPart D: the problem idempotency does not address.\n24. 500 distinct requests, each one idempotent           500 credits\n25. balance                                              5004200\n26. how many of those were duplicate executions          0\n\nall lab checks passed</code></pre>"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<div class=\"prose\">\n<p>Checks 1 to 4 are the honest failure. Nobody attacked anything: a response was lost, a client retried the way clients are supposed to, and a customer has ten thousand miles that were never earned.</p>\n<p>Checks 9 to 13 are the same two requests through two implementations, and the difference is one line. With the key reserved before the work, the second request is refused with 409 and one credit is applied. With the key recorded on completion, both requests look up the key, both find nothing, and both apply. That is the window, and it is narrow enough that it will not show up in testing and wide enough that it will show up in production.</p>\n<p>Checks 16 to 20 are the scoping question with the damage made explicit. Under a global key namespace, <code>acct-91</code> presents a key <code>acct-77</code> already used, receives a response describing a credit that was applied to somebody else's account, and its own credit never happens at all. The API returned 200 and the money went nowhere.</p>\n<p>Checks 21 to 23 are the retention boundary. The same key replays inside the window and is a brand new operation one second outside it, so the retention period is the real answer to \"for how long is a retry safe\".</p>\n<p>Part D is the whole reason this module has two halves. Five hundred requests, five hundred distinct keys, not one duplicate execution, and five million miles issued. Every control in Parts B and C worked exactly as designed.</p>\n<p><strong>Try next:</strong></p>\n<ul>\n<li>Change <code>KEY_TTL</code> to 60 and rerun. Check 21 flips, because an hour is now outside the window. Decide what retry schedule you would then have to publish to clients.</li>\n<li>Make <code>fingerprint</code> ignore the payload and return a constant. Check 14 flips to a replay, which means a caller can send one key and have any later amount quietly ignored.</li>\n<li>In <code>commit</code>, store a recomputed response instead of the one the operation produced. Then change the balance between the two calls and watch check 6 disagree with check 5.</li>\n<li>Add a per-caller daily cap to the <code>Ledger</code> and rerun. Count how many of the 26 checks change. The answer should be two.</li>\n</ul>\n</div>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>8. Check your understanding</h2>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Your POST endpoint is safe to retry because the operation is idempotent. What have you actually said?</summary><p>Something about your implementation, not about the method. RFC 9110 lists GET, HEAD, PUT, DELETE, OPTIONS and TRACE as idempotent, and POST is not among them, so no intermediary or client will treat it as safe to repeat. If the property is real it has to come from something you built, and the thing that carries it needs to be visible in the request.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Why record the idempotency key before doing the work rather than after?</summary><p>Because the case the key exists for is two copies of the request arriving close together. Recording on completion means both copies look up the key, both find nothing, and both execute. Reserving first means the second one finds a record and can be refused with 409.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Someone suggests a single global namespace for idempotency keys. What breaks?</summary><p>One caller can present a key another caller already used. They receive the stored response from an operation that was applied to somebody else's account, and their own operation is never performed, because the server believes it already was. The API returns 200 for something that did not happen.</p></details>"
+    },
+    {
+      "tag": "details",
+      "attrs": {},
+      "html": "\n<details><summary>Your idempotency handling is provably correct and the ledger is still issuing far too much credit. What is wrong?</summary><p>Probably nothing about retries. Look at whether the requests share keys: repeats of one key mean the key handling is broken, and hundreds of distinct keys mean a business flow with no rate or quantity limit, which is a different control entirely and is decided by whoever knows what the flow costs.</p></details>"
+    },
+    {
+      "tag": "section",
+      "attrs": {
+        "class": "course-quiz",
+        "data-quiz": null,
+        "data-quiz-id": "business-flows-and-idempotency-check",
+        "data-correct-feedback": "Correct. With the key recorded only on completion, two copies arriving close together both find no record and both execute, which is the exact case the key was added to prevent.",
+        "data-incorrect-feedback": "Not quite. Payload binding, per-caller scoping and retention all matter, but the failure that survives them is recording the key after the work: both copies look up the key, both find nothing, and both apply."
+      },
+      "html": "\n\n<section class=\"course-quiz\" data-quiz data-quiz-id=\"business-flows-and-idempotency-check\" data-correct-feedback=\"Correct. With the key recorded only on completion, two copies arriving close together both find no record and both execute, which is the exact case the key was added to prevent.\" data-incorrect-feedback=\"Not quite. Payload binding, per-caller scoping and retention all matter, but the failure that survives them is recording the key after the work: both copies look up the key, both find nothing, and both apply.\">\n<p class=\"kicker\">Quick check</p>\n<h2>When the key is recorded</h2>\n<fieldset><legend>An API stores the idempotency key once the operation completes successfully. Which case does that leave open?</legend>\n<label><input type=\"radio\" name=\"flow\" value=\"later\"> A retry arriving a week later.</label>\n<label><input type=\"radio\" name=\"flow\" value=\"concurrent\" data-correct=\"true\"> A second copy arriving before the first has finished.</label>\n<label><input type=\"radio\" name=\"flow\" value=\"payload\"> The same key sent with a different amount.</label>\n<label><input type=\"radio\" name=\"flow\" value=\"volume\"> Five hundred distinct requests in a minute.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button><p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n</section>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "course-next"
+      },
+      "html": "\n<p class=\"course-next\"><strong>Course progress:</strong> return to the <a href=\"../../index.html#course\">course dashboard</a> to see your published-module progress.</p>"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "layer",
+        "id": "reference",
+        "style": "margin-top:3rem"
+      },
+      "html": "\n<span class=\"layer\" id=\"reference\" style=\"margin-top:3rem\">Reference</span>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {
+        "style": "border-top:none;margin-top:.5rem"
+      },
+      "html": "\n<h2 style=\"border-top:none;margin-top:.5rem\">Controls</h2>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\"><span class=\"label std\">Standard</span> backed by a cited specification. <span class=\"label base\">Baseline</span> this project's default, with reasoning above. <span class=\"label opt\">Option</span> valid depending on the threat model.</p>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "controls"
+      },
+      "html": "\n<ul class=\"controls\">\n<li><span class=\"label std\">Standard</span>A method is idempotent \"if the intended effect on the server of multiple identical requests with that method is the same as the effect for a single such request\". GET, HEAD, PUT, DELETE, OPTIONS and TRACE are idempotent; POST is not. RFC 9110 section 9.2.2.</li>\n<li><span class=\"label std\">Standard</span>Identify the business flows that might harm the business if they are excessively used. OWASP API6:2023 gives this as the first prevention step, on the business rather than the engineering side.</li>\n<li><span class=\"label std\">Standard</span>OWASP API6:2023 describes the attack as \"understanding the business model backed by the API, finding sensitive business flows, and automating access to these flows, causing harm to the business\", with scalping, seat reservation and referral farming as its examples.</li>\n<li><span class=\"label base\">Baseline</span>There is no standard for the <code>Idempotency-Key</code> header. <code>draft-ietf-httpapi-idempotency-key-header</code> reached revision 07 in October 2025 and expired on 18 April 2026 without becoming an RFC. Treat the header as a convention, document your own semantics, and do not assume another service shares them.</li>\n<li><span class=\"label base\">Baseline</span>Follow the expired draft's error behaviour, because each code names a distinct case: replay the stored response for a repeat of a completed request, 409 while a request with that key is in progress, 422 when the key arrives with a different payload.</li>\n<li><span class=\"label base\">Baseline</span>Reserve the key before performing the operation, and store the response against it afterwards.</li>\n<li><span class=\"label base\">Baseline</span>Store a fingerprint of the request payload with the key and compare it on every reuse.</li>\n<li><span class=\"label base\">Baseline</span>Scope keys per caller and per operation type. Never a single global namespace.</li>\n<li><span class=\"label base\">Baseline</span>Store and replay the original status and body, including failures. Do not recompute the response.</li>\n<li><span class=\"label base\">Baseline</span>Keep keys for a documented period, 24 hours by default, and treat it as the outer bound on how late a retry can be recognised.</li>\n<li><span class=\"label base\">Baseline</span>Log the idempotency key with each request, so duplicate execution and excessive use can be told apart from the data.</li>\n<li><span class=\"label base\">Baseline</span>Enforce rate and quantity limits on the flow, across every endpoint that advances it, rather than per endpoint.</li>\n<li><span class=\"label opt\">Option</span>Model the operation as a PUT to a client-chosen identifier where the resource has a natural identity, which takes the idempotency from the method and needs no key at all.</li>\n<li><span class=\"label opt\">Option</span>Where a flow is valuable enough to attract automation, OWASP also lists device fingerprinting, human detection and non-human pattern analysis. These raise the cost of automation; they do not replace a limit.</li>\n</ul>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>Review checklist items</h2>"
+    },
+    {
+      "tag": "p",
+      "attrs": {
+        "class": "prose meta"
+      },
+      "html": "\n<p class=\"prose meta\">These are collected into the <a href=\"../../checklist/index.html\">site checklist</a>.</p>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "checks"
+      },
+      "html": "\n<ul class=\"checks\">\n<li data-check=\"flow-01\" data-severity=\"Critical\"><strong>Every non-idempotent operation with a real effect accepts an idempotency key</strong> <span>Payments, credits, orders, messages, anything with a cost. Test that the same request twice applies once.</span></li>\n<li data-check=\"flow-02\" data-severity=\"Critical\"><strong>The key is reserved before the work, not recorded after it</strong> <span>Test two copies arriving before the first completes. The second is refused, not executed.</span></li>\n<li data-check=\"flow-03\" data-severity=\"Critical\"><strong>Sensitive business flows have a written rate and quantity limit</strong> <span>Produced by someone who knows what the flow costs, enforced across every endpoint that advances it, and proven by a test that ran past it.</span></li>\n<li data-check=\"flow-04\" data-severity=\"High\"><strong>Keys are bound to the payload and scoped to the caller</strong> <span>A changed payload is refused. A key from another caller is unrelated. Test both.</span></li>\n<li data-check=\"flow-05\" data-severity=\"High\"><strong>The stored response is replayed, including failures</strong> <span>Not recomputed. A failed operation replays as the failure it was.</span></li>\n<li data-check=\"flow-06\" data-severity=\"Medium\"><strong>Key retention is documented and matches the published retry schedule</strong> <span>After the retention window a retry is a new operation, so the two numbers have to agree.</span></li>\n<li data-check=\"flow-07\" data-severity=\"Medium\"><strong>The idempotency key is logged with each request</strong> <span>Repeats of one key and many distinct keys are different defects. Logging the key makes that a query.</span></li>\n</ul>"
+    },
+    {
+      "tag": "h2",
+      "attrs": {},
+      "html": "\n\n<h2>Sources</h2>"
+    },
+    {
+      "tag": "ul",
+      "attrs": {
+        "class": "prose"
+      },
+      "html": "\n<ul class=\"prose\">\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc9110\">RFC 9110: HTTP Semantics</a>, June 2022. Section 9.2.2, idempotent methods.</li>\n<li><a href=\"https://api-security.owasp.org/editions/2023/en/0xa6-unrestricted-access-to-sensitive-business-flows/\">OWASP API Security Top 10 2023, API6:2023 Unrestricted Access to Sensitive Business Flows</a>.</li>\n<li><a href=\"https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/\">draft-ietf-httpapi-idempotency-key-header: The Idempotency-Key HTTP Header Field</a>. Revision 07, October 2025, expired 18 April 2026. An expired Internet-Draft, not a standard, cited here for the convention it describes.</li>\n</ul>"
+    }
+  ],
+  "main_close": "\n</main>",
+  "footer": "\n<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>",
+  "epilogue": "\n</body>\n</html>\n",
   "page_title": "Business flows and idempotency | API Security in the Age of AI",
   "lesson_key": "business-flows-and-idempotency",
   "title": "Business flows and idempotency",
   "kicker": "Part 2: Deciding what they may do &middot; Module 11",
   "reviewed": "2026-09-30",
   "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 12 of 26</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
+  "intro_prose": [
+    "<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can say which HTTP methods are idempotent and why that does not help you, implement an idempotency key with the four details that decide whether it works, and tell the duplicate-execution problem apart from the excessive-use problem, which look similar and need different controls.</p>\n<p><strong>Before you start.</strong> <a href=\"../object-level-authorization/index.html\">Module 9</a> and <a href=\"../property-and-function-authorization/index.html\">module 10</a> settled which objects, properties and functions a caller may reach. Every request in this module is one they may make. That is the point.</p>\n</div>"
+  ],
   "sections": [
     {
       "heading": "1. The attack",
@@ -67,7 +411,7 @@
     {
       "heading": "Sources",
       "heading_text": "Sources",
-      "html": "<ul class=\"prose\">\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc9110\">RFC 9110: HTTP Semantics</a>, June 2022. Section 9.2.2, idempotent methods.</li>\n<li><a href=\"https://api-security.owasp.org/editions/2023/en/0xa6-unrestricted-access-to-sensitive-business-flows/\">OWASP API Security Top 10 2023, API6:2023 Unrestricted Access to Sensitive Business Flows</a>.</li>\n<li><a href=\"https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/\">draft-ietf-httpapi-idempotency-key-header: The Idempotency-Key HTTP Header Field</a>. Revision 07, October 2025, expired 18 April 2026. An expired Internet-Draft, not a standard, cited here for the convention it describes.</li>\n</ul>\n</main>\n<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>\n</body>\n</html>"
+      "html": "<ul class=\"prose\">\n<li><a href=\"https://www.rfc-editor.org/rfc/rfc9110\">RFC 9110: HTTP Semantics</a>, June 2022. Section 9.2.2, idempotent methods.</li>\n<li><a href=\"https://api-security.owasp.org/editions/2023/en/0xa6-unrestricted-access-to-sensitive-business-flows/\">OWASP API Security Top 10 2023, API6:2023 Unrestricted Access to Sensitive Business Flows</a>.</li>\n<li><a href=\"https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/\">draft-ietf-httpapi-idempotency-key-header: The Idempotency-Key HTTP Header Field</a>. Revision 07, October 2025, expired 18 April 2026. An expired Internet-Draft, not a standard, cited here for the convention it describes.</li>\n</ul>\n</main>"
     }
   ],
   "layers": [
