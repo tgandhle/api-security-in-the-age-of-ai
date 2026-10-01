@@ -1,80 +1,161 @@
-[
-  {
-    "slug": "agent-authority-and-approvals"
-  },
-  {
-    "slug": "agent-to-agent"
-  },
-  {
-    "slug": "api-keys"
-  },
-  {
-    "slug": "asymmetric-request-signing"
-  },
-  {
-    "slug": "business-flows-and-idempotency"
-  },
-  {
-    "slug": "credential-lifecycle"
-  },
-  {
-    "slug": "data-in-model-context"
-  },
-  {
-    "slug": "delegation-and-token-exchange"
-  },
-  {
-    "slug": "design-review"
-  },
-  {
-    "slug": "gateway-enforcement"
-  },
-  {
-    "slug": "hmac-request-signing"
-  },
-  {
-    "slug": "jwks-and-revocation"
-  },
-  {
-    "slug": "jwt-validation"
-  },
-  {
-    "slug": "mcp-server-authorization"
-  },
-  {
-    "slug": "oauth-basics"
-  },
-  {
-    "slug": "object-level-authorization"
-  },
-  {
-    "slug": "prompt-injection-and-output-handling"
-  },
-  {
-    "slug": "property-and-function-authorization"
-  },
-  {
-    "slug": "rate-limiting-and-cost"
-  },
-  {
-    "slug": "request-and-response-contracts"
-  },
-  {
-    "slug": "security-foundations"
-  },
-  {
-    "slug": "sender-constrained-tokens"
-  },
-  {
-    "slug": "ssrf-and-unsafe-consumption"
-  },
-  {
-    "slug": "supply-chain-retrieval-and-memory"
-  },
-  {
-    "slug": "versioning-and-deprecation"
-  },
-  {
-    "slug": "webhooks"
-  }
-]
+{
+  "total": 26,
+  "lessons": [
+    {
+      "slug": "security-foundations",
+      "lesson_number": 1,
+      "module": 0,
+      "title": "Security concepts for the course"
+    },
+    {
+      "slug": "api-keys",
+      "lesson_number": 2,
+      "module": 1,
+      "title": "API keys"
+    },
+    {
+      "slug": "hmac-request-signing",
+      "lesson_number": 3,
+      "module": 2,
+      "title": "HMAC request signing"
+    },
+    {
+      "slug": "asymmetric-request-signing",
+      "lesson_number": 4,
+      "module": 3,
+      "title": "Asymmetric request signing"
+    },
+    {
+      "slug": "oauth-basics",
+      "lesson_number": 5,
+      "module": 4,
+      "title": "OAuth basics"
+    },
+    {
+      "slug": "jwt-validation",
+      "lesson_number": 6,
+      "module": 5,
+      "title": "JWT validation"
+    },
+    {
+      "slug": "jwks-and-revocation",
+      "lesson_number": 7,
+      "module": 6,
+      "title": "JWKS, revocation and introspection"
+    },
+    {
+      "slug": "sender-constrained-tokens",
+      "lesson_number": 8,
+      "module": 7,
+      "title": "Sender-constrained tokens: mTLS and DPoP"
+    },
+    {
+      "slug": "credential-lifecycle",
+      "lesson_number": 9,
+      "module": 8,
+      "title": "Workload and agent identity lifecycle"
+    },
+    {
+      "slug": "object-level-authorization",
+      "lesson_number": 10,
+      "module": 9,
+      "title": "Object-level authorization"
+    },
+    {
+      "slug": "property-and-function-authorization",
+      "lesson_number": 11,
+      "module": 10,
+      "title": "Property and function authorization"
+    },
+    {
+      "slug": "business-flows-and-idempotency",
+      "lesson_number": 12,
+      "module": 11,
+      "title": "Business flows and idempotency"
+    },
+    {
+      "slug": "gateway-enforcement",
+      "lesson_number": 13,
+      "module": 12,
+      "title": "Gateway enforcement"
+    },
+    {
+      "slug": "request-and-response-contracts",
+      "lesson_number": 14,
+      "module": 13,
+      "title": "Request and response contracts"
+    },
+    {
+      "slug": "ssrf-and-unsafe-consumption",
+      "lesson_number": 15,
+      "module": 14,
+      "title": "SSRF and unsafe consumption of APIs"
+    },
+    {
+      "slug": "rate-limiting-and-cost",
+      "lesson_number": 16,
+      "module": 15,
+      "title": "Rate limiting and cost controls"
+    },
+    {
+      "slug": "webhooks",
+      "lesson_number": 17,
+      "module": 16,
+      "title": "Webhooks"
+    },
+    {
+      "slug": "versioning-and-deprecation",
+      "lesson_number": 18,
+      "module": 18,
+      "title": "Versioning and deprecation"
+    },
+    {
+      "slug": "delegation-and-token-exchange",
+      "lesson_number": 19,
+      "module": 19,
+      "title": "Delegation and token exchange"
+    },
+    {
+      "slug": "mcp-server-authorization",
+      "lesson_number": 20,
+      "module": 20,
+      "title": "MCP server authorization"
+    },
+    {
+      "slug": "agent-to-agent",
+      "lesson_number": 21,
+      "module": 21,
+      "title": "Agent-to-agent"
+    },
+    {
+      "slug": "prompt-injection-and-output-handling",
+      "lesson_number": 22,
+      "module": 22,
+      "title": "Prompt injection and output handling"
+    },
+    {
+      "slug": "agent-authority-and-approvals",
+      "lesson_number": 23,
+      "module": 23,
+      "title": "Agent authority and approvals"
+    },
+    {
+      "slug": "data-in-model-context",
+      "lesson_number": 24,
+      "module": 24,
+      "title": "Data in model context"
+    },
+    {
+      "slug": "supply-chain-retrieval-and-memory",
+      "lesson_number": 25,
+      "module": 25,
+      "title": "Supply chain, retrieval, and memory"
+    },
+    {
+      "slug": "design-review",
+      "lesson_number": 26,
+      "module": 26,
+      "title": "Design review"
+    }
+  ]
+}
