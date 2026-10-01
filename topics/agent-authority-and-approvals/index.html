@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent authority and approvals | API Security in the Age of AI</title>
+<link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/course.js" defer></script>
+</head>
+<body data-course-lesson="agent-authority-and-approvals">
+<nav class="site-nav" aria-label="Site"><div><a class="home" href="../../index.html">API Security in the Age of AI</a><a href="../../index.html#course">Course</a><a href="../../index.html#path">Modules</a><a href="../../roadmap/index.html">Roadmap</a><a href="../../checklist/index.html">Checklist</a><a href="../../glossary/index.html">Glossary</a></div></nav>
+<main>
+<p class="kicker">Part 4: AI and agents &middot; Module 23</p>
+<h1>Agent authority and approvals</h1>
+<p class="meta">Last reviewed 2026-10-01 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+
+<div class="prose">
+<p><strong>Objective.</strong> After this module you can bind an approval to the exact parameters that will execute, say which fields an approval covers and which it merely accompanies, keep the summary a human read and the values a service used in agreement, and measure what a blanket approval actually authorises.</p>
+<p><strong>Before you start.</strong> <a href="../prompt-injection-and-output-handling/index.html">Module 22</a> ended by saying that an injection which talks an agent into an allowed call with allowed arguments passes every check in that module. Human approval is the usual answer to that, and this module is about the gap between having an approval step and that step meaning something.</p>
+</div>
+<section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 23 of 23</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
+
+<span class="layer" id="learn">Learn</span>
+
+<h2>1. The attack</h2>
+<div class="prose">
+<p>Running example: an ExampleAir support agent that can issue refunds. Company names are fictional. A human approves each refund above a threshold, in a queue, by reading a line that says what is about to happen and clicking approve.</p>
+<p>The attack is not against the human. It is against the distance between the click and the execution. A proposal is written, read by a person, and then read again by the service that carries it out, and those are two different reads of a mutable thing.</p>
+<p>OWASP's name for the underlying condition is <strong>LLM06:2025 Excessive Agency</strong>, defined as "the vulnerability that enables damaging actions to be performed in response to unexpected, ambiguous or manipulated outputs from an LLM, regardless of what is causing the LLM to malfunction". It names three root causes, and the third is the one this module addresses: excessive autonomy, meaning systems that lack independent verification and approval for high-impact actions. Its mitigation is to "Utilise human-in-the-loop control to require a human to approve high-impact actions".</p>
+<p>The OWASP agentic list adds the complementary failure, <strong>ASI09 Human-Agent Trust Exploitation</strong>, in one sentence: "Confident, polished explanations misled human operators into approving harmful actions." Both of these are real. This module is about the half you can test.</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>The approval step exists, and</th><th>What gets executed</th><th>Caught by</th></tr></thead>
+<tbody>
+<tr><td>The executor re-reads the proposal from a store the agent can write to</td><td class="yes">Whatever is in the store at execution time</td><td>Binding the approval to the parameters</td></tr>
+<tr><td>The approval covers the amount but not the destination</td><td class="yes">The approved amount, somewhere else</td><td>Covering every field that matters</td></tr>
+<tr><td>The summary shown to the human is built from different fields than the call</td><td class="yes">Something the summary never mentioned</td><td>Deriving the summary from the covered fields</td></tr>
+<tr><td>The approval has no single-use record</td><td class="yes">The approved action, twice</td><td>A nonce, spent on first use</td></tr>
+<tr><td>The approval has no expiry</td><td class="yes">The approved action, next week</td><td>A lifetime on the approval</td></tr>
+<tr><td>One approval covers a whole session</td><td class="yes">Everything in the session, including what arrived later</td><td>Per-action approvals</td></tr>
+</tbody></table></div>
+<p class="prose">Six rows, and in all six the human did approve something. That is why "we have an approval step" is not an answer to the question this module asks.</p>
+
+<h2>2. Why it works</h2>
+<h3>Two reads of a mutable thing</h3>
+<div class="prose">
+<p>The structure of almost every approval queue is: the agent writes a proposal, a human reads it and approves, and a service reads it again and executes. Between the second and third step there is a window, and in that window the proposal is a row in a database that the agent, or anything that has talked the agent into something, can still write to.</p>
+<p>Checks 1 to 4 of the lab are that window. The same approval, the same proposal id, a rewrite in between, and a refund of 4,000 to a different account where the human read "Refund 40 to T. Okafor". Nothing about the approval was forged. The approval was for a proposal id, and the proposal id still exists.</p>
+<p>The fix is the same one this course has used since <a href="../hmac-request-signing/index.html">module 3</a>: do not approve a reference, approve the content. The approval carries a MAC over the parameters as they stood when the human saw them, and the executor recomputes it over the parameters it is about to use. Check 5 is that same rewrite against a bound approval, and it names the two fields that changed.</p>
+</div>
+
+<h3>An approval covers what it covers</h3>
+<div class="prose">
+<p>This is <a href="../asymmetric-request-signing/index.html">module 4</a>'s lesson in a different costume. RFC 9421 calls it insufficient coverage, in section 7.2.1, and the principle does not care whether the thing signing is a client or a reviewer: a signature protects the components it lists, and everything else is present but unprotected.</p>
+<p>Part B of the lab makes that measurable. A narrow approval covering <code>tool</code> and <code>amount</code> catches two of five field changes. The wide approval catches five of five. The field the narrow one misses that matters is <code>account_id</code>: the amount the human approved, paid to somebody else, with an approval that verifies perfectly.</p>
+<p>So the design question is not "is the approval signed" but "which fields are inside it". Any field that changes what happens belongs inside, and the test for that is to change each field in turn and see whether the approval still verifies, which is exactly what checks 9 to 13 do.</p>
+</div>
+
+<h3>The summary and the parameters are two different documents</h3>
+<div class="prose">
+<p>A human approves by reading a sentence. A service executes by reading a structure. If those are produced independently, they can disagree, and the approval is then evidence about the sentence rather than about the action.</p>
+<p>Part C of the lab is the cleanest version of this. The summary says "Refund 40 to T. Okafor", built from <code>amount</code> and <code>account_name</code>. The execution uses <code>account_id</code>. Swap the <code>account_id</code> and the summary is character for character identical, because the name never changed. Check 21 binds the approval to the summary and it passes. Check 22 binds it to the parameters and it fails, naming <code>account_id</code>.</p>
+<p>The rule that falls out is narrow and worth stating exactly: the summary a human approves must be derived from the fields the approval covers, and no field outside those fields may change what executes. If your summary shows a display name and your call uses an id, either the id goes into the summary or the id goes into the coverage, and preferably both.</p>
+</div>
+
+<h3>What a blanket approval is worth</h3>
+<div class="prose">
+<p>Approval fatigue is real, and the usual response is a session-level approval: approve once, act many times. Part E measures one. Twelve operations, one approval, and the fields of any operation that the approval constrains: zero. Check 36 is the comparison, where a per-action approval constrains five.</p>
+<p>Then check 37, which is the point. A payment for 40,000 slipped into that session executes under the blanket approval, because the blanket approval binds a session handle and nothing about the operation. Under a per-action approval the same call is refused, naming <code>amount</code> and <code>tool</code>.</p>
+<p>This is not an argument that blanket approvals are always wrong. It is an argument that their value is measurable, and the measurement is the number of fields they constrain. If that number is zero, the approval is a record that somebody was present, which may be what you want, but it is not a control over what happened.</p>
+</div>
+
+<h3>The whole system</h3>
+<div class="diagram">
+<svg viewBox="0 0 1100 390" width="100%" style="min-width:920px" role="img">
+<title>Where an approval loses its meaning between the click and the execution</title>
+<desc>An agent writes a proposal into a store. A human reads a rendered summary of it and approves. A service then reads the proposal again from the same store and executes it. The gap between the human's read and the service's read is where the proposal can be rewritten, because the approval was for an identifier rather than for the content. Below, the bound version: the approval carries a message authentication code over the parameters as the human saw them, the executor recomputes it over the parameters it is about to use, and a change to any covered field is refused. Two notes record that an approval protects only the fields it covers, and that the summary the human read must be derived from those same fields.</desc>
+
+<text class="lab" x="36" y="26">Approving a reference</text>
+<g class="s"><rect x="20" y="44" width="180" height="70" rx="8"/><text class="th" x="110" y="70" text-anchor="middle">Agent</text><text class="ts" x="110" y="90" text-anchor="middle">writes proposal p3</text><text class="ts" x="110" y="106" text-anchor="middle">into the store</text></g>
+<g class="s"><rect x="240" y="44" width="180" height="70" rx="8"/><text class="th" x="330" y="70" text-anchor="middle">Human</text><text class="ts" x="330" y="90" text-anchor="middle">reads the summary</text><text class="ts" x="330" y="106" text-anchor="middle">approves p3</text></g>
+<g class="r"><rect x="460" y="44" width="200" height="70" rx="8"/><text class="th" x="560" y="70" text-anchor="middle">The window</text><text class="ts" x="560" y="90" text-anchor="middle">the store is written again</text><text class="ts" x="560" y="106" text-anchor="middle">p3 still exists</text></g>
+<g class="r"><rect x="700" y="44" width="200" height="70" rx="8"/><text class="th" x="800" y="70" text-anchor="middle">Executor</text><text class="ts" x="800" y="90" text-anchor="middle">reads p3 a second time</text><text class="ts" x="800" y="106" text-anchor="middle">runs what it finds</text></g>
+<line class="arr" x1="200" y1="79" x2="236" y2="79"/>
+<line class="arr" x1="420" y1="79" x2="456" y2="79"/>
+<line class="rej" x1="660" y1="79" x2="696" y2="79"/>
+<text class="ts" x="940" y="76">approved: 40</text>
+<text class="ts" x="940" y="96">executed: 4000</text>
+
+<text class="lab" x="36" y="166">Approving the content</text>
+<g class="h"><rect x="20" y="184" width="180" height="70" rx="8"/><text class="th" x="110" y="210" text-anchor="middle">Agent</text><text class="ts" x="110" y="230" text-anchor="middle">proposes parameters</text><text class="ts" x="110" y="246" text-anchor="middle">tool, amount, account</text></g>
+<g class="h"><rect x="240" y="184" width="200" height="70" rx="8"/><text class="th" x="340" y="210" text-anchor="middle">Human</text><text class="ts" x="340" y="230" text-anchor="middle">summary built from</text><text class="ts" x="340" y="246" text-anchor="middle">the covered fields</text></g>
+<g class="h"><rect x="480" y="184" width="200" height="70" rx="8"/><text class="th" x="580" y="210" text-anchor="middle">Approval</text><text class="ts" x="580" y="230" text-anchor="middle">MAC over those fields</text><text class="ts" x="580" y="246" text-anchor="middle">nonce, and a lifetime</text></g>
+<g class="h"><rect x="720" y="184" width="200" height="70" rx="8"/><text class="th" x="820" y="210" text-anchor="middle">Executor</text><text class="ts" x="820" y="230" text-anchor="middle">recomputes over what</text><text class="ts" x="820" y="246" text-anchor="middle">it is about to run</text></g>
+<line class="arr" x1="200" y1="219" x2="236" y2="219"/>
+<line class="arr" x1="440" y1="219" x2="476" y2="219"/>
+<line class="arr" x1="680" y1="219" x2="716" y2="219"/>
+
+<rect class="zone" x="20" y="286" width="1060" height="90" rx="12"/>
+<text class="ts" x="550" y="312" text-anchor="middle">An approval protects the fields it covers. Covering tool and amount but not the destination catches two field changes out of five.</text>
+<text class="ts" x="550" y="334" text-anchor="middle">The summary the human read must be derived from the covered fields, or a field outside them can change what runs while the sentence stays identical.</text>
+<text class="ts" x="550" y="358" text-anchor="middle">A session-wide approval constrains none of an operation's fields. That number is what it is worth.</text>
+</svg>
+<div class="legend"><span class="lg-s">Ordinary steps</span><span class="lg-r">Where the meaning is lost</span><span class="lg-h">Bound to the content</span></div>
+</div>
+
+<h2>3. The control</h2>
+<ol class="steps prose">
+<li><strong>Approve content, not a reference.</strong> The approval carries a MAC over the parameters, so the executor never has to trust that the row it re-reads is the row the human saw.</li>
+<li><strong>Cover every field that changes what happens,</strong> and test it by changing each field in turn and confirming the approval stops verifying.</li>
+<li><strong>Derive the summary from the covered fields.</strong> If the human reads a name and the call uses an id, put the id in both.</li>
+<li><strong>Give each approval a nonce and spend it on first use,</strong> so an approved action happens once. This is <a href="../business-flows-and-idempotency/index.html">module 11</a>'s problem with a human in it.</li>
+<li><strong>Give each approval a lifetime</strong> short enough that it expires with the context that justified it.</li>
+<li><strong>Keep approvals per action,</strong> and where a session-level approval is genuinely needed, record how many of the operation's fields it constrains.</li>
+<li><strong>Put the authorization in the downstream system too.</strong> OWASP: "Implement authorization in downstream systems rather than relying on LLM decisions." An approval is not a substitute for the service checking.</li>
+<li><strong>Execute in the user's security context,</strong> which OWASP also lists, so the approval and the credential agree about who this is for.</li>
+<li><strong>Log the approved parameters alongside the executed ones,</strong> so an incident can answer the only question that matters afterwards.</li>
+</ol>
+
+<h2>4. Defaults and when to change them</h2>
+<div class="wrap"><table>
+<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>
+<tbody>
+<tr><td>What the approval binds</td><td>The parameters, by MAC</td><td>Binding a proposal id means approving whatever that id holds at execution time.</td></tr>
+<tr><td>Coverage</td><td>Every field</td><td>Narrow it only with a written reason per excluded field, and expect to be asked about the destination account.</td></tr>
+<tr><td>The summary</td><td>Derived from the covered fields</td><td>A summary assembled separately is a second document, and the two can disagree silently.</td></tr>
+<tr><td>Reuse</td><td>Single use, nonce spent on execution</td><td>A repeated action needs a repeated approval, or an idempotency key doing the work instead.</td></tr>
+<tr><td>Lifetime</td><td>Minutes, not days</td><td>Long enough for the operator to finish, short enough that the context still holds.</td></tr>
+<tr><td>Session-wide approvals</td><td>Avoided</td><td>If you must, state the number of operation fields they constrain. Zero is a legitimate answer and a legitimate finding.</td></tr>
+<tr><td>Which actions need approval</td><td>A written list, by impact</td><td>Derive it from what the action does, not from how often it happens.</td></tr>
+<tr><td>Downstream authorization</td><td>Enforced regardless of the approval</td><td>OWASP's instruction. The approval says a human agreed; it does not say the caller is entitled.</td></tr>
+<tr><td>The approver's view</td><td>Shows the values that will execute</td><td>ASI09 is about confident explanations. A summary that explains rather than states is the wrong shape.</td></tr>
+</tbody></table></div>
+
+<h2>5. What it proves, and what it doesn't</h2>
+<div class="prose">
+<p><strong>Proves:</strong> that the parameters executed are the parameters a human was shown, that no covered field changed in between, that the approval was used once and within its lifetime, and that you can say which fields it covered.</p>
+<p><strong>Doesn't prove:</strong> that the approval was a good idea. ASI09 is precisely the case where the human read an accurate summary of a harmful action and approved it anyway, persuaded by a confident explanation. Nothing in this module helps there, and a well-bound approval of the wrong action executes exactly as reliably as a well-bound approval of the right one.</p>
+<div class="callout warn"><strong>An approval that verifies can still be an approval of something else.</strong> Check 21 of the lab binds the approval to the summary the human read and then changes the destination account. The summary is identical, the approval verifies, and the money goes elsewhere. Binding is necessary and the choice of what to bind is the whole control.</div>
+</div>
+
+<h2>6. Prove it</h2>
+<div class="prose">
+<ul>
+<li>The list of actions that require approval, and what put each one on the list.</li>
+<li>For one of them, the exact set of fields the approval covers.</li>
+<li>A test per covered field that changes it and confirms execution is refused.</li>
+<li>A test that a field outside the coverage cannot change what executes, or an explanation of why it can.</li>
+<li>The code path that renders the approver's summary, showing it is built from the covered fields.</li>
+<li>A test that an approval cannot be used twice.</li>
+<li>The approval lifetime, and a test that an expired approval is refused.</li>
+<li>Any session-wide approval, with the number of operation fields it constrains.</li>
+<li>Evidence that the downstream service authorizes the call independently of the approval.</li>
+<li>Log lines showing the approved parameters and the executed parameters for the same action.</li>
+</ul>
+</div>
+
+<h2>7. Exercise</h2>
+<div class="prose">
+<p>Download <a href="../../labs/approvals_lab.py"><code>labs/approvals_lab.py</code></a>. It needs nothing beyond Python 3.</p>
+</div>
+<pre><code>Windows                         macOS and Linux
+py -3 labs/approvals_lab.py     python3 labs/approvals_lab.py</code></pre>
+<div class="prose">
+<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. Approvals are real HMAC over a canonical JSON document. Keys are generated for the run and never printed, so nothing in the output changes between runs.</p>
+</div>
+<pre><code>$ python3 labs/approvals_lab.py
+approval keys: random, this run only; nothing is printed
+
+Part A: the proposal is read twice, and can change in between.
+ 1. the approved proposal, executed unchanged                  executed 40 to ACC-771 for refund
+ 2. the same approval after the proposal was rewritten         executed 4000 to ACC-999 for refund
+ 3.   what the human approved                                  Refund 40 to T. Okafor
+ 4.   what ran                                                 4000
+ 5. the same rewrite against a bound approval                  refused: changed after approval: account_id,amount
+ 6. an unchanged proposal against a bound approval             executed 40 to ACC-771 for refund
+
+Part B: an approval covers the fields you chose, and no others.
+ 7. fields the narrow approval covers                          ['amount', 'tool']
+ 8. fields the wide approval covers                            ['account_id', 'account_name', 'amount', 'booking_id', 'tool']
+ 9.   changing amount, under the narrow approval               refused: changed after approval: amount
+10.   changing tool, under the narrow approval                 refused: changed after approval: tool
+11.   changing account_id, under the narrow approval           executed
+12.   changing account_name, under the narrow approval         executed
+13.   changing booking_id, under the narrow approval           executed
+14. changes the narrow approval catches, of five               2
+15. changes the wide approval catches, of five                 5
+16.   the destination account is covered by which              wide only
+
+Part C: what the approver read, against what the executor used.
+17. the summary the approver sees                              Refund 40 to T. Okafor
+18. the summary after the account id is swapped                Refund 40 to T. Okafor
+19.   the two summaries agree                                  yes
+20.   the accounts agree                                       no
+21. an approval bound to the summary, against the swap         executed
+22. an approval bound to the parameters, against the swap      refused: changed after approval: account_id
+23.   so the summary must be derived from the covered fields   no
+
+Part D: single use, and expiry.
+24. the first execution                                        executed
+25. the second, with the same approval                         refused: approval has already been used
+26.   the same two attempts with no single-use record          2
+27. the same approval a minute later                           executed
+28. and after its lifetime                                     refused: approval has expired
+29.   seconds it was valid for                                 300
+30. an approval edited to raise the amount                     refused: approval does not verify
+
+Part E: the blanket approval, measured.
+31. operations in the session                                  12
+32. approvals a per-action policy issues                       12
+33. approvals a blanket policy issues, for the same twelve     1
+34.   operations it authorises                                 12
+35.   fields of an operation it constrains                     0
+36.   fields a per-action approval constrains                  5
+37. a payment slipped into that session, under the blanket     executed
+38.   the same payment under a per-action approval             refused: changed after approval: amount,tool
+39.   what the blanket approval actually bound                 ['session']
+
+all lab checks passed</code></pre>
+<div class="prose">
+<p>Checks 2 to 4 are the whole module in three lines. The approval was genuine, the human read "Refund 40 to T. Okafor", and 4,000 went to another account. Nobody forged anything; the approval was for a proposal id and the proposal changed.</p>
+<p>Checks 9 to 16 are the coverage question answered by measurement rather than by argument. The narrow approval catches two field changes of five, and check 16 names the one that matters: the destination account is covered by the wide approval only. If you are deciding what to put in an approval's coverage, this is the experiment to run on your own fields.</p>
+<p>Checks 17 to 23 are the one I would put in front of a reviewer. Two parameter sets, one summary, character for character. An approval bound to that summary passes. An approval bound to the parameters names <code>account_id</code>. Check 23 asks whether the summary contains the field that decides where the money goes, and the answer is no, which is the defect: the human was never shown the value that mattered.</p>
+<p>Check 30 is the sanity check that the rest rests on. An approval edited to raise the amount is refused on its MAC rather than on its content, because the covered values are inside the signed body.</p>
+<p>Part E is the part to take to a conversation about approval fatigue. Twelve operations, one approval, zero operation fields constrained, and a 40,000 payment that was not in the session when the approval was given executing anyway. The per-action approval refuses the same call by name.</p>
+<p><strong>Try next:</strong></p>
+<ul>
+<li>Add <code>account_id</code> to the narrow approval's coverage and rerun. One check flips, and it is the one standing between an approved amount and an unapproved destination.</li>
+<li>Change <code>render</code> to include <code>account_id</code>, then rerun check 23's experiment by hand. Decide whether showing an id to a human is an improvement or a different problem.</li>
+<li>Set <code>TTL</code> to a day and rerun. One check flips, and the approval now outlives the shift of the person who gave it.</li>
+<li>Give the blanket approval a <code>tool</code> field and rerun check 37. Decide how many fields it would need before you would call it an approval.</li>
+<li>For a system you work on: find the approval step, and write down which fields it binds. If the answer is an identifier, you have this module's finding.</li>
+</ul>
+</div>
+
+<h2>8. Check your understanding</h2>
+<details><summary>Your approval record stores the proposal id and who approved it. What is wrong with that?</summary><p>It approves a reference. The executor reads the proposal a second time, and between the human's read and that one the row can be rewritten by whatever produced it. The approval should carry a MAC over the parameters as the human saw them, so the executor can confirm it is running the same thing rather than the same identifier.</p></details>
+<details><summary>An approval covers the tool name and the amount. Is that enough?</summary><p>Only if nothing else changes what happens, and the destination almost always does. The lab's narrow approval catches two field changes out of five, and the one it misses pays the approved amount to a different account. Cover every field that changes the outcome, and test coverage by changing each field and confirming the approval stops verifying.</p></details>
+<details><summary>The summary shown to the approver reads "Refund 40 to T. Okafor" and the call uses an account id. Where is the risk?</summary><p>In the gap between them. The id can change while the summary stays identical, so a human approving that sentence has not seen the value that decides where the money goes. Derive the summary from the covered fields, and make sure no field outside them changes the outcome.</p></details>
+<details><summary>Is a well-bound approval a defence against prompt injection?</summary><p>Partly, and only for the actions that require one. It stops an injected change to the parameters after approval, and it does nothing about a human being persuaded to approve a harmful action in the first place, which OWASP files as ASI09. It also does not replace authorization in the downstream service, which OWASP lists separately for exactly this reason.</p></details>
+
+<section class="course-quiz" data-quiz data-quiz-id="agent-authority-and-approvals-check" data-correct-feedback="Correct. Approving an identifier approves whatever that identifier holds at execution time, which is a second read of a mutable thing." data-incorrect-feedback="Not quite. The approval was genuine, the approver was real, and the audit record is intact. The defect is that it bound a proposal id rather than the parameters, so a rewrite between the click and the execution changes what runs.">
+<p class="kicker">Quick check</p>
+<h2>What the approval should bind</h2>
+<fieldset><legend>A refund queue records the proposal id, the approver and a timestamp. A refund is approved at 40 and executes at 4,000. What failed?</legend>
+<label><input type="radio" name="apv" value="authn"> The approver was not properly authenticated.</label>
+<label><input type="radio" name="apv" value="audit"> The audit log was incomplete.</label>
+<label><input type="radio" name="apv" value="bind" data-correct="true"> The approval bound an identifier rather than the parameters.</label>
+<label><input type="radio" name="apv" value="ttl"> The approval had no expiry.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+</section>
+<p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
+<span class="layer" id="reference" style="margin-top:3rem">Reference</span>
+<h2 style="border-top:none;margin-top:.5rem">Controls</h2>
+<p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
+<ul class="controls">
+<li><span class="label std">Standard</span>"Excessive Agency is the vulnerability that enables damaging actions to be performed in response to unexpected, ambiguous or manipulated outputs from an LLM, regardless of what is causing the LLM to malfunction." OWASP LLM06:2025 Excessive Agency.</li>
+<li><span class="label std">Standard</span>LLM06:2025 names three root causes: excessive functionality, excessive permissions, and excessive autonomy, the last being systems that lack independent verification and approval for high-impact actions.</li>
+<li><span class="label std">Standard</span>"Utilise human-in-the-loop control to require a human to approve high-impact actions." OWASP LLM06:2025.</li>
+<li><span class="label std">Standard</span>"Implement authorization in downstream systems rather than relying on LLM decisions." OWASP LLM06:2025.</li>
+<li><span class="label std">Standard</span>Execute extensions in the specific user's security context, and restrict both the functions available and the permissions they hold to the minimum necessary. OWASP LLM06:2025.</li>
+<li><span class="label std">Standard</span>"Implement human-in-the-loop controls for privileged operations to prevent unauthorized actions." OWASP LLM01:2025, Require human approval for high-risk actions.</li>
+<li><span class="label std">Standard</span>"Confident, polished explanations misled human operators into approving harmful actions." OWASP Top 10 for Agentic Applications, ASI09 Human-Agent Trust Exploitation.</li>
+<li><span class="label std">Standard</span>A signature protects the components it covers and nothing else, and a verifier must decide which components it requires to be covered rather than accepting whatever the signer chose. RFC 9421 section 7.2.1, Insufficient Coverage. The same reasoning decides an approval's coverage.</li>
+<li><span class="label base">Baseline</span>Bind the approval to the parameters with a MAC, never to a proposal identifier.</li>
+<li><span class="label base">Baseline</span>Cover every field that changes the outcome, and prove coverage by changing each field in turn.</li>
+<li><span class="label base">Baseline</span>Derive the approver's summary from the covered fields, so the sentence and the call cannot disagree.</li>
+<li><span class="label base">Baseline</span>Give each approval a nonce, spend it on execution, and refuse a second use.</li>
+<li><span class="label base">Baseline</span>Give each approval a lifetime measured in minutes.</li>
+<li><span class="label base">Baseline</span>Record, for any session-wide approval, how many of an operation's fields it constrains.</li>
+<li><span class="label base">Baseline</span>Log the approved parameters next to the executed parameters for the same action.</li>
+<li><span class="label opt">Option</span>Require a second approver for actions above a threshold, accepting that this doubles the exposure to ASI09 rather than halving it.</li>
+<li><span class="label opt">Option</span>Show the approver a diff against the last similar action, where the risk is a plausible-looking change rather than an implausible one.</li>
+<li><span class="label opt">Option</span>Carry the approval to the downstream service as a request signature, where the executing service is not the service that collected the approval.</li>
+</ul>
+
+<h2>Review checklist items</h2>
+<p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
+<ul class="checks">
+<li data-check="apv-01" data-severity="Critical"><strong>Approvals bind the parameters, not a proposal identifier</strong> <span>Otherwise the executor's second read of a mutable store decides what runs, and the approval is for an id that still exists.</span></li>
+<li data-check="apv-02" data-severity="Critical"><strong>Every field that changes the outcome is inside the coverage</strong> <span>Proven by changing each field in turn and confirming the approval stops verifying. The destination is the one most often left out.</span></li>
+<li data-check="apv-03" data-severity="Critical"><strong>The approver's summary is derived from the covered fields</strong> <span>A summary built separately can stay identical while a field outside it changes where the money goes.</span></li>
+<li data-check="apv-04" data-severity="High"><strong>Approvals are single use</strong> <span>A nonce spent on execution. An approved action happens once.</span></li>
+<li data-check="apv-05" data-severity="High"><strong>Approvals expire</strong> <span>Short enough that the approval does not outlive the context that justified it.</span></li>
+<li data-check="apv-06" data-severity="High"><strong>Downstream services authorize independently of the approval</strong> <span>OWASP's instruction. An approval records that a human agreed, not that the caller is entitled.</span></li>
+<li data-check="apv-07" data-severity="Medium"><strong>Session-wide approvals are recorded with the fields they constrain</strong> <span>Zero is a legitimate answer and a legitimate finding.</span></li>
+<li data-check="apv-08" data-severity="Medium"><strong>The list of actions requiring approval is written down</strong> <span>Derived from what each action does rather than from how often it happens.</span></li>
+<li data-check="apv-09" data-severity="Medium"><strong>Approved and executed parameters are both logged</strong> <span>So an incident can answer whether they were the same without rebuilding the state.</span></li>
+</ul>
+
+<h2>Sources</h2>
+<ul class="prose">
+<li><a href="https://genai.owasp.org/llmrisk/llm062025-excessive-agency/">OWASP LLM06:2025 Excessive Agency</a>, from the OWASP Top 10 for LLM Applications 2025. The definition, the three root causes, and the prevention measures quoted above.</li>
+<li><a href="https://genai.owasp.org/llmrisk/llm01-prompt-injection/">OWASP LLM01:2025 Prompt Injection</a>. "Implement human-in-the-loop controls for privileged operations to prevent unauthorized actions."</li>
+<li><a href="https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/">OWASP Top 10 for Agentic Applications</a>, released 9 December 2025. ASI09 Human-Agent Trust Exploitation and ASI02 Tool Misuse.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9421">RFC 9421: HTTP Message Signatures</a>, February 2024. Section 7.2.1, Insufficient Coverage, for the principle that a signature protects only what it covers.</li>
+</ul>
+</main>
+<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
+</body>
+</html>
