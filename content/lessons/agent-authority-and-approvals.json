@@ -337,6 +337,9 @@
   "kicker": "Part 4: AI and agents &middot; Module 23",
   "reviewed": "2026-10-01",
   "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 23 of 26</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
+  "lesson_number": 23,
+  "lesson_total": 26,
+  "module": 23,
   "intro_prose": [
     "<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can bind an approval to the exact parameters that will execute, say which fields an approval covers and which it merely accompanies, keep the summary a human read and the values a service used in agreement, and measure what a blanket approval actually authorises.</p>\n<p><strong>Before you start.</strong> <a href=\"../prompt-injection-and-output-handling/index.html\">Module 22</a> ended by saying that an injection which talks an agent into an allowed call with allowed arguments passes every check in that module. Human approval is the usual answer to that, and this module is about the gap between having an approval step and that step meaning something.</p>\n</div>"
   ],

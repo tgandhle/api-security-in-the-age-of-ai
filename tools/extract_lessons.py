@@ -204,6 +204,12 @@ def extract(path):
 
     status = doc.first("section", **{"class": "lesson-status"})
     record["lesson_status_html"] = doc.outer(status) if status else ""
+    counted = re.search(r"Published lesson (\d+) of (\d+)",
+                        record["lesson_status_html"])
+    record["lesson_number"] = int(counted.group(1)) if counted else 0
+    record["lesson_total"] = int(counted.group(2)) if counted else 0
+    numbered = re.search(r"Module (\d+)", record["kicker"])
+    record["module"] = int(numbered.group(1)) if numbered else -1
 
     # The intro prose: the prose div before the first h2. This is the
     # Objective and Before you start text. The first version of this tool
@@ -341,6 +347,7 @@ LABELS = ("h2", "pre", "svg", "table", "glossary", "checks", "citations",
 
 def check():
     failures = []
+    records = {}
     totals = dict.fromkeys(LABELS, 0)
     rebuilt = 0
     block_count = 0
@@ -397,6 +404,29 @@ def check():
                 failures.append("%s: %s is empty" % (rel, field))
         if not rec["intro_prose"]:
             failures.append("%s: no intro prose captured" % rel)
+        records[rec["slug"]] = rec
+
+    # The lesson number and denominator on each page must agree with the
+    # course order published on index.html. Every module so far has needed
+    # the denominator changed on all 26 pages at once, and this is what
+    # catches a page that was missed.
+    order = course_order()
+    if sorted(order) != sorted(records):
+        failures.append(
+            "index.html lists %d lessons, %d lesson pages exist; only in one: %s"
+            % (len(order), len(records),
+               sorted(set(order) ^ set(records))))
+    else:
+        for i, slug in enumerate(order):
+            rec = records[slug]
+            if rec["lesson_number"] != i + 1:
+                failures.append(
+                    "%s: page says lesson %d, index.html puts it at %d"
+                    % (rec["source"], rec["lesson_number"], i + 1))
+            if rec["lesson_total"] != len(order):
+                failures.append(
+                    "%s: page says 'of %d', index.html lists %d lessons"
+                    % (rec["source"], rec["lesson_total"], len(order)))
 
     total = len(pages())
     print("extract_lessons --check")
@@ -414,18 +444,36 @@ def check():
     return 0
 
 
+def course_order():
+    """The canonical lesson order, read from the course list on index.html.
+
+    index.html is the published order, so it is the source of truth. Nothing
+    here invents an order.
+    """
+    home = (ROOT / "index.html").read_text(encoding="utf-8")
+    return re.findall(r'data-course-lesson="([^"]+)"', home)
+
+
 def write():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    records = {}
     for path in pages():
         rec = extract(path)
+        records[rec["slug"]] = rec
         (OUT_DIR / (rec["slug"] + ".json")).write_text(
             json.dumps(rec, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8")
-    index = [{"slug": p.stem} for p in sorted(OUT_DIR.glob("*.json"))]
+    order = course_order()
+    index = [{"slug": slug,
+              "lesson_number": i + 1,
+              "module": records[slug]["module"] if slug in records else -1,
+              "title": records[slug]["title"] if slug in records else ""}
+             for i, slug in enumerate(order)]
     (OUT_DIR.parent / "index.json").write_text(
-        json.dumps(index, indent=2) + "\n", encoding="utf-8")
+        json.dumps({"total": len(order), "lessons": index},
+                   indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print("wrote %d lesson files to %s"
-          % (len(index), OUT_DIR.relative_to(ROOT)))
+          % (len(records), OUT_DIR.relative_to(ROOT)))
     return 0
 
 
