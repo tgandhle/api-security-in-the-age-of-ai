@@ -23,7 +23,11 @@ class Items(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
-        if tag == "title":
+        if tag == "title" and self.title is None:
+            # Only the first <title>, which is the one in <head>. Every lesson
+            # with a diagram also has a <title> inside its inline <svg>, and
+            # taking the last one labelled 26 of 27 source links with the
+            # diagram's description instead of the lesson name.
             self.field = "pagetitle"
             self.title = ""
         if tag == "li" and "data-check" in a:
