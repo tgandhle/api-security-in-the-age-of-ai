@@ -55,7 +55,7 @@ Before committing:
 python3 tools/check_site.py              # links, anchors, dashes, secrets, checklist freshness
 python3 tools/extract_lessons.py --check # pages rebuild from content/, numbering, staleness
 python3 tools/render_site.py             # the shared template still reproduces every page
-python3 tools/check_transcripts.py       # every published lab transcript matches a live run
+python3 tools/check_transcripts.py       # runs every lab and compares its output to the page
 python3 tools/check_a11y.py              # axe-core, light and dark, desktop and mobile
 ```
 

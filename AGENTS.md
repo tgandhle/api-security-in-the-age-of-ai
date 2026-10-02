@@ -118,7 +118,7 @@ Work on one module per task unless told otherwise.
 - [ ] `python3 tools/check_site.py` prints `all checks passed`.
 - [ ] `python3 tools/extract_lessons.py --check` prints `content/ matches the published pages`.
 - [ ] `python3 tools/render_site.py` prints `the template reproduces every published page byte for byte`.
-- [ ] `python3 tools/check_transcripts.py` prints `every published lab transcript matches a live run`.
+- [ ] `python3 tools/check_transcripts.py` prints `all 26 published lab transcripts match a live run`. If it reports any as skipped, install the package the lab names and run it again, or say in your report which ones were not checked and why.
 - [ ] `python3 tools/check_a11y.py` prints `no accessibility violations`, or your report says it was skipped and why.
 - [ ] The lab runs, and the page shows its real output.
 - [ ] Every Standard label has a primary source that you opened.
