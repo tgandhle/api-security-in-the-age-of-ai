@@ -120,6 +120,110 @@ all lab checks passed</code></pre>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 </section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="api-keys-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one line of <a href="../../labs/api_keys_lab.py"><code>labs/api_keys_lab.py</code></a> and asks what the run prints. This lab asserts every result, so a change that breaks something stops the run and names the check it stopped on. The answers are the real output of each variant, so you can settle any disagreement by running it.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="api-keys-x1" data-covers="api-keys-01">
+<h3>1. The protected log records the request target</h3>
+<div class="prose">
+<p>In <code>API.request</code>, the protected branch logs a fixed route label. Make it log the target instead:</p>
+</div>
+<pre><code>self.logs.append(target)</code></pre>
+<fieldset><legend>Where does the run stop?</legend>
+<label><input type="radio" name="api-keys-x1" value="a"> It does not stop. Logging is not asserted.</label>
+<label><input type="radio" name="api-keys-x1" value="b"> Check 1, legitimate query request.</label>
+<label><input type="radio" name="api-keys-x1" value="c"> Check 2, query log scanner findings.</label>
+<label><input type="radio" name="api-keys-x1" value="d" data-correct="true"> Check 6, protected log scanner findings.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">It does stop. Check 6 asserts that scanning the protected log finds no credentials, and every check in this lab raises when its result does not match.</li>
+<li data-option="b">Check 1 runs against the vulnerable API, which logs raw targets in both versions. Nothing about this edit reaches it.</li>
+<li data-option="c">Check 2 is also the vulnerable API. Its scanner already finds the one credential in that log.</li>
+<li data-option="d">Correct. The run prints through check 5 and stops with <code>unexpected result: 6. protected log scanner findings</code>, exit 1. The protected log is the whole point of check <code>api-keys-01</code> in the <a href="#reference">Reference</a> layer: a credential in a URL becomes a credential in a log.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="api-keys-x2">
+<h3>2. Key comparison uses == instead of a constant-time compare</h3>
+<div class="prose">
+<p>In <code>API.request</code>, replace the <code>secrets.compare_digest</code> call with a plain equality test on the two strings.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="api-keys-x2" value="a"> Check 12, wrong key, starts accepting.</label>
+<label><input type="radio" name="api-keys-x2" value="b"> Check 5, legitimate header request, stops matching.</label>
+<label><input type="radio" name="api-keys-x2" value="c" data-correct="true"> Nothing. Every line is identical.</label>
+<label><input type="radio" name="api-keys-x2" value="d"> The run stops at check 3.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 12 still rejects. <code>==</code> is a correct comparison; it is just not a constant-time one.</li>
+<li data-option="b">Check 5 still accepts, for the same reason.</li>
+<li data-option="c">Correct, and this is the uncomfortable one: 19 of 19 lines identical, exit 0. A timing side channel is not a functional difference, so no output tells you it is there and no assertion in this lab can catch it. That is why it belongs in a review checklist rather than a test suite. This lesson has no item of its own for it. The HMAC lesson does, as <code>hmac-04</code> in its <a href="../hmac-request-signing/index.html#reference">Reference</a> layer.</li>
+<li data-option="d">Nothing stops. The exit code is 0.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="api-keys-x3" data-covers="api-keys-05">
+<h3>3. The request parser drops keep_blank_values</h3>
+<div class="prose">
+<p>In <code>API.request</code>, parse the query without <code>keep_blank_values=True</code>. Leave the scanner alone.</p>
+</div>
+<pre><code>pairs = parse_qsl(urlsplit(target).query)</code></pre>
+<fieldset><legend>Where does the run stop?</legend>
+<label><input type="radio" name="api-keys-x3" value="a"> Check 4, query credential after fix.</label>
+<label><input type="radio" name="api-keys-x3" value="b"> Check 16, harmless and blank query scan.</label>
+<label><input type="radio" name="api-keys-x3" value="c" data-correct="true"> Check 17, empty query credential.</label>
+<label><input type="radio" name="api-keys-x3" value="d"> It does not stop. Both answers are a rejection.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 4 sends a real key in the query, so blank handling never comes into it.</li>
+<li data-option="b">Check 16 exercises the scanner, not the request path, and the scanner keeps its own <code>keep_blank_values</code>. It still reports 0.</li>
+<li data-option="c">Correct. The run prints through check 16 and stops with <code>unexpected result: 17. empty query credential</code>, exit 1. <code>/balance?api_key=</code> now parses to no pairs at all, so the query branch sees nothing and the request falls through to the credential check, which answers <code>reject: invalid credential</code>. Both answers are a rejection, which is exactly why a parsing change like this ships: only the rule that fired is different. Check <code>api-keys-05</code> in the <a href="#reference">Reference</a> layer is about testing the parsing, not just the happy path.</li>
+<li data-option="d">Both answers are a rejection, but they are different strings, and check 17 asserts which one. It stops, exit 1.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="api-keys-x4" data-covers="api-keys-01">
+<h3>4. The query check looks for a substring instead of parsing</h3>
+<div class="prose">
+<p>In the protected branch, replace the parsed-query test with a substring test on the raw target:</p>
+</div>
+<pre><code>if "api_key=" in target:
+    return "reject: query credential"</code></pre>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="api-keys-x4" value="a"> Check 13, header plus query credential, stops matching.</label>
+<label><input type="radio" name="api-keys-x4" value="b"> Check 15, encoded query credential, stops matching.</label>
+<label><input type="radio" name="api-keys-x4" value="c"> Check 17, empty query credential, stops matching.</label>
+<label><input type="radio" name="api-keys-x4" value="d" data-correct="true"> Nothing. Every line is identical, and no check in the lab separates the two.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 13 puts <code>api_key=</code> in the query, so the substring is right there and the request is rejected either way.</li>
+<li data-option="b">Check 15 sends the encoded name and a plain <code>api_key=</code> in the same target, so the literal is present. It is the encoded name on its own that separates the two, and the lab never sends that.</li>
+<li data-option="c">Check 17 is <code>/balance?api_key=</code>, which contains the literal too.</li>
+<li data-option="d">Correct. 19 of 19 lines identical, exit 0, because every target in this lab contains the literal <code>api_key=</code> somewhere. The case that tells them apart is a percent-encoded name on its own, <code>/balance?%61pi_key=...</code>. Measured on that target with a valid key in the header: the substring version answers <code>accept</code>, and the published parsed-query version answers <code>reject: query credential</code>. A green suite is not coverage, which is what check <code>api-keys-05</code> in the <a href="#reference">Reference</a> layer asks you to test.</li>
+</ul>
+</details>
+</article>
+</section>
+
 <p class="course-next"><strong>Next:</strong> continue to <a href="../hmac-request-signing/index.html">module 2, HMAC request signing</a>.</p>
 <span class="layer" id="reference" style="margin-top:3rem">Reference</span>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
