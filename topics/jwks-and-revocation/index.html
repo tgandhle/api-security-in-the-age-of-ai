@@ -219,6 +219,108 @@ all lab checks passed</code></pre>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 </section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="jwks-and-revocation-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/jwks_lab.py"><code>labs/jwks_lab.py</code></a> and asks what the run prints. This lab is a state machine, so most edits here move more than one check. The answers are the real output of each variant.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="jwks-x1" data-covers="jwks-02">
+<h3>1. The key set never goes stale</h3>
+<div class="prose">
+<p>In <code>KeyCache.resolve</code>, replace the staleness test with <code>stale = False</code>, so the only refreshes left are the on-demand ones triggered by an unknown <code>kid</code>.</p>
+</div>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="jwks-x1" value="a"> Check 9, the rotation overlap, stops working.</label>
+<label><input type="radio" name="jwks-x1" value="b" data-correct="true"> Checks 10 and 11 become <code>accept</code>.</label>
+<label><input type="radio" name="jwks-x1" value="c"> Checks 12 and 14 change, because refreshes stop happening.</label>
+<label><input type="radio" name="jwks-x1" value="d"> Nothing. The on-demand refresh covers it.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 9 is a token signed by a key that is still in the set, so it accepts either way. Rotation overlap is not what breaks.</li>
+<li data-option="b">Correct. Exit 1, two failures: check 10, the old key removed after the overlap, and check 11, a successful empty set evicting the old key, both go from <code>reject: unknown kid</code> to <code>accept</code>. The key the issuer took away keeps verifying tokens, and it keeps verifying them until the process restarts. This is the whole reason for a scheduled refresh, and check <code>jwks-02</code> in the <a href="#reference">Reference</a> layer states it as a requirement rather than an optimisation.</li>
+<li data-option="c">Checks 12 and 14 are on-demand refreshes driven by a missing <code>kid</code>, which this edit leaves in place.</li>
+<li data-option="d">The on-demand refresh only fires when a <code>kid</code> is missing from the cache. A revoked key's <code>kid</code> is still in the cache, so nothing ever asks.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="jwks-x2" data-covers="jwks-07">
+<h3>2. The active-state cache is used without its TTL</h3>
+<div class="prose">
+<p>In <code>ResourceServer.call</code>, use any cached answer that exists:</p>
+</div>
+<pre><code>if cached:
+    active = cached[0]</code></pre>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="jwks-x2" value="a"> Check 21 only. The cache stops expiring.</label>
+<label><input type="radio" name="jwks-x2" value="b"> Checks 19 and 20, where the cache is filled and used.</label>
+<label><input type="radio" name="jwks-x2" value="c" data-correct="true"> Checks 18 and 21 both become <code>accept</code>.</label>
+<label><input type="radio" name="jwks-x2" value="d"> Nothing. Check 18 uses a server whose TTL is zero.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 21 does change, and so does check 18, which is the more interesting of the two.</li>
+<li data-option="b">Checks 19 and 20 accept in the published run as well. A cache that is working looks the same as a cache that never expires, right up to the moment something is revoked.</li>
+<li data-option="c">Correct. Exit 1, two failures: both go from <code>reject: token not active</code> to <code>accept</code>. Check 18 is the one worth looking at. Its server has a TTL of zero, which should mean no caching at all, and the published code gets that right because <code>now - stored &lt; 0</code> is never true. Remove the comparison and a zero TTL becomes an unbounded one, so the <code>active: true</code> recorded before the revocation is reused forever. Check <code>jwks-07</code> in the <a href="#reference">Reference</a> layer asks you to state the blind window, and the point of stating it is that it has to be a number.</li>
+<li data-option="d">It does, which is why the published run rejects there. A TTL of zero only means no caching while something still compares against it.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="jwks-x3" data-covers="jwks-05">
+<h3>3. A duplicate kid keeps one of the two keys</h3>
+<div class="prose">
+<p>In <code>KeyCache._absorb</code>, stop marking a repeated <code>kid</code> as ambiguous and let the loop fall through, so the later key in the document wins.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="jwks-x3" value="a"> Check 5 becomes <code>accept</code>, because one of the two keys is the right one.</label>
+<label><input type="radio" name="jwks-x3" value="b" data-correct="true"> Check 5 still rejects, with <code>reject: signature check failed</code>.</label>
+<label><input type="radio" name="jwks-x3" value="c"> Nothing. The set still contains both keys.</label>
+<label><input type="radio" name="jwks-x3" value="d"> Checks 1 and 5 both change.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">It depends entirely on which of the two the loop kept, and in this document it kept the other one. That is the problem: the outcome is decided by document order.</li>
+<li data-option="b">Correct. Exit 1, one failure: the reason changes from <code>reject: ambiguous kid</code> to <code>reject: signature check failed</code>. The token is still refused, but only because the key that happened to survive the loop is not the one that signed it. Measured: swap the two entries in that document and the same edited code answers <code>accept</code>, while the published code answers <code>reject: ambiguous kid</code> under either order. A verifier whose answer depends on the order of a JSON array is not deciding anything, which is what check <code>jwks-05</code> in the <a href="#reference">Reference</a> layer is about.</li>
+<li data-option="c">It does not. A dictionary keyed by <code>kid</code> holds one entry per <code>kid</code>, and that is exactly why the ambiguity has to be recorded rather than resolved.</li>
+<li data-option="d">Check 1 uses a <code>kid</code> that appears once, so it is untouched.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="jwks-x4" data-covers="jwks-01">
+<h3>4. A malformed refresh replaces the key set</h3>
+<div class="prose">
+<p>In <code>KeyCache._refresh</code>, treat a malformed document as authoritative: empty the cache and record the load time before returning <code>malformed</code>.</p>
+</div>
+<fieldset><legend>Which check changes?</legend>
+<label><input type="radio" name="jwks-x4" value="a"> Check 12, the request that needed the malformed refresh.</label>
+<label><input type="radio" name="jwks-x4" value="b" data-correct="true"> Check 13, the request after it.</label>
+<label><input type="radio" name="jwks-x4" value="c"> Checks 14 and 15, the transport failure pair.</label>
+<label><input type="radio" name="jwks-x4" value="d"> Nothing. The request that triggered it already fails.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 12 rejects either way. The request that needed the refresh fails whether or not the bad document is absorbed, which is why it hides the change.</li>
+<li data-option="b">Correct. Exit 1, one failure: check 13 goes from <code>accept</code> to <code>reject: unknown kid</code>. One malformed response from the key endpoint now takes down every caller holding a valid token, not just the one unlucky request. The lab's stated baseline is that a malformed or failed retrieval is not authoritative, and this is the measurement behind that sentence. Check <code>jwks-01</code> in the <a href="#reference">Reference</a> layer asks for every refresh outcome to have a documented and tested answer, and there are four of them: ok, empty, malformed and failed.</li>
+<li data-option="c">The transport failure path returns before the malformed test is reached, so those two are unchanged.</li>
+<li data-option="d">It does fail, and that is the point of check 13 sitting right after it: the question is what the next request sees.</li>
+</ul>
+</details>
+</article>
+</section>
+
 <p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
 <span class="layer" id="reference" style="margin-top:3rem">Reference</span>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
