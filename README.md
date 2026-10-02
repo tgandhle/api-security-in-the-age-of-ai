@@ -30,7 +30,7 @@ python labs/jwks_lab.py
 
 Inside an activated environment use `python`, not `py -3`. The launcher ignores an active environment when given an explicit version: "To run the global interpreter, either deactivate the virtual environment, or explicitly specify the global Python version" (Python documentation, Using Python on Windows, Virtual environments). On macOS and Linux the equivalent is `python3 -m venv .venv` then `source .venv/bin/activate`.
 
-The labs are pure in-process Python with no shell, subprocess or path handling, so their output does not vary by platform. Checked, not assumed: `labs/oauth_lab.py` produces output byte-identical to the transcript published on its page on Windows (Python 3.14.6, `py -3`) and on Linux (Python 3.11.15, `python3`). `tools/check_site.py` also produces identical output on both.
+The labs are pure in-process Python with no shell, subprocess or path handling, so their output does not vary by platform. Checked, not assumed: `tools/check_transcripts.py` runs every lab whose output is published and compares it to the page byte for byte. All 26 match on Windows (Python 3.14.6, `python` in an activated environment) and on Linux (Python 3.11.15, `python3`), both with `cryptography==50.0.1`. Where that package is absent, the four labs that need it are reported as skipped rather than as passing. `tools/check_site.py` also produces identical output on both.
 
 ## Licence
 
