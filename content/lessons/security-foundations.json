@@ -269,11 +269,20 @@
       "html": "\n\n<section class=\"course-quiz\" data-quiz data-quiz-id=\"security-foundations-check\" data-correct-feedback=\"Correct. Both parties hold the same key, so a valid HMAC narrows the producer to the set of key holders, which includes you. Attributing a request to the other party specifically needs an asymmetric signature.\" data-incorrect-feedback=\"Not quite. An HMAC does prove the message was not altered and that a key holder produced it. What it cannot do is single out which key holder, because the verifier holds the same key and could have produced it.\">\n<p class=\"kicker\">Quick check</p>\n<h2>What an HMAC establishes</h2>\n<fieldset><legend>Your partner sends requests signed with an HMAC using a key you both hold. A request verifies. What have you established?</legend>\n<label><input type=\"radio\" name=\"fnd\" value=\"partner\"> That your partner sent this request.</label>\n<label><input type=\"radio\" name=\"fnd\" value=\"holder\" data-correct=\"true\"> That someone holding the key produced it, and you are also such a party.</label>\n<label><input type=\"radio\" name=\"fnd\" value=\"fresh\"> That the request is recent and has not been sent before.</label>\n<label><input type=\"radio\" name=\"fnd\" value=\"allowed\"> That your partner is permitted to make this request.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button><p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n</section>"
     },
     {
+      "tag": "section",
+      "attrs": {
+        "class": "course-quiz course-exercises",
+        "data-exercises": null,
+        "data-exercises-id": "security-foundations-exercises"
+      },
+      "html": "\n<section class=\"course-quiz course-exercises\" data-exercises data-exercises-id=\"security-foundations-exercises\">\n<p class=\"kicker\">Exercises</p>\n<h2>Change one thing and predict the output</h2>\n<div class=\"prose\">\n<p>Each exercise edits one place in <a href=\"../../labs/foundations_lab.py\"><code>labs/foundations_lab.py</code></a> and asks what the run prints. This lab records every result and prints a failure summary at the end rather than stopping, so you get the full picture of what moved. The answers are the real output of each variant.</p>\n</div>\n\n<article class=\"exercise\" data-exercise data-exercise-id=\"fnd-x1\" data-covers=\"fnd-03\">\n<h3>1. The tag drops the key and just hashes</h3>\n<div class=\"prose\">\n<p>Change <code>tag</code> so it ignores the key it was given:</p>\n</div>\n<pre><code>def tag(key, data):\n    return hashlib.sha256(data).hexdigest()</code></pre>\n<fieldset><legend>How many checks fail, and which?</legend>\n<label><input type=\"radio\" name=\"fnd-x1\" value=\"a\"> One, check 6.</label>\n<label><input type=\"radio\" name=\"fnd-x1\" value=\"b\"> Two, checks 6 and 9.</label>\n<label><input type=\"radio\" name=\"fnd-x1\" value=\"c\" data-correct=\"true\"> Four: checks 6, 9, 11 and 15.</label>\n<label><input type=\"radio\" name=\"fnd-x1\" value=\"d\"> None. A hash and a tag both change when the message changes.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 6 does fail, but it is not alone. The run ends with <code>4 check(s) did not match the expected outcome</code>.</li>\n<li data-option=\"b\">Closer. 6 and 9 fail, and so do 11 and 15.</li>\n<li data-option=\"c\">Correct. Exit 1, and the summary reads <code>4 check(s) did not match the expected outcome</code>. Check 6, the same message with a different key, becomes <code>identical</code>. Check 9, the wrong key, becomes <code>accepted</code>. Check 11, a tag proves which key was used, becomes <code>no</code>. Check 15, a forged request for another account, becomes <code>accept</code>. That last one is what matters: with no key in the value, anyone can produce it, so Part D has no authentication left. Checks <code>fnd-03</code> and <code>fnd-06</code> in the <a href=\"#reference\">Reference</a> layer are about exactly this.</li>\n<li data-option=\"d\">Both do change when the message changes, which is why checks 2 and 7 still pass. What separates them is who can produce the value, and only the keyed one restricts that.</li>\n</ul>\n</details>\n</article>\n\n<article class=\"exercise\" data-exercise data-exercise-id=\"fnd-x2\" data-covers=\"fnd-02\">\n<h3>2. Part D stops verifying the signature</h3>\n<div class=\"prose\">\n<p>In <code>handle</code>, delete the two lines that verify the signature and return <code>reject: bad signature</code>. Leave the ownership check alone.</p>\n</div>\n<fieldset><legend>Which checks change?</legend>\n<label><input type=\"radio\" name=\"fnd-x2\" value=\"a\"> Checks 13, 14 and 15.</label>\n<label><input type=\"radio\" name=\"fnd-x2\" value=\"b\" data-correct=\"true\"> Check 15 only.</label>\n<label><input type=\"radio\" name=\"fnd-x2\" value=\"c\"> Checks 15, 16 and 17.</label>\n<label><input type=\"radio\" name=\"fnd-x2\" value=\"d\"> None. Part D is about authorization.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Checks 13 and 14 send genuine signatures. They accept whether the check is there or not.</li>\n<li data-option=\"b\">Correct. Exit 1, <code>1 check(s) did not match the expected outcome</code>: check 15 becomes <code>accept</code>. Checks 13, 14, 16 and 17 all carry genuine signatures, so removing a check that would have passed anyway changes nothing about them. That is the shape of this whole class of bug. It is invisible on every request a real caller makes, and only the forged one tells you. Check <code>fnd-02</code> in the <a href=\"#reference\">Reference</a> layer is where identity has to come from.</li>\n<li data-option=\"c\">Checks 16 and 17 also carry genuine signatures. 17 still rejects, on ownership.</li>\n<li data-option=\"d\">Part D is about both, which is the point of the module. The signature is the authentication half, and removing it moves check 15.</li>\n</ul>\n</details>\n</article>\n\n<article class=\"exercise\" data-exercise data-exercise-id=\"fnd-x3\" data-covers=\"fnd-06\">\n<h3>3. The receiver verifies with the other key</h3>\n<div class=\"prose\">\n<p>Change <code>verify</code> so it always computes the expected tag with <code>KEY_B</code>, whatever key it was passed. The callers are untouched, so they still sign with <code>KEY_A</code>.</p>\n</div>\n<fieldset><legend>Which way does check 15, the forged request, go?</legend>\n<label><input type=\"radio\" name=\"fnd-x3\" value=\"a\"> It still rejects. The signature is still forged.</label>\n<label><input type=\"radio\" name=\"fnd-x3\" value=\"b\" data-correct=\"true\"> It becomes <code>accept</code>, and six other checks change too.</label>\n<label><input type=\"radio\" name=\"fnd-x3\" value=\"c\"> Nothing changes. Both keys are 32 bytes.</label>\n<label><input type=\"radio\" name=\"fnd-x3\" value=\"d\"> The run crashes before Part D.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Forged with respect to what? That tag was made with <code>KEY_B</code>, and <code>KEY_B</code> is now the key the receiver verifies against.</li>\n<li data-option=\"b\">Correct. Exit 1 and 7 failures. Check 15 is the one request in the lab signed with <code>KEY_B</code>, so it is now the only one accepted, and checks 8, 12, 13, 14, 16 and 17 all flip to a rejection because every genuine caller is now signing with a key the receiver does not use. Forged is not a property of a request. It is a statement about which key the receiver trusts, which is why check <code>fnd-06</code> in the <a href=\"#reference\">Reference</a> layer asks you to write down who can produce each value and who can check it.</li>\n<li data-option=\"c\">Both are 32 bytes, and they are different 32 bytes, which is the only thing that matters here.</li>\n<li data-option=\"d\">It runs to the end. Nothing raises; the lab collects results and prints a 7-line failure summary.</li>\n</ul>\n</details>\n</article>\n\n<article class=\"exercise\" data-exercise data-exercise-id=\"fnd-x4\" data-covers=\"fnd-01\">\n<h3>4. Part D authorizes before it authenticates</h3>\n<div class=\"prose\">\n<p>In <code>handle</code>, move the ownership check above the signature check, so the order becomes target, ownership, signature.</p>\n</div>\n<fieldset><legend>What does the run print differently?</legend>\n<label><input type=\"radio\" name=\"fnd-x4\" value=\"a\"> Check 15 becomes <code>reject: not your account</code>.</label>\n<label><input type=\"radio\" name=\"fnd-x4\" value=\"b\"> Check 17 becomes <code>reject: bad signature</code>.</label>\n<label><input type=\"radio\" name=\"fnd-x4\" value=\"c\" data-correct=\"true\"> Nothing. Every line is identical.</label>\n<label><input type=\"radio\" name=\"fnd-x4\" value=\"d\"> The run stops at check 13.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 15 asks for <code>acct-91</code> with authorization off, so the ownership branch is skipped and the order never reaches it.</li>\n<li data-option=\"b\">Check 17 carries a genuine signature, so it gets to the ownership check under either order.</li>\n<li data-option=\"c\">Correct. 45 of 45 lines identical, exit 0. No request in this lab has both a bad signature and the wrong account, and that combination is the only one the order affects. What getting it wrong costs you is not a failed check: it is that an unauthenticated caller learns from the error message whether an account exists. Checks <code>fnd-01</code> and <code>fnd-05</code> in the <a href=\"#reference\">Reference</a> layer are where that is caught, because the output never will be.</li>\n<li data-option=\"d\">Nothing stops. Exit 0, and the lab prints <code>all lab checks passed</code>.</li>\n</ul>\n</details>\n</article>\n</section>"
+    },
+    {
       "tag": "p",
       "attrs": {
         "class": "course-next"
       },
-      "html": "\n<p class=\"course-next\"><strong>Course progress:</strong> return to the <a href=\"../../index.html#course\">course dashboard</a> to see your published-module progress.</p>"
+      "html": "\n\n<p class=\"course-next\"><strong>Course progress:</strong> return to the <a href=\"../../index.html#course\">course dashboard</a> to see your published-module progress.</p>"
     },
     {
       "tag": "span",
@@ -396,7 +405,12 @@
     {
       "heading": "What an HMAC establishes",
       "heading_text": "What an HMAC establishes",
-      "html": "<fieldset><legend>Your partner sends requests signed with an HMAC using a key you both hold. A request verifies. What have you established?</legend>\n<label><input type=\"radio\" name=\"fnd\" value=\"partner\"> That your partner sent this request.</label>\n<label><input type=\"radio\" name=\"fnd\" value=\"holder\" data-correct=\"true\"> That someone holding the key produced it, and you are also such a party.</label>\n<label><input type=\"radio\" name=\"fnd\" value=\"fresh\"> That the request is recent and has not been sent before.</label>\n<label><input type=\"radio\" name=\"fnd\" value=\"allowed\"> That your partner is permitted to make this request.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button><p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n</section>\n<p class=\"course-next\"><strong>Course progress:</strong> return to the <a href=\"../../index.html#course\">course dashboard</a> to see your published-module progress.</p>"
+      "html": "<fieldset><legend>Your partner sends requests signed with an HMAC using a key you both hold. A request verifies. What have you established?</legend>\n<label><input type=\"radio\" name=\"fnd\" value=\"partner\"> That your partner sent this request.</label>\n<label><input type=\"radio\" name=\"fnd\" value=\"holder\" data-correct=\"true\"> That someone holding the key produced it, and you are also such a party.</label>\n<label><input type=\"radio\" name=\"fnd\" value=\"fresh\"> That the request is recent and has not been sent before.</label>\n<label><input type=\"radio\" name=\"fnd\" value=\"allowed\"> That your partner is permitted to make this request.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button><p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n</section>\n<section class=\"course-quiz course-exercises\" data-exercises data-exercises-id=\"security-foundations-exercises\">\n<p class=\"kicker\">Exercises</p>"
+    },
+    {
+      "heading": "Change one thing and predict the output",
+      "heading_text": "Change one thing and predict the output",
+      "html": "<div class=\"prose\">\n<p>Each exercise edits one place in <a href=\"../../labs/foundations_lab.py\"><code>labs/foundations_lab.py</code></a> and asks what the run prints. This lab records every result and prints a failure summary at the end rather than stopping, so you get the full picture of what moved. The answers are the real output of each variant.</p>\n</div>\n\n<article class=\"exercise\" data-exercise data-exercise-id=\"fnd-x1\" data-covers=\"fnd-03\">\n<h3>1. The tag drops the key and just hashes</h3>\n<div class=\"prose\">\n<p>Change <code>tag</code> so it ignores the key it was given:</p>\n</div>\n<pre><code>def tag(key, data):\n    return hashlib.sha256(data).hexdigest()</code></pre>\n<fieldset><legend>How many checks fail, and which?</legend>\n<label><input type=\"radio\" name=\"fnd-x1\" value=\"a\"> One, check 6.</label>\n<label><input type=\"radio\" name=\"fnd-x1\" value=\"b\"> Two, checks 6 and 9.</label>\n<label><input type=\"radio\" name=\"fnd-x1\" value=\"c\" data-correct=\"true\"> Four: checks 6, 9, 11 and 15.</label>\n<label><input type=\"radio\" name=\"fnd-x1\" value=\"d\"> None. A hash and a tag both change when the message changes.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 6 does fail, but it is not alone. The run ends with <code>4 check(s) did not match the expected outcome</code>.</li>\n<li data-option=\"b\">Closer. 6 and 9 fail, and so do 11 and 15.</li>\n<li data-option=\"c\">Correct. Exit 1, and the summary reads <code>4 check(s) did not match the expected outcome</code>. Check 6, the same message with a different key, becomes <code>identical</code>. Check 9, the wrong key, becomes <code>accepted</code>. Check 11, a tag proves which key was used, becomes <code>no</code>. Check 15, a forged request for another account, becomes <code>accept</code>. That last one is what matters: with no key in the value, anyone can produce it, so Part D has no authentication left. Checks <code>fnd-03</code> and <code>fnd-06</code> in the <a href=\"#reference\">Reference</a> layer are about exactly this.</li>\n<li data-option=\"d\">Both do change when the message changes, which is why checks 2 and 7 still pass. What separates them is who can produce the value, and only the keyed one restricts that.</li>\n</ul>\n</details>\n</article>\n\n<article class=\"exercise\" data-exercise data-exercise-id=\"fnd-x2\" data-covers=\"fnd-02\">\n<h3>2. Part D stops verifying the signature</h3>\n<div class=\"prose\">\n<p>In <code>handle</code>, delete the two lines that verify the signature and return <code>reject: bad signature</code>. Leave the ownership check alone.</p>\n</div>\n<fieldset><legend>Which checks change?</legend>\n<label><input type=\"radio\" name=\"fnd-x2\" value=\"a\"> Checks 13, 14 and 15.</label>\n<label><input type=\"radio\" name=\"fnd-x2\" value=\"b\" data-correct=\"true\"> Check 15 only.</label>\n<label><input type=\"radio\" name=\"fnd-x2\" value=\"c\"> Checks 15, 16 and 17.</label>\n<label><input type=\"radio\" name=\"fnd-x2\" value=\"d\"> None. Part D is about authorization.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Checks 13 and 14 send genuine signatures. They accept whether the check is there or not.</li>\n<li data-option=\"b\">Correct. Exit 1, <code>1 check(s) did not match the expected outcome</code>: check 15 becomes <code>accept</code>. Checks 13, 14, 16 and 17 all carry genuine signatures, so removing a check that would have passed anyway changes nothing about them. That is the shape of this whole class of bug. It is invisible on every request a real caller makes, and only the forged one tells you. Check <code>fnd-02</code> in the <a href=\"#reference\">Reference</a> layer is where identity has to come from.</li>\n<li data-option=\"c\">Checks 16 and 17 also carry genuine signatures. 17 still rejects, on ownership.</li>\n<li data-option=\"d\">Part D is about both, which is the point of the module. The signature is the authentication half, and removing it moves check 15.</li>\n</ul>\n</details>\n</article>\n\n<article class=\"exercise\" data-exercise data-exercise-id=\"fnd-x3\" data-covers=\"fnd-06\">\n<h3>3. The receiver verifies with the other key</h3>\n<div class=\"prose\">\n<p>Change <code>verify</code> so it always computes the expected tag with <code>KEY_B</code>, whatever key it was passed. The callers are untouched, so they still sign with <code>KEY_A</code>.</p>\n</div>\n<fieldset><legend>Which way does check 15, the forged request, go?</legend>\n<label><input type=\"radio\" name=\"fnd-x3\" value=\"a\"> It still rejects. The signature is still forged.</label>\n<label><input type=\"radio\" name=\"fnd-x3\" value=\"b\" data-correct=\"true\"> It becomes <code>accept</code>, and six other checks change too.</label>\n<label><input type=\"radio\" name=\"fnd-x3\" value=\"c\"> Nothing changes. Both keys are 32 bytes.</label>\n<label><input type=\"radio\" name=\"fnd-x3\" value=\"d\"> The run crashes before Part D.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Forged with respect to what? That tag was made with <code>KEY_B</code>, and <code>KEY_B</code> is now the key the receiver verifies against.</li>\n<li data-option=\"b\">Correct. Exit 1 and 7 failures. Check 15 is the one request in the lab signed with <code>KEY_B</code>, so it is now the only one accepted, and checks 8, 12, 13, 14, 16 and 17 all flip to a rejection because every genuine caller is now signing with a key the receiver does not use. Forged is not a property of a request. It is a statement about which key the receiver trusts, which is why check <code>fnd-06</code> in the <a href=\"#reference\">Reference</a> layer asks you to write down who can produce each value and who can check it.</li>\n<li data-option=\"c\">Both are 32 bytes, and they are different 32 bytes, which is the only thing that matters here.</li>\n<li data-option=\"d\">It runs to the end. Nothing raises; the lab collects results and prints a 7-line failure summary.</li>\n</ul>\n</details>\n</article>\n\n<article class=\"exercise\" data-exercise data-exercise-id=\"fnd-x4\" data-covers=\"fnd-01\">\n<h3>4. Part D authorizes before it authenticates</h3>\n<div class=\"prose\">\n<p>In <code>handle</code>, move the ownership check above the signature check, so the order becomes target, ownership, signature.</p>\n</div>\n<fieldset><legend>What does the run print differently?</legend>\n<label><input type=\"radio\" name=\"fnd-x4\" value=\"a\"> Check 15 becomes <code>reject: not your account</code>.</label>\n<label><input type=\"radio\" name=\"fnd-x4\" value=\"b\"> Check 17 becomes <code>reject: bad signature</code>.</label>\n<label><input type=\"radio\" name=\"fnd-x4\" value=\"c\" data-correct=\"true\"> Nothing. Every line is identical.</label>\n<label><input type=\"radio\" name=\"fnd-x4\" value=\"d\"> The run stops at check 13.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 15 asks for <code>acct-91</code> with authorization off, so the ownership branch is skipped and the order never reaches it.</li>\n<li data-option=\"b\">Check 17 carries a genuine signature, so it gets to the ownership check under either order.</li>\n<li data-option=\"c\">Correct. 45 of 45 lines identical, exit 0. No request in this lab has both a bad signature and the wrong account, and that combination is the only one the order affects. What getting it wrong costs you is not a failed check: it is that an unauthenticated caller learns from the error message whether an account exists. Checks <code>fnd-01</code> and <code>fnd-05</code> in the <a href=\"#reference\">Reference</a> layer are where that is caught, because the output never will be.</li>\n<li data-option=\"d\">Nothing stops. Exit 0, and the lab prints <code>all lab checks passed</code>.</li>\n</ul>\n</details>\n</article>\n</section>\n\n<p class=\"course-next\"><strong>Course progress:</strong> return to the <a href=\"../../index.html#course\">course dashboard</a> to see your published-module progress.</p>"
     },
     {
       "heading": "Controls",
@@ -426,7 +440,8 @@
   ],
   "pre_blocks": [
     "<pre><code>Windows              macOS and Linux\npy -3 labs/foundations_lab.py    python3 labs/foundations_lab.py</code></pre>",
-    "<pre><code>$ python3 labs/foundations_lab.py\nmessage: {\"partnerTxnId\":\"EXA-000042\",\"miles\":10000}\naltered: {\"partnerTxnId\":\"EXA-000042\",\"miles\":10001}   (one digit)\n\nPart A: a hash.\n 1. the same input twice                             identical\n 2. one digit changed                                different\n 3. bits that changed, out of 256                    roughly half\n      (116 bits actually changed)\n 4. an attacker alters the message and the hash      still consistent\n\nPart B: an HMAC.\n 5. the same key and message twice                   identical\n 6. the same message, a different key                different\n 7. one digit changed, same key                      different\n 8. the right key and message                        accepted\n 9. the wrong key                                    rejected\n10. the altered message, the original tag            rejected\n\nPart C: who can produce a value, and who can check it.\n\n  mechanism              can produce                can check\n  hash                   anyone                     anyone\n  HMAC                   anyone holding the key     anyone holding the key\n  asymmetric signature   the private key holder     anyone with the public key\n\n  Rows 1 and 2 were produced above. Row 3 is stated here and\n  demonstrated in module 3, because Python's standard library has\n  no asymmetric primitives.\n\n11. a tag proves which key was used                  yes\n12. a message the caller never sent, from the receiver accepted\n\nPart D: authentication is not authorization.\n13. the caller reads its own balance                 accept\n14. the same caller reads another account            accept\n15. a forged request for another account             reject: bad signature\n16. with an ownership check, its own account         accept\n17. with an ownership check, another account         reject: not your account\n\n  Check 14 is the whole point of this module. The signature was\n  genuine, the caller was who it claimed, and the request should\n  still have been refused. Nothing in Part 1 of this course adds\n  the check that refuses it. Part 2 does.\n\nall lab checks passed</code></pre>"
+    "<pre><code>$ python3 labs/foundations_lab.py\nmessage: {\"partnerTxnId\":\"EXA-000042\",\"miles\":10000}\naltered: {\"partnerTxnId\":\"EXA-000042\",\"miles\":10001}   (one digit)\n\nPart A: a hash.\n 1. the same input twice                             identical\n 2. one digit changed                                different\n 3. bits that changed, out of 256                    roughly half\n      (116 bits actually changed)\n 4. an attacker alters the message and the hash      still consistent\n\nPart B: an HMAC.\n 5. the same key and message twice                   identical\n 6. the same message, a different key                different\n 7. one digit changed, same key                      different\n 8. the right key and message                        accepted\n 9. the wrong key                                    rejected\n10. the altered message, the original tag            rejected\n\nPart C: who can produce a value, and who can check it.\n\n  mechanism              can produce                can check\n  hash                   anyone                     anyone\n  HMAC                   anyone holding the key     anyone holding the key\n  asymmetric signature   the private key holder     anyone with the public key\n\n  Rows 1 and 2 were produced above. Row 3 is stated here and\n  demonstrated in module 3, because Python's standard library has\n  no asymmetric primitives.\n\n11. a tag proves which key was used                  yes\n12. a message the caller never sent, from the receiver accepted\n\nPart D: authentication is not authorization.\n13. the caller reads its own balance                 accept\n14. the same caller reads another account            accept\n15. a forged request for another account             reject: bad signature\n16. with an ownership check, its own account         accept\n17. with an ownership check, another account         reject: not your account\n\n  Check 14 is the whole point of this module. The signature was\n  genuine, the caller was who it claimed, and the request should\n  still have been refused. Nothing in Part 1 of this course adds\n  the check that refuses it. Part 2 does.\n\nall lab checks passed</code></pre>",
+    "<pre><code>def tag(key, data):\n    return hashlib.sha256(data).hexdigest()</code></pre>"
   ],
   "svg_blocks": [
     "<svg viewBox=\"0 0 1100 355\" width=\"100%\" style=\"min-width:900px\" role=\"img\">\n<title>The four questions a request passes through, and where each one is answered</title>\n<desc>A request travels left to right through four checks. First the channel, where TLS authenticates the server and protects the data in transit. Second authentication, which establishes which caller is making the request. Third authorization, which decides whether that caller may perform this action on this object. Fourth the business rule. Part 1 of the course is marked under authentication and Part 2 under authorization. A note records that the first three can each succeed while the request should still have been refused, because only authorization asks about the object.</desc>\n<defs><marker id=\"a\" viewBox=\"0 0 10 10\" refX=\"8\" refY=\"5\" markerWidth=\"6\" markerHeight=\"6\" orient=\"auto-start-reverse\"><path d=\"M2 1L8 5L2 9\" fill=\"none\" stroke=\"context-stroke\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></marker></defs>\n\n<text class=\"lab\" x=\"36\" y=\"30\">A request, and the four separate questions it has to survive.</text>\n<g class=\"p\"><rect x=\"30\" y=\"60\" width=\"180\" height=\"70\" rx=\"8\"/><text class=\"th\" x=\"120\" y=\"88\" text-anchor=\"middle\">Channel</text><text class=\"ts\" x=\"120\" y=\"108\" text-anchor=\"middle\">TLS: the server, in transit</text></g>\n<g class=\"h\"><rect x=\"250\" y=\"60\" width=\"200\" height=\"70\" rx=\"8\"/><text class=\"th\" x=\"350\" y=\"88\" text-anchor=\"middle\">Authentication</text><text class=\"ts\" x=\"350\" y=\"108\" text-anchor=\"middle\">which caller is this</text></g>\n<g class=\"s\"><rect x=\"490\" y=\"60\" width=\"220\" height=\"70\" rx=\"8\"/><text class=\"th\" x=\"600\" y=\"88\" text-anchor=\"middle\">Authorization</text><text class=\"ts\" x=\"600\" y=\"108\" text-anchor=\"middle\">may they, to this object</text></g>\n<g class=\"g\"><rect x=\"750\" y=\"60\" width=\"200\" height=\"70\" rx=\"8\"/><text class=\"th\" x=\"850\" y=\"88\" text-anchor=\"middle\">Business rule</text><text class=\"ts\" x=\"850\" y=\"108\" text-anchor=\"middle\">should they, right now</text></g>\n<line class=\"arr\" x1=\"210\" y1=\"95\" x2=\"246\" y2=\"95\" marker-end=\"url(#a)\"/>\n<line class=\"arr\" x1=\"450\" y1=\"95\" x2=\"486\" y2=\"95\" marker-end=\"url(#a)\"/>\n<line class=\"arr\" x1=\"710\" y1=\"95\" x2=\"746\" y2=\"95\" marker-end=\"url(#a)\"/>\n\n<rect class=\"zone\" x=\"250\" y=\"160\" width=\"200\" height=\"72\" rx=\"12\"/>\n<text class=\"lab\" x=\"350\" y=\"188\" text-anchor=\"middle\">Part 1 of this course</text>\n<text class=\"ts\" x=\"350\" y=\"212\" text-anchor=\"middle\">modules 1 to 8</text>\n<rect class=\"zone\" x=\"490\" y=\"160\" width=\"220\" height=\"72\" rx=\"12\"/>\n<text class=\"lab\" x=\"600\" y=\"188\" text-anchor=\"middle\">Part 2</text>\n<text class=\"ts\" x=\"600\" y=\"212\" text-anchor=\"middle\">modules 9 to 11</text>\n\n<g class=\"r\"><rect x=\"150\" y=\"272\" width=\"800\" height=\"62\" rx=\"8\"/><text class=\"th\" x=\"550\" y=\"297\" text-anchor=\"middle\">All four are separate answers</text><text class=\"ts\" x=\"550\" y=\"318\" text-anchor=\"middle\">the first three can each succeed on a request that should have been refused</text></g>\n</svg>"
@@ -555,6 +570,26 @@
       "summary": "Every credential check in your service passes and a customer's data went to the wrong caller. Which check was missing?",
       "html": "<summary>Every credential check in your service passes and a customer's data went to the wrong caller. Which check was missing?</summary><p>The one comparing the object being requested to the caller who requested it. Authentication established who was calling and did so correctly. Nothing in that answer says anything about which records they may read, and nothing in Part 1 of this course adds it.</p>",
       "class": ""
+    },
+    {
+      "summary": "Every option, and why",
+      "html": "<summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 6 does fail, but it is not alone. The run ends with <code>4 check(s) did not match the expected outcome</code>.</li>\n<li data-option=\"b\">Closer. 6 and 9 fail, and so do 11 and 15.</li>\n<li data-option=\"c\">Correct. Exit 1, and the summary reads <code>4 check(s) did not match the expected outcome</code>. Check 6, the same message with a different key, becomes <code>identical</code>. Check 9, the wrong key, becomes <code>accepted</code>. Check 11, a tag proves which key was used, becomes <code>no</code>. Check 15, a forged request for another account, becomes <code>accept</code>. That last one is what matters: with no key in the value, anyone can produce it, so Part D has no authentication left. Checks <code>fnd-03</code> and <code>fnd-06</code> in the <a href=\"#reference\">Reference</a> layer are about exactly this.</li>\n<li data-option=\"d\">Both do change when the message changes, which is why checks 2 and 7 still pass. What separates them is who can produce the value, and only the keyed one restricts that.</li>\n</ul>\n",
+      "class": "exercise-answers"
+    },
+    {
+      "summary": "Every option, and why",
+      "html": "<summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Checks 13 and 14 send genuine signatures. They accept whether the check is there or not.</li>\n<li data-option=\"b\">Correct. Exit 1, <code>1 check(s) did not match the expected outcome</code>: check 15 becomes <code>accept</code>. Checks 13, 14, 16 and 17 all carry genuine signatures, so removing a check that would have passed anyway changes nothing about them. That is the shape of this whole class of bug. It is invisible on every request a real caller makes, and only the forged one tells you. Check <code>fnd-02</code> in the <a href=\"#reference\">Reference</a> layer is where identity has to come from.</li>\n<li data-option=\"c\">Checks 16 and 17 also carry genuine signatures. 17 still rejects, on ownership.</li>\n<li data-option=\"d\">Part D is about both, which is the point of the module. The signature is the authentication half, and removing it moves check 15.</li>\n</ul>\n",
+      "class": "exercise-answers"
+    },
+    {
+      "summary": "Every option, and why",
+      "html": "<summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Forged with respect to what? That tag was made with <code>KEY_B</code>, and <code>KEY_B</code> is now the key the receiver verifies against.</li>\n<li data-option=\"b\">Correct. Exit 1 and 7 failures. Check 15 is the one request in the lab signed with <code>KEY_B</code>, so it is now the only one accepted, and checks 8, 12, 13, 14, 16 and 17 all flip to a rejection because every genuine caller is now signing with a key the receiver does not use. Forged is not a property of a request. It is a statement about which key the receiver trusts, which is why check <code>fnd-06</code> in the <a href=\"#reference\">Reference</a> layer asks you to write down who can produce each value and who can check it.</li>\n<li data-option=\"c\">Both are 32 bytes, and they are different 32 bytes, which is the only thing that matters here.</li>\n<li data-option=\"d\">It runs to the end. Nothing raises; the lab collects results and prints a 7-line failure summary.</li>\n</ul>\n",
+      "class": "exercise-answers"
+    },
+    {
+      "summary": "Every option, and why",
+      "html": "<summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 15 asks for <code>acct-91</code> with authorization off, so the ownership branch is skipped and the order never reaches it.</li>\n<li data-option=\"b\">Check 17 carries a genuine signature, so it gets to the ownership check under either order.</li>\n<li data-option=\"c\">Correct. 45 of 45 lines identical, exit 0. No request in this lab has both a bad signature and the wrong account, and that combination is the only one the order affects. What getting it wrong costs you is not a failed check: it is that an unauthenticated caller learns from the error message whether an account exists. Checks <code>fnd-01</code> and <code>fnd-05</code> in the <a href=\"#reference\">Reference</a> layer are where that is caught, because the output never will be.</li>\n<li data-option=\"d\">Nothing stops. Exit 0, and the lab prints <code>all lab checks passed</code>.</li>\n</ul>\n",
+      "class": "exercise-answers"
     }
   ],
   "quiz": [
@@ -575,5 +610,198 @@
       "html": "<summary>Every credential check in your service passes and a customer's data went to the wrong caller. Which check was missing?</summary><p>The one comparing the object being requested to the caller who requested it. Authentication established who was calling and did so correctly. Nothing in that answer says anything about which records they may read, and nothing in Part 1 of this course adds it.</p>"
     }
   ],
-  "exercises": []
+  "exercises": [
+    {
+      "id": "fnd-x1",
+      "covers": "fnd-03",
+      "heading": "1. The tag drops the key and just hashes",
+      "heading_text": "1. The tag drops the key and just hashes",
+      "legend": "How many checks fail, and which?",
+      "options": [
+        {
+          "value": "a",
+          "label": "One, check 6.",
+          "correct": false
+        },
+        {
+          "value": "b",
+          "label": "Two, checks 6 and 9.",
+          "correct": false
+        },
+        {
+          "value": "c",
+          "label": "Four: checks 6, 9, 11 and 15.",
+          "correct": true
+        },
+        {
+          "value": "d",
+          "label": "None. A hash and a tag both change when the message changes.",
+          "correct": false
+        }
+      ],
+      "answers": [
+        {
+          "option": "a",
+          "html": "Check 6 does fail, but it is not alone. The run ends with <code>4 check(s) did not match the expected outcome</code>."
+        },
+        {
+          "option": "b",
+          "html": "Closer. 6 and 9 fail, and so do 11 and 15."
+        },
+        {
+          "option": "c",
+          "html": "Correct. Exit 1, and the summary reads <code>4 check(s) did not match the expected outcome</code>. Check 6, the same message with a different key, becomes <code>identical</code>. Check 9, the wrong key, becomes <code>accepted</code>. Check 11, a tag proves which key was used, becomes <code>no</code>. Check 15, a forged request for another account, becomes <code>accept</code>. That last one is what matters: with no key in the value, anyone can produce it, so Part D has no authentication left. Checks <code>fnd-03</code> and <code>fnd-06</code> in the <a href=\"#reference\">Reference</a> layer are about exactly this."
+        },
+        {
+          "option": "d",
+          "html": "Both do change when the message changes, which is why checks 2 and 7 still pass. What separates them is who can produce the value, and only the keyed one restricts that."
+        }
+      ],
+      "html": "\n<h3>1. The tag drops the key and just hashes</h3>\n<div class=\"prose\">\n<p>Change <code>tag</code> so it ignores the key it was given:</p>\n</div>\n<pre><code>def tag(key, data):\n    return hashlib.sha256(data).hexdigest()</code></pre>\n<fieldset><legend>How many checks fail, and which?</legend>\n<label><input type=\"radio\" name=\"fnd-x1\" value=\"a\"> One, check 6.</label>\n<label><input type=\"radio\" name=\"fnd-x1\" value=\"b\"> Two, checks 6 and 9.</label>\n<label><input type=\"radio\" name=\"fnd-x1\" value=\"c\" data-correct=\"true\"> Four: checks 6, 9, 11 and 15.</label>\n<label><input type=\"radio\" name=\"fnd-x1\" value=\"d\"> None. A hash and a tag both change when the message changes.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 6 does fail, but it is not alone. The run ends with <code>4 check(s) did not match the expected outcome</code>.</li>\n<li data-option=\"b\">Closer. 6 and 9 fail, and so do 11 and 15.</li>\n<li data-option=\"c\">Correct. Exit 1, and the summary reads <code>4 check(s) did not match the expected outcome</code>. Check 6, the same message with a different key, becomes <code>identical</code>. Check 9, the wrong key, becomes <code>accepted</code>. Check 11, a tag proves which key was used, becomes <code>no</code>. Check 15, a forged request for another account, becomes <code>accept</code>. That last one is what matters: with no key in the value, anyone can produce it, so Part D has no authentication left. Checks <code>fnd-03</code> and <code>fnd-06</code> in the <a href=\"#reference\">Reference</a> layer are about exactly this.</li>\n<li data-option=\"d\">Both do change when the message changes, which is why checks 2 and 7 still pass. What separates them is who can produce the value, and only the keyed one restricts that.</li>\n</ul>\n</details>\n"
+    },
+    {
+      "id": "fnd-x2",
+      "covers": "fnd-02",
+      "heading": "2. Part D stops verifying the signature",
+      "heading_text": "2. Part D stops verifying the signature",
+      "legend": "Which checks change?",
+      "options": [
+        {
+          "value": "a",
+          "label": "Checks 13, 14 and 15.",
+          "correct": false
+        },
+        {
+          "value": "b",
+          "label": "Check 15 only.",
+          "correct": true
+        },
+        {
+          "value": "c",
+          "label": "Checks 15, 16 and 17.",
+          "correct": false
+        },
+        {
+          "value": "d",
+          "label": "None. Part D is about authorization.",
+          "correct": false
+        }
+      ],
+      "answers": [
+        {
+          "option": "a",
+          "html": "Checks 13 and 14 send genuine signatures. They accept whether the check is there or not."
+        },
+        {
+          "option": "b",
+          "html": "Correct. Exit 1, <code>1 check(s) did not match the expected outcome</code>: check 15 becomes <code>accept</code>. Checks 13, 14, 16 and 17 all carry genuine signatures, so removing a check that would have passed anyway changes nothing about them. That is the shape of this whole class of bug. It is invisible on every request a real caller makes, and only the forged one tells you. Check <code>fnd-02</code> in the <a href=\"#reference\">Reference</a> layer is where identity has to come from."
+        },
+        {
+          "option": "c",
+          "html": "Checks 16 and 17 also carry genuine signatures. 17 still rejects, on ownership."
+        },
+        {
+          "option": "d",
+          "html": "Part D is about both, which is the point of the module. The signature is the authentication half, and removing it moves check 15."
+        }
+      ],
+      "html": "\n<h3>2. Part D stops verifying the signature</h3>\n<div class=\"prose\">\n<p>In <code>handle</code>, delete the two lines that verify the signature and return <code>reject: bad signature</code>. Leave the ownership check alone.</p>\n</div>\n<fieldset><legend>Which checks change?</legend>\n<label><input type=\"radio\" name=\"fnd-x2\" value=\"a\"> Checks 13, 14 and 15.</label>\n<label><input type=\"radio\" name=\"fnd-x2\" value=\"b\" data-correct=\"true\"> Check 15 only.</label>\n<label><input type=\"radio\" name=\"fnd-x2\" value=\"c\"> Checks 15, 16 and 17.</label>\n<label><input type=\"radio\" name=\"fnd-x2\" value=\"d\"> None. Part D is about authorization.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Checks 13 and 14 send genuine signatures. They accept whether the check is there or not.</li>\n<li data-option=\"b\">Correct. Exit 1, <code>1 check(s) did not match the expected outcome</code>: check 15 becomes <code>accept</code>. Checks 13, 14, 16 and 17 all carry genuine signatures, so removing a check that would have passed anyway changes nothing about them. That is the shape of this whole class of bug. It is invisible on every request a real caller makes, and only the forged one tells you. Check <code>fnd-02</code> in the <a href=\"#reference\">Reference</a> layer is where identity has to come from.</li>\n<li data-option=\"c\">Checks 16 and 17 also carry genuine signatures. 17 still rejects, on ownership.</li>\n<li data-option=\"d\">Part D is about both, which is the point of the module. The signature is the authentication half, and removing it moves check 15.</li>\n</ul>\n</details>\n"
+    },
+    {
+      "id": "fnd-x3",
+      "covers": "fnd-06",
+      "heading": "3. The receiver verifies with the other key",
+      "heading_text": "3. The receiver verifies with the other key",
+      "legend": "Which way does check 15, the forged request, go?",
+      "options": [
+        {
+          "value": "a",
+          "label": "It still rejects. The signature is still forged.",
+          "correct": false
+        },
+        {
+          "value": "b",
+          "label": "It becomes accept, and six other checks change too.",
+          "correct": true
+        },
+        {
+          "value": "c",
+          "label": "Nothing changes. Both keys are 32 bytes.",
+          "correct": false
+        },
+        {
+          "value": "d",
+          "label": "The run crashes before Part D.",
+          "correct": false
+        }
+      ],
+      "answers": [
+        {
+          "option": "a",
+          "html": "Forged with respect to what? That tag was made with <code>KEY_B</code>, and <code>KEY_B</code> is now the key the receiver verifies against."
+        },
+        {
+          "option": "b",
+          "html": "Correct. Exit 1 and 7 failures. Check 15 is the one request in the lab signed with <code>KEY_B</code>, so it is now the only one accepted, and checks 8, 12, 13, 14, 16 and 17 all flip to a rejection because every genuine caller is now signing with a key the receiver does not use. Forged is not a property of a request. It is a statement about which key the receiver trusts, which is why check <code>fnd-06</code> in the <a href=\"#reference\">Reference</a> layer asks you to write down who can produce each value and who can check it."
+        },
+        {
+          "option": "c",
+          "html": "Both are 32 bytes, and they are different 32 bytes, which is the only thing that matters here."
+        },
+        {
+          "option": "d",
+          "html": "It runs to the end. Nothing raises; the lab collects results and prints a 7-line failure summary."
+        }
+      ],
+      "html": "\n<h3>3. The receiver verifies with the other key</h3>\n<div class=\"prose\">\n<p>Change <code>verify</code> so it always computes the expected tag with <code>KEY_B</code>, whatever key it was passed. The callers are untouched, so they still sign with <code>KEY_A</code>.</p>\n</div>\n<fieldset><legend>Which way does check 15, the forged request, go?</legend>\n<label><input type=\"radio\" name=\"fnd-x3\" value=\"a\"> It still rejects. The signature is still forged.</label>\n<label><input type=\"radio\" name=\"fnd-x3\" value=\"b\" data-correct=\"true\"> It becomes <code>accept</code>, and six other checks change too.</label>\n<label><input type=\"radio\" name=\"fnd-x3\" value=\"c\"> Nothing changes. Both keys are 32 bytes.</label>\n<label><input type=\"radio\" name=\"fnd-x3\" value=\"d\"> The run crashes before Part D.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Forged with respect to what? That tag was made with <code>KEY_B</code>, and <code>KEY_B</code> is now the key the receiver verifies against.</li>\n<li data-option=\"b\">Correct. Exit 1 and 7 failures. Check 15 is the one request in the lab signed with <code>KEY_B</code>, so it is now the only one accepted, and checks 8, 12, 13, 14, 16 and 17 all flip to a rejection because every genuine caller is now signing with a key the receiver does not use. Forged is not a property of a request. It is a statement about which key the receiver trusts, which is why check <code>fnd-06</code> in the <a href=\"#reference\">Reference</a> layer asks you to write down who can produce each value and who can check it.</li>\n<li data-option=\"c\">Both are 32 bytes, and they are different 32 bytes, which is the only thing that matters here.</li>\n<li data-option=\"d\">It runs to the end. Nothing raises; the lab collects results and prints a 7-line failure summary.</li>\n</ul>\n</details>\n"
+    },
+    {
+      "id": "fnd-x4",
+      "covers": "fnd-01",
+      "heading": "4. Part D authorizes before it authenticates",
+      "heading_text": "4. Part D authorizes before it authenticates",
+      "legend": "What does the run print differently?",
+      "options": [
+        {
+          "value": "a",
+          "label": "Check 15 becomes reject: not your account.",
+          "correct": false
+        },
+        {
+          "value": "b",
+          "label": "Check 17 becomes reject: bad signature.",
+          "correct": false
+        },
+        {
+          "value": "c",
+          "label": "Nothing. Every line is identical.",
+          "correct": true
+        },
+        {
+          "value": "d",
+          "label": "The run stops at check 13.",
+          "correct": false
+        }
+      ],
+      "answers": [
+        {
+          "option": "a",
+          "html": "Check 15 asks for <code>acct-91</code> with authorization off, so the ownership branch is skipped and the order never reaches it."
+        },
+        {
+          "option": "b",
+          "html": "Check 17 carries a genuine signature, so it gets to the ownership check under either order."
+        },
+        {
+          "option": "c",
+          "html": "Correct. 45 of 45 lines identical, exit 0. No request in this lab has both a bad signature and the wrong account, and that combination is the only one the order affects. What getting it wrong costs you is not a failed check: it is that an unauthenticated caller learns from the error message whether an account exists. Checks <code>fnd-01</code> and <code>fnd-05</code> in the <a href=\"#reference\">Reference</a> layer are where that is caught, because the output never will be."
+        },
+        {
+          "option": "d",
+          "html": "Nothing stops. Exit 0, and the lab prints <code>all lab checks passed</code>."
+        }
+      ],
+      "html": "\n<h3>4. Part D authorizes before it authenticates</h3>\n<div class=\"prose\">\n<p>In <code>handle</code>, move the ownership check above the signature check, so the order becomes target, ownership, signature.</p>\n</div>\n<fieldset><legend>What does the run print differently?</legend>\n<label><input type=\"radio\" name=\"fnd-x4\" value=\"a\"> Check 15 becomes <code>reject: not your account</code>.</label>\n<label><input type=\"radio\" name=\"fnd-x4\" value=\"b\"> Check 17 becomes <code>reject: bad signature</code>.</label>\n<label><input type=\"radio\" name=\"fnd-x4\" value=\"c\" data-correct=\"true\"> Nothing. Every line is identical.</label>\n<label><input type=\"radio\" name=\"fnd-x4\" value=\"d\"> The run stops at check 13.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 15 asks for <code>acct-91</code> with authorization off, so the ownership branch is skipped and the order never reaches it.</li>\n<li data-option=\"b\">Check 17 carries a genuine signature, so it gets to the ownership check under either order.</li>\n<li data-option=\"c\">Correct. 45 of 45 lines identical, exit 0. No request in this lab has both a bad signature and the wrong account, and that combination is the only one the order affects. What getting it wrong costs you is not a failed check: it is that an unauthenticated caller learns from the error message whether an account exists. Checks <code>fnd-01</code> and <code>fnd-05</code> in the <a href=\"#reference\">Reference</a> layer are where that is caught, because the output never will be.</li>\n<li data-option=\"d\">Nothing stops. Exit 0, and the lab prints <code>all lab checks passed</code>.</li>\n</ul>\n</details>\n"
+    }
+  ]
 }
