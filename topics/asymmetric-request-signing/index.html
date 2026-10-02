@@ -248,6 +248,107 @@ all lab checks passed</code></pre>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 </section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="asymmetric-request-signing-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/asymmetric_signing_lab.py"><code>labs/asymmetric_signing_lab.py</code></a> and asks what the run prints. The lab records every result and prints a failure summary at the end, so you see everything that moved. The answers are the real output of each variant.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="sign-x1" data-covers="sign-03">
+<h3>1. The algorithm is not checked against the key entry</h3>
+<div class="prose">
+<p>In <code>Verifier.verify</code>, delete the two lines that reject when <code>alg</code> does not match the algorithm recorded for that <code>keyid</code>. Leave the allowlist check in place.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="sign-x1" value="a"> Check 18 becomes <code>accept</code>. That is the algorithm confusion attack landing.</label>
+<label><input type="radio" name="sign-x1" value="b" data-correct="true"> Check 18 still rejects, but the reason changes to <code>reject: signature check failed</code>.</label>
+<label><input type="radio" name="sign-x1" value="c"> Checks 18 and 20 both become <code>accept</code>.</label>
+<label><input type="radio" name="sign-x1" value="d"> Nothing. The allowlist already covers it.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">It does not land here, and the reason it does not is worth knowing: the stored material for that keyid is an <code>Ed25519PublicKey</code> object, and handing it to <code>hmac.new</code> raises, which the verifier catches and turns into a failed signature check.</li>
+<li data-option="b">Correct. Exit 1, one failure: check 18 goes from <code>reject: alg not valid for this key</code> to <code>reject: signature check failed</code>. The request is still refused, but only because the key material happened to be the wrong Python type. In a system that stores key material as bytes, the same omission is the algorithm confusion attack. A rejection for an accidental reason is not a control, which is why check <code>sign-03</code> in the <a href="#reference">Reference</a> layer asks for both the allowlist and the per-key check.</li>
+<li data-option="c">Check 20 is about the allowlist, which this edit leaves alone. It still rejects with <code>reject: alg not allowed</code>.</li>
+<li data-option="d">The allowlist on that verifier permits <code>hmac-sha256</code>, which is exactly why the per-key check is the one doing the work. Check 18 moves.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="sign-x2" data-covers="sign-06">
+<h3>2. The nonce is recorded before the signature is checked</h3>
+<div class="prose">
+<p>In <code>Verifier.verify</code>, move the nonce block above the signature check, so a nonce is recorded before anything about the request has been verified.</p>
+</div>
+<fieldset><legend>Which check changes?</legend>
+<label><input type="radio" name="sign-x2" value="a"> Check 16, the nonce is reused, becomes <code>accept</code>.</label>
+<label><input type="radio" name="sign-x2" value="b" data-correct="true"> Check 6, one covered field changed in flight, changes its reason.</label>
+<label><input type="radio" name="sign-x2" value="c"> Check 7, an attacker signs with its own key, becomes <code>accept</code>.</label>
+<label><input type="radio" name="sign-x2" value="d"> Nothing. Both checks still happen on every request.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 16 still rejects. It deliberately verifies the same message twice, so the nonce is recorded on the first pass under either order.</li>
+<li data-option="b">Correct. Exit 1, one failure, and not the one most people name: check 6 goes from <code>reject: signature check failed</code> to <code>reject: nonce already used</code>. Check 5 verified a message carrying nonce <code>n-001</code>, and check 6 is that same message with the path tampered, so it still carries <code>n-001</code>. Under the wrong order the nonce rejection fires first and the tampering is never reported. Two costs: the reason you get is misleading, and an unverified request can now put entries in the store. Check <code>sign-06</code> in the <a href="#reference">Reference</a> layer is where the order belongs.</li>
+<li data-option="c">Check 7 carries a nonce the store has not seen, so it reaches the signature check either way and still fails there.</li>
+<li data-option="d">Both do happen, but the order decides which one answers first, and check 6 shows it.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="sign-x3" data-covers="sign-03">
+<h3>3. The ECDSA signature is sent as DER</h3>
+<div class="prose">
+<p>In <code>ecdsa_p256_signer</code>, return what the library gives you instead of splitting it into R and S:</p>
+</div>
+<pre><code>return private_key.sign(base, ec.ECDSA(hashes.SHA256()))</code></pre>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="sign-x3" value="a"> Nothing. The same signer and verifier are used, so both sides agree.</label>
+<label><input type="radio" name="sign-x3" value="b"> The run raises before Part D prints.</label>
+<label><input type="radio" name="sign-x3" value="c" data-correct="true"> Check 19 goes from <code>accept</code> to <code>reject: signature check failed</code>.</label>
+<label><input type="radio" name="sign-x3" value="d"> Checks 19 and 20 both change.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">They do not agree. Only the signer changed; the verifier still reads the bytes as R and S and rebuilds a DER structure from them, so it is parsing a DER blob as two integers.</li>
+<li data-option="b">Nothing raises. The verifier catches the failure and answers with a rejection, so the run reaches the end and prints a one-line failure summary.</li>
+<li data-option="c">Correct. Exit 1, one failure: check 19 becomes <code>reject: signature check failed</code>. RFC 9421 section 3.3.4 specifies the <code>ecdsa-p256-sha256</code> signature as R and S concatenated, each padded to 32 bytes, not as the DER structure most libraries return by default. This is the most common interoperability bug in signature implementations, and it fails closed, which is the good kind.</li>
+<li data-option="d">Check 20 rejects on the allowlist before any signature is examined, so the encoding never comes into it.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="sign-x4" data-covers="sign-04">
+<h3>4. The signature-params line is put first instead of last</h3>
+<div class="prose">
+<p>In <code>signature_base</code>, insert the <code>"@signature-params"</code> line at the start of the list instead of appending it.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="sign-x4" value="a"> Every check in Parts B to E fails.</label>
+<label><input type="radio" name="sign-x4" value="b"> Check 4 fails and the rest follow.</label>
+<label><input type="radio" name="sign-x4" value="c" data-correct="true"> All 22 checks still pass. Only the signature base printed at the end is different.</label>
+<label><input type="radio" name="sign-x4" value="d"> Check 8, a covered component removed in flight, changes.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">None of them fail. Both the signer and the verifier build the base with the same function, so they agree with each other no matter what order it uses.</li>
+<li data-option="b">Check 4 accepts, as before. Agreement between the two sides is all the lab tests, and that is the trap.</li>
+<li data-option="c">Correct. Exit 0, and the run still ends with <code>all lab checks passed</code>. Six lines of output do change, and every one of them is in the signature base printed at the end, where <code>"@signature-params"</code> has moved above <code>"@method"</code>. Not one check moves. RFC 9421 section 2.5 puts it last. A green run here means the two halves of your own implementation agree, which is not the same as being correct: anyone else's verifier would reject every signature you produce. Check <code>sign-04</code> in the <a href="#reference">Reference</a> layer is about the base, and the printed base at the end of this lab is there so you can compare it with the specification rather than with yourself.</li>
+<li data-option="d">Check 8 rejects because a covered header is gone from the message, which has nothing to do with the order of the lines.</li>
+</ul>
+</details>
+</article>
+</section>
+
 <p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
 <span class="layer" id="reference" style="margin-top:3rem">Reference</span>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
