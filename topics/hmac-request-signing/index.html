@@ -174,12 +174,14 @@ Part B: freshness and replay. One verifier sees every attempt.
 6. first delivery                accept
 7. exact replay 10s later        reject: replayed nonce
 8. replay 10 minutes later       reject: outside time window
-9. new nonce, old signature      reject: bad signature</code></pre>
+9. new nonce, old signature      reject: bad signature
+
+nonces recorded by the shared verifier: 1</code></pre>
 <div class="prose">
 <p><strong>Try next:</strong></p>
 <ul>
-<li>In <code>Verifier.verify</code>, move the nonce check above the signature check. Which attack now fills the cache?</li>
-<li>Remove <code>host</code> from <code>canonical_string</code>. Which line changes?</li>
+<li>In <code>Verifier.verify</code>, move the nonce check and the line that records the nonce above the signature check, then run it again. Every verdict stays the same. The last line does not: attempt 9 is forged, and it is now recorded, so the count becomes 2. An attacker who cannot sign can still fill the cache.</li>
+<li>Remove <code>host</code> from <code>canonical_string</code>. One verdict changes, and only one.</li>
 </ul>
 </div>
 

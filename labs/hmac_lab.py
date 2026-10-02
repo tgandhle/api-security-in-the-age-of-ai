@@ -85,6 +85,13 @@ def main():
     forged = {**request, "nonce": "attacker-nonce"}
     attempt("9. new nonce, old signature", forged, verifier=shared)
 
+    # Printed because the check order is not visible in the verdicts above.
+    # Move the nonce check above the signature check and every verdict stays
+    # the same, but attempt 9's forged nonce gets recorded and this count
+    # becomes 2. That is the only observable difference.
+    print()
+    print(f"nonces recorded by the shared verifier: {len(shared.seen_nonces)}")
+
 
 if __name__ == "__main__":
     main()
