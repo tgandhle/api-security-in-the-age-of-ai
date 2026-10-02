@@ -140,7 +140,19 @@ def main():
             print("  " + line)
     if problems or deviations:
         return 1
-    print("\nevery published lab transcript matches a live run")
+
+    # Never claim more than was actually run. A skipped lab was not checked,
+    # so the summary says so rather than folding it into a pass, the same way
+    # check_a11y.py reports a skip instead of claiming no violations.
+    if skipped_dep:
+        print("\n%d of %d published lab transcripts match a live run."
+              % (identical, checked))
+        print("%d were not checked, because the lab needs a package that is "
+              "not installed here." % skipped_dep)
+        print("Install it with the command the lab prints, then run this "
+              "again to cover them.")
+    else:
+        print("\nall %d published lab transcripts match a live run" % identical)
     return 0
 
 
