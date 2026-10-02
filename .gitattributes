@@ -1,0 +1,7 @@
+# Generated files. They are committed so the published folder is complete
+# without a build step, but they are not reviewed by reading the diff.
+# Their correctness is checked by the tool that writes them:
+#   content/**            tools/extract_lessons.py --check
+#   checklist/index.html  tools/build_checklist.py --check
+content/** linguist-generated=true
+checklist/index.html linguist-generated=true
