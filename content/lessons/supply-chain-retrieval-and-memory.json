@@ -504,6 +504,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "Your retrieval fetches the top ten and then removes documents the caller may not read. What is wrong with that?",
+      "html": "<summary>Your retrieval fetches the top ten and then removes documents the caller may not read. What is wrong with that?</summary><p>Two things. The caller sees fewer results than they asked for, which tells them documents exist that were removed, and their own relevant documents never appear because other tenants' content occupied the ranking. Restricting the corpus before ranking fixes both, because documents the caller may not read were never candidates.</p>",
+      "class": ""
+    },
+    {
+      "summary": "A caller runs a query and gets no results, but the interface says \"3 matches\". What have they learned?",
+      "html": "<summary>A caller runs a query and gets no results, but the interface says \"3 matches\". What have they learned?</summary><p>That three documents containing those terms exist somewhere in the index. That is a membership oracle, and it works from a query they were allowed to run. Every number in the response has to be computed after the filter, including totals, facet counts and suggestions.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Someone uploads a document stuffed with your query terms and it ranks first. Is better ranking the answer?",
+      "html": "<summary>Someone uploads a document stuffed with your query terms and it ranks first. Is better ranking the answer?</summary><p>No. The lab damps repeated terms and the stuffed document stays first, because it is made entirely of query terms, so the margin narrows and the order does not change. Ranking adjustments are a quality measure and an attacker who can write to your index will iterate against them. The control is origin: restrict decision-bearing retrieval to documents whose provenance you trust.</p>",
+      "class": ""
+    },
+    {
+      "summary": "You remove a poisoned document from the index. Is the problem over?",
+      "html": "<summary>You remove a poisoned document from the index. Is the problem over?</summary><p>Not if an agent read it first. A claim written to memory survives the document's deletion, and if the write recorded no origin there is nothing linking the two, so you cannot even find what to remove. Record source and origin on every memory write, and make document withdrawal trigger a memory sweep.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Your retrieval fetches the top ten and then removes documents the caller may not read. What is wrong with that?",
@@ -521,5 +543,6 @@
       "summary": "You remove a poisoned document from the index. Is the problem over?",
       "html": "<summary>You remove a poisoned document from the index. Is the problem over?</summary><p>Not if an agent read it first. A claim written to memory survives the document's deletion, and if the write recorded no origin there is nothing linking the two, so you cannot even find what to remove. Record source and origin on every memory write, and make document withdrawal trigger a memory sweep.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

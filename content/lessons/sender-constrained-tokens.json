@@ -508,6 +508,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "Your load balancer terminates TLS. Which mechanism still works, and why?",
+      "html": "<summary>Your load balancer terminates TLS. Which mechanism still works, and why?</summary><p>DPoP. Its proof is a signed JWT carried in a header, so it survives the hop untouched. Certificate binding needs the client certificate at the point where the check happens, and once TLS ends at the load balancer the certificate is gone unless you forward it, which makes the forwarding header itself a credential.</p>",
+      "class": ""
+    },
+    {
+      "summary": "A DPoP proof is valid, its key matches the token, and the times are fine. What else must the server check before accepting it?",
+      "html": "<summary>A DPoP proof is valid, its key matches the token, and the times are fine. What else must the server check before accepting it?</summary><p>That the <code>jti</code> has not been seen before, that <code>htm</code> and <code>htu</code> match this request, and that <code>ath</code> matches this access token. Without those three, a single captured proof can be replayed, reused on a different endpoint, or paired with a different stolen token.</p>",
+      "class": ""
+    },
+    {
+      "summary": "You bind every token. What has changed about your threat model, and what has not?",
+      "html": "<summary>You bind every token. What has changed about your threat model, and what has not?</summary><p>Token theft alone stops being sufficient, so logs, traces and proxy captures lose most of their value to an attacker. What has not changed: key theft is now equivalent to what token theft used to be, a withdrawn grant still works until the token expires, and the caller's scopes still decide what they may do.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Why does the proof carry a hash of the access token rather than just being signed?",
+      "html": "<summary>Why does the proof carry a hash of the access token rather than just being signed?</summary><p>Because a signature only proves the proof came from the key. Without <code>ath</code>, that proof is not attached to any particular token, so an attacker who captures one proof and steals a different token for the same key can pair them. <code>ath</code> is what makes the proof and the token one unit.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Your load balancer terminates TLS. Which mechanism still works, and why?",
@@ -525,5 +547,6 @@
       "summary": "Why does the proof carry a hash of the access token rather than just being signed?",
       "html": "<summary>Why does the proof carry a hash of the access token rather than just being signed?</summary><p>Because a signature only proves the proof came from the key. Without <code>ath</code>, that proof is not attached to any particular token, so an attacker who captures one proof and steals a different token for the same key can pair them. <code>ath</code> is what makes the proof and the token one unit.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

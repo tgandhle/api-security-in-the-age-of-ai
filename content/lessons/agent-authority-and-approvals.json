@@ -510,6 +510,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "Your approval record stores the proposal id and who approved it. What is wrong with that?",
+      "html": "<summary>Your approval record stores the proposal id and who approved it. What is wrong with that?</summary><p>It approves a reference. The executor reads the proposal a second time, and between the human's read and that one the row can be rewritten by whatever produced it. The approval should carry a MAC over the parameters as the human saw them, so the executor can confirm it is running the same thing rather than the same identifier.</p>",
+      "class": ""
+    },
+    {
+      "summary": "An approval covers the tool name and the amount. Is that enough?",
+      "html": "<summary>An approval covers the tool name and the amount. Is that enough?</summary><p>Only if nothing else changes what happens, and the destination almost always does. The lab's narrow approval catches two field changes out of five, and the one it misses pays the approved amount to a different account. Cover every field that changes the outcome, and test coverage by changing each field and confirming the approval stops verifying.</p>",
+      "class": ""
+    },
+    {
+      "summary": "The summary shown to the approver reads \"Refund 40 to T. Okafor\" and the call uses an account id. Where is the risk?",
+      "html": "<summary>The summary shown to the approver reads \"Refund 40 to T. Okafor\" and the call uses an account id. Where is the risk?</summary><p>In the gap between them. The id can change while the summary stays identical, so a human approving that sentence has not seen the value that decides where the money goes. Derive the summary from the covered fields, and make sure no field outside them changes the outcome.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Is a well-bound approval a defence against prompt injection?",
+      "html": "<summary>Is a well-bound approval a defence against prompt injection?</summary><p>Partly, and only for the actions that require one. It stops an injected change to the parameters after approval, and it does nothing about a human being persuaded to approve a harmful action in the first place, which OWASP files as ASI09. It also does not replace authorization in the downstream service, which OWASP lists separately for exactly this reason.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Your approval record stores the proposal id and who approved it. What is wrong with that?",
@@ -527,5 +549,6 @@
       "summary": "Is a well-bound approval a defence against prompt injection?",
       "html": "<summary>Is a well-bound approval a defence against prompt injection?</summary><p>Partly, and only for the actions that require one. It stops an injected change to the parameters after approval, and it does nothing about a human being persuaded to approve a harmful action in the first place, which OWASP files as ASI09. It also does not replace authorization in the downstream service, which OWASP lists separately for exactly this reason.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

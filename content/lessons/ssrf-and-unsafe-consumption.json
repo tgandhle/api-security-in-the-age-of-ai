@@ -498,6 +498,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "Why does checking that the URL contains your partner's hostname not work?",
+      "html": "<summary>Why does checking that the URL contains your partner's hostname not work?</summary><p>Because a hostname can appear in a URL in places that are not the host: as userinfo before an <code>@</code>, inside a fragment, or as a prefix of somebody else's domain. All three parse to a different destination than a human reading the line expects. Parse the URL and inspect only the host component the parser returned.</p>",
+      "class": ""
+    },
+    {
+      "summary": "You block 169.254.169.254 and the private ranges by string comparison. What gets through?",
+      "html": "<summary>You block 169.254.169.254 and the private ranges by string comparison. What gets through?</summary><p>The same addresses written in decimal, hexadecimal, octal or as IPv4-mapped IPv6, plus any hostname that resolves to them. Normalise the host to an address first, then classify it against the special-purpose registries with a library that knows them.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Your URL validation is correct and the fetch still reached the metadata service. How?",
+      "html": "<summary>Your URL validation is correct and the fetch still reached the metadata service. How?</summary><p>Two ways. A redirect, where the URL you validated answered with a new destination that nobody checked; and a second name resolution, where your HTTP client resolved the hostname again when it opened the socket and got a different answer. Disable redirects or revalidate the target, and connect to the address validation returned rather than to the name.</p>",
+      "class": ""
+    },
+    {
+      "summary": "The fetched host is on your allowlist and it is under an attacker's control. What still protects you?",
+      "html": "<summary>The fetched host is on your allowlist and it is under an attacker's control. What still protects you?</summary><p>Only what you do with the response. It is input: apply a size limit, a timeout and your parsing limits, do not follow URLs found inside it without the same checks, and do not return it to the caller unchanged. OWASP's API10:2023 exists because responses from integrated services routinely get less validation than user input, not more.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Why does checking that the URL contains your partner's hostname not work?",
@@ -515,5 +537,6 @@
       "summary": "The fetched host is on your allowlist and it is under an attacker's control. What still protects you?",
       "html": "<summary>The fetched host is on your allowlist and it is under an attacker's control. What still protects you?</summary><p>Only what you do with the response. It is input: apply a size limit, a timeout and your parsing limits, do not follow URLs found inside it without the same checks, and do not return it to the caller unchanged. OWASP's API10:2023 exists because responses from integrated services routinely get less validation than user input, not more.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

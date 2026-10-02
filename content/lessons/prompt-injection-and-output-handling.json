@@ -522,6 +522,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "Why does this module put almost no effort into detecting prompt injection?",
+      "html": "<summary>Why does this module put almost no effort into detecting prompt injection?</summary><p>Because the effort has an unknown payoff. OWASP states that \"it is unclear if there are fool-proof methods of prevention for prompt injection\", and the lab passes five rewrites of a single blocked sentence, one of which shares no words with it. The controls with stated coverage are all outside the model: provenance, a deny-by-default tool table, encoding per sink, and narrow authority.</p>",
+      "class": ""
+    },
+    {
+      "summary": "What is wrong with a fixed delimiter around untrusted content?",
+      "html": "<summary>What is wrong with a fixed delimiter around untrusted content?</summary><p>It is a string the untrusted content can contain. The document closes the fence itself and anything after that appears to the model as though it came from you. A per-request nonce in the delimiter removes that, because the attacker is writing the document before the value exists.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Your agent refuses any tool call containing the word \"payment\". Is that the control?",
+      "html": "<summary>Your agent refuses any tool call containing the word \"payment\". Is that the control?</summary><p>No, it is a denylist, and it fails the same way the input filter does: it covers the cases you listed. The control is a deny-by-default table of the tools this agent may call, checked by name, with the role and the arguments validated too. A tool absent from the table is refused without anyone having had to anticipate it.</p>",
+      "class": ""
+    },
+    {
+      "summary": "You HTML-escape all model output before using it. Where does that leave you?",
+      "html": "<summary>You HTML-escape all model output before using it. Where does that leave you?</summary><p>Safe in a page and nowhere else. The lab's payload survives <code>html.escape</code> as a shell metacharacter string and still contains a quote for SQL. Encoding is chosen per destination at the point of use, and for databases the answer is a parameterized query rather than any encoding at all.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Why does this module put almost no effort into detecting prompt injection?",
@@ -539,5 +561,6 @@
       "summary": "You HTML-escape all model output before using it. Where does that leave you?",
       "html": "<summary>You HTML-escape all model output before using it. Where does that leave you?</summary><p>Safe in a page and nowhere else. The lab's payload survives <code>html.escape</code> as a shell metacharacter string and still contains a quote for SQL. Encoding is chosen per destination at the point of use, and for databases the answer is a parameterized query rather than any encoding at all.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

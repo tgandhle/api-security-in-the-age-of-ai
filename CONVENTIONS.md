@@ -14,7 +14,10 @@ Each page has two layers, in this order.
 5. What it proves, and what it doesn't.
 6. Prove it: the negative tests an implementation must pass.
 7. Lab: link, run command, and real output.
-8. Check your understanding: two or three questions with answers in `<details>`.
+8. Check your understanding, in three parts:
+   - Two or three questions with answers in a bare `<details>`.
+   - One quick check, a single multiple-choice question in `<section class="course-quiz" data-quiz>`. This is the only assessment the course dashboard counts.
+   - Two to four exercises in `<section class="course-exercises" data-exercises>`, each an `<article data-exercise>` that changes one thing in the lab and asks what the run prints.
 
 **Reference** (anchor `#reference`)
 - Controls, each labeled Standard, Baseline, or Option.
@@ -29,6 +32,9 @@ Each page has two layers, in this order.
 ## Rules
 - No secrets in examples. Use placeholders such as `<secret from vault>`. Labs generate keys at runtime or read a file.
 - Every code sample and lab is run before publishing, and the page shows the real output.
+- An exercise's correct answer is the measured output of that variant of the lab, run before publishing, not a reading of the code. Do not write an exercise you have not run both ways.
+- Every exercise option carries a reason, published as `<li data-option="value">` inside one `<details class="exercise-answers">` in that exercise, so a reader with JavaScript off sees all of them and nothing is written twice. `tools/extract_lessons.py --check` requires exactly one correct option per exercise and a reason for every option offered.
+- An exercise names the checklist item it covers with `data-covers`. Never `data-check`: that attribute means "this element is a checklist item" to `tools/build_checklist.py` and to the extractor's audit.
 - Fictional companies only, with the reserved `.example` domain.
 - Link a glossary term the first time a page uses it.
 - After editing any checklist item, run `python3 tools/build_checklist.py`.

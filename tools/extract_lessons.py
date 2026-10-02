@@ -281,12 +281,54 @@ def extract(path):
         e.attrs["id"] for e in doc.elements
         if e.attrs.get("id", "").startswith("source-"))
 
+    # Every <details> on the page, in document order. This is what the
+    # independent audit counts against, so it must stay exhaustive.
+    record["details"] = []
     record["quiz"] = []
     for el in sorted(doc.find("details"), key=lambda e: e.start):
         inner = doc.inner(el)
         summary = re.search(r"<summary>(.*?)</summary>", inner, re.S)
-        record["quiz"].append({
-            "summary": summary.group(1) if summary else "",
+        item = {"summary": summary.group(1) if summary else "",
+                "html": inner, "class": el.attrs.get("class", "")}
+        record["details"].append(item)
+        # "Check your understanding" questions are bare <details>. An answer
+        # panel inside an exercise carries a class and belongs to that
+        # exercise, so folding it into quiz would report it as a question.
+        if not item["class"]:
+            record["quiz"].append({"summary": item["summary"],
+                                   "html": item["html"]})
+
+    record["exercises"] = []
+    for el in sorted(doc.find("article"), key=lambda e: e.start):
+        if "data-exercise" not in el.attrs:
+            continue
+        inner = doc.inner(el)
+        heading = re.search(r"<h3[^>]*>(.*?)</h3>", inner, re.S)
+        legend = re.search(r"<legend>(.*?)</legend>", inner, re.S)
+        options = []
+        for attrs, label in re.findall(r"<input ([^>]*)>(.*?)</label>",
+                                       inner, re.S):
+            value = re.search(r'value="([^"]*)"', attrs)
+            options.append({
+                "value": value.group(1) if value else "",
+                "label": text_of(label),
+                "correct": 'data-correct="true"' in attrs,
+            })
+        answers = [{"option": opt, "html": body} for opt, body in
+                   re.findall(r'<li data-option="([^"]*)">(.*?)</li>',
+                              inner, re.S)]
+        record["exercises"].append({
+            "id": el.attrs.get("data-exercise-id", ""),
+            # data-covers, not data-check: that attribute means "this is
+            # a checklist item" to build_checklist.py and to the audit,
+            # and reusing it here made the audit count 10 checks on a
+            # page that has 7.
+            "covers": el.attrs.get("data-covers", ""),
+            "heading": heading.group(1) if heading else "",
+            "heading_text": text_of(heading.group(1)) if heading else "",
+            "legend": text_of(legend.group(1)) if legend else "",
+            "options": options,
+            "answers": answers,
             "html": inner,
         })
 
@@ -337,12 +379,15 @@ def audit(path):
             r'data-check="[^"]+"\s+data-severity="([^"]+)"', t),
         "citations": sources_citations(t),
         "anchors": sorted(re.findall(r'id="(source-[^"]+)"', t)),
-        "details": re.findall(r"<details>(.*?)</details>", t, re.S),
+        # Attributes allowed: an exercise answer panel carries a class,
+        # and a bare-tag pattern silently stopped counting those.
+        "details": re.findall(r"<details\b[^>]*>(.*?)</details>", t, re.S),
+        "exercises": re.findall(r'data-exercise-id="([^"]+)"', t),
     }
 
 
 LABELS = ("h2", "pre", "svg", "table", "glossary", "checks", "citations",
-          "anchors", "details")
+          "anchors", "details", "exercises")
 
 
 def check():
@@ -389,7 +434,22 @@ def check():
         compare("checks", sorted(a["checks"]), [c["id"] for c in rec["checks"]])
         compare("citations", a["citations"], [s["href"] for s in rec["sources"]])
         compare("anchors", a["anchors"], rec["source_anchors"])
-        compare("details", a["details"], [q["html"] for q in rec["quiz"]])
+        compare("details", a["details"], [d["html"] for d in rec["details"]])
+        compare("exercises", a["exercises"],
+                [e["id"] for e in rec["exercises"]])
+
+        # Counts would not catch the two ways an exercise breaks in
+        # practice: no correct option, so nothing can be got right, and
+        # an option with no published reason, so the feedback line is
+        # empty for whoever picks it.
+        for ex in rec["exercises"]:
+            right = [o["value"] for o in ex["options"] if o["correct"]]
+            if len(right) != 1:
+                failures.append("%s: exercise %s has %d correct options, expected 1" % (rel, ex["id"], len(right)))
+            offered = [o["value"] for o in ex["options"]]
+            explained = [a["option"] for a in ex["answers"]]
+            if sorted(offered) != sorted(explained):
+                failures.append("%s: exercise %s offers %s but explains %s" % (rel, ex["id"], offered, explained))
 
         if len(a["severities"]) == len(a["checks"]):
             by_id = dict(zip(a["checks"], a["severities"]))

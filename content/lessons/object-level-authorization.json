@@ -473,6 +473,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "Why can a gateway not make this decision for you?",
+      "html": "<summary>Why can a gateway not make this decision for you?</summary><p>Because it has the caller and not the object. The comparison needs the owner recorded on the record being requested, and that value exists only after the record is loaded, which happens in the service. A gateway can enforce that a caller may use an endpoint. It cannot enforce which rows they may have from it.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Your handler compares the caller with an owner id from the request body, and they match. What have you checked?",
+      "html": "<summary>Your handler compares the caller with an owner id from the request body, and they match. What have you checked?</summary><p>That a value the caller sent equals a value the caller sent. The comparison succeeds for every request an attacker constructs, because they supply both sides. The owner has to come from the record you loaded.</p>",
+      "class": ""
+    },
+    {
+      "summary": "The item endpoint is correct and the list endpoint returns everything, filtered in the front end. How bad is that?",
+      "html": "<summary>The item endpoint is correct and the list endpoint returns everything, filtered in the front end. How bad is that?</summary><p>It is the same vulnerability with a better yield. The item endpoint leaks one record per request and requires guessing identifiers; the list endpoint hands over every record in one response, and the filtering that hides them is running on the attacker's own machine. Filter in the query.</p>",
+      "class": ""
+    },
+    {
+      "summary": "You switch every refusal from 403 to 404. What have you gained and what have you not?",
+      "html": "<summary>You switch every refusal from 403 to 404. What have you gained and what have you not?</summary><p>You have stopped confirming which identifiers exist, which makes enumeration blind. You have not added a single access control: the check that refuses the request is the same check it was before. If the check is missing, the status code it would have returned is not the problem.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Why can a gateway not make this decision for you?",
@@ -490,5 +512,6 @@
       "summary": "You switch every refusal from 403 to 404. What have you gained and what have you not?",
       "html": "<summary>You switch every refusal from 403 to 404. What have you gained and what have you not?</summary><p>You have stopped confirming which identifiers exist, which makes enumeration blind. You have not added a single access control: the check that refuses the request is the same check it was before. If the check is missing, the status code it would have returned is not the problem.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

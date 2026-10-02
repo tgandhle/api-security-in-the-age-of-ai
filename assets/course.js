@@ -94,6 +94,30 @@
     const checkButton = event.target.closest("[data-check-answer]");
     if (!checkButton) return;
 
+    // Exercises. Unlike the quick check these give a reason per option, and
+    // the reasons are published in the <details> inside the exercise, so a
+    // reader with JavaScript off sees all of them. Nothing is duplicated:
+    // this lifts the one for the option that was chosen and shows it next to
+    // the button. Exercises are formative and record no progress; the quick
+    // check is still the only thing the course dashboard counts.
+    const exercise = checkButton.closest("[data-exercise]");
+    if (exercise) {
+      const picked = exercise.querySelector("input[type=radio]:checked");
+      const note = exercise.querySelector("[data-quiz-feedback]");
+      if (!note) return;
+      if (!picked) {
+        note.textContent = "Choose an answer before checking it.";
+        note.className = "quiz-feedback";
+        return;
+      }
+      const reason = exercise.querySelector('[data-option="' + picked.value + '"]');
+      if (!reason) return;
+      note.replaceChildren(...[...reason.cloneNode(true).childNodes]);
+      note.className = picked.dataset.correct === "true"
+        ? "quiz-feedback is-correct" : "quiz-feedback is-incorrect";
+      return;
+    }
+
     const quiz = checkButton.closest("[data-quiz]");
     const selected = quiz && quiz.querySelector("input[type=radio]:checked");
     const feedback = quiz && quiz.querySelector("[data-quiz-feedback]");

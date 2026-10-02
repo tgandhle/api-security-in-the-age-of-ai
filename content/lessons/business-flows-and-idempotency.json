@@ -504,6 +504,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "Your POST endpoint is safe to retry because the operation is idempotent. What have you actually said?",
+      "html": "<summary>Your POST endpoint is safe to retry because the operation is idempotent. What have you actually said?</summary><p>Something about your implementation, not about the method. RFC 9110 lists GET, HEAD, PUT, DELETE, OPTIONS and TRACE as idempotent, and POST is not among them, so no intermediary or client will treat it as safe to repeat. If the property is real it has to come from something you built, and the thing that carries it needs to be visible in the request.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Why record the idempotency key before doing the work rather than after?",
+      "html": "<summary>Why record the idempotency key before doing the work rather than after?</summary><p>Because the case the key exists for is two copies of the request arriving close together. Recording on completion means both copies look up the key, both find nothing, and both execute. Reserving first means the second one finds a record and can be refused with 409.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Someone suggests a single global namespace for idempotency keys. What breaks?",
+      "html": "<summary>Someone suggests a single global namespace for idempotency keys. What breaks?</summary><p>One caller can present a key another caller already used. They receive the stored response from an operation that was applied to somebody else's account, and their own operation is never performed, because the server believes it already was. The API returns 200 for something that did not happen.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Your idempotency handling is provably correct and the ledger is still issuing far too much credit. What is wrong?",
+      "html": "<summary>Your idempotency handling is provably correct and the ledger is still issuing far too much credit. What is wrong?</summary><p>Probably nothing about retries. Look at whether the requests share keys: repeats of one key mean the key handling is broken, and hundreds of distinct keys mean a business flow with no rate or quantity limit, which is a different control entirely and is decided by whoever knows what the flow costs.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Your POST endpoint is safe to retry because the operation is idempotent. What have you actually said?",
@@ -521,5 +543,6 @@
       "summary": "Your idempotency handling is provably correct and the ledger is still issuing far too much credit. What is wrong?",
       "html": "<summary>Your idempotency handling is provably correct and the ledger is still issuing far too much credit. What is wrong?</summary><p>Probably nothing about retries. Look at whether the requests share keys: repeats of one key mean the key handling is broken, and hundreds of distinct keys mean a business flow with no rate or quantity limit, which is a different control entirely and is decided by whoever knows what the flow costs.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

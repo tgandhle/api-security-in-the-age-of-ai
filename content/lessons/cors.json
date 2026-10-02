@@ -480,6 +480,28 @@
     "source-fetch",
     "source-origin"
   ],
+  "details": [
+    {
+      "summary": "Your API echoes the <code>Origin</code> header back in <code>Access-Control-Allow-Origin</code> and sets <code>Access-Control-Allow-Credentials: true</code>. Which origins can read the response?",
+      "html": "<summary>Your API echoes the <code>Origin</code> header back in <code>Access-Control-Allow-Origin</code> and sets <code>Access-Control-Allow-Credentials: true</code>. Which origins can read the response?</summary><p>All of them. The CORS check compares the header against the request's own origin, so echoing makes step 4 compare a value with itself and it can never fail. The configuration is equivalent to publishing every authenticated response to any site a logged-in user happens to visit.</p>",
+      "class": ""
+    },
+    {
+      "summary": "A cross-origin <code>POST</code> was blocked by CORS. Did the server process it?",
+      "html": "<summary>A cross-origin <code>POST</code> was blocked by CORS. Did the server process it?</summary><p>Almost certainly yes. If the content type was safelisted there was no preflight, so the request went straight out, the cookie went with it, and the server did the work. The browser then refused to hand the response to the page. What CORS blocked was the reading, not the writing. Use anti-forgery tokens and <code>SameSite</code> cookies for the writing.</p>",
+      "class": ""
+    },
+    {
+      "summary": "You add a bearer token to a working cross-origin integration and it starts failing the preflight, even though the server answers <code>Access-Control-Allow-Headers: *</code>. Why?",
+      "html": "<summary>You add a bearer token to a working cross-origin integration and it starts failing the preflight, even though the server answers <code>Access-Control-Allow-Headers: *</code>. Why?</summary><p><code>Authorization</code> is the one CORS non-wildcard request-header name, so <code>*</code> does not cover it. The server has to name it. The same rule applies to the preflight cache, so an entry previously stored as <code>*</code> will not match it either.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Is <code>Access-Control-Allow-Origin: *</code> a finding?",
+      "html": "<summary>Is <code>Access-Control-Allow-Origin: *</code> a finding?</summary><p>Only with context. For data that anyone could already fetch with <code>curl</code>, it is the correct header and the standard says so. It is unsafe in exactly one shape: when the resource is protected by where the caller is rather than by who they are, such as an IP allowlist or a firewall, because then a browser inside the perimeter becomes the route in. Ask what protects the resource before writing the finding.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Your API echoes the <code>Origin</code> header back in <code>Access-Control-Allow-Origin</code> and sets <code>Access-Control-Allow-Credentials: true</code>. Which origins can read the response?",
@@ -497,5 +519,6 @@
       "summary": "Is <code>Access-Control-Allow-Origin: *</code> a finding?",
       "html": "<summary>Is <code>Access-Control-Allow-Origin: *</code> a finding?</summary><p>Only with context. For data that anyone could already fetch with <code>curl</code>, it is the correct header and the standard says so. It is unsafe in exactly one shape: when the resource is protected by where the caller is rather than by who they are, such as an IP allowlist or a firewall, because then a browser inside the perimeter becomes the route in. Ask what protects the resource before writing the finding.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

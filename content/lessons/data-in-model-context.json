@@ -504,6 +504,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "Why is minimisation treated as a stronger control than redaction here?",
+      "html": "<summary>Why is minimisation treated as a stronger control than redaction here?</summary><p>Because redaction is a filter on one sink and minimisation is a decision about what exists. The lab's prompt reaches five sinks and one has redaction applied. Removing the field from the context takes it out of all five at once, and out of the model's answer too.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Your system prompt holds the API key the assistant uses. What is the exposure?",
+      "html": "<summary>Your system prompt holds the API key the assistant uses. What is the exposure?</summary><p>The system prompt is part of the request payload, so the key is in every sink the request reaches: your logs, your traces, your cache, and the provider. Redaction will not catch it unless you wrote a pattern for your key format. OWASP's instruction is to externalize credentials to systems the model cannot access, and the application makes the call rather than the model.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Your redactor blanks any sixteen-digit number. What is wrong with that?",
+      "html": "<summary>Your redactor blanks any sixteen-digit number. What is wrong with that?</summary><p>Both error types. It blanks order numbers, invoice numbers and anything else sixteen digits long, which makes logs useless for the people who read them, and it misses a card written in groups of four because that is not sixteen consecutive digits. A Luhn check removes the first problem and a separator-tolerant pattern removes the second.</p>",
+      "class": ""
+    },
+    {
+      "summary": "You filter the response so a support caller never sees a card number. Is the card number handled?",
+      "html": "<summary>You filter the response so a support caller never sees a card number. Is the card number handled?</summary><p>Not really. The filter is the last gate and it is doing work that minimisation should have made unnecessary. If the card was in the prompt, it is already in your request, your trace, your cache and the provider's records, and the response filter changes none of that.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Why is minimisation treated as a stronger control than redaction here?",
@@ -521,5 +543,6 @@
       "summary": "You filter the response so a support caller never sees a card number. Is the card number handled?",
       "html": "<summary>You filter the response so a support caller never sees a card number. Is the card number handled?</summary><p>Not really. The filter is the last gate and it is doing work that minimisation should have made unnecessary. If the card was in the prompt, it is already in your request, your trace, your cache and the provider's records, and the response filter changes none of that.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

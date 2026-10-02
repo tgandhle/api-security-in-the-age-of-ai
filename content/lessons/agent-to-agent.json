@@ -546,6 +546,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "An agent card's JWS signature verifies. What have you established?",
+      "html": "<summary>An agent card's JWS signature verifies. What have you established?</summary><p>That whoever holds the signing key wrote the card. Nothing about who that is. The card's <code>name</code> is a string inside the signed content, so a forged card signed with the forger's own key verifies perfectly and claims whatever name it likes. The check that is worth something is whether it verifies under a key you already associated with that counterparty by some other route.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Why must the <code>signatures</code> field be excluded from the signed content?",
+      "html": "<summary>Why must the <code>signatures</code> field be excluded from the signed content?</summary><p>Because otherwise the signature value would have to be part of its own input. Section 8 states it as a MUST. The practical consequence is not a weaker signature but an uncheckable one: a verifier computing over the document without <code>signatures</code>, as the specification says to, is computing over different bytes than a signer who left it in.</p>",
+      "class": ""
+    },
+    {
+      "summary": "A task you sent comes back in an interrupted state asking for a credential to a vendor API, to be sent in the next task message. What do you do?",
+      "html": "<summary>A task you sent comes back in an interrupted state asking for a credential to a vendor API, to be sent in the next task message. What do you do?</summary><p>Refuse the delivery route regardless of the rest. The documented flow has the client obtain secondary credentials \"through a process outside of the A2A protocol itself\", so a credential travelling in the task conversation is outside that flow whatever it is for. Separately, check whether that vendor is on your pre-agreed list; if it is not, the request is a finding rather than a step.</p>",
+      "class": ""
+    },
+    {
+      "summary": "You allowlist webhook hosts. Is the SSRF risk handled?",
+      "html": "<summary>You allowlist webhook hosts. Is the SSRF risk handled?</summary><p>Not on its own. The allowlist checks a name, and the request goes to an address. An allowlisted name can resolve to a loopback, link-local or private address, which checks 33 to 35 of the lab show, and it can resolve differently between the moment you validate and the moment you connect, which checks 37 to 41 show. You need the name check, the address check, and an awareness that the second one has a shelf life measured in whatever your resolver's cache does.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "An agent card's JWS signature verifies. What have you established?",
@@ -563,5 +585,6 @@
       "summary": "You allowlist webhook hosts. Is the SSRF risk handled?",
       "html": "<summary>You allowlist webhook hosts. Is the SSRF risk handled?</summary><p>Not on its own. The allowlist checks a name, and the request goes to an address. An allowlisted name can resolve to a loopback, link-local or private address, which checks 33 to 35 of the lab show, and it can resolve differently between the moment you validate and the moment you connect, which checks 37 to 41 show. You need the name check, the address check, and an awareness that the second one has a shelf life measured in whatever your resolver's cache does.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

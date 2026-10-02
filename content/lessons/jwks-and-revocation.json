@@ -523,6 +523,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "Why is a 502 from the JWKS endpoint treated differently from a 200 carrying an empty key list?",
+      "html": "<summary>Why is a 502 from the JWKS endpoint treated differently from a 200 carrying an empty key list?</summary><p>A 502 means you learned nothing, so the safe move is to keep the set you already trust and fail only the request that needed a refresh. An empty 200 is the issuer telling you something. Treating it as a failure means a key the issuer deliberately withdrew keeps verifying, which is the opposite of what was intended.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Two keys in the set share a <code>kid</code>. Your library picks the first and the token verifies. What is wrong?",
+      "html": "<summary>Two keys in the set share a <code>kid</code>. Your library picks the first and the token verifies. What is wrong?</summary><p>Which key verified your token is now decided by array order in someone else's document. RFC 7517 and FAPI 2.0 both recommend against publishing duplicates, so a set containing them is a fault at the issuer. Rejecting as ambiguous surfaces it; selecting silently hides it.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Your tokens live 15 minutes and you cache introspection for 5. What is your revocation bound?",
+      "html": "<summary>Your tokens live 15 minutes and you cache introspection for 5. What is your revocation bound?</summary><p>Not 15 minutes. It is up to 15 minutes for a token issued just before the withdrawal, plus up to 5 more if the last introspection answer was cached just before it, plus anything a gateway or CDN holds. Quote the sum, and test it rather than calculating it.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Why does an unknown <code>kid</code> need a cooldown rather than just triggering a refresh?",
+      "html": "<summary>Why does an unknown <code>kid</code> need a cooldown rather than just triggering a refresh?</summary><p>Because the <code>kid</code> comes from the caller. Without a cooldown, an attacker sending tokens with invented key identifiers turns your resource servers into a load generator aimed at your own issuer, and the outage looks like the issuer's fault.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Why is a 502 from the JWKS endpoint treated differently from a 200 carrying an empty key list?",
@@ -540,5 +562,6 @@
       "summary": "Why does an unknown <code>kid</code> need a cooldown rather than just triggering a refresh?",
       "html": "<summary>Why does an unknown <code>kid</code> need a cooldown rather than just triggering a refresh?</summary><p>Because the <code>kid</code> comes from the caller. Without a cooldown, an attacker sending tokens with invented key identifiers turns your resource servers into a load generator aimed at your own issuer, and the outage looks like the issuer's fault.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

@@ -480,6 +480,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "Two services parse the same request body. Why is that a security problem rather than a duplication problem?",
+      "html": "<summary>Two services parse the same request body. Why is that a security problem rather than a duplication problem?</summary><p>Because a repeated name has no single meaning. RFC 8259 recommends unique names and documents three conformant behaviours when they are not: last wins, error, and all pairs kept. Two components can each behave correctly and reach different values, so a validator can approve one number while a handler acts on another. Either reject repeated names or make sure only one component parses the request.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Your schema says miles is a number greater than zero. Does infinity satisfy it?",
+      "html": "<summary>Your schema says miles is a number greater than zero. Does infinity satisfy it?</summary><p>In most implementations, yes. <code>Infinity</code> is not valid JSON, and Python's parser produces it anyway unless told otherwise, at which point it is a number and it is greater than zero. The fix is in the parser's configuration, not in the schema, and it needs a bounded range on the field as well.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Why can a nesting limit not live in the schema?",
+      "html": "<summary>Why can a nesting limit not live in the schema?</summary><p>Because the schema runs on an object and a deeply nested body is an attack on the process of building one. The parser exhausts its stack first, so the validator that would have refused the input never executes. Depth is visible in the text, so it can be measured before parsing, which is the only place the check does any good.</p>",
+      "class": ""
+    },
+    {
+      "summary": "You accept gzipped request bodies and limit bodies to 1 MiB. What is the limit on?",
+      "html": "<summary>You accept gzipped request bodies and limit bodies to 1 MiB. What is the limit on?</summary><p>Whichever number you measured. If it is the bytes that arrived, a 64 KiB body can decode to megabytes and you have no limit on the thing that costs you. The limit has to be enforced during decompression, on the bytes produced, with the decoder stopped when it passes the threshold.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Two services parse the same request body. Why is that a security problem rather than a duplication problem?",
@@ -497,5 +519,6 @@
       "summary": "You accept gzipped request bodies and limit bodies to 1 MiB. What is the limit on?",
       "html": "<summary>You accept gzipped request bodies and limit bodies to 1 MiB. What is the limit on?</summary><p>Whichever number you measured. If it is the bytes that arrived, a 64 KiB body can decode to megabytes and you have no limit on the thing that costs you. The limit has to be enforced during decompression, on the bytes produced, with the decoder stopped when it passes the threshold.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

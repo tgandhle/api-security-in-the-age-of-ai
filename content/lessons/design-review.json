@@ -480,6 +480,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "Your checklist has 23 rules and the design answers 19 of them. What do you report?",
+      "html": "<summary>Your checklist has 23 rules and the design answers 19 of them. What do you report?</summary><p>Three numbers, not one. The findings among the 19, the modules the 19 showed clean, and the four you could not evaluate, each carrying the severity its rule would have had. Reporting only findings makes an unanswered question indistinguishable from a passed one, and the four are often the most important items on the list.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Twelve Critical findings, eight of them in the agent layer. What is the headline?",
+      "html": "<summary>Twelve Critical findings, eight of them in the agent layer. What is the headline?</summary><p>That the agent layer was built without applying the rules the rest of the system already follows. Eight findings in one area is usually one finding about that area, and a review that lists them as eight separate items hands the team eight tickets instead of one conversation.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Why give an unanswered question the severity its rule carries?",
+      "html": "<summary>Why give an unanswered question the severity its rule carries?</summary><p>Because that is the severity you would have raised if the answer had been wrong, and you do not know that it is not. Downgrading it because you lack information inverts the logic: the less you know, the lower it sorts, and the less likely anyone is to go and find out.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Six configuration changes clear six Critical findings. Is the system half fixed?",
+      "html": "<summary>Six configuration changes clear six Critical findings. Is the system half fixed?</summary><p>No, and the split is the useful part. The six remaining Criticals each need a design decision rather than an edit, which is why they will still be open next quarter. Separating settings from decisions on day one is what lets a team plan rather than react.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Your checklist has 23 rules and the design answers 19 of them. What do you report?",
@@ -497,5 +519,6 @@
       "summary": "Six configuration changes clear six Critical findings. Is the system half fixed?",
       "html": "<summary>Six configuration changes clear six Critical findings. Is the system half fixed?</summary><p>No, and the split is the useful part. The six remaining Criticals each need a design decision rather than an edit, which is why they will still be open next quarter. Separating settings from decisions on day one is what lets a team plan rather than react.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

@@ -492,6 +492,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "Your limit is 100 per minute on a fixed window. What is the most a caller can send in two seconds?",
+      "html": "<summary>Your limit is 100 per minute on a fixed window. What is the most a caller can send in two seconds?</summary><p>Two hundred, by sending a full window's worth just before the boundary and another immediately after. Both batches are within their own minute, so nothing was violated. If that peak matters, use a sliding window, or a token bucket with a capacity you chose on purpose.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Why is a token bucket's burst not a bug?",
+      "html": "<summary>Why is a token bucket's burst not a bug?</summary><p>Because capacity and rate are two separate numbers and the burst is the capacity. That is the feature: you can permit a client to catch up after being idle while still bounding the sustained rate. The mistake is not setting a capacity, it is not knowing what you set it to.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Every caller is within the limit and the bill has tripled. What happened?",
+      "html": "<summary>Every caller is within the limit and the bill has tripled. What happened?</summary><p>Probably one of three things. Requests are not equal and something expensive got popular, so limit the cost rather than the count. Or the total over a day was never bounded, because a per-minute rate says nothing about a day. Or a paid integration has no spending limit, which OWASP lists as its own prevention item.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Your rate limiter is correct and callers exceed the limit anyway. Where would you look first?",
+      "html": "<summary>Your rate limiter is correct and callers exceed the limit anyway. Where would you look first?</summary><p>At where the counter lives. If each service instance counts locally, your effective limit is the published one multiplied by the number of instances, and every instance is behaving correctly. Test the limit by sending traffic to two instances, not by sending two requests.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Your limit is 100 per minute on a fixed window. What is the most a caller can send in two seconds?",
@@ -509,5 +531,6 @@
       "summary": "Your rate limiter is correct and callers exceed the limit anyway. Where would you look first?",
       "html": "<summary>Your rate limiter is correct and callers exceed the limit anyway. Where would you look first?</summary><p>At where the counter lives. If each service instance counts locally, your effective limit is the published one multiplied by the number of instances, and every instance is behaving correctly. Test the limit by sending traffic to two instances, not by sending two requests.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

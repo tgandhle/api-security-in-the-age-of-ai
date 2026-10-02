@@ -540,6 +540,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "Your verifier accepts a request, the signature is valid, and the body was replaced in transit. How?",
+      "html": "<summary>Your verifier accepts a request, the signature is valid, and the body was replaced in transit. How?</summary><p>Two ways. Either <code>content-digest</code> was not in the covered component list, so the body was never inside the signature at all, or it was covered but the verifier never recomputed the digest from the received bytes. Both produce a valid signature over a message whose body you cannot trust. Checks 10 and 12 in the lab are these two cases.</p>",
+      "class": ""
+    },
+    {
+      "summary": "An HMAC and an Ed25519 signature both prove the key was used. What does the second one add?",
+      "html": "<summary>An HMAC and an Ed25519 signature both prove the key was used. What does the second one add?</summary><p>That the verifier could not have produced it. With a shared secret, verifying and signing are the same capability, so a breached or motivated receiver can forge requests as the caller, and no third party can distinguish the two. With a keypair the receiver holds only a public key. That is the row that turns green.</p>",
+      "class": ""
+    },
+    {
+      "summary": "A request arrives with <code>keyid</code> naming a key you have never seen. What do you do?",
+      "html": "<summary>A request arrives with <code>keyid</code> naming a key you have never seen. What do you do?</summary><p>Reject it. The temptation is to resolve the <code>keyid</code> by fetching something, which hands the caller control of which key you verify against. Keys are established out of band, before the first request, and <code>keyid</code> only selects among the ones you already hold.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Why check the algorithm against the key as well as against an allowlist?",
+      "html": "<summary>Why check the algorithm against the key as well as against an allowlist?</summary><p>Because a key and an algorithm can each be acceptable and still be wrong together. A message claiming <code>hmac-sha256</code> for a <code>keyid</code> you hold as a public value is asking you to treat a public value as a shared secret. RFC 9421 section 1.4 requires an application to define \"a means of determining that the signature algorithm used is appropriate for the key material\" for exactly this reason.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Your verifier accepts a request, the signature is valid, and the body was replaced in transit. How?",
@@ -557,5 +579,6 @@
       "summary": "Why check the algorithm against the key as well as against an allowlist?",
       "html": "<summary>Why check the algorithm against the key as well as against an allowlist?</summary><p>Because a key and an algorithm can each be acceptable and still be wrong together. A message claiming <code>hmac-sha256</code> for a <code>keyid</code> you hold as a public value is asking you to treat a public value as a shared secret. RFC 9421 section 1.4 requires an application to define \"a means of determining that the signature algorithm used is appropriate for the key material\" for exactly this reason.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

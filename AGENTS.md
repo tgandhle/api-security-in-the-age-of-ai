@@ -83,6 +83,18 @@ These apply to every change. If a task seems to require breaking one, stop and a
 Recorded so a later session does not reopen them by accident. Change one only
 when the reason it gives has stopped being true, and say so in the commit.
 
+- **2026-10-02, exercises are a layer on top of the quick check, not a
+  replacement for it.** The quick check stays exactly as it is, because it is
+  what `assets/course.js` counts for the course dashboard and what a reader's
+  saved progress already refers to. Exercises are formative and record no
+  progress at all. Merging the two progress models is deferred: it touches
+  `course.js`, `index.html`, the rail and saved `localStorage` shape, and none
+  of that is needed for the exercises to be useful. The exercise markup is
+  plain HTML inside the lesson, so `Lesson.jsx` renders it through the same
+  `dangerouslySetInnerHTML` path as the rest of the body and `course.js`
+  drives it in both the static site and the app. Verified in both: 12 of 12
+  options in 3 exercises show the reason published for the option that was
+  picked, and the quick check still passes. React needed no change.
 - **2026-10-02, React replaces the static site. This reverses the deferral
   below, on the owner's instruction, not on new evidence.** What is built and
   verified: `app/` renders every lesson from `content/`, prerenders all 31

@@ -539,6 +539,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "Why does signing with the public key work against a verifier that trusts the header?",
+      "html": "<summary>Why does signing with the public key work against a verifier that trusts the header?</summary><p>The verifier holds one key and chooses the operation from the header. Told <code>HS256</code>, it treats its key as a shared secret and computes an HMAC. The attacker did the same thing with the same value, because a public key is public. The fix is not a better key, it is refusing to let the token pick the algorithm.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Your verifier checks the signature, issuer and expiry, and the token passes. Name two attacks still open.",
+      "html": "<summary>Your verifier checks the signature, issuer and expiry, and the token passes. Name two attacks still open.</summary><p>A token issued for a different service in the same estate is accepted, because <code>aud</code> was not checked. And an ID token signed by the same issuer is accepted where an access token was expected, because the token type was not checked.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Why is a required-claim list part of the profile rather than a property of JWT?",
+      "html": "<summary>Why is a required-claim list part of the profile rather than a property of JWT?</summary><p>Because RFC 7519 marks every registered claim OPTIONAL. A bare JWT can legitimately contain nothing. What must be present is decided by the profile you are verifying against, such as RFC 9068 for OAuth access tokens, and if you never declared one, you are not requiring anything.</p>",
+      "class": ""
+    },
+    {
+      "summary": "The account is disabled one minute after a one-hour token is issued. What does your verifier do?",
+      "html": "<summary>The account is disabled one minute after a one-hour token is issued. What does your verifier do?</summary><p>It keeps accepting the token for the remaining 59 minutes. Every check on this page passes, because they all describe the token, not the current state of the grant. Closing that window is revocation, in module 6.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Why does signing with the public key work against a verifier that trusts the header?",
@@ -556,5 +578,6 @@
       "summary": "The account is disabled one minute after a one-hour token is issued. What does your verifier do?",
       "html": "<summary>The account is disabled one minute after a one-hour token is issued. What does your verifier do?</summary><p>It keeps accepting the token for the remaining 59 minutes. Every check on this page passes, because they all describe the token, not the current state of the grant. Closing that window is revocation, in module 6.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

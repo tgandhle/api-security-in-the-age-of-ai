@@ -470,6 +470,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "Why is an allowlist of response fields different from a denylist of sensitive ones?",
+      "html": "<summary>Why is an allowlist of response fields different from a denylist of sensitive ones?</summary><p>Because they behave differently when the data changes, which is the only time it matters. A denylist enumerates the fields that exist now; a column added next quarter is not on it and ships in every response. An allowlist enumerates what the endpoint is for, and a new column changes nothing until somebody adds it deliberately.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Your update endpoint binds the request body to the model. What is the full set of fields a caller can set?",
+      "html": "<summary>Your update endpoint binds the request body to the model. What is the full set of fields a caller can set?</summary><p>Every field on the model. The body decides which keys are present, so the answer is not determined by your code at all, it is determined by whatever the attacker sends and whatever your schema happens to contain today. That includes the fields somebody adds later.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Your rule is that anything under /api/admin/ requires staff. What does that rule actually enforce?",
+      "html": "<summary>Your rule is that anything under /api/admin/ requires staff. What does that rule actually enforce?</summary><p>A statement about URL shape. It is correct for every administrative endpoint that happens to live under that prefix and silent about every one that does not, which OWASP notes is common, because administrative operations tend to sit in the controller for the thing they operate on. Bind the rule to the operation, not to the path it was filed under.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Your route table denies by default and every route has a rule. Are you done?",
+      "html": "<summary>Your route table denies by default and every route has a rule. Are you done?</summary><p>No. Denying by default protects the routes nobody wrote a rule for. It does nothing about a rule that names the wrong role, which is an ordinary mistake that produces an ordinary-looking table entry. Somebody has to read the table against what each operation does.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Why is an allowlist of response fields different from a denylist of sensitive ones?",
@@ -487,5 +509,6 @@
       "summary": "Your route table denies by default and every route has a rule. Are you done?",
       "html": "<summary>Your route table denies by default and every route has a rule. Are you done?</summary><p>No. Denying by default protects the routes nobody wrote a rule for. It does nothing about a rule that names the wrong role, which is an ordinary mistake that produces an ordinary-looking table entry. Somebody has to read the table against what each operation does.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

@@ -516,6 +516,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "Your MCP server verifies the token's signature against your authorization server's key and the token is not expired. Is that enough?",
+      "html": "<summary>Your MCP server verifies the token's signature against your authorization server's key and the token is not expired. Is that enough?</summary><p>No. If the same authorization server also protects the API behind your MCP server, a token issued for that API verifies identically. The audience claim is the only thing separating them, and validating it is a MUST: servers \"MUST validate that access tokens were issued specifically for them as the intended audience\".</p>",
+      "class": ""
+    },
+    {
+      "summary": "Why is forwarding the client's token to the upstream API worse than merely accepting it?",
+      "html": "<summary>Why is forwarding the client's token to the upstream API worse than merely accepting it?</summary><p>Accepting it breaks one boundary; forwarding it breaks a second. The upstream API may treat the token as having come from the MCP server, or as having already been validated by it. Audit breaks in both directions: the MCP server cannot distinguish its clients, and the upstream's logs name a different identity than the service actually calling. The specification states MUST NOT for the forwarding specifically.</p>",
+      "class": ""
+    },
+    {
+      "summary": "A client receives a 403 with <code>scope=\"files:write\"</code>. It re-authorizes asking for <code>files:write</code>. What has it done wrong?",
+      "html": "<summary>A client receives a 403 with <code>scope=\"files:write\"</code>. It re-authorizes asking for <code>files:write</code>. What has it done wrong?</summary><p>It dropped whatever it already had. The specification makes scope accumulation a client-side responsibility and tells clients to compute the union of previously requested scopes and the challenged ones, because servers emit per-operation challenges and are not required to include scopes already granted.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Your MCP server mints 32-character random workflow handles. Is handle hijacking addressed?",
+      "html": "<summary>Your MCP server mints 32-character random workflow handles. Is handle hijacking addressed?</summary><p>Only partly. Random handles make guessing impractical, but the specification's requirement is that possession of a handle MUST NOT be treated as authentication. A handle that leaks, through a log or a shared transcript, still works unless the server binds it to the authenticated user and rejects it when anyone else presents it.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Your MCP server verifies the token's signature against your authorization server's key and the token is not expired. Is that enough?",
@@ -533,5 +555,6 @@
       "summary": "Your MCP server mints 32-character random workflow handles. Is handle hijacking addressed?",
       "html": "<summary>Your MCP server mints 32-character random workflow handles. Is handle hijacking addressed?</summary><p>Only partly. Random handles make guessing impractical, but the specification's requirement is that possession of a handle MUST NOT be treated as authentication. A handle that leaks, through a log or a shared transcript, still works unless the server binds it to the authenticated user and rejects it when anyone else presents it.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

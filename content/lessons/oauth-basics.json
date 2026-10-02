@@ -573,6 +573,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "Why does PKCE use a hash rather than sending the verifier in the authorization request?",
+      "html": "<summary>Why does PKCE use a hash rather than sending the verifier in the authorization request?</summary><p>The authorization request travels through the browser, so anything in it can be read. Sending the hash means an attacker who captures the request still cannot produce the verifier the token endpoint will ask for. With <code>plain</code> the challenge is the verifier, which is why RFC 7636 says not to use it.</p>",
+      "class": ""
+    },
+    {
+      "summary": "A public mobile app has no client secret. What stops a malicious app on the same device from redeeming its code?",
+      "html": "<summary>A public mobile app has no client secret. What stops a malicious app on the same device from redeeming its code?</summary><p>PKCE. The malicious app can register for the same redirect URI and receive the code, but it never saw the verifier, which was generated in the real app's memory and sent only on the back channel.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Your service uses client credentials and the authorization server returns a refresh token. What do you do?",
+      "html": "<summary>Your service uses client credentials and the authorization server returns a refresh token. What do you do?</summary><p>Question it. RFC 6749 section 4.4.3 says a refresh token SHOULD NOT be included, because the client can authenticate and request a new token whenever it needs one. A refresh token here is extra long-lived credential to protect for no benefit.</p>",
+      "class": ""
+    },
+    {
+      "summary": "You validate a token's signature, issuer and expiry, and it passes. Is the request authorized?",
+      "html": "<summary>You validate a token's signature, issuer and expiry, and it passes. Is the request authorized?</summary><p>No. Those checks say the token is genuine and current. They do not say it was issued for your resource server, or that its scope covers this operation, or that this caller may touch this particular object. Audience and scope are in this module; object-level authorization is module 9.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Why does PKCE use a hash rather than sending the verifier in the authorization request?",
@@ -590,5 +612,6 @@
       "summary": "You validate a token's signature, issuer and expiry, and it passes. Is the request authorized?",
       "html": "<summary>You validate a token's signature, issuer and expiry, and it passes. Is the request authorized?</summary><p>No. Those checks say the token is genuine and current. They do not say it was issued for your resource server, or that its scope covers this operation, or that this caller may touch this particular object. Audience and scope are in this module; object-level authorization is module 9.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }
