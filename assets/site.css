@@ -89,3 +89,67 @@ footer{max-width:1040px;margin:0 auto;padding:1.5rem 1.25rem 3rem;font-size:13px
 .lab-output{margin-top:.7rem;border-left:3px solid var(--hair);padding-left:12px}
 .lab-output[data-state="ok"]{border-left-color:var(--s-stroke)}
 .lab-output[data-state="bad"]{border-left-color:var(--r-stroke)}
+
+/* The app layout: a lesson rail beside the lesson. Prerendered, so it works
+   with JavaScript off; hydration only adds the completion ticks. */
+.course-layout{display:grid;grid-template-columns:minmax(0,1fr);max-width:1360px;margin:0 auto}
+.course-main{min-width:0}
+.course-main main{margin:0}
+.course-rail{border-bottom:1px solid var(--hair);padding:1rem 1.25rem}
+/* On a narrow screen the rail must not push the lesson off the screen, so it
+   is a bounded scrollable list. Every link is still in the markup, so a
+   crawler and a reader with JavaScript off lose nothing. */
+.course-rail ol{max-height:10.5rem;overflow-y:auto;overscroll-behavior:contain}
+.rail-title{font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 .5rem;font-weight:650}
+.course-rail ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px}
+.course-rail li{position:relative}
+.course-rail a{display:grid;grid-template-columns:2rem 1fr auto;gap:.5rem;align-items:baseline;
+  padding:.4rem .5rem;border-radius:6px;text-decoration:none;color:var(--ink);font-size:14px}
+.course-rail a:hover{background:var(--panel)}
+.course-rail .here a{background:var(--panel);font-weight:650}
+.course-rail .here a::before{content:"";position:absolute;margin-left:-.85rem;
+  width:3px;height:1.1rem;background:var(--link);border-radius:2px}
+.rail-num{color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px;text-align:right}
+.rail-done{font-size:11px;color:var(--s-stroke);text-transform:uppercase;letter-spacing:.04em}
+
+.lesson-nav{display:grid;grid-template-columns:1fr 1fr;gap:1rem;
+  max-width:1040px;margin:0 auto;padding:0 1.25rem 4rem}
+.lesson-nav a{display:block;padding:.9rem 1.1rem;border:1px solid var(--hair);
+  border-radius:10px;text-decoration:none}
+.lesson-nav a:hover{border-color:var(--link)}
+.lesson-nav a span{display:block;font-size:12px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.06em}
+.lesson-nav a strong{display:block;margin-top:.2rem;color:var(--link);font-weight:600}
+.lesson-nav .next{text-align:right}
+
+@media (min-width:1080px){
+  .course-layout{grid-template-columns:286px minmax(0,1fr);gap:0;align-items:start}
+  .course-rail{position:sticky;top:0;max-height:100vh;overflow-y:auto;
+    border-bottom:none;border-right:1px solid var(--hair);padding:1.75rem 1rem}
+  .course-rail ol{max-height:none;overflow:visible}
+  .course-main main{max-width:900px;margin:0;padding-left:2rem;padding-right:2rem}
+  .lesson-nav{max-width:900px;margin:0;padding-left:2rem;padding-right:2rem}
+}
+
+/* Search. Client only, so the prerendered nav has an empty mount and a reader
+   with JavaScript off sees no box rather than a dead one. */
+.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.site-search{position:relative;margin-left:auto}
+.site-search input{font:inherit;font-size:13px;padding:.3rem .6rem;min-width:15rem;
+  border:1px solid var(--hair);border-radius:7px;background:var(--bg);color:var(--ink)}
+.site-search input:focus-visible{outline:2px solid var(--link);outline-offset:1px}
+.search-results{position:absolute;right:0;top:calc(100% + .4rem);z-index:20;
+  width:min(30rem,calc(100vw - 2rem));max-height:70vh;overflow-y:auto;
+  background:var(--panel);border:1px solid var(--hair);border-radius:10px;
+  box-shadow:0 10px 30px rgba(0,0,0,.18);padding:.4rem}
+.search-results ul{list-style:none;margin:0;padding:0}
+.search-results a{display:block;padding:.45rem .6rem;border-radius:6px;
+  text-decoration:none;color:var(--ink)}
+.search-results a:hover,.search-results a.active{background:var(--bg)}
+.search-results .hit-title{display:block;font-size:14px}
+.search-results .hit-where{display:block;font-size:12px;color:var(--muted)}
+.search-results .meta{margin:.5rem .6rem;font-size:13px;color:var(--muted)}
+@media (max-width:720px){.site-search{width:100%;margin-left:0}
+  .site-search input{width:100%}}

@@ -43,11 +43,15 @@ Plain HTML. Open `index.html` in any browser, or publish the folder with GitHub 
 - Labs: `python3 labs/<lab>.py`. Modules 1, 2 and 4 need Python 3 and nothing else. Modules 3, 5, 6 and 7 additionally need `python3 -m pip install cryptography==50.0.1`, because Python has no built-in asymmetric cryptography. Those labs say so and exit cleanly if it is missing.
 - After editing any checklist item on a topic page: `python3 tools/build_checklist.py`.
 - To confirm the checklist is current: `python3 tools/build_checklist.py --check` (exits 1 if stale).
-- After editing any lesson page: `python3 tools/extract_lessons.py`, which regenerates `content/`.
+- After editing any lesson page: `python3 tools/extract_lessons.py`, which regenerates `content/lessons/`.
+- After editing the home page, the glossary or the roadmap: `python3 tools/extract_pages.py`, which regenerates `content/pages.json`.
+- After either of those: `python3 tools/build_search_index.py`, which regenerates `assets/search-index.js`.
 
 The lesson pages share one skeleton, `tools/page_template.tmpl`, and `tools/render_site.py` builds them from `content/`. The published HTML stays the source of truth: `content/` is extracted from it, not the other way round. Nothing in `content/` is edited by hand.
 
 See `CONVENTIONS.md` for the page template and writing rules.
+
+`app/` is a React build of the same content, in progress and not yet published. It reads `content/`, prerenders all 31 pages so the HTML is the same text a crawler reads today, and adds a lesson rail and site-wide search. `cd app`, `npm install`, `npm run build`. Until the changeover is decided the static site is what is published, and both have to pass their checks. The open questions are listed under Decisions in `AGENTS.md`.
 
 Before committing:
 
@@ -56,11 +60,13 @@ python3 tools/check_site.py              # links, anchors, dashes, secrets, chec
 python3 tools/extract_lessons.py --check # pages rebuild from content/, numbering, staleness
 python3 tools/render_site.py             # the shared template still reproduces every page
 python3 tools/build_lab_bundles.py --check  # the .lab.js copies still match the .py files
+python3 tools/extract_pages.py --check   # content/pages.json matches the home, glossary and roadmap
+python3 tools/build_search_index.py --check  # assets/search-index.js matches content/
 python3 tools/check_transcripts.py       # runs every lab and compares its output to the page
 python3 tools/check_a11y.py              # axe-core, light and dark, desktop and mobile
 ```
 
-All six exit 0 when the site is clean, and 1 with a named reason otherwise.
+All eight exit 0 when the site is clean, and 1 with a named reason otherwise.
 
 `check_a11y.py` is an author tool and needs Playwright and axe-core, installed once with the commands in its file header. It skips cleanly and exits 0 if they are absent, so it never blocks reading or editing a page.
 

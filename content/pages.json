@@ -1,0 +1,555 @@
+{
+  "home": {
+    "blocks": [
+      {
+        "tag": "section",
+        "attrs": {
+          "class": "course-hero",
+          "id": "course",
+          "data-course-dashboard": null
+        },
+        "html": "<section class=\"course-hero\" id=\"course\" data-course-dashboard>\n<p class=\"kicker\">Interactive learning course</p>\n<h1>API Security in the Age of AI</h1>\n<div class=\"prose\">\n<p>For new security engineers. Each module starts with a real attack, shows why it works, teaches the control that stops it, and ends with a test you can run. The second half of each page is a reference you can use in design reviews.</p>\n<p class=\"meta\">Self-paced. Work through the modules in order. Each one assumes the ones before it. Labs need Python 3 and nothing else. Progress is stored only in this browser.</p>\n</div>\n<div class=\"course-progress\" aria-label=\"Course progress\"><p data-course-progress>0 of 6 published lessons complete</p><div class=\"progress-track\" role=\"progressbar\" aria-label=\"Published lesson progress\" aria-valuemin=\"0\" aria-valuemax=\"100\"><span data-course-progress-bar></span></div><p class=\"meta\" data-course-assessment-progress>0 of 6 published quick checks passed</p></div>\n<div class=\"course-actions\"><a class=\"button\" href=\"topics/api-keys/index.html\">Start module 1</a><button class=\"button secondary\" type=\"button\" data-reset-progress>Reset progress</button></div>\n</section>"
+      },
+      {
+        "tag": "section",
+        "attrs": {
+          "class": "course-brief",
+          "id": "overview",
+          "aria-labelledby": "course-overview"
+        },
+        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>New security engineers who can read Python and HTTP requests.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. No packages, account, or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 27 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Learning outcomes for the published release</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
+      },
+      {
+        "tag": "h2",
+        "attrs": {
+          "id": "path"
+        },
+        "html": "<h2 id=\"path\">Modules</h2>"
+      },
+      {
+        "tag": "p",
+        "attrs": {
+          "class": "meta"
+        },
+        "html": "<p class=\"meta\">Every module is published: the primer, all of Parts 1 and 2, all seven modules of Part 3, all seven of Part 4, and the capstone. Each one carries its lesson, a runnable lab with its real output, primary sources, and review checklist items.</p>"
+      }
+    ]
+  },
+  "glossary": {
+    "intro": "<h1>Glossary</h1>\n<p class=\"prose meta\">Terms used across the site, in plain language. Each module links here the first time it uses a term.</p>",
+    "terms": [
+      {
+        "id": "access-token",
+        "term": "Access token",
+        "definition": "A credential a client presents to a resource server for access the resource owner granted. In OAuth it carries authorization, not identity, and it is usually a bearer credential."
+      },
+      {
+        "id": "act-claim",
+        "term": "Act claim",
+        "definition": "The <code>act</code> claim in a token, naming the party that has been delegated authority. The outermost one is the current actor and nested ones are prior actors, and a consumer applying access control policy must consider only the top-level claims and the current actor. RFC 8693 section 4.1."
+      },
+      {
+        "id": "agent-card",
+        "term": "Agent card",
+        "definition": "A JSON document an A2A server publishes, by default at <code>/.well-known/agent-card.json</code>, declaring its name, interfaces, skills and security schemes. It may be signed, and a signature establishes that the key holder wrote it, not who the key holder is."
+      },
+      {
+        "id": "algorithm-confusion",
+        "term": "Algorithm confusion",
+        "definition": "An attack that changes which algorithm a verifier uses, so a value the attacker knows becomes the verifying key. The classic case swaps RS256 for HS256 and signs with the issuer's public key."
+      },
+      {
+        "id": "api-gateway",
+        "term": "API gateway",
+        "definition": "A component every request is meant to pass through, applying checks that need only the request. It is a control while it is the only path to the service, which is a property of the network rather than of the gateway."
+      },
+      {
+        "id": "api-key",
+        "term": "API key",
+        "definition": "A credential issued to an application for API access. In this course, it is a secret bearer value checked against a server-side record."
+      },
+      {
+        "id": "asymmetric-signature",
+        "term": "Asymmetric signature",
+        "definition": "A signature made with a private key and checked with the matching public key. Knowing the public key lets you verify, not sign, so the verifier can't forge signatures."
+      },
+      {
+        "id": "authentication",
+        "term": "Authentication",
+        "definition": "Checking a claimed identity using evidence such as a credential. Possession of a stolen credential can pass that check."
+      },
+      {
+        "id": "authorization",
+        "term": "Authorization",
+        "definition": "Deciding whether an identity may perform an action on a resource."
+      },
+      {
+        "id": "authorization-code",
+        "term": "Authorization code",
+        "definition": "A short-lived, single-use value returned through the browser that a client exchanges for a token on a server-to-server request. It is not a credential for the API itself."
+      },
+      {
+        "id": "authorization-server",
+        "term": "Authorization server",
+        "definition": "The server that authenticates clients, obtains the resource owner's consent, and issues tokens. It owns the authorization and token endpoints."
+      },
+      {
+        "id": "back-channel",
+        "term": "Back channel",
+        "definition": "A direct server-to-server request that does not pass through the user's browser. Values sent here are not exposed to browser history or to anything on the redirect path."
+      },
+      {
+        "id": "bearer-credential",
+        "term": "Bearer credential",
+        "definition": "A credential that grants access to whoever presents it, like an API key or most access tokens. If it's stolen, the thief can use it."
+      },
+      {
+        "id": "blanket-approval",
+        "term": "Blanket approval",
+        "definition": "One approval covering a whole session or class of actions. Its worth is the number of an operation's fields it constrains, which is often zero, and then it records that somebody was present rather than controlling what happened."
+      },
+      {
+        "id": "bound-approval",
+        "term": "Bound approval",
+        "definition": "An approval carrying a signature over the parameters as the approver saw them, so the executor can confirm it is running the same thing rather than the same identifier. Approving an identifier approves whatever that identifier holds later."
+      },
+      {
+        "id": "canonical-string",
+        "term": "Canonical string",
+        "definition": "An agreed, exact text description of a request that both sides build the same way before signing. Any difference in bytes produces a different signature."
+      },
+      {
+        "id": "canonicalization",
+        "term": "Canonicalization",
+        "definition": "Reducing a document to one agreed byte representation before signing, so that reserialising it does not break the signature. For JSON, RFC 8785 sorts object properties recursively and compares names as UTF-16 code units."
+      },
+      {
+        "id": "certificate-binding",
+        "term": "Certificate binding",
+        "definition": "Tying an access token to the client certificate used on the TLS connection, so the token only works from a connection presenting that certificate. RFC 8705."
+      },
+      {
+        "id": "claim",
+        "term": "Claim",
+        "definition": "A name and value inside a token payload, such as <code>iss</code>, <code>aud</code> or <code>exp</code>. In plain JWT every registered claim is optional, so which ones must be present is decided by the profile you verify against."
+      },
+      {
+        "id": "client-credentials-grant",
+        "term": "Client credentials grant",
+        "definition": "The OAuth grant a service uses to obtain a token for itself, with no user involved. The client authenticates and receives a scoped token."
+      },
+      {
+        "id": "client-id-metadata-document",
+        "term": "Client ID Metadata Document",
+        "definition": "A client identifier that is itself an HTTPS URL, which the authorization server fetches to read the client's metadata. Preferred over dynamic client registration in MCP revision 2026-07-28. It proves control of a domain, not control of whichever local process is listening on a <code>localhost</code> redirect URI."
+      },
+      {
+        "id": "code-challenge",
+        "term": "Code challenge",
+        "definition": "The value a client sends in the authorization request to commit to a verifier it has not yet revealed. With the S256 method it is the base64url-encoded SHA-256 hash of the verifier."
+      },
+      {
+        "id": "code-verifier",
+        "term": "Code verifier",
+        "definition": "A high-entropy random string the client keeps to itself and presents only on the back channel, proving it started the flow. RFC 7636 requires 43 to 128 unreserved characters."
+      },
+      {
+        "id": "confidential-client",
+        "term": "Confidential client",
+        "definition": "A client that can keep a secret, such as a server-side application. It authenticates to the authorization server in its own right."
+      },
+      {
+        "id": "confirmation-claim",
+        "term": "Confirmation claim",
+        "definition": "The <code>cnf</code> claim in a token, naming a key its holder must be able to use. It turns a bearer token into one that also requires proof of possession."
+      },
+      {
+        "id": "confused-deputy",
+        "term": "Confused deputy",
+        "definition": "A service that uses its own authority to carry out a request made on someone else's behalf. The downstream service sees the service's identity and not the user's, so an object check has nothing to compare the request against."
+      },
+      {
+        "id": "constant-time-comparison",
+        "term": "Constant-time comparison",
+        "definition": "A comparison that takes the same time whether values differ at the first byte or the last. Ordinary string comparison stops at the first difference, which can leak information through timing."
+      },
+      {
+        "id": "content-digest",
+        "term": "Content-Digest",
+        "definition": "A header carrying a hash of the message body, defined by RFC 9530. It is the only way a request body enters an HTTP message signature, and then only if it is a covered component and the receiver recomputes it."
+      },
+      {
+        "id": "cors",
+        "term": "CORS",
+        "definition": "Cross-origin resource sharing. The set of HTTP headers by which a server tells a browser that a response may be handed to a page from a different <a href=\"#origin\">origin</a>. The browser enforces it and the server only declares; a client that is not a browser is unaffected by it."
+      },
+      {
+        "id": "covered-components",
+        "term": "Covered components",
+        "definition": "The ordered list of message parts a signature is computed over. Anything not in the list is outside the signature and can be changed without invalidating it."
+      },
+      {
+        "id": "cryptoperiod",
+        "term": "Cryptoperiod",
+        "definition": "\"The time span during which a specific key is authorized for use or in which the keys for a given system or application may remain in effect\" (NIST SP 800-57 Part 1). The specifications give you the concept; the length is your judgment to make and defend."
+      },
+      {
+        "id": "data-minimisation",
+        "term": "Data minimisation",
+        "definition": "Putting only the fields a task needs into a prompt, chosen from an allowlist. It removes copies rather than filtering them, so it acts on every sink at once: logs, traces, caches, the provider and the answer."
+      },
+      {
+        "id": "delegation",
+        "term": "Delegation",
+        "definition": "An arrangement where one party acts for another while keeping its own identity, so a token names both. RFC 8693 section 1.1 contrasts it with impersonation."
+      },
+      {
+        "id": "derived-component",
+        "term": "Derived component",
+        "definition": "A signature input taken from the request or response line rather than a header, written with a leading <code>@</code>, such as <code>@method</code>, <code>@authority</code> or <code>@path</code>. RFC 9421 section 2.2."
+      },
+      {
+        "id": "dpop",
+        "term": "DPoP",
+        "definition": "Demonstrating Proof of Possession. The client signs a small JWT per request with a key it holds, and the access token names that key, so a stolen token alone is not enough. RFC 9449."
+      },
+      {
+        "id": "enumeration",
+        "term": "Enumeration",
+        "definition": "Walking a range of identifiers to discover which ones exist. Sequential identifiers make it a loop; a refusal that distinguishes \"forbidden\" from \"not found\" makes it a map."
+      },
+      {
+        "id": "fetch",
+        "term": "Fetch",
+        "definition": "The browser API that issues HTTP requests from a page, and the name of the WHATWG standard that defines request and response handling, including <a href=\"#cors\">CORS</a>. A fetch states whether credentials are omitted, included, or sent only to the same origin."
+      },
+      {
+        "id": "front-channel",
+        "term": "Front channel",
+        "definition": "A request or response that travels through the user's browser, usually as a redirect. Anything in a front-channel URL may reach browser history, referrer headers, proxy logs, and other apps on the device."
+      },
+      {
+        "id": "hash",
+        "term": "Hash",
+        "definition": "A fixed-length fingerprint of data, such as SHA-256. Anyone can compute it, and changing one byte of input changes the output completely. A hash alone proves nothing about who made it."
+      },
+      {
+        "id": "hmac",
+        "term": "HMAC",
+        "definition": "Hash-based message authentication code. A hash computed with a secret key mixed in, so only key holders can produce or check it."
+      },
+      {
+        "id": "id-token",
+        "term": "ID token",
+        "definition": "A JWT from OpenID Connect that tells a client who signed in. It is for the client, not for an API, and a verifier expecting an access token must reject it."
+      },
+      {
+        "id": "idempotency-key",
+        "term": "Idempotency key",
+        "definition": "A value, such as a transaction ID, that lets the receiver recognize a repeated business operation and return the original result instead of doing the work twice."
+      },
+      {
+        "id": "impersonation",
+        "term": "Impersonation",
+        "definition": "An arrangement where the acting party is given the rights of another and is \"indistinguishable from\" it in that context, so nothing downstream can tell a different party made the call. RFC 8693 section 1.1."
+      },
+      {
+        "id": "improper-output-handling",
+        "term": "Improper output handling",
+        "definition": "Passing a model's output downstream without validating or encoding it for where it is going. OWASP LLM05:2025. The bug is in the calling code rather than in the model's answer."
+      },
+      {
+        "id": "indirect-prompt-injection",
+        "term": "Indirect prompt injection",
+        "definition": "Injection that arrives in content the model retrieves, such as a web page or a document, rather than from the person typing. Nobody has to attack the system; a document is edited and the agent reads it."
+      },
+      {
+        "id": "insufficient-coverage",
+        "term": "Insufficient coverage",
+        "definition": "A signature or approval that protects some of a message and not the rest, so the uncovered parts can change without invalidating it. RFC 9421 section 7.2.1 names it for HTTP signatures; the same reasoning decides which fields an approval must cover."
+      },
+      {
+        "id": "introspection",
+        "term": "Introspection",
+        "definition": "Asking the authorization server whether a token is active right now. It answers for the moment you ask, so caching the answer trades liveness for load."
+      },
+      {
+        "id": "jwks",
+        "term": "JWKS",
+        "definition": "JSON Web Key Set. The set of public keys an issuer publishes so verifiers can check its signatures, each identified by a key id. Covered in module 6."
+      },
+      {
+        "id": "jwt",
+        "term": "JWT",
+        "definition": "JSON Web Token. A base64url-encoded header, payload and signature, separated by dots. The header and payload are readable by anyone holding the token; the signature only shows they were not altered."
+      },
+      {
+        "id": "key-rotation",
+        "term": "Key rotation",
+        "definition": "Replacing a key on a schedule or after exposure. Usually both old and new keys are accepted during a short overlap, then the old one is retired."
+      },
+      {
+        "id": "keyid",
+        "term": "keyId",
+        "definition": "An identifier sent with a signed request telling the receiver which key to verify with. It must never be the key itself."
+      },
+      {
+        "id": "luhn-check",
+        "term": "Luhn check",
+        "definition": "The check digit algorithm card numbers satisfy. In a redactor it separates a card number from any other long number, which stops the redactor blanking order and invoice numbers that people need to read."
+      },
+      {
+        "id": "may-act-claim",
+        "term": "may_act claim",
+        "definition": "A claim in a token naming the party authorized to become the actor and act on behalf of its subject. It lets the authorization server decide whether a requested delegation was permitted when the subject token was issued, rather than at the moment an actor asks. RFC 8693 section 4.4."
+      },
+      {
+        "id": "mcp",
+        "term": "MCP",
+        "definition": "Model Context Protocol. A JSON-RPC protocol for exposing data and tools to LLM applications. Revisions are dated strings such as <code>2026-07-28</code>, incremented when a backwards incompatible change lands, and a protected MCP server is an OAuth 2.1 resource server."
+      },
+      {
+        "id": "mtls",
+        "term": "mTLS",
+        "definition": "Mutual TLS. Both client and server present certificates, so each proves its identity to the other when the connection opens."
+      },
+      {
+        "id": "non-repudiation",
+        "term": "Non-repudiation",
+        "definition": "The property that a signer cannot plausibly deny having signed. An asymmetric signature gives a technical version of this, because the verifier could not have produced it, and it holds only as far as private key custody holds."
+      },
+      {
+        "id": "nonce",
+        "term": "Nonce",
+        "definition": "A value used once. The receiver remembers nonces it has seen for a limited time and rejects repeats."
+      },
+      {
+        "id": "object-level-authorization",
+        "term": "Object-level authorization",
+        "definition": "Comparing the authenticated caller with the owner recorded on the specific object a request names, after loading it. Its absence is OWASP API1:2023, Broken Object Level Authorization, or BOLA."
+      },
+      {
+        "id": "origin",
+        "term": "Origin",
+        "definition": "The scheme, host and port of a URL taken together, serialised with no path and no trailing slash, for example <code>https://app.example</code>. Two URLs are same-origin only when all three agree, so the same host over <code>http</code> is a different origin."
+      },
+      {
+        "id": "pkce",
+        "term": "PKCE",
+        "definition": "Proof Key for Code Exchange. The client commits to a secret verifier by sending its hash, then proves possession of the verifier when redeeming the code, so a stolen code on its own is useless."
+      },
+      {
+        "id": "post-filtering",
+        "term": "Post-filtering",
+        "definition": "Ranking a whole corpus and then removing results the caller may not see. It returns fewer results than asked for, which discloses that something was removed, and lets other tenants' documents outrank the caller's own. Pre-filtering the corpus avoids both."
+      },
+      {
+        "id": "preflight",
+        "term": "Preflight",
+        "definition": "An <code>OPTIONS</code> request a browser sends before a cross-origin request that is not safelisted, carrying <code>Access-Control-Request-Method</code> and sometimes <code>Access-Control-Request-Headers</code>. It asks whether the <a href=\"#cors\">CORS</a> protocol is understood, not whether the caller is authorised."
+      },
+      {
+        "id": "prompt-injection",
+        "term": "Prompt injection",
+        "definition": "Content that alters a model's behaviour because instructions and data occupy the same sequence with nothing marking which is which. OWASP LLM01:2025 notes that fool-proof prevention is unclear, so the controls that hold sit either side of the model."
+      },
+      {
+        "id": "protected-resource-metadata",
+        "term": "Protected resource metadata",
+        "definition": "A document a resource server publishes at a well-known location, naming its authorization servers and its supported scopes. RFC 9728. MCP requires servers to implement it and clients to use it to find the authorization server."
+      },
+      {
+        "id": "provenance",
+        "term": "Provenance",
+        "definition": "The record of where a document or a claim came from, attached to it. Without it an untrusted retrieved claim becomes an unattributed fact, and deleting the source document does not reach what was written from it."
+      },
+      {
+        "id": "public-client",
+        "term": "Public client",
+        "definition": "A client that cannot keep a secret, such as a mobile app or code running in a browser. It relies on PKCE rather than a client secret."
+      },
+      {
+        "id": "push-notification-config",
+        "term": "Push notification configuration",
+        "definition": "In A2A, the webhook a client gives a server for task updates: an HTTPS URL, an optional token tying notifications to one task, and optional authentication details. The URL is supplied by the client, so the server must not POST to it blindly."
+      },
+      {
+        "id": "query-string",
+        "term": "Query string",
+        "definition": "The part of a URL after the question mark and before any fragment. It often contains named parameters and may be recorded in request logs."
+      },
+      {
+        "id": "redirect-uri",
+        "term": "Redirect URI",
+        "definition": "The address the authorization server returns the user to with the authorization code. It must be registered in advance and matched exactly, or an attacker can choose where the code goes."
+      },
+      {
+        "id": "replay-attack",
+        "term": "Replay attack",
+        "definition": "Resending a captured, valid request unchanged. The signature is still correct, so only freshness and nonce checks stop it."
+      },
+      {
+        "id": "resource-indicator",
+        "term": "Resource indicator",
+        "definition": "The <code>resource</code> request parameter, which names the service a token is being requested for so the authorization server can bind the token's audience to it. RFC 8707."
+      },
+      {
+        "id": "resource-server",
+        "term": "Resource server",
+        "definition": "The server hosting the protected API. It validates the access token, including that the token was issued for it and that the scope covers the operation."
+      },
+      {
+        "id": "retrieval-augmented-generation",
+        "term": "Retrieval-augmented generation",
+        "definition": "Answering with documents fetched from an index at request time. It makes the document store part of the authorization surface: who may read a document, and who may put one in."
+      },
+      {
+        "id": "revocation",
+        "term": "Revocation",
+        "definition": "Withdrawing a grant before its token expires. A self-contained token does not change when this happens, so a resource server only notices if it consults current state."
+      },
+      {
+        "id": "scope",
+        "term": "Scope",
+        "definition": "The set of permissions a client requests and the resource owner grants. A scope limits what a token can do; it does not decide who may act on a specific object."
+      },
+      {
+        "id": "sender-constrained-token",
+        "term": "Sender-constrained token",
+        "definition": "A token that only works for a holder who can prove possession of a particular key, through a client certificate or a per-request proof."
+      },
+      {
+        "id": "shared-secret",
+        "term": "Shared secret",
+        "definition": "A key known to both parties. Either party can create a valid signature, which is why a shared secret can't prove which one did."
+      },
+      {
+        "id": "signature",
+        "term": "Signature",
+        "definition": "A value computed from data and a key that lets a receiver check the data wasn't changed and came from a key holder."
+      },
+      {
+        "id": "signature-base",
+        "term": "Signature base",
+        "definition": "The exact ASCII string an HTTP message signature is computed over: one line per covered component, with the signature parameters as the last line. RFC 9421 section 2.5."
+      },
+      {
+        "id": "spiffe-id",
+        "term": "SPIFFE ID",
+        "definition": "A URI naming a workload, of the form <code>spiffe://trust-domain/path</code>, carried in a certificate's Subject Alternative Name. It is an identity, not an authorization, and the trust domain has no central registry."
+      },
+      {
+        "id": "state-handle",
+        "term": "State handle",
+        "definition": "A value a stateless server mints to carry state across requests, handed back to it as an ordinary argument. Possession of one is not authentication, so the server binds it to the caller it was minted for and refuses it from anyone else."
+      },
+      {
+        "id": "system-prompt",
+        "term": "System prompt",
+        "definition": "The instructions an application puts in front of a model. It travels in the request payload like any other field, so OWASP states it is neither a secret nor a security control, and credentials do not belong in it."
+      },
+      {
+        "id": "tls",
+        "term": "TLS",
+        "definition": "Transport Layer Security. Encrypts a connection and proves the server's identity to the client. It protects data in transit, not after it arrives."
+      },
+      {
+        "id": "token-exchange",
+        "term": "Token exchange",
+        "definition": "The OAuth grant <code>urn:ietf:params:oauth:grant-type:token-exchange</code>, which trades one security token for another. RFC 8693 requires three request parameters and leaves audience, resource, scope and the issued lifetime to the deployment."
+      },
+      {
+        "id": "token-passthrough",
+        "term": "Token passthrough",
+        "definition": "A server accepting a token that was not issued for it and forwarding it unchanged to a downstream API. Both halves are forbidden by the MCP specification: the audience check is the first, and the forwarding is what turns it into a confused deputy."
+      },
+      {
+        "id": "token-profile",
+        "term": "Token profile",
+        "definition": "The rules an application declares before verifying any token: allowed algorithms, token type, expected issuer and audience, required claims, key source and clock leeway. Nothing in it is read from the token."
+      },
+      {
+        "id": "trust-boundary",
+        "term": "Trust boundary",
+        "definition": "Any point where a request or a value moves from somewhere you do not control to somewhere you do. Checks belong on the boundary, and a check is only a control if every path to the handler crosses it."
+      },
+      {
+        "id": "workload-identity",
+        "term": "Workload identity",
+        "definition": "An identity issued to a running service by its platform, rather than a secret handed to it at deployment. It removes the long-lived value that had to be rotated and distributed; it does not remove ownership, scope or retirement."
+      }
+    ]
+  },
+  "roadmap": {
+    "blocks": [
+      {
+        "tag": "p",
+        "attrs": {
+          "class": "kicker"
+        },
+        "html": "<p class=\"kicker\">Course roadmap</p>"
+      },
+      {
+        "tag": "h1",
+        "attrs": {},
+        "html": "<h1>Chapter status</h1>"
+      },
+      {
+        "tag": "p",
+        "attrs": {
+          "class": "prose roadmap-note"
+        },
+        "html": "<p class=\"prose roadmap-note\">Every chapter planned for this course is now published. Each one contains the teaching material, a lab, primary sources, and review checklist items.</p>"
+      },
+      {
+        "tag": "p",
+        "attrs": {
+          "class": "meta"
+        },
+        "html": "<p class=\"meta\">All 27 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written.</p>"
+      },
+      {
+        "tag": "section",
+        "attrs": {
+          "aria-labelledby": "primer"
+        },
+        "html": "<section aria-labelledby=\"primer\">\n<h2 id=\"primer\">Primer</h2>\n<p class=\"prose\">The primer is published. It is listed on the <a href=\"../index.html#path\">modules page</a>.</p>\n</section>"
+      },
+      {
+        "tag": "section",
+        "attrs": {
+          "aria-labelledby": "part-1"
+        },
+        "html": "<section aria-labelledby=\"part-1\">\n<h2 id=\"part-1\">Part 1: Proving who is calling</h2>\n<p class=\"prose\">All eight modules of Part 1 are published. They are listed on the <a href=\"../index.html#path\">modules page</a>.</p>\n</section>"
+      },
+      {
+        "tag": "section",
+        "attrs": {
+          "aria-labelledby": "part-2"
+        },
+        "html": "<section aria-labelledby=\"part-2\">\n<h2 id=\"part-2\">Part 2: Deciding what they may do</h2>\n<p class=\"prose\">All three modules of Part 2 are published. They are listed on the <a href=\"../index.html#path\">modules page</a>.</p>\n</section>"
+      },
+      {
+        "tag": "section",
+        "attrs": {
+          "aria-labelledby": "part-3"
+        },
+        "html": "<section aria-labelledby=\"part-3\">\n<h2 id=\"part-3\">Part 3: Edges and boundaries</h2>\n<p class=\"prose\">All seven modules of Part 3 are published. They are listed on the <a href=\"../index.html#path\">modules page</a>.</p>\n</section>"
+      },
+      {
+        "tag": "section",
+        "attrs": {
+          "aria-labelledby": "part-4"
+        },
+        "html": "<section aria-labelledby=\"part-4\">\n<h2 id=\"part-4\">Part 4: AI and agents</h2>\n<p class=\"prose\">All seven modules of Part 4 are published. They are listed on the <a href=\"../index.html#path\">modules page</a>.</p>\n</section>"
+      },
+      {
+        "tag": "section",
+        "attrs": {
+          "aria-labelledby": "capstone"
+        },
+        "html": "<section aria-labelledby=\"capstone\">\n<h2 id=\"capstone\">Capstone</h2>\n<p class=\"prose\">The capstone is published. It is listed on the <a href=\"../index.html#path\">modules page</a>.</p>\n</section>"
+      }
+    ]
+  }
+}
