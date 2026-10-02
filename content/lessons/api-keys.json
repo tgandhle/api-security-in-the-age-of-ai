@@ -466,6 +466,23 @@
     "source-python",
     "source-rest"
   ],
+  "details": [
+    {
+      "summary": "Does HTTPS stop the attack in check 3?",
+      "html": "<summary>Does HTTPS stop the attack in check 3?</summary><p>No. The attacker reads the receiver's log after transport protection has ended. Keeping the key out of that log prevents this disclosure.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Why does the stolen key still work in check 8?",
+      "html": "<summary>Why does the stolen key still work in check 8?</summary><p>The receiver still accepts its value. A header-only rule changes where credentials are read, not who can possess them. Revocation disables the compromised credential.</p>",
+      "class": ""
+    },
+    {
+      "summary": "The scanner finds zero keys. Is the service secure?",
+      "html": "<summary>The scanner finds zero keys. Is the service secure?</summary><p>No. It checks one parameter name in one log format. It says nothing about header traces, authorization, TLS configuration, or logs outside this model.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Does HTTPS stop the attack in check 3?",
@@ -479,5 +496,6 @@
       "summary": "The scanner finds zero keys. Is the service secure?",
       "html": "<summary>The scanner finds zero keys. Is the service secure?</summary><p>No. It checks one parameter name in one log format. It says nothing about header traces, authorization, TLS configuration, or logs outside this model.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

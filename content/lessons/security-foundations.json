@@ -535,6 +535,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "A request arrives over TLS 1.3 with a valid certificate. What do you know about the caller?",
+      "html": "<summary>A request arrives over TLS 1.3 with a valid certificate. What do you know about the caller?</summary><p>Nothing. RFC 8446 says the server side is always authenticated and the client side only optionally. The certificate you validated is yours, presented by you, to them. Anything you know about the caller comes from a credential in the request.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Your partner sends a body and a SHA-256 of that body. What has that bought you?",
+      "html": "<summary>Your partner sends a body and a SHA-256 of that body. What has that bought you?</summary><p>Protection against accidental corruption, and nothing against an attacker, who changes the body and recomputes the hash. A hash has no key, so producing one is available to everybody on the path. It is worth something only when it is carried inside something keyed, such as a covered <code>Content-Digest</code> in a signature.</p>",
+      "class": ""
+    },
+    {
+      "summary": "An HMAC on a request verifies. Name precisely what you have established.",
+      "html": "<summary>An HMAC on a request verifies. Name precisely what you have established.</summary><p>That someone holding that key produced this exact request. Since both you and your partner hold the key, that set has at least two members, and you are one of them. If you need to attribute a request to your partner specifically, an HMAC cannot do it.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Every credential check in your service passes and a customer's data went to the wrong caller. Which check was missing?",
+      "html": "<summary>Every credential check in your service passes and a customer's data went to the wrong caller. Which check was missing?</summary><p>The one comparing the object being requested to the caller who requested it. Authentication established who was calling and did so correctly. Nothing in that answer says anything about which records they may read, and nothing in Part 1 of this course adds it.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "A request arrives over TLS 1.3 with a valid certificate. What do you know about the caller?",
@@ -552,5 +574,6 @@
       "summary": "Every credential check in your service passes and a customer's data went to the wrong caller. Which check was missing?",
       "html": "<summary>Every credential check in your service passes and a customer's data went to the wrong caller. Which check was missing?</summary><p>The one comparing the object being requested to the caller who requested it. Authentication established who was calling and did so correctly. Nothing in that answer says anything about which records they may read, and nothing in Part 1 of this course adds it.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

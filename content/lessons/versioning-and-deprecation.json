@@ -474,6 +474,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "What is the difference between the Deprecation and Sunset headers?",
+      "html": "<summary>What is the difference between the Deprecation and Sunset headers?</summary><p><code>Deprecation</code> carries the date a resource became or will become deprecated, which is a statement about support. <code>Sunset</code> carries the date it is likely to stop responding, which is a statement about availability. RFC 9745 requires the sunset timestamp not to be earlier than the deprecation one: deprecated first, gone afterwards.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Your deprecated version emits both headers correctly and traffic has not dropped. What does that tell you?",
+      "html": "<summary>Your deprecated version emits both headers correctly and traffic has not dropped. What does that tell you?</summary><p>That the headers are a hint, which both specifications say plainly, and that whoever is calling either has not noticed or cannot move yet. The signal has done its job; the migration has not started. Identify the callers from the logs, because that is the step that has actually stalled.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Why is a version missing from the documentation worse than one that is deprecated?",
+      "html": "<summary>Why is a version missing from the documentation worse than one that is deprecated?</summary><p>Because every process you have operates on the documented list. A deprecated version is being tracked, has dates, and someone can name it in a meeting. An undocumented one gets no security fixes, no dashboard, no review and no end date, and the only way it appears is by comparing the documentation with what actually answers.</p>",
+      "class": ""
+    },
+    {
+      "summary": "A version is past its sunset date and still answering. Who should act?",
+      "html": "<summary>A version is past its sunset date and still answering. Who should act?</summary><p>Whoever owns the deployment, and the action is to withdraw it. Announcing again does not change the exposure, and extending the date teaches every caller that the next date is negotiable too. Measure the remaining traffic so you know who to call afterwards, then withdraw it.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "What is the difference between the Deprecation and Sunset headers?",
@@ -491,5 +513,6 @@
       "summary": "A version is past its sunset date and still answering. Who should act?",
       "html": "<summary>A version is past its sunset date and still answering. Who should act?</summary><p>Whoever owns the deployment, and the action is to withdraw it. Announcing again does not change the exposure, and extending the date teaches every caller that the next date is negotiable too. Measure the remaining traffic so you know who to call afterwards, then withdraw it.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

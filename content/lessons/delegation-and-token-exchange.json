@@ -511,6 +511,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "What is the protocol difference between impersonation and delegation?",
+      "html": "<summary>What is the protocol difference between impersonation and delegation?</summary><p>One request parameter. An exchange with <code>subject_token</code> alone asks for impersonation, and RFC 8693 says the result is \"indistinguishable from B in that context\". Adding <code>actor_token</code>, with <code>actor_token_type</code>, asks for delegation, and the issued token carries an <code>act</code> claim naming the actor. The downstream service can then authorize the agent and attribute the action to the user.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Your agent has its own client credentials and calls the booking API with them, passing the user's ID as a parameter. What is wrong with that?",
+      "html": "<summary>Your agent has its own client credentials and calls the booking API with them, passing the user's ID as a parameter. What is wrong with that?</summary><p>The user is not in the token, so the booking service has nothing to compare the requested booking against. Any object check it performs is checking against a user ID supplied by the caller, which is <a href=\"../object-level-authorization/index.html\">module 9</a>'s first trap. The token's authority is also the service's, not the user's, so it is the same for every user the agent serves.</p>",
+      "class": ""
+    },
+    {
+      "summary": "A resource server receives a token with a nested chain of actors and finds an allowed service three levels down. May it allow the call?",
+      "html": "<summary>A resource server receives a token with a nested chain of actors and finds an allowed service three levels down. May it allow the call?</summary><p>No. RFC 8693 section 4.1 states that for applying access control policy the consumer MUST only consider the token's top-level claims and the party identified as the current actor. Allowing on a prior actor means any service that has ever appeared in a chain can act through any service that follows it.</p>",
+      "class": ""
+    },
+    {
+      "summary": "You revoke a user's session. What happens to the delegated tokens already issued from it?",
+      "html": "<summary>You revoke a user's session. What happens to the delegated tokens already issued from it?</summary><p>Nothing, unless you built something that links them. The exchange refuses to issue more, and the ones already out keep working until they expire. That is why the issued lifetime is a control rather than a detail, and why capping it at the subject token's remaining life is the starting default.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "What is the protocol difference between impersonation and delegation?",
@@ -528,5 +550,6 @@
       "summary": "You revoke a user's session. What happens to the delegated tokens already issued from it?",
       "html": "<summary>You revoke a user's session. What happens to the delegated tokens already issued from it?</summary><p>Nothing, unless you built something that links them. The exchange refuses to issue more, and the ones already out keep working until they expire. That is why the issued lifetime is a control rather than a detail, and why capping it at the subject token's remaining life is the starting default.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

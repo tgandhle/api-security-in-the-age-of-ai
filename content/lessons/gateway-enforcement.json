@@ -494,6 +494,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "Your gateway authenticates every request. Which services are protected by that?",
+      "html": "<summary>Your gateway authenticates every request. Which services are protected by that?</summary><p>The ones that cannot be reached any other way. For every other service the statement is about the traffic the gateway happens to see, which is not the same as the traffic the service receives. The way to find out is to enumerate the paths from the network, not to read the architecture diagram.</p>",
+      "class": ""
+    },
+    {
+      "summary": "The gateway strips client-supplied identity headers and sets its own. Is the service safe to trust them?",
+      "html": "<summary>The gateway strips client-supplied identity headers and sets its own. Is the service safe to trust them?</summary><p>Only on connections that came from the gateway, and only if the service can tell. Anything else that can reach the service can set the same header, and RFC 7239 makes the general point about forwarding headers: they can be modified by every node on the way, including the client. Either give the gateway a connection the service can authenticate, such as mutual TLS, or have the service validate the original credential itself.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Which of the controls in this course can a gateway actually perform?",
+      "html": "<summary>Which of the controls in this course can a gateway actually perform?</summary><p>The ones that need only the request: credential validation, method and path rules, rate limits, schema validation, size limits, logging. Not the ones that need the object or the business state, so not object authorization, not property authorization, and not anything about whether this particular caller should have this particular record. Those have to be in the service because only the service has loaded the data.</p>",
+      "class": ""
+    },
+    {
+      "summary": "A service-to-service call inside the cluster does not authenticate. What is the argument against fixing it?",
+      "html": "<summary>A service-to-service call inside the cluster does not authenticate. What is the argument against fixing it?</summary><p>Usually that the network is trusted, which NIST SP 800-207 addresses in one sentence: network location alone does not imply trust. The practical version is that the boundary protecting that call is a network control somebody else maintains, and you will not be told when it changes.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Your gateway authenticates every request. Which services are protected by that?",
@@ -511,5 +533,6 @@
       "summary": "A service-to-service call inside the cluster does not authenticate. What is the argument against fixing it?",
       "html": "<summary>A service-to-service call inside the cluster does not authenticate. What is the argument against fixing it?</summary><p>Usually that the network is trusted, which NIST SP 800-207 addresses in one sentence: network location alone does not imply trust. The practical version is that the boundary protecting that call is a network control somebody else maintains, and you will not be told when it changes.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

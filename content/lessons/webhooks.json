@@ -486,6 +486,28 @@
     }
   ],
   "source_anchors": [],
+  "details": [
+    {
+      "summary": "Your webhook signature covers the request body. What can an attacker who captured one event do?",
+      "html": "<summary>Your webhook signature covers the request body. What can an attacker who captured one event do?</summary><p>Replay it, indefinitely. The signature is valid for as long as the secret is, and the body does not change. Adding a timestamp to the request does not help on its own, because the attacker supplies that too. The timestamp has to be inside the signed value, and then compared against your clock.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Why must a receiver answer the same way for an event it has already applied?",
+      "html": "<summary>Why must a receiver answer the same way for an event it has already applied?</summary><p>RFC 8935 requires it, and for two good reasons. An honest sender that did not get your acknowledgement will keep retrying until it does, and a receiver that answers differently the second time has told anybody who asks which event identifiers exist.</p>",
+      "class": ""
+    },
+    {
+      "summary": "Your endpoint URL is a long random string. How much authentication is that?",
+      "html": "<summary>Your endpoint URL is a long random string. How much authentication is that?</summary><p>None. A URL travels in logs, proxies, browser history, support tickets and configuration files, and it is sent on every delivery. Treat it as public and let the signature do the authenticating.</p>",
+      "class": ""
+    },
+    {
+      "summary": "A refund event arrives before the payment it refunds. Whose bug is that?",
+      "html": "<summary>A refund event arrives before the payment it refunds. Whose bug is that?</summary><p>Nobody's, in most systems. Delivery is at least once and unordered, so a receiver that assumes a sequence has assumed something the protocol never offered. Make each handler tolerate arriving first, or reconcile against the sender's current state where order genuinely matters.</p>",
+      "class": ""
+    }
+  ],
   "quiz": [
     {
       "summary": "Your webhook signature covers the request body. What can an attacker who captured one event do?",
@@ -503,5 +525,6 @@
       "summary": "A refund event arrives before the payment it refunds. Whose bug is that?",
       "html": "<summary>A refund event arrives before the payment it refunds. Whose bug is that?</summary><p>Nobody's, in most systems. Delivery is at least once and unordered, so a receiver that assumes a sequence has assumed something the protocol never offered. Make each handler tolerate arriving first, or reconcile against the sender's current state where order genuinely matters.</p>"
     }
-  ]
+  ],
+  "exercises": []
 }

@@ -200,6 +200,85 @@ nonces recorded by the shared verifier: 1</code></pre>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 </section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="hmac-request-signing-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/hmac_lab.py"><code>labs/hmac_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant, not a reading of the code, so you can settle any disagreement by running it. None of them needs a package.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="hmac-x1" data-covers="hmac-02">
+<h3>1. The receiver re-serializes the body before hashing it</h3>
+<div class="prose">
+<p>In <code>canonical_string</code> the body hash covers the bytes that arrived. Make it parse the JSON and hash a compact re-serialization instead:</p>
+</div>
+<pre><code>body = json.dumps(json.loads(body), separators=(",", ":")).encode()
+body_hash = hashlib.sha256(body).hexdigest()</code></pre>
+<fieldset><legend>Which verdict in the published transcript changes?</legend>
+<label><input type="radio" name="hmac-x1" value="a"> Line 2, one digit changed.</label>
+<label><input type="radio" name="hmac-x1" value="b" data-correct="true"> Line 3, spaces added to JSON.</label>
+<label><input type="radio" name="hmac-x1" value="c"> Line 4, sent to another host.</label>
+<label><input type="radio" name="hmac-x1" value="d"> None of them. The same object hashes the same either way.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Line 2 still rejects. Changing <code>10000</code> to <code>90000</code> changes the parsed object too, so re-serializing does not restore the signed bytes.</li>
+<li data-option="b">Correct. Line 3 flips from <code>reject: bad signature</code> to <code>accept</code>. Whitespace is the one difference re-serializing erases, which is the hole check <code>hmac-02</code> in the <a href="#reference">Reference</a> layer closes.</li>
+<li data-option="c">Line 4 still rejects. The host is its own field in the canonical string, and nothing about the body reaches it.</li>
+<li data-option="d">No. A hash covers bytes, not an object, and <code>{"miles":10000}</code> and <code>{"miles": 10000}</code> are different bytes. That is the whole point of hashing what arrived.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="hmac-x2" data-covers="hmac-01">
+<h3>2. The canonical string drops the host</h3>
+<div class="prose">
+<p>Remove <code>host</code> from the list <code>canonical_string</code> joins, leaving the other seven fields in place. Both the signer and the verifier use that function, so both now sign the shorter string.</p>
+</div>
+<fieldset><legend>Which verdicts change?</legend>
+<label><input type="radio" name="hmac-x2" value="a"> Line 1, the original request, which no longer verifies.</label>
+<label><input type="radio" name="hmac-x2" value="b" data-correct="true"> Line 4 only.</label>
+<label><input type="radio" name="hmac-x2" value="c"> Lines 4 and 5.</label>
+<label><input type="radio" name="hmac-x2" value="d"> Line 5 only.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Line 1 still accepts. Both sides compute the same shorter string, so a legitimate request verifies exactly as before. A missing field is not a broken signature, which is what makes this class of mistake hard to notice.</li>
+<li data-option="b">Correct. Line 4 flips from <code>reject: bad signature</code> to <code>accept</code>, and nothing else moves. A signature taken for one host now travels to any other, which is what check <code>hmac-01</code> in the <a href="#reference">Reference</a> layer lists the fields for.</li>
+<li data-option="c">Line 5 does not change. It was signed with a different key, and no edit to the canonical string repairs that.</li>
+<li data-option="d">Line 5 is the one line this edit cannot reach. Look at what each attempt varies.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="hmac-x3" data-covers="hmac-03">
+<h3>3. The nonce is recorded before the signature is checked</h3>
+<div class="prose">
+<p>In <code>Verifier.verify</code>, move the nonce lookup and the line that records the nonce above the signature comparison, so the order becomes time window, nonce, signature.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="hmac-x3" value="a"> Line 7, the exact replay, becomes <code>accept</code>.</label>
+<label><input type="radio" name="hmac-x3" value="b"> Line 9, the forged nonce, becomes <code>accept</code>.</label>
+<label><input type="radio" name="hmac-x3" value="c" data-correct="true"> No verdict changes. The count on the last line becomes 2.</label>
+<label><input type="radio" name="hmac-x3" value="d"> Line 8 changes from the time window to a replayed nonce.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Line 7 still rejects as a replayed nonce. Attempt 6 records that nonce under either order, so the exact replay is caught either way.</li>
+<li data-option="b">Line 9 still rejects with a bad signature. Checking the nonce earlier does not make a forged signature verify.</li>
+<li data-option="c">Correct, and it is the uncomfortable answer: all nine verdicts are identical, so the output gives no sign that anything is wrong. The only difference is that attempt 9 is recorded before its signature is rejected, so the count goes from 1 to 2. An attacker who cannot sign can still fill the cache. Check <code>hmac-03</code> in the <a href="#reference">Reference</a> layer is written in that order for this reason.</li>
+<li data-option="d">Line 8 still rejects on the time window, which is tested before either the nonce or the signature and is not moved by this edit.</li>
+</ul>
+</details>
+</article>
+</section>
+
 <p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
 <span class="layer" id="reference" style="margin-top:3rem">Reference</span>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
