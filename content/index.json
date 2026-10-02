@@ -1,5 +1,5 @@
 {
-  "total": 26,
+  "total": 27,
   "lessons": [
     {
       "slug": "security-foundations",
@@ -104,56 +104,62 @@
       "title": "Webhooks"
     },
     {
-      "slug": "versioning-and-deprecation",
+      "slug": "cors",
       "lesson_number": 18,
+      "module": 17,
+      "title": "CORS"
+    },
+    {
+      "slug": "versioning-and-deprecation",
+      "lesson_number": 19,
       "module": 18,
       "title": "Versioning and deprecation"
     },
     {
       "slug": "delegation-and-token-exchange",
-      "lesson_number": 19,
+      "lesson_number": 20,
       "module": 19,
       "title": "Delegation and token exchange"
     },
     {
       "slug": "mcp-server-authorization",
-      "lesson_number": 20,
+      "lesson_number": 21,
       "module": 20,
       "title": "MCP server authorization"
     },
     {
       "slug": "agent-to-agent",
-      "lesson_number": 21,
+      "lesson_number": 22,
       "module": 21,
       "title": "Agent-to-agent"
     },
     {
       "slug": "prompt-injection-and-output-handling",
-      "lesson_number": 22,
+      "lesson_number": 23,
       "module": 22,
       "title": "Prompt injection and output handling"
     },
     {
       "slug": "agent-authority-and-approvals",
-      "lesson_number": 23,
+      "lesson_number": 24,
       "module": 23,
       "title": "Agent authority and approvals"
     },
     {
       "slug": "data-in-model-context",
-      "lesson_number": 24,
+      "lesson_number": 25,
       "module": 24,
       "title": "Data in model context"
     },
     {
       "slug": "supply-chain-retrieval-and-memory",
-      "lesson_number": 25,
+      "lesson_number": 26,
       "module": 25,
       "title": "Supply chain, retrieval, and memory"
     },
     {
       "slug": "design-review",
-      "lesson_number": 26,
+      "lesson_number": 27,
       "module": 26,
       "title": "Design review"
     }
