@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CORS | API Security in the Age of AI</title>
+<link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/course.js" defer></script>
+</head>
+<body data-course-lesson="cors">
+<nav class="site-nav" aria-label="Site"><div><a class="home" href="../../index.html">API Security in the Age of AI</a><a href="../../index.html#course">Course</a><a href="../../index.html#path">Modules</a><a href="../../roadmap/index.html">Roadmap</a><a href="../../checklist/index.html">Checklist</a><a href="../../glossary/index.html">Glossary</a></div></nav>
+<main>
+<p class="kicker">Part 3: Edges and boundaries &middot; Module 17</p>
+<h1>CORS</h1>
+<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<div class="prose">
+<p><strong>Objective.</strong> Explain what a successful CORS check does and does not establish, find the two configurations that hand a response to any site, and test a preflight that refuses what it should.</p>
+<p><strong>Before you start.</strong> You should be able to read an HTTP request and a Python function. An <a href="../../glossary/index.html#origin">origin</a> is the scheme, host and port of a URL taken together. <a href="../../glossary/index.html#cors">CORS</a> is the mechanism by which a server tells a browser that a response may be handed to a page from another origin. It is enforced by the browser, not by the server.</p>
+</div>
+<section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 18 of 27</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
+<span class="layer" id="learn">Learn</span>
+<h2>1. The attack</h2>
+<div class="prose">
+<p>ExampleHotels runs an internal reporting API at <code>api.examplehotels.example</code>. It authenticates with a session cookie. A partner dashboard on <code>app.examplehotels.example</code> needed to call it from the browser, so a developer added the two headers that made the error go away: echo back whatever <code>Origin</code> arrived, and allow credentials. These companies are fictional. The configuration is not.</p>
+<p>An attacker publishes a page on <code>booking-rewards.example</code>. A logged-in employee visits it. The page runs a <a href="../../glossary/index.html#fetch">fetch</a> with credentials included. The browser attaches the cookie, because that is what including credentials means. The server echoes <code>Access-Control-Allow-Origin: https://booking-rewards.example</code> and <code>Access-Control-Allow-Credentials: true</code>. The browser's CORS check passes, and the attacker's JavaScript reads the report. This is an illustration, not a command.</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>Attempt from <code>booking-rewards.example</code></th><th>Echo the Origin, allow credentials</th><th><code>Allow-Origin: *</code>, no credentials</th><th>Exact allowlist, allow credentials</th></tr></thead>
+<tbody>
+<tr><td>Read a report that needs the session cookie</td><td class="yes">Works</td><td class="no">Blocked: the cookie is never sent</td><td class="no">Blocked: the origin is not listed</td></tr>
+<tr><td>Read a report that needs no credentials</td><td class="yes">Works</td><td class="yes">Works, and is meant to</td><td class="no">Blocked</td></tr>
+<tr><td>Send a state-changing POST, ignore the answer</td><td class="yes">Works</td><td class="yes">Works</td><td class="yes">Works</td></tr>
+<tr><td>Read the answer to that POST</td><td class="yes">Works</td><td class="no">Blocked</td><td class="no">Blocked</td></tr>
+</tbody></table></div>
+<div class="prose">
+<p>The third row is the one people are surprised by, and it is covered in section 5.</p>
+</div>
+<h2>2. Why it works</h2>
+<div class="prose">
+<p>The browser's gate is the <strong>CORS check</strong>, and the Fetch Standard defines it in eight steps. Condensed: if there is no <code>Access-Control-Allow-Origin</code> header, fail. If it is <code>*</code> and the request did not include credentials, succeed. Otherwise it must equal the request's serialised origin exactly. If credentials were included, <code>Access-Control-Allow-Credentials</code> must also be the byte string <code>true</code>.</p>
+<p>A server that echoes the <code>Origin</code> header passes step 4 by construction. There is nothing left to compare. The check is not asking whether this origin is trusted; it is asking whether the server named it, and an echoing server names every origin that asks.</p>
+<p>The standard is explicit about why the protocol has to be opt-in: "It needs to be an opt-in mechanism to prevent leaking data from responses behind a firewall (intranets). Additionally, for requests including credentials it needs to be opt-in to prevent leaking potentially-sensitive data." On credentials specifically it says that "both sharing responses and allowing requests with credentials is rather unsafe, and extreme care has to be taken to avoid the <a href="../../glossary/index.html#confused-deputy">confused deputy problem</a>" (<a href="#source-fetch">Fetch Standard</a> sections 3.3.1 and 3.3.5).</p>
+<p>Two further reasons this configuration survives review. First, <code>Origin</code> is not an authentication mechanism. A browser sets it and will not let a page forge it, but <code>curl</code> sets whatever it is told to, so the header means something only inside a browser. Second, the <a href="../../glossary/index.html#preflight">preflight</a> is widely read as an authorisation step. It is not. The standard describes it as a request "that checks to see if the CORS protocol is understood".</p>
+</div>
+<h2>3. The control</h2>
+<div class="prose">
+<p>In order:</p>
+<ol>
+<li><strong>Keep a list of exact serialised origins.</strong> Compare the incoming <code>Origin</code> against it byte for byte. A serialised origin has no trailing slash and no path, so <code>https://app.examplehotels.example/</code> never matches.</li>
+<li><strong>Never build the header from the request.</strong> If the origin is on the list, send that origin. If it is not, send no <code>Access-Control-Allow-Origin</code> at all. Omitting the header is how the protocol says no.</li>
+<li><strong>Never pair <code>*</code> with credentials.</strong> The standard forbids it, and so does every browser: with credentials included, <code>*</code> fails the check. The same applies to <code>*</code> in <code>Access-Control-Allow-Methods</code>, <code>Access-Control-Allow-Headers</code> and <code>Access-Control-Expose-Headers</code>.</li>
+<li><strong>Send <code>Vary: Origin</code></strong> whenever the response depends on the request's origin, so a shared cache cannot serve one origin's allowed response to another.</li>
+<li><strong>Name <code>Authorization</code> explicitly</strong> in <code>Access-Control-Allow-Headers</code>. It is the one CORS non-wildcard request-header name, so <code>*</code> does not cover it, and neither does a cached preflight entry stored as <code>*</code>.</li>
+<li><strong>Put a bound on <code>Access-Control-Max-Age</code>.</strong> It defaults to 5 seconds, browsers cap it, and a long value delays the moment a policy change takes effect.</li>
+<li><strong>Keep authorisation on the server.</strong> CORS decides who may read a response. It never decides who may cause one.</li>
+</ol>
+</div>
+<h3>Where the check sits</h3>
+<div class="diagram">
+<svg viewBox="0 0 1100 430" width="100%" style="min-width:900px" role="img">
+<title>Where the CORS check sits in a credentialed cross-origin request</title>
+<desc>A page, a browser and a server are shown as three vertical lanes. The page calls fetch with credentials included. The browser sends an OPTIONS preflight carrying Access-Control-Request-Method, and the server answers 204 with the allowed methods, headers and a max age. The browser then sends the real PATCH request with the cookie attached, and the server applies the change and answers 200 with an Access-Control-Allow-Origin header. Only at the last step does the browser run the CORS check and decide whether the page may read the response. A note records that the change at step four has already happened whatever the check decides.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+<text class="lab" x="20" y="24">The browser withholds the response from the page. It does not withhold the request from the server.</text>
+
+<g class="r"><rect x="20" y="40" width="200" height="50" rx="8"/><text class="th" x="120" y="62" text-anchor="middle">Attacker page</text><text class="ts" x="120" y="80" text-anchor="middle">booking-rewards.example</text></g>
+<g class="p"><rect x="420" y="40" width="200" height="50" rx="8"/><text class="th" x="520" y="62" text-anchor="middle">Browser</text><text class="ts" x="520" y="80" text-anchor="middle">enforces CORS</text></g>
+<g class="s"><rect x="820" y="40" width="200" height="50" rx="8"/><text class="th" x="920" y="62" text-anchor="middle">Server</text><text class="ts" x="920" y="80" text-anchor="middle">api.examplehotels.example</text></g>
+
+<line class="leader" x1="120" y1="90" x2="120" y2="350"/>
+<line class="leader" x1="520" y1="90" x2="520" y2="350"/>
+<line class="leader" x1="920" y1="90" x2="920" y2="350"/>
+
+<line class="arr" x1="120" y1="122" x2="516" y2="122" marker-end="url(#a)"/>
+<text class="ts" fill="var(--muted)" x="128" y="114">1. fetch(report, credentials: "include")</text>
+
+<line class="arr" x1="520" y1="162" x2="916" y2="162" marker-end="url(#a)"/>
+<text class="ts" fill="var(--muted)" x="528" y="154">2. OPTIONS, Access-Control-Request-Method: PATCH</text>
+
+<line class="arr" x1="920" y1="202" x2="524" y2="202" marker-end="url(#a)"/>
+<text class="ts" fill="var(--muted)" x="528" y="194">3. 204, Allow-Methods, Allow-Headers, Max-Age</text>
+
+<line class="arr" x1="520" y1="242" x2="916" y2="242" marker-end="url(#a)"/>
+<text class="ts" fill="var(--muted)" x="528" y="234">4. PATCH /bookings, cookie attached, change applied</text>
+
+<line class="arr" x1="920" y1="282" x2="524" y2="282" marker-end="url(#a)"/>
+<text class="ts" fill="var(--muted)" x="528" y="274">5. 200, Access-Control-Allow-Origin: ...</text>
+
+<line class="arr" x1="520" y1="322" x2="124" y2="322" marker-end="url(#a)"/>
+<text class="ts" fill="var(--muted)" x="128" y="314">6. CORS check, then share or withhold</text>
+
+<g class="h"><rect x="20" y="360" width="1060" height="56" rx="8"/><text class="th" x="40" y="383">Step 4 already happened.</text><text class="ts" x="40" y="403">Whatever the check decides at step 6, the server authenticated the cookie and applied the change. CORS is not a defence against unwanted writes.</text></g>
+</svg>
+<div class="legend"><span class="lg-r">Attacker page</span><span class="lg-p">Browser</span><span class="lg-s">Server</span><span class="lg-h">Already happened</span></div>
+</div>
+<h2>4. Defaults and when to change them</h2>
+<div class="prose">
+<p><strong><code>Access-Control-Max-Age</code>.</strong> Absent or unparsable, it is 5 seconds. Browsers also clamp it to their own ceiling, so a value of <code>86400</code> does not mean a day. Short values cost a preflight on almost every request; long values mean a tightened policy keeps being ignored until the cache expires. Set it deliberately and know your ceiling.</p>
+<p><strong><code>Access-Control-Allow-Origin: *</code>.</strong> For genuinely public data this is correct, not sloppy, and the standard says so plainly. Its test is worth memorising: "if a resource cannot be accessed from a random device connected to the web using <code>curl</code> and <code>wget</code> the aforementioned header is not to be included. If it can be accessed however, it is perfectly fine to do so." The failure case it names is data "protected through IP authentication or a firewall", where CORS is unsafe, because the browser of someone inside the perimeter becomes the way in.</p>
+<p><strong>The safelist thresholds.</strong> A request avoids a preflight only if its method is <code>GET</code>, <code>HEAD</code> or <code>POST</code> and every header is CORS-safelisted. Two limits decide that: no single safelisted value may exceed 128 bytes, and the safelisted values together may not exceed 1024 bytes. Cross either and the request preflights, which is a behaviour change you did not configure and will see as a latency change.</p>
+<p><strong>Reflecting the origin.</strong> There is one defensible version: reflect only after checking the origin against a list, which is what sending the matched origin back amounts to. There is no defensible version that skips the check.</p>
+</div>
+<h2>5. What it proves, and what it doesn't</h2>
+<div class="prose">
+<p><strong>Proves:</strong> that the server named this origin in a response header, and, when credentials were included, that it also said credentials may be shared. That is the whole of it.</p>
+<p><strong>Doesn't prove:</strong> anything about who the user is, or whether the operation was allowed. The CORS check runs in the browser after the response arrives.</p>
+<p><strong>Doesn't stop the request.</strong> This is the row in the table above that catches people. A cross-origin <code>POST</code> with a safelisted content type is sent with no preflight at all, the server authenticates the cookie and does the work, and the browser then withholds the response. The write happened. Preventing unwanted cross-origin writes is the job of <a href="../business-flows-and-idempotency/index.html">anti-forgery tokens and same-site cookies</a>, not CORS.</p>
+<p><strong>Doesn't apply outside a browser.</strong> A server-to-server client sets <code>Origin</code> to whatever it likes, or omits it. Treating the header as an access control decision is treating attacker input as a credential.</p>
+<p><strong>Doesn't survive a wildcard in the wrong place.</strong> A preflight that answers <code>Access-Control-Allow-Headers: *</code> has not allowed <code>Authorization</code>, and a request carrying it will fail. That is a correctness trap more often than a security one, but it is the reason a working integration breaks when someone adds a bearer token.</p>
+</div>
+<h2>6. Prove it</h2>
+<div class="prose">
+<p>A working configuration must refuse every one of these. If any is accepted, the control is broken:</p>
+<ul>
+<li>A request from an origin that is not on the list gets no <code>Access-Control-Allow-Origin</code> header at all.</li>
+<li>A request from an origin that is a prefix or suffix of an allowed one, such as <code>https://app.examplehotels.example.evil.example</code>, is refused.</li>
+<li>The same host over <code>http</code> instead of <code>https</code> is refused.</li>
+<li>An allowed origin with a trailing slash is refused, which proves the comparison is on the serialised form.</li>
+<li>No response that allows credentials ever carries <code>Access-Control-Allow-Origin: *</code>.</li>
+<li>Every response whose headers depend on the request's origin carries <code>Vary: Origin</code>.</li>
+<li>A preflight for a method the endpoint does not support is answered without that method, and the real request never follows.</li>
+<li>A request carrying <code>Authorization</code> fails against a preflight that answers only <code>Access-Control-Allow-Headers: *</code>, and succeeds when the header is named.</li>
+<li>A preflight answered with a redirect or a 500 fails, rather than being treated as permissive.</li>
+<li>All of the above are tests in the build, asserted against the response headers rather than checked by hand in a browser console.</li>
+</ul>
+</div>
+<h2>7. Lab</h2>
+<div class="prose">
+<p>Download <a href="../../labs/cors_lab.py"><code>labs/cors_lab.py</code></a>. It needs nothing beyond Python 3.</p>
+</div>
+<pre><code>Windows              macOS and Linux
+py -3 labs/cors_lab.py    python3 labs/cors_lab.py</code></pre>
+<div class="prose">
+<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The lab implements the safelist, the CORS check, the preflight response checks and the preflight cache as the Fetch Standard specifies them, then runs requests and responses through them as data. There is no browser and no server, nothing opens a socket, and the output is identical on every run. Part B feeds the check the credentials combinations the standard itself tabulates in section 3.3.5, so the expected answers are the standard's rather than mine. The only change is the origin: the standard writes <code>rabbit.invalid</code> and this site uses the reserved <code>.example</code> domain throughout, which does not affect any outcome.</p>
+</div>
+<pre><code>$ python3 labs/cors_lab.py
+origins use the reserved .example domain; no request leaves this process
+
+Part A: whether a preflight happens at all.
+ 1. form POST, safelisted content type: unsafe names                                      []
+ 2.   so a preflight is                                                                   False
+ 3. JSON POST: unsafe names                                                               ['content-type']
+ 4.   so a preflight is                                                                   True
+ 5. a DELETE with no headers still preflights                                             True
+ 6. post is normalized, so the safelist sees                                              POST
+ 7.   and that normalized method skips the preflight                                      False
+ 8. patch is not in the normalize list, so it stays                                       patch
+ 9.   which a server matching on PATCH would not recognise                                False
+10. duplicated content type, per the standard                                             ['content-type']
+11.   so the standard requires a preflight                                                True
+12. the same request under a forgiving parser                                             []
+13.   which would skip the preflight                                                      False
+14.   a server reading the first content type sees                                        application/json
+15.   a forgiving extractor sees                                                          text/plain
+16.   so the safelist and the server disagree                                             True
+17. a safelisted name whose value is this many bytes                                      140
+18.   over the 128 byte limit, so not safelisted                                          False
+19. four headers, each value exactly                                                      [128, 128, 128, 128]
+20.   each one alone is safelisted                                                        [True, True, True, True]
+21.   combined value size                                                                 512
+22.   unsafe names                                                                        []
+23. eight of them, combined value size                                                    1024
+24.   exactly 1024 is not over 1024, so unsafe names                                      []
+25.   and a GET still skips the preflight                                                 False
+26. one more header, combined value size                                                  1152
+27.   now over the limit, so every safelisted name turns unsafe                           ['accept', 'accept-language', 'content-language', 'content-type']
+28.   so the same GET now preflights                                                      True
+29. a byte range browsers emit is safelisted                                              True
+30. an open-ended range is safelisted                                                     True
+31. a suffix range is not                                                                 False
+32. a colon in an Accept value is an unsafe byte                                          True
+33. Authorization is never safelisted                                                     False
+
+Part B: the CORS check, on the combinations the standard tabulates.
+34. credentials omit     allow-origin *                        allow-credentials omitted  success
+35. credentials omit     allow-origin *                        allow-credentials true     success
+36. credentials omit     allow-origin https://rabbit.example/  allow-credentials omitted  failure
+37. credentials omit     allow-origin https://rabbit.example   allow-credentials omitted  success
+38. credentials include  allow-origin *                        allow-credentials true     failure
+39. credentials include  allow-origin https://rabbit.example   allow-credentials true     success
+40. credentials include  allow-origin https://rabbit.example   allow-credentials True     failure
+41. no allow-origin header at all                                                         failure
+42. the literal string null is not the absent header                                      failure
+43.   but it succeeds for an opaque origin                                                success
+
+Part C: what the preflight response has to say.
+44. allow-headers is * and the request sends Authorization                                network error
+45.   because                                                                             Authorization is a non-wildcard name and was not listed
+46. naming it explicitly                                                                  ok
+47.   max age with no header, the default                                                 5
+48. a preflight answered with 301                                                         network error
+49.   because                                                                             preflight status 301 is not an ok status
+50. allow-methods is * and credentials are included                                       network error
+51.   the same response without credentials                                               ok
+52. a max age of 86400 is clamped to the imposed limit                                    600
+53. an unparsable max age falls back to the default                                       5
+
+Part D: the preflight cache.
+54. the cached method is reused                                                           True
+55. a different path is a different entry                                                 False
+56. a different partition key does not match                                              False
+57. after the max age has passed                                                          False
+58. a cached * header name covers content-type                                            True
+59.   but never covers Authorization                                                      False
+60. an entry stored without credentials serves a request without them                     True
+61.   and does not serve one with them                                                    False
+
+Part E: a server that reflects whatever Origin it is given.
+62. the reflecting server answers the real app                                            success
+63.   and answers the attacker just as happily                                            success
+64.   what it echoed back to the attacker                                                 https://booking-rewards.example
+65. the allowlist server answers the real app                                             success
+66.   and refuses the attacker                                                            failure
+67.   by omitting the header rather than denying it                                       None
+68.   while still varying on Origin for caches                                            Origin
+69. five origins against the reflecting server                                            ['success', 'success', 'success', 'success', 'success']
+70. the same five against the allowlist                                                   ['success', 'success', 'failure', 'failure', 'failure']
+71.   what the allowlist actually sent each of the five                                   ['https://app.examplehotels.example', 'https://admin.examplehotels.example', None, None, None]
+
+all 71 lab checks passed</code></pre>
+<div class="prose">
+<p>Three results are worth sitting with. Checks 10 to 16 reproduce the hazard the standard documents in a note: a request carrying <code>Content-Type</code> twice, once as <code>application/json</code> and once as <code>text/plain</code>, is correctly preflighted under the specified safelist, because each header is judged on its own. Under a forgiving parser that lets the last valid value win, the same request would skip the preflight while a server reading the first value still treats the body as JSON. The strictness is the defence.</p>
+<p>Checks 23 to 28 show the aggregate limit doing something invisible. Eight safelisted headers of exactly 128 bytes total exactly 1024, which is not over 1024, so a <code>GET</code> still goes straight out. A ninth header tips the total to 1152 and every safelisted name turns unsafe at once, so the same <code>GET</code> now preflights.</p>
+<p>Checks 44 and 45 are the <code>Authorization</code> trap from section 5, and checks 58 and 59 show the same rule inside the preflight cache: an entry stored as <code>*</code> matches <code>Content-Type</code> and never matches <code>Authorization</code>.</p>
+</div>
+<h2>8. Check your understanding</h2>
+<details><summary>Your API echoes the <code>Origin</code> header back in <code>Access-Control-Allow-Origin</code> and sets <code>Access-Control-Allow-Credentials: true</code>. Which origins can read the response?</summary><p>All of them. The CORS check compares the header against the request's own origin, so echoing makes step 4 compare a value with itself and it can never fail. The configuration is equivalent to publishing every authenticated response to any site a logged-in user happens to visit.</p></details>
+<details><summary>A cross-origin <code>POST</code> was blocked by CORS. Did the server process it?</summary><p>Almost certainly yes. If the content type was safelisted there was no preflight, so the request went straight out, the cookie went with it, and the server did the work. The browser then refused to hand the response to the page. What CORS blocked was the reading, not the writing. Use anti-forgery tokens and <code>SameSite</code> cookies for the writing.</p></details>
+<details><summary>You add a bearer token to a working cross-origin integration and it starts failing the preflight, even though the server answers <code>Access-Control-Allow-Headers: *</code>. Why?</summary><p><code>Authorization</code> is the one CORS non-wildcard request-header name, so <code>*</code> does not cover it. The server has to name it. The same rule applies to the preflight cache, so an entry previously stored as <code>*</code> will not match it either.</p></details>
+<details><summary>Is <code>Access-Control-Allow-Origin: *</code> a finding?</summary><p>Only with context. For data that anyone could already fetch with <code>curl</code>, it is the correct header and the standard says so. It is unsafe in exactly one shape: when the resource is protected by where the caller is rather than by who they are, such as an IP allowlist or a firewall, because then a browser inside the perimeter becomes the route in. Ask what protects the resource before writing the finding.</p></details>
+
+<section class="course-quiz" data-quiz data-quiz-id="cors-check" data-correct-feedback="Correct. The check compares Access-Control-Allow-Origin against the request's own origin, so a server that echoes it always matches, and every origin is allowed." data-incorrect-feedback="Not quite. A longer allowlist, a preflight and HTTPS are all fine things to have, and none of them changes the fact that an echoed origin always equals the origin it was echoed from.">
+<p class="kicker">Quick check</p>
+<h2>Echoing the origin</h2>
+<fieldset><legend>An API returns <code>Access-Control-Allow-Origin</code> set to whatever arrived in <code>Origin</code>, plus <code>Access-Control-Allow-Credentials: true</code>. What limits which sites can read authenticated responses?</legend>
+<label><input type="radio" name="cors" value="preflight"> The preflight, which the browser sends first.</label>
+<label><input type="radio" name="cors" value="nothing" data-correct="true"> Nothing. The echoed value always matches the origin it came from.</label>
+<label><input type="radio" name="cors" value="tls"> HTTPS, since the attacker cannot see the traffic.</label>
+<label><input type="radio" name="cors" value="cookie"> The cookie, which only the real site can send.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+</section>
+<p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
+<span class="layer" id="reference" style="margin-top:3rem">Reference</span>
+<h2 style="border-top:none;margin-top:.5rem">Controls</h2>
+<p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
+<ul class="controls">
+<li><span class="label std">Standard</span>The CORS check reads <code>Access-Control-Allow-Origin</code>, fails if it is absent, succeeds on <code>*</code> only when credentials were not included, otherwise requires it to equal the request's byte-serialised origin, and when credentials were included additionally requires <code>Access-Control-Allow-Credentials</code> to be <code>true</code>. <a href="#source-fetch">Fetch Standard</a> section 4.10.</li>
+<li><span class="label std">Standard</span><code>Access-Control-Allow-Credentials = %s"true" ; case-sensitive</code>. <code>True</code> does not satisfy it. <a href="#source-fetch">Fetch Standard</a> section 3.3.4.</li>
+<li><span class="label std">Standard</span>With credentials mode <code>include</code>, <code>Access-Control-Allow-Origin</code> cannot be <code>*</code>, and <code>Access-Control-Expose-Headers</code>, <code>Access-Control-Allow-Methods</code> and <code>Access-Control-Allow-Headers</code> can only use <code>*</code> when credentials mode is not <code>include</code>. <a href="#source-fetch">Fetch Standard</a> section 3.3.5.</li>
+<li><span class="label std">Standard</span>A serialised origin has no trailing slash, is lower case ASCII without percent encoding, and this definition "supplants the definition in The Web Origin Concept". <a href="#source-fetch">Fetch Standard</a> section 3.2.</li>
+<li><span class="label std">Standard</span><code>Authorization</code> is the CORS non-wildcard request-header name, so <code>Access-Control-Allow-Headers: *</code> does not cover it, and a cached preflight entry stored as <code>*</code> does not match it. <a href="#source-fetch">Fetch Standard</a> sections 2.2.2 and 4.9.</li>
+<li><span class="label std">Standard</span>A preflight avoids a preflight only for a CORS-safelisted method, <code>GET</code>, <code>HEAD</code> or <code>POST</code>, with every header CORS-safelisted: no single safelisted value over 128 bytes, and the safelisted values together not over 1024 bytes. <a href="#source-fetch">Fetch Standard</a> section 2.2.2.</li>
+<li><span class="label std">Standard</span>A safelisted <code>Content-Type</code> must parse to <code>application/x-www-form-urlencoded</code>, <code>multipart/form-data</code> or <code>text/plain</code>, judged per header rather than through a forgiving extractor, so a server that reads a different duplicate than the browser judged is the hazard the standard warns about. <a href="#source-fetch">Fetch Standard</a> section 2.2.2.</li>
+<li><span class="label std">Standard</span>A successful response to a preflight is restricted to an ok status; <code>Access-Control-Max-Age</code> is 5 seconds by default and may be clamped to a limit the user agent imposes. <a href="#source-fetch">Fetch Standard</a> sections 3.3.3 and 4.8.</li>
+<li><span class="label std">Standard</span>Four non-safelisted <code>Content-Type</code> values are exempted from preflighting by other specifications: <code>application/csp-report</code>, <code>application/expect-ct-report+json</code>, <code>application/xss-auditor-report</code> and <code>application/ocsp-request</code>. <a href="#source-fetch">Fetch Standard</a> section 3.3.7.</li>
+<li><span class="label std">Standard</span><code>Access-Control-Allow-Origin: *</code> is safe for a resource that could already be fetched by any device on the web, and unsafe for one protected by IP authentication or a firewall. <a href="#source-fetch">Fetch Standard</a>, Basic safe CORS protocol setup.</li>
+<li><span class="label base">Baseline</span>Hold an allowlist of exact serialised origins and compare byte for byte. Send the matched origin, or no <code>Access-Control-Allow-Origin</code> header at all.</li>
+<li><span class="label base">Baseline</span>Never construct the header from the request. Reflecting an unchecked origin allows every origin.</li>
+<li><span class="label base">Baseline</span>Send <code>Vary: Origin</code> on every response whose headers depend on the request's origin.</li>
+<li><span class="label base">Baseline</span>Set <code>Access-Control-Max-Age</code> deliberately, knowing the browser ceiling, and treat it as the delay before a tightened policy takes effect.</li>
+<li><span class="label base">Baseline</span>Assert the CORS response headers in tests, against allowed, disallowed and lookalike origins, rather than confirming the integration works in a browser console.</li>
+<li><span class="label base">Baseline</span>Protect state-changing endpoints with anti-forgery tokens and <code>SameSite</code> cookies. CORS does not stop the request arriving.</li>
+<li><span class="label opt">Option</span>Serve the browser-facing API from the same origin through a reverse proxy, which removes the cross-origin question rather than configuring it.</li>
+<li><span class="label opt">Option</span>Use a bearer token in <code>Authorization</code> rather than a cookie, so a cross-origin request carries no credential unless the page deliberately attaches one. Name the header in the preflight response.</li>
+</ul>
+
+<h2>Review checklist items</h2>
+<p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
+<ul class="checks">
+<li data-check="cors-01" data-severity="Critical"><strong>The allowed origin is never taken from the request</strong> <span>Test a disallowed origin and a lookalike such as an allowed host with an extra suffix. Both must come back with no Access-Control-Allow-Origin header.</span></li>
+<li data-check="cors-02" data-severity="Critical"><strong>No credentialed response allows a wildcard origin</strong> <span>Access-Control-Allow-Origin cannot be * when credentials are included. Assert it on every endpoint that allows credentials, not just the ones you remember.</span></li>
+<li data-check="cors-03" data-severity="Critical"><strong>State-changing endpoints are protected independently of CORS</strong> <span>A safelisted cross-origin POST is sent with no preflight and the server does the work. Anti-forgery tokens and SameSite cookies are what stop it.</span></li>
+<li data-check="cors-04" data-severity="High"><strong>Origin comparison is on the serialised form</strong> <span>Byte for byte, no trailing slash, scheme and port included. Test the same host over http and with a trailing slash.</span></li>
+<li data-check="cors-05" data-severity="High"><strong>Vary: Origin is sent wherever the response depends on the origin</strong> <span>Otherwise a shared cache can serve one origin's allowed response to another.</span></li>
+<li data-check="cors-06" data-severity="High"><strong>The Origin header is never used as an authorisation decision</strong> <span>A non-browser client sets it freely. It is attacker input outside a browser.</span></li>
+<li data-check="cors-07" data-severity="Medium"><strong>Authorization is named in the preflight response</strong> <span>It is the one non-wildcard request-header name, so Access-Control-Allow-Headers: * does not cover it and neither does a cached * entry.</span></li>
+<li data-check="cors-08" data-severity="Medium"><strong>Access-Control-Max-Age is set deliberately and bounded</strong> <span>It defaults to 5 seconds and browsers clamp it. The value is how long a tightened policy keeps being ignored.</span></li>
+<li data-check="cors-09" data-severity="Medium"><strong>Preflight responses are asserted in tests, not confirmed by hand</strong> <span>Include a method the endpoint does not support, a request carrying Authorization, and a preflight answered with a redirect.</span></li>
+</ul>
+
+<h2>Sources</h2>
+<ul class="prose">
+<li id="source-fetch"><a href="https://fetch.spec.whatwg.org/">Fetch Standard</a>, WHATWG Living Standard, Last Updated 21 September 2026. Section 2.2.2 for the safelists and the 128 and 1024 byte limits, 3.2 for the <code>Origin</code> header, 3.3 for the CORS protocol and its header definitions, 3.3.4 for the header ABNF, 3.3.5 for the credentials table, 3.3.7 for the content type exceptions, 4.8 for CORS-preflight fetch, 4.9 for the preflight cache, 4.10 for the CORS check, and the Basic safe CORS protocol setup appendix. CORS has no RFC; this is the specification.</li>
+<li id="source-origin"><a href="https://www.rfc-editor.org/rfc/rfc6454">RFC 6454: The Web Origin Concept</a>, Standards Track, December 2011. Sections 3.2 and 7 for the concept of an origin and the original <code>Origin</code> header. Cited for the concept only: the Fetch Standard section 3.2 states that its own definition supplants this one.</li>
+</ul>
+</main>
+<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
+</body>
+</html>
