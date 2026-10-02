@@ -34,7 +34,7 @@ The labs are pure in-process Python with no shell, subprocess or path handling, 
 
 ## Licence
 
-Copyright (c) 2026 Tich Gandhle. All rights reserved. This repository is readable, not open source: see [LICENSE](LICENSE) for what that permits. Quoted specifications remain the property of their publishers and are cited on the page that quotes them.
+Copyright (c) 2026 tgandhle. All rights reserved. This repository is readable, not open source: see [LICENSE](LICENSE) for what that permits. Quoted specifications remain the property of their publishers and are cited on the page that quotes them.
 
 ## Working on the site
 
