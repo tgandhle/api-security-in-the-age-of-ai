@@ -55,11 +55,12 @@ Before committing:
 python3 tools/check_site.py              # links, anchors, dashes, secrets, checklist freshness
 python3 tools/extract_lessons.py --check # pages rebuild from content/, numbering, staleness
 python3 tools/render_site.py             # the shared template still reproduces every page
+python3 tools/build_lab_bundles.py --check  # the .lab.js copies still match the .py files
 python3 tools/check_transcripts.py       # runs every lab and compares its output to the page
 python3 tools/check_a11y.py              # axe-core, light and dark, desktop and mobile
 ```
 
-All five exit 0 when the site is clean, and 1 with a named reason otherwise.
+All six exit 0 when the site is clean, and 1 with a named reason otherwise.
 
 `check_a11y.py` is an author tool and needs Playwright and axe-core, installed once with the commands in its file header. It skips cleanly and exits 0 if they are absent, so it never blocks reading or editing a page.
 
