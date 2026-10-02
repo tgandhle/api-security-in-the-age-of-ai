@@ -84,3 +84,8 @@ footer{max-width:1040px;margin:0 auto;padding:1.5rem 1.25rem 3rem;font-size:13px
 .roadmap-note{font-size:18px;line-height:1.5}.roadmap-list{display:grid;gap:.75rem}.roadmap-item{border:1px solid var(--hair);border-radius:10px;padding:1rem;background:var(--panel)}.roadmap-item h3{margin:.3rem 0}.roadmap-item p:last-child{margin-bottom:0;max-width:74ch}
 .course-brief{margin:2.5rem 0}.course-brief h2{margin-top:.25rem}.course-brief-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}.course-brief-grid article{border:1px solid var(--hair);border-radius:10px;padding:1rem;background:var(--panel)}.course-brief-grid h3{margin:0}.course-brief-grid p{margin:.5rem 0 0}.course-outcomes{max-width:74ch}.course-outcomes li{margin:.45rem 0}
 @media (max-width:620px){.site-nav div{gap:.75rem}.site-nav .home{width:100%;margin-right:0}.course-hero,.course-quiz{padding:1rem}.lesson-status{align-items:stretch;flex-direction:column}.lesson-status .button{width:100%}.course-brief-grid{grid-template-columns:1fr}}
+.lab-run{margin:.6rem 0 1.2rem}
+.lab-run .meta{font-size:13px;color:var(--muted);margin:.5rem 0 0;max-width:62ch}
+.lab-output{margin-top:.7rem;border-left:3px solid var(--hair);padding-left:12px}
+.lab-output[data-state="ok"]{border-left-color:var(--s-stroke)}
+.lab-output[data-state="bad"]{border-left-color:var(--r-stroke)}
