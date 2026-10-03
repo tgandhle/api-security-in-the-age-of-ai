@@ -228,6 +228,108 @@ all lab checks passed</code></pre>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 </section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="ssrf-and-unsafe-consumption-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/ssrf_lab.py"><code>labs/ssrf_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant. One of them changes nothing at all, because the lab has no request that tells the two versions apart, and its answer gives the measurement from a request that does.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="out-x1" data-covers="out-05">
+<h3>1. A leading zero is read as decimal</h3>
+<div class="prose">
+<p>In <code>as_address</code>, delete the <code>elif</code> branch that sets <code>base = 8</code>, so a host with a leading <code>0</code> falls through to <code>base = 10</code>. The hexadecimal branch stays.</p>
+</div>
+<fieldset><legend>What does check 14, the address written in octal, print?</legend>
+<label><input type="radio" name="out-x1" value="a"> <code>accept</code></label>
+<label><input type="radio" name="out-x1" value="b"> <code>reject: host not on the allowlist</code></label>
+<label><input type="radio" name="out-x1" value="c" data-correct="true"> <code>reject: address literal, reserved</code></label>
+<label><input type="radio" name="out-x1" value="d"> <code>reject: address literal, link-local</code>, the same as before.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Nothing in this edit can produce <code>accept</code>. A host that parses as any address at all is refused as an address literal, and a host that does not parse as one is not on the allowlist.</li>
+<li data-option="b">That needs <code>as_address</code> to return nothing, and it does not. Read as decimal, <code>025177524776</code> is too large for IPv4, and <code>ipaddress</code> does not refuse an integer for that. It builds an IPv6 address from it.</li>
+<li data-option="c">Correct. Exit 1, one failure: check 14 goes from <code>reject: address literal, link-local</code> to <code>reject: address literal, reserved</code>. Measured directly, <code>as_address("025177524776")</code> returns <code>169.254.169.254</code> as published and the IPv6 address <code>::5:dcb2:8a28</code> with the branch deleted. The request is still refused, and the validator now holds a different address from the one the string means. Measured on a request the lab does not make, <code>https://017700000001/</code>, which is <code>127.0.0.1</code> in octal: as published it answers <code>reject: address literal, loopback</code>, and with the branch deleted <code>reject: address literal, reserved</code>. A refusal for the wrong reason holds only until someone acts on the reason. Check <code>out-05</code> in the <a href="#reference">Reference</a> layer says the base is decided by the prefix, and this branch is one third of that.</li>
+<li data-option="d">The verdict is the same and the reason is not. The lab compares the whole string, so it exits 1.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="out-x2" data-covers="out-04">
+<h3>2. The revalidation checks the URL it already checked</h3>
+<div class="prose">
+<p>In <code>fetch</code>, change the revalidation line so it passes <code>url</code> instead of <code>target</code>:</p>
+</div>
+<pre><code>if revalidate and not validate(url, resolve).startswith("accept"):
+    return "redirect target refused"</code></pre>
+<fieldset><legend>Which check changes?</legend>
+<label><input type="radio" name="out-x2" value="a"> Check 20, fetched following redirects.</label>
+<label><input type="radio" name="out-x2" value="b"> Check 21, the same with redirects disabled.</label>
+<label><input type="radio" name="out-x2" value="c"> Nothing. The URL was validated at the top of the function.</label>
+<label><input type="radio" name="out-x2" value="d" data-correct="true"> Check 22, the same with the redirect target revalidated.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 20 passes <code>revalidate</code> as false, so it never reaches the edited line. It prints <code>fetched 169.254.169.254</code> under both versions.</li>
+<li data-option="b">Check 21 returns <code>stopped at the redirect</code> one line above the edit.</li>
+<li data-option="c">It was, and that is the problem. Validating the first URL a second time gives the same answer as the first time and says nothing about where the redirect points.</li>
+<li data-option="d">Correct. Exit 1, one failure: check 22 goes from <code>redirect target refused</code> to <code>fetched 169.254.169.254</code>. The code still reads as if it revalidates, and a reviewer who searches for the call finds it. Only a test that sends a redirect to an internal address shows that the call checks the wrong URL, which is why check <code>out-04</code> in the <a href="#reference">Reference</a> layer asks for a test that shows which hop refused the request.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="out-x3" data-covers="out-06">
+<h3>3. The scheme check is removed</h3>
+<div class="prose">
+<p>In <code>validate</code>, delete the two lines that return <code>reject: scheme not allowed</code>. The host checks below them stay.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="out-x3" value="a" data-correct="true"> Checks 9 and 18 still reject, each with a different reason.</label>
+<label><input type="radio" name="out-x3" value="b"> Check 9, the userinfo URL, becomes <code>accept</code>.</label>
+<label><input type="radio" name="out-x3" value="c"> Check 18, <code>file:///etc/passwd</code>, becomes <code>accept</code>.</label>
+<label><input type="radio" name="out-x3" value="d"> Nothing. The host checks refuse both URLs with the same text.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Correct. Exit 1, two failures: check 9 goes from <code>reject: scheme not allowed</code> to <code>reject: address literal, link-local</code>, and check 18 goes from <code>reject: scheme not allowed</code> to <code>reject: no host</code>. Every hostile URL in the lab is still refused, because each one also fails a host check. Measured on a request the lab does not make, <code>http://api.partner.example/v1/logo.png</code>: as published it answers <code>reject: scheme not allowed</code>, and with the check deleted it answers <code>accept</code>. The scheme check is the only thing between an allowlisted host and a fetch over plain HTTP. Check <code>out-06</code> in the <a href="#reference">Reference</a> layer lists schemes and hosts as two allowlists for that reason.</li>
+<li data-option="b">The parser reads the host of that URL as <code>169.254.169.254</code>, the same value check 3 prints, so the address literal test refuses it.</li>
+<li data-option="c">A <code>file:</code> URL with three slashes has no host, and <code>validate</code> refuses a URL with no host before it looks at anything else.</li>
+<li data-option="d">Both are still refused, and the text of both changes. The lab compares the reason as well as the verdict, so it exits 1.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="out-x4" data-covers="out-02">
+<h3>4. The resolved address is not classified</h3>
+<div class="prose">
+<p>In <code>validate</code>, inside the <code>if resolve is not None:</code> block, delete the three lines that call <code>classify</code> on the resolved address and return <code>reject: resolves to ...</code>. The name is still resolved and the last line of the block still returns <code>accept: connect to</code> with the address.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="out-x4" value="a"> Check 19 prints <code>accept</code> with no address.</label>
+<label><input type="radio" name="out-x4" value="b" data-correct="true"> Nothing. All 29 checks pass.</label>
+<label><input type="radio" name="out-x4" value="c"> Check 22 becomes <code>fetched 169.254.169.254</code>.</label>
+<label><input type="radio" name="out-x4" value="d"> Checks 25 and 26 change, because validation no longer notices the second answer.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">The line that returns the address is not one of the three deleted. Check 19 still prints <code>accept: connect to 203.0.113.10</code>.</li>
+<li data-option="b">Correct. Exit 0, 40 of 40 lines identical. Every time the lab resolves a name inside <code>validate</code>, the answer is <code>203.0.113.10</code>, which classifies as global, so the deleted lines never refused anything. Measured on a request the lab does not make, the intended URL with a resolver that answers <code>169.254.169.254</code>: as published <code>validate</code> answers <code>reject: resolves to link-local</code>, and with the lines deleted it answers <code>accept: connect to 169.254.169.254</code>. A resolver that answers <code>10.0.0.5</code> goes from <code>reject: resolves to private</code> to <code>accept: connect to 10.0.0.5</code>. An allowlisted name is only a name, and whoever controls its DNS record chooses the address. Check <code>out-02</code> in the <a href="#reference">Reference</a> layer is about resolved addresses, and nothing in this lab's own run would notice it missing.</li>
+<li data-option="c">The redirect target in check 22 is an address literal. It is refused by the address literal test, which runs before any name is resolved and which this edit leaves alone.</li>
+<li data-option="d">Checks 25 and 26 show a second lookup that happens after <code>validate</code> has returned. Validation never saw that answer under either version, so those lines print the same.</li>
+</ul>
+</details>
+</article>
+</section>
+
 <p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
 <span class="layer" id="reference" style="margin-top:3rem">Reference</span>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
