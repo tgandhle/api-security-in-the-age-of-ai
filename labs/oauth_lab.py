@@ -147,6 +147,10 @@ class AuthorizationServer:
             derived = verifier if record["method"] == "plain" else s256(verifier)
             if not hmac.compare_digest(derived, record["challenge"]):
                 return 400, {"error": "invalid_grant"}
+        elif params.get("code_verifier"):
+            # RFC 9700 section 4.8.2: a code_verifier for a code that was
+            # issued with no code_challenge is rejected (PKCE downgrade).
+            return 400, {"error": "invalid_grant"}
         record["used"] = True
         client = self._client(record["client_id"])
         body = self._issue(record["client_id"], record["scope"], client["audience"], presented)
