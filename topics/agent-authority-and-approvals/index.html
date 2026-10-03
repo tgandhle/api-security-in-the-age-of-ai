@@ -225,7 +225,7 @@ all lab checks passed</code></pre>
 <p>Part E is the part to take to a conversation about approval fatigue. Twelve operations, one approval, zero operation fields constrained, and a 40,000 payment that was not in the session when the approval was given executing anyway. The per-action approval refuses the same call by name.</p>
 <p><strong>Try next:</strong></p>
 <ul>
-<li>Add <code>account_id</code> to the narrow approval's coverage and rerun. One check flips, and it is the one standing between an approved amount and an unapproved destination.</li>
+<li>Add <code>account_id</code> to the narrow approval's coverage and rerun. Four checks change: 7, 11, 14 and 16. Check 11 flips from <code>executed</code> to <code>refused: changed after approval: account_id</code>, and it is the one standing between an approved amount and an unapproved destination. The lab exits 1 and reports 3 checks that did not match (7, 14 and 16), because their expected values are written for the two-field approval.</li>
 <li>Change <code>render</code> to include <code>account_id</code>, then rerun check 23's experiment by hand. Decide whether showing an id to a human is an improvement or a different problem.</li>
 <li>Set <code>TTL</code> to a day and rerun. One check flips, and the approval now outlives the shift of the person who gave it.</li>
 <li>Give the blanket approval a <code>tool</code> field and rerun check 37. Decide how many fields it would need before you would call it an approval.</li>
