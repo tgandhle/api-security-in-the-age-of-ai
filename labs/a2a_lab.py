@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Module 21 lab: agent-to-agent.
 
-Pinned to A2A protocol version 1.0.0, which a2a-protocol.org lists as the
-latest released version.
+Pinned to release v1.0.1 of the A2A specification (28 May 2026). The
+protocol version it defines is 1.0: section 3.6 says patch numbers "do not
+affect protocol compatibility".
 
 A2A gives one agent a way to hire another. Three things in it are worth a
 security engineer's attention, and all three are cases of trusting something
@@ -10,15 +11,17 @@ that arrived over the network: the agent card that says what a remote agent
 is, a mid-task request for credentials, and a webhook URL the client hands
 the server.
 
-Part A is the agent card and its JWS signature, including the one field the
+Part A is the agent card and its signature, including the one field the
 specification says must be left out of the signed content. Part B is what the
 card still does not tell you once the signature checks out. Part C is a task
 that stops and asks for a credential. Part D is the push notification URL,
 which is a client-supplied address a server is about to POST to. Part E is
 the notification arriving at the other end.
 
-Signatures are real HMAC over a canonicalized document. Keys are generated
-for this run and never printed. Nothing opens a socket: cards are built in
+Signatures are real HMAC over a canonicalized document, stored as a kid and a
+MAC value. That is not the JWS format of section 8.4.2 of the specification,
+and the lab does not remove properties with default values as section 8.4.3
+says a verifier must. Keys are generated for this run and never printed. Nothing opens a socket: cards are built in
 memory and nothing is fetched.
 
 Needs nothing beyond Python 3.
@@ -51,9 +54,9 @@ class Refused(Exception):
 def canonical(doc):
     """A subset of JSON Canonicalization Scheme, RFC 8785.
 
-    A2A says Agent Card content "MUST be canonicalized using the JSON
-    Canonicalization Scheme (JCS) as defined in RFC 8785" before signing,
-    and RFC 8785 gives "predictable ordering of object properties
+    A2A section 8.4.1 says Agent Card content "MUST be canonicalized using
+    the JSON Canonicalization Scheme (JCS) as defined in RFC 8785" before
+    signing, and describes RFC 8785 as giving "ordering of object properties
     (lexicographic by key)".
 
     This is the part of JCS the lab needs and no more. It sorts keys and
@@ -68,11 +71,11 @@ def canonical(doc):
 
 
 def sign_card(card, key, kid):
-    """Sign a card the way the specification describes.
+    """Sign a card, leaving out the field section 8.4.1 says to leave out.
 
     "The `signatures` field itself MUST be excluded from the content being
-    signed." Anything else is circular: the value you are computing would
-    have to be inside the input.
+    signed to avoid circular dependencies." The value you are computing
+    would otherwise have to be inside the input.
     """
     body = {k: v for k, v in card.items() if k != "signatures"}
     mac = hmac.new(key, canonical(body), hashlib.sha256).hexdigest()
@@ -114,9 +117,9 @@ def verify_card(card, keys):
 def origins_agree(card_origin, interface_url):
     """Does the card's interface live where the card was served from?
 
-    This is not a requirement in the material retrieved for this module. It
-    is this course's baseline, because a signed card is still only a
-    statement by whoever holds the key.
+    This is not a requirement of the A2A specification. It is this course's
+    baseline, because a signed card is still only a statement by whoever
+    holds the key.
     """
     host = urllib.parse.urlsplit(interface_url).netloc.lower()
     return host == card_origin.lower()
@@ -128,10 +131,13 @@ def handle_auth_required(task, allow_out_of_band):
     """What a client should do when a task stops and asks for a credential.
 
     A2A's guidance is that the client obtains secondary credentials "through
-    a process outside of the A2A protocol itself". This lab goes one step
-    further and refuses a request that wants the credential typed back into
-    the A2A conversation, and a request for the client's own A2A credential
-    is not a secondary credential at all.
+    a process outside of the A2A protocol itself". Section 7.6.1 of the
+    specification says agents "MUST arrange to receive credentials via an
+    out-of-band means, unless an in-band mechanism has been negotiated
+    out-of-band or via an extension". This lab negotiates none, so it
+    refuses a request that wants the credential typed back into the A2A
+    conversation, and a request for the client's own A2A credential is not
+    a secondary credential at all.
     """
     want = task.get("wants")
     if want == "our-own-a2a-credential":
@@ -256,7 +262,7 @@ def main():
     partner_key = secrets.token_bytes(32)
     attacker_key = secrets.token_bytes(32)
     hook_key = secrets.token_bytes(32)
-    print("A2A protocol version 1.0.0")
+    print("A2A specification release v1.0.1, protocol version 1.0")
     print("keys: random, this run only; nothing is printed")
     print()
 
