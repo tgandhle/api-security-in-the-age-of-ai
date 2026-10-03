@@ -205,10 +205,10 @@ all lab checks passed</code></pre>
 <p>Part D is the whole reason this module has two halves. Five hundred requests, five hundred distinct keys, not one duplicate execution, and five million miles issued. Every control in Parts B and C worked exactly as designed.</p>
 <p><strong>Try next:</strong></p>
 <ul>
-<li>Change <code>KEY_TTL</code> to 60 and rerun. Check 21 flips, because an hour is now outside the window. Decide what retry schedule you would then have to publish to clients.</li>
+<li>Change <code>KEY_TTL</code> to 60 and rerun. Checks 21 and 22 both flip. An hour is now outside the window, so check 21 is a new credit, and check 22 becomes a replay of it. Decide what retry schedule you would then have to publish to clients.</li>
 <li>Make <code>fingerprint</code> ignore the payload and return a constant. Check 14 flips to a replay, which means a caller can send one key and have any later amount quietly ignored.</li>
-<li>In <code>commit</code>, store a recomputed response instead of the one the operation produced. Then change the balance between the two calls and watch check 6 disagree with check 5.</li>
-<li>Add a per-caller daily cap to the <code>Ledger</code> and rerun. Count how many of the 26 checks change. The answer should be two.</li>
+<li>Recompute the response at replay time instead of returning the one the operation produced. In <code>commit</code>, change the <code>response</code> line to <code>response = "credited %d, balance %d" % (miles, self.balances[account])</code>. In <code>begin</code>, change the replay line to <code>return "200 replayed: credited %d, balance %d" % (miles, self.balances[account])</code>. Then add <code>ledger.balances["acct-77"] += 500</code> between the two calls in Part B and watch check 6 disagree with check 5: check 5 prints <code>200 credited 10000, balance 14200</code> and check 6 prints <code>200 replayed: credited 10000, balance 14700</code>. Seven checks fail in all, because every response now carries a balance.</li>
+<li>Add a per-caller daily cap of 100000 miles to the <code>Ledger</code> and rerun. Enforce it in <code>commit</code>, before the balance changes: keep a total of the miles credited to each account on each day, and when a credit would take that total past the cap, store <code>429 daily cap reached</code> against the key as the response and return it without crediting. Count how many of the 26 checks change. The answer should be two: check 24 prints <code>10 credits</code> and check 25 prints <code>104200</code>.</li>
 </ul>
 </div>
 
