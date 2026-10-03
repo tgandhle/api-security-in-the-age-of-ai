@@ -7,9 +7,10 @@ none of them ever looks at the object being asked for. This module is that
 check.
 
 Part A is an API with correct authentication and no ownership check. Part B
-adds the check. Part C is the more interesting half: five ways the check is
-present in the codebase and absent in effect. Part D is what an ownership
-check does not decide.
+adds the check. Part C is the more interesting half: four ways the check is
+present in the codebase and absent in effect, then what sequential
+identifiers do with no check. Part D is what an ownership check does not
+decide.
 
 Needs nothing beyond Python 3.
 
@@ -18,7 +19,8 @@ Exit codes: 0 all checks matched, 1 a check did not match.
 import sys
 
 # ExampleAir's booking service. Company names are fictional. acct-77 is the
-# caller in every request below; acct-91 is another customer.
+# caller in every request below, except the path in checks 14 and 15 that
+# reaches the handler without one; acct-91 is another customer.
 BOOKINGS = {
     "bkg-1001": dict(owner="acct-77", route="DFW-LHR", invoice="inv-5001", status="confirmed"),
     "bkg-1002": dict(owner="acct-91", route="SFO-NRT", invoice="inv-5002", status="confirmed"),
@@ -116,10 +118,8 @@ def get_guarded_check(store, booking_id, caller):
     return "200 %s" % booking["route"]
 
 
-# ------------------------------------------------------------------- Part D
-
 def get_strict(store, booking_id, caller):
-    """The same handler with no guard: a missing caller can never match."""
+    """The same handler with no guard: a missing caller matches no owner stored here."""
     booking = store.get(booking_id)
     if booking is None:
         return "404 not found"
@@ -127,6 +127,8 @@ def get_strict(store, booking_id, caller):
         return "404 not found"
     return "200 %s" % booking["route"]
 
+
+# ------------------------------------------------------------------- Part D
 
 def refund(store, booking_id, caller, role=None):
     """Ownership is settled here. Whether this caller may refund is not.

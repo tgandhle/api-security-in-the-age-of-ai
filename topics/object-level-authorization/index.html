@@ -15,8 +15,8 @@
 <p class="meta">Last reviewed 2026-09-30 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 
 <div class="prose">
-<p><strong>Objective.</strong> After this module you can write an ownership check that reads the owner from the stored object, recognise the five shapes in which the check exists in a codebase and not in effect, choose between 403 and 404 on purpose, and say what an ownership check does not decide.</p>
-<p><strong>Before you start.</strong> Part 1 established who is calling. <a href="../security-foundations/index.html">Module 0</a> ended on the row nothing in Part 1 turns green: a real caller, a valid credential, someone else's data. This module is that row.</p>
+<p><strong>Objective.</strong> After this module you can write an ownership check that reads the owner from the stored object, recognise the four shapes in which the check exists in a codebase and not in effect, say what sequential identifiers add when it is missing, choose between 403 and 404 on purpose, and say what an ownership check does not decide.</p>
+<p><strong>Before you start.</strong> Part 1 established who is calling. <a href="../security-foundations/index.html">Module 0</a> opened with a table whose last row nothing in Part 1 turns green: a real caller, a valid credential, someone else's data. This module is that row.</p>
 </div>
 <section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 10 of 27</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
 
@@ -135,7 +135,7 @@
 <pre><code>Windows              macOS and Linux
 py -3 labs/object_authorization_lab.py    python3 labs/object_authorization_lab.py</code></pre>
 <div class="prose">
-<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The caller is authenticated correctly in all 21 checks. Nothing in this lab is a credential problem.</p>
+<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The caller is authenticated correctly in every request the 21 checks make. Checks 14 and 15 are a path that drops the caller before the handler sees it. Nothing in this lab is a credential problem.</p>
 </div>
 <pre><code>$ python3 labs/object_authorization_lab.py
 caller: acct-77, authenticated correctly in every request below
@@ -172,15 +172,15 @@ Part D: what an ownership check does not decide.
 all lab checks passed</code></pre>
 <div class="prose">
 <p>Check 7 is there because a cancelled booking is the part customers notice. Part A's check 3 is not a read of data that should have been private; it destroyed a stranger's travel plans, and the caller needed no tooling to do it.</p>
-<p>Part C is five pairs, and each pair is the same request against two handlers. Check 8 is the most common shape in real code: the handler compares the caller with an owner the caller supplied, which is an elaborate way of comparing a value with itself. Check 10 is the second most common: the query returns every row and the filtering is somewhere later, so the data left the database and the API's job was already done wrong. Check 12 is the one that survives reviews, because the booking handler is correct and the invoice handler was written by someone reading a different ticket. Check 14 is a one-word bug: <code>if caller and booking["owner"] != caller</code> skips the comparison entirely on any path that arrives without a caller.</p>
+<p>Part C is five pairs, and each pair is the same request with and without an effective check. Check 8 is the most common shape in real code: the handler compares the caller with an owner the caller supplied, which is an elaborate way of comparing a value with itself. Check 10 is the second most common: the query returns every row and the filtering is somewhere later, so the data left the database and the API's job was already done wrong. Check 12 is the one that survives reviews, because the booking handler is correct and the invoice handler was written by someone reading a different ticket. Check 14 is a one-word bug: <code>if caller and booking["owner"] != caller</code> skips the comparison entirely on any path that arrives without a caller.</p>
 <p>Checks 16 and 17 put a number on it. With no check, five identifiers in a range return five records. With the check, the same walk returns the two that belong to the caller, and the other three are indistinguishable from identifiers that were never issued.</p>
 <p>Checks 18 and 19 are the boundary of this module. The caller owns that booking, so the ownership check has done its job and has no opinion about refunds. Module 10 is where the second question gets asked.</p>
 <p><strong>Try next:</strong></p>
 <ul>
-<li>Change <code>bkg-1002</code>'s owner to <code>acct-77</code> and rerun. Watch which checks move and satisfy yourself that the verdict follows the stored record rather than the identifier.</li>
-<li>Delete the <code>caller and</code> guard from <code>get_guarded_check</code>. Check 14 flips, and that is the entire fix for a defect that returns another customer's booking.</li>
+<li>Change <code>bkg-1002</code>'s owner to <code>acct-77</code> in <code>BOOKINGS</code> and rerun. The run exits 1 with seven failures: checks 5, 6, 7, 9, 11, 17 and 21. The first six are the verdict following the stored record rather than the identifier. Check 21 prints <code>existence disclosed</code> only because the caller now owns the booking it probes, so ignore that one.</li>
+<li>Delete the <code>caller and</code> guard from <code>get_guarded_check</code>. The run exits 1 because check 14 flips to <code>404 not found</code>, and that is the entire fix for a defect that returns another customer's booking.</li>
 <li>Change <code>bkg-1004</code>'s owner to <code>acct-77</code> in <code>BOOKINGS</code> and rerun. Two checks fail: check 11 prints <code>3 bookings returned</code> and check 17 prints <code>3 of 5 reachable</code>. Check 16 still prints <code>5 of 5 reachable</code>, which tells you which number is about your data and which is about your code.</li>
-<li>Make <code>probe</code> return 403 for unknown identifiers as well as forbidden ones: under <code>if booking is None</code>, change <code>return "404 not found"</code> to <code>return "403 forbidden"</code>. Checks 20 and 21 both flip: check 20 prints <code>indistinguishable</code> and check 21 prints <code>existence disclosed</code>. Decide whether you would rather leak existence or leak nothing.</li>
+<li>Make <code>probe</code> return 403 for unknown identifiers as well as forbidden ones: under <code>if booking is None</code>, change <code>return "404 not found"</code> to <code>return "403 forbidden"</code>. The run exits 1 because checks 20 and 21 both flip: check 20 prints <code>indistinguishable</code> and check 21 prints <code>existence disclosed</code>. Decide whether you would rather leak existence or leak nothing.</li>
 </ul>
 </div>
 
@@ -313,7 +313,7 @@ all lab checks passed</code></pre>
 <li><span class="label std">Standard</span>Object level authorization is "usually implemented at the code level to validate that a user can only access the objects that they should have permissions to access". OWASP API Security Top 10 2023, API1:2023.</li>
 <li><span class="label std">Standard</span>Validate the caller's permission against every object reached using an identifier from client input, in every handler that reaches it. OWASP API1:2023, How To Prevent.</li>
 <li><span class="label std">Standard</span>Write tests for the authorization mechanism and do not deploy a change that fails them. OWASP API1:2023, How To Prevent.</li>
-<li><span class="label std">Standard</span>Use random, unpredictable values for record identifiers, such as GUIDs. OWASP API1:2023, How To Prevent. This raises the cost of discovery; it is not the access control.</li>
+<li><span class="label std">Standard</span>Prefer random, unpredictable values for record identifiers, such as GUIDs. OWASP API1:2023, How To Prevent. This raises the cost of discovery; it is not the access control.</li>
 <li><span class="label std">Standard</span>Choose the refusal code deliberately. RFC 9110 section 15.5.4 notes that "if the server wishes to hide that the target resource exists, the server can respond with a 404 (Not Found) status code instead", and section 15.5.5 that "the server does not need to reveal whether the target resource exists or merely refuses access to it".</li>
 <li><span class="label base">Baseline</span>Load the object, read the owner from the loaded record, compare with the identity authentication produced, and refuse before any part of the response is built.</li>
 <li><span class="label base">Baseline</span>Never read the owner from a request parameter, header or body field.</li>
