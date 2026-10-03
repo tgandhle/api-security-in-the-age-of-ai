@@ -179,15 +179,15 @@ Part E: what the headers do not do.
 
 all lab checks passed</code></pre>
 <div class="prose">
-<p>v2 is what this is supposed to look like: dates in order, both headers emitted, a link to the guide, and a client able to compute how long it has. Check 1 is the only clean line in the exercise.</p>
-<p>Checks 6 to 11 are the same version read at five points on the calendar, and they are worth running because the states are the ones a client library has to handle. A date in the future means the deprecation has not happened yet. A date in the past with no sunset means deprecated with no end. And check 11 is the version that said nothing at all, where there is no signal for a client to act on, ever.</p>
+<p>v2 is what this is supposed to look like: dates in order, both headers emitted, a link to the guide, and a client able to compute how long it has. Checks 1 and 5 are the only clean lines in the exercise.</p>
+<p>Checks 6 to 10 are the same version read at five points on the calendar, and they are worth running because the states are the ones a client library has to handle. A date in the future means the deprecation has not happened yet. A date in the past with no sunset means deprecated with no end. And check 11 is the version that said nothing at all, where there is no signal for a client to act on, ever.</p>
 <p>Check 17 is the finding that is hardest to defend in a review. <code>v1-internal</code> is recorded as retired, and it answered 2,300 requests in the last thirty days. Somebody believes that deployment is gone. Somebody else is calling it.</p>
 <p>Part E is the point of the module. Check 19 withdraws the three offending deployments and every finding disappears, because withdrawal is what removes exposure. Check 20 does the opposite experiment: v1 gets a flawless announcement, both headers, and a new sunset date nine months out, and the finding that survives is that 9,400 requests a month come from callers nobody can name. That version is not going to be withdrawn on its new date either, for exactly the same reason it was not withdrawn on its old one.</p>
 <p><strong>Try next:</strong></p>
 <ul>
 <li>Set <code>v1</code>'s <code>callers_known</code> to true and rerun. One finding goes, and it is the one that was blocking the decision.</li>
 <li>Move <code>TODAY</code> to 2027-01-15 and rerun. Watch v2 cross its own sunset date and join the others.</li>
-<li>Add a sixth deployment that is reachable, undocumented and has zero traffic. Decide whether zero traffic makes it safe or makes it easier to remove.</li>
+<li>Add a sixth deployment that is reachable, undocumented and has zero traffic: in <code>VERSIONS</code>, copy the <code>v0-beta</code> entry, name the copy <code>v4-shadow</code> and set its <code>requests_30d</code> to 0. Rerun. Check 13 prints 6, check 14 lists three names, and checks 15 to 17 print as before. Then the run stops with <code>KeyError: 'v4-shadow'</code> before check 18, because the lab has no expected answer for a version it does not know. Decide whether zero traffic makes it safe or makes it easier to remove.</li>
 <li>Write the same table for an API you work on: every version that answers, its two dates, and who still calls it. The column you cannot fill is this module's finding.</li>
 </ul>
 </div>
