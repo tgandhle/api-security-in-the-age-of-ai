@@ -12,10 +12,10 @@
 <main>
 <p class="kicker">Part 2: Deciding what they may do &middot; Module 11</p>
 <h1>Business flows and idempotency</h1>
-<p class="meta">Last reviewed 2026-09-30 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 
 <div class="prose">
-<p><strong>Objective.</strong> After this module you can say which HTTP methods are idempotent and why that does not help you, implement an idempotency key with the four details that decide whether it works, and tell the duplicate-execution problem apart from the excessive-use problem, which look similar and need different controls.</p>
+<p><strong>Objective.</strong> After this module you can say which HTTP methods are idempotent and why that does not help you, implement an <a href="../../glossary/index.html#idempotency-key">idempotency key</a> with the four details that decide whether it works, and tell the duplicate-execution problem apart from the excessive-use problem, which look similar and need different controls.</p>
 <p><strong>Before you start.</strong> <a href="../object-level-authorization/index.html">Module 9</a> and <a href="../property-and-function-authorization/index.html">module 10</a> settled which objects, properties and functions a caller may reach. Every request in this module is one they may make. That is the point.</p>
 </div>
 <section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 12 of 27</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
@@ -45,7 +45,7 @@
 <h2>2. Why it works</h2>
 <h3>Idempotent methods are not the answer</h3>
 <div class="prose">
-<p>RFC 9110 defines a method as idempotent "if the intended effect on the server of multiple identical requests with that method is the same as the effect for a single such request", and lists GET, HEAD, PUT, DELETE, OPTIONS and TRACE. It is a property of the method, agreed in advance, so that intermediaries and clients know a retry is safe.</p>
+<p>RFC 9110 defines a method as <a href="../../glossary/index.html#idempotent">idempotent</a> "if the intended effect on the server of multiple identical requests with that method is the same as the effect for a single such request", and lists GET, HEAD, PUT, DELETE, OPTIONS and TRACE. It is a property of the method, agreed in advance, so that intermediaries and clients know a retry is safe.</p>
 <p>That list does not contain POST, and the operations that hurt when they happen twice are the ones you model as POST: a payment, a credit, an order, a message. You can sometimes design the operation as a PUT to a client-chosen identifier and get idempotency from the method, which is worth doing when the resource genuinely has a natural identity. Most of the time it does not, and the property has to come from somewhere else.</p>
 </div>
 
@@ -120,7 +120,7 @@
 <tr><td>In-flight requests</td><td>409 while the first is still running</td><td>Not a queue and not a wait. The client retries; by then it is a completed request and gets the replay.</td></tr>
 <tr><td>Stored response</td><td>Store status and body, replay both, including failures</td><td>Recomputing invites a different answer from state that has moved since.</td></tr>
 <tr><td>Retention</td><td>24 hours, published</td><td>Long enough to cover the client's longest retry schedule. Whatever you choose, a retry after it is a new operation.</td></tr>
-<tr><td>Flow limits</td><td>A rate and a quantity per flow, per caller and in total</td><td>Set by someone who knows what the flow costs. This is OWASP's first prevention step and it is not an engineering decision.</td></tr>
+<tr><td>Flow limits</td><td>A rate and a quantity per flow, per caller and in total</td><td>Set by someone who knows what the flow costs. OWASP puts identifying these flows on the business side, and the number belongs there too. It is not an engineering decision.</td></tr>
 <tr><td>Where the limit sits</td><td>On the flow, across every endpoint that advances it</td><td>A limit on one endpoint of a three-endpoint flow is not a limit.</td></tr>
 </tbody></table></div>
 
@@ -157,7 +157,7 @@
 <pre><code>Windows              macOS and Linux
 py -3 labs/idempotency_lab.py    python3 labs/idempotency_lab.py</code></pre>
 <div class="prose">
-<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. Concurrency in Part C is an explicit interleaving rather than threads: the request handler is split into a begin phase and a commit phase, and the checks call them in a stated order. That keeps the output identical on every run and keeps the race visible in the code rather than in the scheduler.</p>
+<p>On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>. Concurrency in Part C is an explicit interleaving rather than threads: the request handler is split into a begin phase and a commit phase, and the checks call them in a stated order. That keeps the output identical on every run and keeps the race visible in the code rather than in the scheduler.</p>
 </div>
 <pre><code>$ python3 labs/idempotency_lab.py
 account acct-77 opens with 4200 miles in every part below
@@ -214,7 +214,7 @@ all lab checks passed</code></pre>
 </div>
 
 <h2>8. Check your understanding</h2>
-<details><summary>Your POST endpoint is safe to retry because the operation is idempotent. What have you actually said?</summary><p>Something about your implementation, not about the method. RFC 9110 lists GET, HEAD, PUT, DELETE, OPTIONS and TRACE as idempotent, and POST is not among them, so no intermediary or client will treat it as safe to repeat. If the property is real it has to come from something you built, and the thing that carries it needs to be visible in the request.</p></details>
+<details><summary>Your POST endpoint is safe to retry because the operation is idempotent. What have you actually said?</summary><p>Something about your implementation, not about the method. RFC 9110 lists GET, HEAD, PUT, DELETE, OPTIONS and TRACE as idempotent, and POST is not among them. Section 9.2.2 says a proxy must not automatically retry a non-idempotent request, and a client should not unless it has some means to know the request is actually idempotent. If the property is real it has to come from something you built, and the thing that carries it needs to be visible in the request.</p></details>
 <details><summary>Why record the idempotency key before doing the work rather than after?</summary><p>Because the case the key exists for is two copies of the request arriving close together. Recording on completion means both copies look up the key, both find nothing, and both execute. Reserving first means the second one finds a record and can be refused with 409.</p></details>
 <details><summary>Someone suggests a single global namespace for idempotency keys. What breaks?</summary><p>One caller can present a key another caller already used. They receive the stored response from an operation that was applied to somebody else's account, and their own operation is never performed, because the server believes it already was. The API returns 200 for something that did not happen.</p></details>
 <details><summary>Your idempotency handling is provably correct and the ledger is still issuing far too much credit. What is wrong?</summary><p>Probably nothing about retries. Look at whether the requests share keys: repeats of one key mean the key handling is broken, and hundreds of distinct keys mean a business flow with no rate or quantity limit, which is a different control entirely and is decided by whoever knows what the flow costs.</p></details>
@@ -338,8 +338,8 @@ all lab checks passed</code></pre>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
 <p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
 <ul class="controls">
-<li><span class="label std">Standard</span>A method is idempotent "if the intended effect on the server of multiple identical requests with that method is the same as the effect for a single such request". GET, HEAD, PUT, DELETE, OPTIONS and TRACE are idempotent; POST is not. RFC 9110 section 9.2.2.</li>
-<li><span class="label std">Standard</span>Identify the business flows that might harm the business if they are excessively used. OWASP API6:2023 gives this as the first prevention step, on the business rather than the engineering side.</li>
+<li><span class="label std">Standard</span>A method is idempotent "if the intended effect on the server of multiple identical requests with that method is the same as the effect for a single such request". GET, HEAD, PUT, DELETE, OPTIONS and TRACE are idempotent; POST is not. RFC 9110 section 9.2.2 for the definition, and the method table in section 18.2 for the list.</li>
+<li><span class="label std">Standard</span>Identify the business flows that might harm the business if they are excessively used. OWASP API6:2023 says mitigation planning should be done in two layers and gives this as the first, the business layer, ahead of the engineering one.</li>
 <li><span class="label std">Standard</span>OWASP API6:2023 describes the attack as "understanding the business model backed by the API, finding sensitive business flows, and automating access to these flows, causing harm to the business", with scalping, seat reservation and referral farming as its examples.</li>
 <li><span class="label base">Baseline</span>There is no standard for the <code>Idempotency-Key</code> header. <code>draft-ietf-httpapi-idempotency-key-header</code> reached revision 07 in October 2025 and expired on 18 April 2026 without becoming an RFC. Treat the header as a convention, document your own semantics, and do not assume another service shares them.</li>
 <li><span class="label base">Baseline</span>Follow the expired draft's error behaviour, because each code names a distinct case: replay the stored response for a repeat of a completed request, 409 while a request with that key is in progress, 422 when the key arrives with a different payload.</li>
@@ -368,9 +368,9 @@ all lab checks passed</code></pre>
 
 <h2>Sources</h2>
 <ul class="prose">
-<li><a href="https://www.rfc-editor.org/rfc/rfc9110">RFC 9110: HTTP Semantics</a>, June 2022. Section 9.2.2, idempotent methods.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9110">RFC 9110: HTTP Semantics</a>, June 2022. Section 9.2.2, idempotent methods, and the method table in section 18.2.</li>
 <li><a href="https://api-security.owasp.org/editions/2023/en/0xa6-unrestricted-access-to-sensitive-business-flows/">OWASP API Security Top 10 2023, API6:2023 Unrestricted Access to Sensitive Business Flows</a>.</li>
-<li><a href="https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/">draft-ietf-httpapi-idempotency-key-header: The Idempotency-Key HTTP Header Field</a>. Revision 07, October 2025, expired 18 April 2026. An expired Internet-Draft, not a standard, cited here for the convention it describes.</li>
+<li><a href="https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07">draft-ietf-httpapi-idempotency-key-header: The Idempotency-Key HTTP Header Field</a>. Revision 07, October 2025, expired 18 April 2026. An expired Internet-Draft, not a standard, cited here for the convention it describes.</li>
 </ul>
 </main>
 <footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
