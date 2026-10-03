@@ -240,6 +240,109 @@ all lab checks passed</code></pre>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 </section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="credential-lifecycle-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/credential_inventory_lab.py"><code>labs/credential_inventory_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant. One variant changes nothing, and its answer carries the measurement from a request the lab does not make.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="life-x1" data-covers="life-02">
+<h3>1. The rule about personal owners is deleted</h3>
+<div class="prose">
+<p>In <code>findings</code>, delete these two lines. The rule above them, for a record with no owner at all, stays.</p>
+</div>
+<pre><code>elif entry["owner_kind"] == "person":
+    out.append(("High", "owned by a person, not a team"))</code></pre>
+<fieldset><legend>What does check 3, <code>cred-003 legacy reporting</code>, print?</legend>
+<label><input type="radio" name="life-x1" value="a"> <code>clean</code></label>
+<label><input type="radio" name="life-x1" value="b"> <code>Medium: live but unused for 596 days</code></label>
+<label><input type="radio" name="life-x1" value="c" data-correct="true"> <code>High: rotation overdue by 1349 days</code></label>
+<label><input type="radio" name="life-x1" value="d"> <code>High: owned by a person, not a team</code>, as before.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a"><code>cred-003</code> had four findings and the edit removes one. Part A now lists it with <code>3 findings</code>, so it is not clean.</li>
+<li data-option="b">That finding is still there, but it is Medium. The overdue rotation is High, and <code>findings</code> sorts by severity, so the High line is the one check 3 prints.</li>
+<li data-option="c">Correct. Exit 1, one failure: check 3 goes from <code>High: owned by a person, not a team</code> to <code>High: rotation overdue by 1349 days</code>, and Part A lists <code>cred-003</code> with <code>3 findings</code> instead of 4. The severity did not move, so a report that counts findings by severity looks the same as before. What went missing is the only line that said the owner is <code>a.okonkwo</code>, one person, who can leave. Check <code>life-02</code> in the <a href="#reference">Reference</a> layer is that line. No other check changes, because <code>cred-003</code> is the only record in the lab owned by a person.</li>
+<li data-option="d">The text <code>owned by a person, not a team</code> came from the two deleted lines. Nothing else in the lab can print it.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="life-x2" data-covers="life-04">
+<h3>2. The rotation rule skips a record with no last-rotated date</h3>
+<div class="prose">
+<p>In <code>findings</code>, someone guards the overdue test so that a missing date cannot break it. Change the <code>elif</code> line of the rotation rule to this:</p>
+</div>
+<pre><code>elif entry["last_rotated"] and days_since(entry["last_rotated"]) &gt; entry["rotate_every_days"]:</code></pre>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="life-x2" value="a"> Check 6, <code>cred-006 nightly batch</code>, becomes <code>clean</code>.</label>
+<label><input type="radio" name="life-x2" value="b"> Checks 2 and 4 lose their overdue rotation findings.</label>
+<label><input type="radio" name="life-x2" value="c"> The run stops with a <code>TypeError</code>.</label>
+<label><input type="radio" name="life-x2" value="d" data-correct="true"> Nothing. All 21 checks pass.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 6 still prints <code>High: no rotation interval recorded</code>. <code>cred-006</code> is missing its interval, not its date, and the <code>if</code> line above the edited one catches that first.</li>
+<li data-option="b"><code>cred-002</code> and <code>cred-004</code> both have a last-rotated date, so the new guard is true for them and the comparison runs as before. Part A still prints <code>rotation overdue by 1024 days</code> and <code>rotation overdue by 607 days</code>.</li>
+<li data-option="c">Every record in this lab has a last-rotated date, so nothing raises, with or without the guard.</li>
+<li data-option="d">Correct. Exit 0, 55 of 55 lines identical. Measured on a request the lab does not make, a copy of <code>cred-001</code> with its 90-day interval kept and <code>last_rotated</code> set to <code>None</code>: as published the rule raises <code>TypeError</code>, and with the guard <code>worst</code> answers <code>clean</code>. The published behaviour is a crash, which is no rule at all, but nobody can read a crash as a pass. The guarded version turns a record with half its rotation facts missing into a clean line. Check <code>life-04</code> in the <a href="#reference">Reference</a> layer asks for both halves, the interval and the date, and this edit quietly stops asking for the second.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="life-x3" data-covers="life-03">
+<h3>3. The withdrawal removes the record and skips the revocation</h3>
+<div class="prose">
+<p>In Part C of <code>main</code>, in the loop under the comment <code>Withdraw: revoke in the system first, then remove the record</code>, delete the line <code>deployed.discard(gone)</code>. The line <code>del fixed[gone]</code> stays.</p>
+</div>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="life-x3" value="a"> Checks 16 and 17. The two withdrawn credentials show findings again.</label>
+<label><input type="radio" name="life-x3" value="b" data-correct="true"> Checks 18 and 21.</label>
+<label><input type="radio" name="life-x3" value="c"> Check 20 only. It prints <code>consistent</code>.</label>
+<label><input type="radio" name="life-x3" value="d"> Check 18 only.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Checks 16 and 17 still print <code>not in the register</code>. Both records are still deleted, and those two checks read only the register. That is the trap: the lines a reviewer reads to confirm the withdrawal are the ones that cannot see it failed.</li>
+<li data-option="b">Correct. Exit 1, two failures. Check 18 goes from <code>True</code> to <code>False</code>, and check 21 goes from <code>['cred-010']</code> to <code>['cred-005', 'cred-010']</code>. <code>cred-005</code> is still accepted by the system and no longer has a record, so the next comparison with the deployment reports it as an unknown credential, next to the one that really is new. Only <code>cred-005</code> appears, because <code>cred-003</code> was never in <code>DEPLOYED</code> to begin with. Check <code>life-03</code> in the <a href="#reference">Reference</a> layer is the deleted line: revoke first, then remove the record.</li>
+<li data-option="c">Check 20 still prints <code>clean register, credential still live</code>. It builds its own deployment set with <code>cred-005</code> put back, so it describes this mistake whether or not the lab has just made it.</li>
+<li data-option="d">Check 18 does change, but so does check 21. The credential that was never revoked is in every later difference between the deployment and the register, not only the one taken on the day.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="life-x4" data-covers="life-01">
+<h3>4. The deployment list is copied from the register</h3>
+<div class="prose">
+<p>Replace the two-line definition of <code>DEPLOYED</code> with one line that builds it from the register, in place of reading the systems:</p>
+</div>
+<pre><code>DEPLOYED = set(REGISTER)</code></pre>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="life-x4" value="a" data-correct="true"> Checks 8 and 9 print <code>[]</code>, and check 18 prints <code>False</code>.</label>
+<label><input type="radio" name="life-x4" value="b"> Check 8 prints <code>[]</code>. Nothing else changes.</label>
+<label><input type="radio" name="life-x4" value="c"> Checks 8 and 9 print <code>[]</code>, and check 10 no longer prints <code>not in the register</code>.</label>
+<label><input type="radio" name="life-x4" value="d"> Checks 8 and 9 print <code>[]</code>, and check 18 still prints <code>True</code>.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Correct. Exit 1, three failures. Check 8 goes from <code>['cred-009']</code> to <code>[]</code>, check 9 goes from <code>['cred-003']</code> to <code>[]</code>, and check 18 goes from <code>True</code> to <code>False</code>. A list compared with a copy of itself has no difference in either direction, so the unknown credential and the stale record both vanish from the report. Check 18 fails because the remediation still writes a record for <code>cred-009</code>, and the copied list never contained it. In this lab that mismatch is the only trace left. Check <code>life-01</code> in the <a href="#reference">Reference</a> layer says the register is reconciled against the systems, and this edit reconciles it against itself.</li>
+<li data-option="b">Check 9 changes too. <code>cred-003</code> has a record, so the copied list counts it as deployed, and the stale record is no longer reported.</li>
+<li data-option="c">Check 10 still prints <code>not in the register</code>. It asks the register about <code>cred-009</code>, and the edit did not touch the register.</li>
+<li data-option="d">Check 18 prints <code>False</code>. Part C adds a record for <code>cred-009</code> to the register, and the deployment set it compares against was copied before that record existed.</li>
+</ul>
+</details>
+</article>
+</section>
 <p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
 <span class="layer" id="reference" style="margin-top:3rem">Reference</span>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
