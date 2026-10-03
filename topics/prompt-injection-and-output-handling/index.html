@@ -131,7 +131,7 @@
 <div class="prose">
 <p><strong>Proves:</strong> that untrusted content remained identifiable through assembly, that no tool outside the table was called whatever the model proposed, that arguments were checked, that output reached each sink correctly encoded, and that the authority available to a persuaded model was bounded.</p>
 <p><strong>Doesn't prove:</strong> that the model was not persuaded. Nothing in this module detects injection, and OWASP says plainly that fool-proof prevention is unclear. It also does not prove the agent did the right thing within its permissions: an injection that talks the agent into calling an allowed tool with allowed arguments, for the wrong reason, passes every check here. That is the limit, and it is why approvals are a separate module.</p>
-<div class="callout warn"><strong>The filter is the control you will be tempted to report.</strong> Check 33 of the lab blocks the attack. Checks 34 to 38 pass five rewrites of the same sentence, and check 38's count is zero. If a review asks how your system handles prompt injection and the answer is a filter, the honest follow-up is which phrasings it covers, and there is no answer to that question.</div>
+<div class="callout warn"><strong>The filter is the control you will be tempted to report.</strong> Check 33 of the lab blocks the attack. Checks 34 to 38 pass five rewrites of the same sentence, and check 39's count is zero. If a review asks how your system handles prompt injection and the answer is a filter, the honest follow-up is which phrasings it covers, and there is no answer to that question.</div>
 </div>
 
 <h2>6. Prove it</h2>
@@ -236,9 +236,9 @@ all lab checks passed</code></pre>
 <p>Part D is where to spend your time if you are the person who has to answer for this in a review. The filter blocks the original and passes five rewrites. Normalising catches one. Checks 44 to 46 show that stripping format characters changed no verdict at all here, which is in the lab because I would otherwise be asserting it. And check 48 is the rewrite that shares no words with the blocked phrase, which no list of phrases reaches.</p>
 <p><strong>Try next:</strong></p>
 <ul>
-<li>Add <code>send_payment</code> to <code>TOOLS</code> and rerun. Two checks fail, and they are the two that were standing between a poisoned document and a payment.</li>
+<li>Add the entry Part E gives <code>wide</code>, <code>"send_payment": {"roles": {"agent"}, "args": {"account", "amount"}}</code>, to <code>TOOLS</code> and rerun. Five checks fail: 14, 18, 19, 50 and 51. Checks 14 and 50 are the two that were standing between a poisoned document and a payment.</li>
 <li>Change <code>query_parameterized</code> to build its SQL with <code>%</code> and rerun. One check fails, and the number it returns is the size of the table.</li>
-<li>Replace the per-request nonce with a fixed string and rerun. Two checks fail, and the document escapes its fence.</li>
+<li>In <code>main</code>, replace <code>nonce = secrets.token_hex(8)</code> with <code>nonce = "FIXED"</code> and rerun. One check fails: check 11 goes from <code>yes</code> to <code>no</code>, and the document escapes its fence.</li>
 <li>Write a sixth bypass that the filter catches, then a seventh that defeats your fix. Note how long each takes.</li>
 <li>For a system you work on: list the sinks model output reaches, and the encoding applied at each. The sink you cannot name an encoding for is the finding.</li>
 </ul>
