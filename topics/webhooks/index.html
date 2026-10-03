@@ -46,7 +46,7 @@
 <div class="prose">
 <p>Most webhook implementations follow a vendor's convention. There is also an IETF answer, and it is specific: RFC 8417 defines a Security Event Token, a JWT describing "statements of fact from the perspective of an issuer about a subject", and RFC 8935 defines delivering one over HTTP POST. If you are designing a sender, these are worth reading before inventing a header.</p>
 <p>RFC 8935 section 2 lists what a recipient verifies, and the list is a good checklist whatever format you use: that it can parse the event, that the event "is authentic (i.e., it was issued by the issuer specified within the SET)", that the recipient "is identified as an intended audience", that the issuer "is recognized as an issuer that the SET Recipient is willing to receive SETs from", and that the recipient "is willing to accept this SET from this SET Transmitter". Note that the last two are separate questions: who wrote the event and who handed it to you are different, and both need an answer.</p>
-<p>RFC 8417 section 2.2 requires <code>iss</code>, <code>iat</code>, <code>jti</code> and <code>events</code>, and recommends <code>aud</code>. The <code>jti</code> is the one this module leans on: the specification notes it "MAY be used by clients to track whether a particular SET has already been received", which is module 11's idempotency key arriving under a different name.</p>
+<p>RFC 8417 section 2.2 requires <code>iss</code>, <code>iat</code> and <code>jti</code>, defines <code>events</code>, and recommends <code>aud</code>. The <code>jti</code> is the one this module leans on: the specification notes it "MAY be used by clients to track whether a particular SET has already been received", which is module 11's idempotency key arriving under a different name.</p>
 </div>
 
 <h3>What the signature covers is the whole question</h3>
@@ -113,7 +113,7 @@
 <tr><td>What is signed</td><td>The timestamp and the raw body, as one value</td><td>Never the body alone. Never a re-serialised body: sign and verify the exact bytes.</td></tr>
 <tr><td>Freshness window</td><td>300 seconds, stated in your documentation</td><td>Tighten where clocks are reliable. The window is the replay window for anything you fail to record.</td></tr>
 <tr><td>Event identifiers</td><td>Recorded before processing, in a shared store, kept longer than the window</td><td>Never per instance, and never recorded after the work.</td></tr>
-<tr><td>The response</td><td>202 on success, the same for a duplicate, 400 on a bad event</td><td>RFC 8935 uses exactly these two codes and requires the duplicate to look like the first.</td></tr>
+<tr><td>The response</td><td>202 on success, the same for a duplicate, 400 on a bad event</td><td>RFC 8935 specifies 202 for a valid event and 400 for one that fails parsing, validation or authentication, and requires the duplicate to look like the first.</td></tr>
 <tr><td>Processing</td><td>Acknowledge first, work asynchronously</td><td>Synchronous processing turns your slow day into the sender's retry storm.</td></tr>
 <tr><td>Ordering</td><td>Assume none</td><td>Reconcile against the sender's current state where order genuinely matters.</td></tr>
 <tr><td>Secrets</td><td>One per sender, rotatable with an overlap</td><td>A shared secret across senders means any of them can forge as another. Module 3 applies here too.</td></tr>
@@ -190,14 +190,14 @@ all lab checks passed</code></pre>
 <div class="prose">
 <p>Check 9 is the one worth sitting with. The signature covers the body and nothing else, so the attacker replays a year-old event and supplies a fresh timestamp of their own, and the freshness check has nothing to object to. The timestamp was present in the request the whole time and it was never evidence of anything, because the attacker wrote it.</p>
 <p>Check 10 is the fix, and it closes both moves at once. Keep the original timestamp and the event is too old. Substitute a fresh one and the signature stops verifying, because the timestamp is part of what was signed. Check 11 is the reminder that covering it and comparing it are two separate lines of code.</p>
-<p>Checks 15 to 17 are two copies of one event interleaved explicitly: both verify before either finishes. With the identifier claimed after the work, both apply. With it claimed first, the second copy is refused and the event happens once.</p>
+<p>Checks 15 to 17 are two copies of one event interleaved explicitly: both verify before either finishes. With the identifier claimed after the work, both apply. With it claimed first, the second copy is acknowledged with the same 202 and not applied, and the event happens once.</p>
 <p>Checks 18 to 20 are the case that is not an attack at all. A sender that did not get your acknowledgement retries, which is correct behaviour, and your receiver answers identically and applies nothing. Check 19 is the requirement RFC 8935 states, tested.</p>
 <p><strong>Try next:</strong></p>
 <ul>
-<li>Set <code>cover_timestamp=False</code> on the Part B receiver and rerun. Watch how few checks change, and then reread check 9.</li>
+<li>Set <code>cover_timestamp=False</code> on the Part B receiver and rerun. The run exits 1 with two changes: check 4 prints <code>400 signature check failed</code> and check 8 counts 0, because the sender still signs the timestamp and the receiver no longer does. The two sides have to agree on what is covered. Then reread check 9.</li>
 <li>Replace <code>hmac.compare_digest</code> with <code>==</code> and rerun. Every check still passes, which is module 2's point in a new place.</li>
 <li>Add a third event that depends on the first two and make the handler assume order. Then run them in the order check 21 produces.</li>
-<li>Make the receiver return 409 for an event it has already applied. Then write down what a prober learns by posting identifiers at it.</li>
+<li>Make the receiver return 409 for an event it has already applied and rerun. The run exits 1 with four changes: checks 13, 16 and 18 print <code>409 conflict</code> and check 19 prints <code>True</code>. Check 22 does not change, because an unsigned post is refused before the identifier is looked up. Then write down what somebody replaying a captured, correctly signed event learns from the 409.</li>
 </ul>
 </div>
 
@@ -207,7 +207,7 @@ all lab checks passed</code></pre>
 <details><summary>Your endpoint URL is a long random string. How much authentication is that?</summary><p>None. A URL travels in logs, proxies, browser history, support tickets and configuration files, and it is sent on every delivery. Treat it as public and let the signature do the authenticating.</p></details>
 <details><summary>A refund event arrives before the payment it refunds. Whose bug is that?</summary><p>Nobody's, in most systems. Delivery is at least once and unordered, so a receiver that assumes a sequence has assumed something the protocol never offered. Make each handler tolerate arriving first, or reconcile against the sender's current state where order genuinely matters.</p></details>
 
-<section class="course-quiz" data-quiz data-quiz-id="webhooks-check" data-correct-feedback="Correct. The attacker controls every value they send, including the timestamp, so freshness only means something when the timestamp is inside the signed value." data-incorrect-feedback="Not quite. Constant-time comparison, a longer secret and a secret URL are all worth having, and none of them stops a captured event being replayed with a timestamp the attacker chose.">
+<section class="course-quiz" data-quiz data-quiz-id="webhooks-check" data-correct-feedback="Correct. The attacker controls every value they send, including the timestamp, so freshness only means something when the timestamp is inside the signed value." data-incorrect-feedback="Not quite. The five-minute window, constant-time comparison and a secret URL are all worth having, and none of them stops a captured event being replayed with a timestamp the attacker chose.">
 <p class="kicker">Quick check</p>
 <h2>Replay</h2>
 <fieldset><legend>Your receiver checks an HMAC over the request body and refuses events whose <code>timestamp</code> field is more than five minutes old. What stops a captured event being replayed?</legend>
@@ -325,8 +325,8 @@ all lab checks passed</code></pre>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
 <p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
 <ul class="controls">
-<li><span class="label std">Standard</span>A Security Event Token is a JWT describing "statements of fact from the perspective of an issuer about a subject", requiring <code>iss</code>, <code>iat</code>, <code>jti</code> and <code>events</code>, with <code>aud</code> RECOMMENDED. RFC 8417 sections 1.2 and 2.2.</li>
-<li><span class="label std">Standard</span>The <code>jti</code> "MAY be used by clients to track whether a particular SET has already been received". RFC 8417 section 2.2.</li>
+<li><span class="label std">Standard</span>A Security Event Token is a JWT describing "statements of fact from the perspective of an issuer about a subject", with <code>iss</code>, <code>iat</code> and <code>jti</code> REQUIRED, <code>events</code> carrying the event statements, and <code>aud</code> RECOMMENDED. RFC 8417 sections 1 and 2.2.</li>
+<li><span class="label std">Standard</span>The <code>jti</code> is REQUIRED and "MUST be unique within a particular event feed", and it "MAY be used by clients to track whether a particular SET has already been received". RFC 8417 section 2.2.</li>
 <li><span class="label std">Standard</span>Verify that you can parse the event, that it "is authentic (i.e., it was issued by the issuer specified within the SET)", that you are "identified as an intended audience", that the issuer is one you are "willing to receive SETs from", and that you are "willing to accept this SET from this SET Transmitter". RFC 8935 section 2. Who wrote it and who delivered it are separate questions.</li>
 <li><span class="label std">Standard</span>Acknowledge a valid event with 202 Accepted, and respond to an error with 400 Bad Request. RFC 8935 sections 2.2 and 2.3.</li>
 <li><span class="label std">Standard</span>For an event already received, "the SET Recipient MUST respond as it would if the SET had not been previously received". RFC 8935 section 2.</li>
@@ -358,7 +358,7 @@ all lab checks passed</code></pre>
 
 <h2>Sources</h2>
 <ul class="prose">
-<li><a href="https://www.rfc-editor.org/rfc/rfc8417">RFC 8417: Security Event Token (SET)</a>, July 2018. Sections 1.2, 2.2 and 5.1.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc8417">RFC 8417: Security Event Token (SET)</a>, July 2018. Sections 1, 2.2 and 5.1.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc8935">RFC 8935: Push-Based Security Event Token (SET) Delivery Using HTTP</a>, November 2020. Sections 2, 2.1, 2.2, 2.3 and 3.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc9421">RFC 9421: HTTP Message Signatures</a>, February 2024. For senders signing the request rather than the payload.</li>
 </ul>

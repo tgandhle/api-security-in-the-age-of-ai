@@ -7,10 +7,10 @@ caller, so the signature is the whole of the authentication, and the details
 of what that signature covers decide what it is worth.
 
 Part A is a receiver with no verification. Part B adds a signature over the
-body. Part C is the four details that decide whether the signature helps:
-what it covers, how old an event may be, whether the identifier is recorded,
-and when it is recorded. Part D is what signing does not fix, including the
-fact that a duplicate is usually not an attack.
+body and the timestamp. Part C is the four details that decide whether the
+signature helps: what it covers, how old an event may be, whether the
+identifier is recorded, and when it is recorded. Part D is what signing does
+not fix, including the fact that a duplicate is usually not an attack.
 
 Every signature here is a real HMAC. The transport is a stub, so the lab
 opens no sockets.
@@ -49,7 +49,7 @@ def sign(secret, body, timestamp=None):
 
 
 class Receiver:
-    """One receiver, four switches, so each omission has its own check."""
+    """One receiver, five switches, so each omission has its own check."""
 
     def __init__(self, secret, verify=True, cover_timestamp=True,
                  check_window=True, record_ids=True, record_before=True):
@@ -72,6 +72,8 @@ class Receiver:
             # Constant-time, for the reason module 2 gave.
             if not hmac.compare_digest(signature, expected):
                 return "400 signature check failed"
+            # abs(): a timestamp too far in the future is refused too, with
+            # the same message.
             if self.check_window and abs(now - timestamp) > WINDOW:
                 return "400 event too old"
         if self.record_ids:
@@ -104,7 +106,7 @@ def main():
     print()
     print("Part A: a receiver that verifies nothing.")
 
-    open_ = Receiver(secret, verify=False)
+    open_ = Receiver(secret, verify=False, record_ids=False)
     check("the real sender posts an event", "202 accepted", open_.post(body))
     check("anyone who knows the URL posts one", "202 accepted",
           open_.post(body_of("evt-9001", "payment.settled", 9900000)))
@@ -130,7 +132,7 @@ def main():
     print("Part C: the four details.")
 
     # 1. What the signature covers.
-    body_only = Receiver(secret, cover_timestamp=False)
+    body_only = Receiver(secret, cover_timestamp=False, record_ids=False)
     stale_sig = sign(secret, body)
     # The signature does not cover the timestamp, so the attacker supplies a
     # fresh one and the window check has nothing to object to.
