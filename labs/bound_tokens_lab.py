@@ -148,7 +148,7 @@ class ResourceServer:
         claims = claims_of(token)
         if claims["aud"] != AUDIENCE or claims["iss"] != ISSUER:
             return "reject: issuer or audience mismatch"
-        if NOW > claims["exp"]:
+        if NOW >= claims["exp"]:           # RFC 7519 4.1.4: must be before exp
             return "reject: expired"
         return None
 
