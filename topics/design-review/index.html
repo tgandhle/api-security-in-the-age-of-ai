@@ -40,13 +40,13 @@
 <h3>Unanswered is not passed</h3>
 <div class="prose">
 <p>The design document answers 20 of the 24 questions the harness asks. The other four are silent, and three of those four sit on Critical rules: whether services authenticate for themselves on every path, whether request limits run before the parser, and whether the credential register has been reconciled.</p>
-<p>Checks 17 to 23 of the lab keep those apart from the findings and then count them together. Fourteen findings, four unanswered, eighteen open items. A review that reported "14 findings" would be accurate and would have hidden four conversations, one of which is <a href="../gateway-enforcement/index.html">module 13</a>'s question about whether a gateway is a control at all.</p>
-<p>So the harness never evaluates a rule whose fact is missing. It records the rule, the severity it would have carried, and the fact it needed, and it reports those as their own list. That is a design decision worth copying: a checklist that silently passes on absent information will reliably tell you a system is fine.</p>
+<p>Checks 17 to 23 of the lab keep those apart from the findings and then count them together. Fourteen findings, four unanswered, eighteen open items. A review that reported "14 findings" would be accurate and would have hidden four conversations, one of which is <a href="../gateway-enforcement/index.html">module 12</a>'s question about whether a gateway is a control at all.</p>
+<p>So the harness never evaluates a rule whose named fact is missing. It records the rule, the severity it would have carried, and the fact it needed, and it reports those as their own list. That is a design decision worth copying: a checklist that silently passes on absent information will reliably tell you a system is fine.</p>
 </div>
 
 <h3>Order the findings so the first line is the right one</h3>
 <div class="prose">
-<p>Fourteen findings, twelve of them Critical, is not a report. Checks 11 and 14 order them worst first and name the Critical ids, and check 15 is the sentence a reviewer actually leads with: eight of the twelve Criticals come from Part 4, and four from Parts 1 to 3.</p>
+<p>Fourteen findings, twelve of them Critical, is not a report. Checks 11 and 14 order them worst first and name the Critical ids, and checks 15 and 16 are the sentence a reviewer actually leads with: eight of the twelve Criticals come from Part 4, and four from Parts 1 to 3.</p>
 <p>That split is the finding above the findings. The Parts 1 to 3 issues are a missing audience check, no idempotency key, rate limit counters that are not shared between instances, and more versions answering than documented, which are ordinary and fixable. The Part 4 issues are token passthrough, an MCP server that does not validate its audience, agent cards verified against a fetched key, a model holding a tool credential, approvals bound to an identifier, a credential in the system prompt, a prompt built from whole records, and a retrieval filter applied after ranking.</p>
 <p>Those eight are not eight separate oversights. They are one: the agent layer was built without anybody applying the rules the rest of the system already follows. That is a sentence a design review can earn its keep with, and you can only write it once the findings are grouped by where they came from.</p>
 </div>
@@ -54,7 +54,7 @@
 <h3>Separate what a setting fixes from what a design decision fixes</h3>
 <div class="prose">
 <p>Part D applies the six changes a team would realistically do in the first week: validate the token audience, validate it at the MCP server too, take the credential out of the system prompt, move the tool credential from the model to the application, build the prompt from a field allowlist, and move the retrieval filter before the ranking. Each is a setting or a few lines.</p>
-<p>Findings drop from 14 to 8, and Criticals from 12 to 6. Checks 27 and 30 name the six that remain: agent card trust, approval binding, token passthrough, idempotency, a shared rate limit store, and version retirement. Every one of those needs a decision rather than a change, which is why they are the ones still open a quarter later.</p>
+<p>Findings drop from 14 to 8, and Criticals from 12 to 6. Check 27 names the six that remain, and check 30 counts them: agent card trust, approval binding, token passthrough, idempotency, a shared rate limit store, and version retirement. Every one of those needs a decision rather than a change, which is why they are the ones still open a quarter later.</p>
 <p>Check 28 is the one to put in the report. The four unanswered questions are unchanged by all six fixes, because nobody answered them.</p>
 </div>
 
@@ -147,7 +147,7 @@
 <pre><code>Windows                           macOS and Linux
 py -3 labs/design_review_lab.py   python3 labs/design_review_lab.py</code></pre>
 <div class="prose">
-<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The <code>DESIGN</code> dict at the top is the system under review and the <code>RULES</code> table below it is the checklist. Replace the first with a description of your own system and the harness does the rest. Nothing opens a socket.</p>
+<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The <code>DESIGN</code> dict at the top is the system under review and the <code>RULES</code> table below it is the checklist. Replace the first with a description of your own system and the harness reviews it, though the expected values in <code>main</code> are still ExampleAir's. Nothing opens a socket.</p>
 </div>
 <pre><code>$ python3 labs/design_review_lab.py
 system under review: ExampleAir assistant platform
@@ -168,7 +168,7 @@ Part B: findings, worst first.
 10. the first finding                                        a2a-01
 11.   findings are ordered worst first                       yes
 12.   the last finding's severity                            High
-13.   what it says                                           Agent cards are not verified against an out-of-band key per counterparty
+13.   what the first finding says                            Agent cards are not verified against an out-of-band key per counterparty
 14. critical check ids, in order                             ['a2a-01', 'apv-01', 'ctx-01', 'ctx-02', 'dlg-01', 'flow-01', 'inj-02', 'jwt-02', 'mcp-01', 'rate-01', 'ret-01', 'ver-01']
 15.   of which come from Part 4                              8
 16.   and from Parts 1 to 3                                  4
@@ -195,9 +195,9 @@ Part D: the remediation a team does first, and what is left.
 Part E: what this review did and did not cover.
 32. modules the review reached a conclusion about            16
 33. modules blocked on a missing answer                      3
-34.   which ones                                             [9, 13, 14]
+34.   which ones                                             [8, 12, 13]
 35. modules with at least one finding                        12
-36. modules assessed and clean                               [2, 10, 11, 17]
+36. modules assessed and clean                               [1, 9, 10, 16]
 37.   so the report's first line is                          18 open items, 4 unanswerable
 
 all lab checks passed</code></pre>
@@ -211,8 +211,8 @@ all lab checks passed</code></pre>
 <ul>
 <li>Make the harness treat unknowns as passes: in <code>review</code>, delete the line that appends the rule to <code>unanswered</code>, keep the <code>UNKNOWN</code> test and the <code>continue</code>, and rerun. Ten checks fail, four questions vanish, and the findings count does not move.</li>
 <li>Remove the severity ordering from the findings: in <code>review</code>, change the sort key of the findings list to <code>f[0]</code> alone, and rerun. Two checks fail, 11 and 12: the findings are no longer ordered worst first, and the last finding's severity is <code>Critical</code>. The report still opens with <code>a2a-01</code>, because that id also sorts first.</li>
-<li>Replace <code>DESIGN</code> with a description of a system you work on. The keys you cannot fill are your review's Part C.</li>
-<li>Add a rule for something this course does not cover but your organisation requires. Decide what severity it carries and why.</li>
+<li>Replace <code>DESIGN</code> with a description of a system you work on, keeping the <code>name</code> key and setting each key you cannot fill to <code>UNKNOWN</code>. Those keys are your review's Part C. If <code>versions_documented</code> is one of them, set <code>versions_reachable</code> to <code>UNKNOWN</code> as well: <code>ver-01</code> reads both and is blocked only by the second, so the first alone ends the run with a <code>TypeError</code>. The run exits 1, because the expected values are ExampleAir's: read the printed column, not the verdict.</li>
+<li>Add a rule for something this course does not cover but your organisation requires. Decide what severity it carries and why. The run exits 1 whatever you add, because the expected counts are for 23 rules: leave its fact out of <code>DESIGN</code> and the rule appears in Part C.</li>
 <li>Run the harness twice, three months apart, and diff the two outputs. That diff is the only honest progress report.</li>
 </ul>
 </div>
@@ -328,9 +328,9 @@ all lab checks passed</code></pre>
 <p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 <details class="exercise-answers"><summary>Every option, and why</summary>
 <ul>
-<li data-option="a">Correct. Exit 1, two failures. Check 33 goes from <code>3</code> to <code>4</code>, and check 34 from <code>[9, 13, 14]</code> to <code>[9, 13, 14, 26]</code>. The lab's module 26 holds three rules. The design answers two of them, <code>ret-01</code> and <code>ret-05</code>, and is silent on the third, <code>ret-08</code>. Check 32 still prints <code>16</code>, so that module is now reported both as concluded and as blocked, and the two counts add up to 20 for the 19 modules the rule table covers. Check <code>rev-03</code> in the <a href="#reference">Reference</a> layer asks the report to state concluded, clean and blocked, and a reader can only use those numbers if each module lands in one of them.</li>
-<li data-option="b">The edit does not touch the assessed set, so check 32 still prints <code>16</code>. Subtracting the other way, blocked from assessed, is a different edit. Measured, that one fails three checks, 32, 33 and 34.</li>
-<li data-option="c">One module is in both sets. The lab's module 26 has two answered rules and one silent rule, and the subtraction is what kept it out of the blocked list.</li>
+<li data-option="a">Correct. Exit 1, two failures. Check 33 goes from <code>3</code> to <code>4</code>, and check 34 from <code>[8, 12, 13]</code> to <code>[8, 12, 13, 25]</code>. Module 25 holds three rules. The design answers two of them, <code>ret-01</code> and <code>ret-05</code>, and is silent on the third, <code>ret-08</code>. Check 32 still prints <code>16</code>, so that module is now reported both as concluded and as blocked, and the two counts add up to 20 for the 19 modules the rule table covers. Check <code>rev-03</code> in the <a href="#reference">Reference</a> layer asks the report to state concluded, clean and blocked, and a reader can only use those numbers if each module lands in one of them.</li>
+<li data-option="b">The edit does not touch the assessed set, so check 32 still prints <code>16</code>. Subtracting the other way as well, so the line reads <code>return sorted(assessed - blocked), sorted(blocked)</code>, is a different edit. Measured, that one fails three checks, 32, 33 and 34.</li>
+<li data-option="c">One module is in both sets. Module 25 has two answered rules and one silent rule, and the subtraction is what kept it out of the blocked list.</li>
 <li data-option="d">Nothing moves. The module is added to the blocked list and stays in the assessed one, which is why check 32 does not change.</li>
 </ul>
 </details>
@@ -342,7 +342,7 @@ all lab checks passed</code></pre>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
 <p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
 <ul class="controls">
-<li><span class="label std">Standard</span>The review's rules are the checklist items from modules 1 to 25, each of which carries its own citation on its own page. This module adds no new normative claim; it is a method for applying them.</li>
+<li><span class="label std">Standard</span>The review's rules are checklist items from modules 1 to 25. Where an item rests on a specification, the citation is on the page that introduced it; many items are this project's defaults and carry none. This module adds no new normative claim; it is a method for applying them.</li>
 <li><span class="label base">Baseline</span>Record three outcomes per question: answered and wrong, answered and right, and not stated.</li>
 <li><span class="label base">Baseline</span>Never evaluate a rule whose input is missing. Block it and report it.</li>
 <li><span class="label base">Baseline</span>Give an unanswered question the severity its rule carries, so it sorts with the findings.</li>
@@ -369,7 +369,7 @@ all lab checks passed</code></pre>
 
 <h2>Sources</h2>
 <ul class="prose">
-<li>The <a href="../../checklist/index.html">site checklist</a>, which collects every review item from modules 1 to 25. Each item's citation appears on the module page that introduced it.</li>
+<li>The <a href="../../checklist/index.html">site checklist</a>, which collects every review item from every module, 0 to 26. Where an item rests on a specification, the citation appears on the module page that introduced it.</li>
 <li>The rule table in <a href="../../labs/design_review_lab.py"><code>labs/design_review_lab.py</code></a>, which maps a subset of those check ids onto questions a design document can answer.</li>
 </ul>
 </main>
