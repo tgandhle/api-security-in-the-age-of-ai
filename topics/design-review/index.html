@@ -12,7 +12,7 @@
 <main>
 <p class="kicker">Capstone &middot; Module 26</p>
 <h1>Design review</h1>
-<p class="meta">Last reviewed 2026-10-01 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 
 <div class="prose">
 <p><strong>Objective.</strong> After this module you can run a design review against the course checklist, separate findings from questions the design does not answer, order what you found so the first line of the report is the right one, and say what your review did not cover.</p>
@@ -39,21 +39,21 @@
 <h2>2. Why it works</h2>
 <h3>Unanswered is not passed</h3>
 <div class="prose">
-<p>The design document answers 20 of the 24 questions the harness asks. The other four are silent, and three of those four sit on Critical rules: whether services authenticate for themselves on every path, whether request limits run before the parser, and whether the credential register has been reconciled.</p>
-<p>Checks 17 to 23 of the lab keep those apart from the findings and then count them together. Fourteen findings, four unanswered, eighteen open items. A review that reported "14 findings" would be accurate and would have hidden four conversations, one of which is <a href="../gateway-enforcement/index.html">module 12</a>'s question about whether a gateway is a control at all.</p>
-<p>So the harness never evaluates a rule whose named fact is missing. It records the rule, the severity it would have carried, and the fact it needed, and it reports those as their own list. That is a design decision worth copying: a checklist that silently passes on absent information will reliably tell you a system is fine.</p>
+<p>The design document answers 20 of the 24 questions the harness asks. The other four are silent, and three of those four sit on Critical rules: whether services <a href="../../glossary/index.html#authentication">authenticate</a> for themselves on every path, whether request limits run before the parser, and whether the credential register has been reconciled.</p>
+<p>Checks 17 to 23 of the lab keep those apart from the findings and then count them together. Fourteen findings, four unanswered, eighteen open items. A review that reported "14 findings" would be accurate and would have hidden four conversations, one of which is <a href="../gateway-enforcement/index.html">module 12</a>'s question about whether a <a href="../../glossary/index.html#api-gateway">gateway</a> is a control at all.</p>
+<p>So the harness never evaluates a rule when a fact it reads is missing. It records the rule, the severity it would have carried, and the fact it needed, and it reports those as their own list. That is a design decision worth copying: a checklist that silently passes on absent information will reliably tell you a system is fine.</p>
 </div>
 
 <h3>Order the findings so the first line is the right one</h3>
 <div class="prose">
 <p>Fourteen findings, twelve of them Critical, is not a report. Checks 11 and 14 order them worst first and name the Critical ids, and checks 15 and 16 are the sentence a reviewer actually leads with: eight of the twelve Criticals come from Part 4, and four from Parts 1 to 3.</p>
-<p>That split is the finding above the findings. The Parts 1 to 3 issues are a missing audience check, no idempotency key, rate limit counters that are not shared between instances, and more versions answering than documented, which are ordinary and fixable. The Part 4 issues are token passthrough, an MCP server that does not validate its audience, agent cards verified against a fetched key, a model holding a tool credential, approvals bound to an identifier, a credential in the system prompt, a prompt built from whole records, and a retrieval filter applied after ranking.</p>
+<p>That split is the finding above the findings. The Parts 1 to 3 issues are a missing <a href="../../glossary/index.html#audience">audience</a> check, no <a href="../../glossary/index.html#idempotency-key">idempotency key</a>, <a href="../../glossary/index.html#rate-limit">rate limit</a> counters that are not shared between instances, and more versions answering than documented, which are ordinary and fixable. The Part 4 issues are <a href="../../glossary/index.html#token-passthrough">token passthrough</a>, an <a href="../../glossary/index.html#mcp">MCP</a> server that does not validate its audience, <a href="../../glossary/index.html#agent-card">agent cards</a> verified against a fetched key, a model holding a tool credential, approvals bound to an identifier, a credential in the <a href="../../glossary/index.html#system-prompt">system prompt</a>, a prompt built from whole records, and a retrieval filter applied after ranking.</p>
 <p>Those eight are not eight separate oversights. They are one: the agent layer was built without anybody applying the rules the rest of the system already follows. That is a sentence a design review can earn its keep with, and you can only write it once the findings are grouped by where they came from.</p>
 </div>
 
 <h3>Separate what a setting fixes from what a design decision fixes</h3>
 <div class="prose">
-<p>Part D applies the six changes a team would realistically do in the first week: validate the token audience, validate it at the MCP server too, take the credential out of the system prompt, move the tool credential from the model to the application, build the prompt from a field allowlist, and move the retrieval filter before the ranking. Each is a setting or a few lines.</p>
+<p>Part D applies the six changes a team would realistically do in the first week: validate the token audience, validate it at the MCP server too, take the credential out of the system prompt, move the tool credential from the model to the application, build the prompt from a field <a href="../../glossary/index.html#allowlist">allowlist</a>, and move the retrieval filter before the ranking. Each is a setting or a few lines.</p>
 <p>Findings drop from 14 to 8, and Criticals from 12 to 6. Check 27 names the six that remain, and check 30 counts them: agent card trust, approval binding, token passthrough, idempotency, a shared rate limit store, and version retirement. Every one of those needs a decision rather than a change, which is why they are the ones still open a quarter later.</p>
 <p>Check 28 is the one to put in the report. The four unanswered questions are unchanged by all six fixes, because nobody answered them.</p>
 </div>
@@ -147,7 +147,7 @@
 <pre><code>Windows                           macOS and Linux
 py -3 labs/design_review_lab.py   python3 labs/design_review_lab.py</code></pre>
 <div class="prose">
-<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The <code>DESIGN</code> dict at the top is the system under review and the <code>RULES</code> table below it is the checklist. Replace the first with a description of your own system and the harness reviews it, though the expected values in <code>main</code> are still ExampleAir's. Nothing opens a socket.</p>
+<p>On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>. The <code>DESIGN</code> dict at the top is the system under review and the <code>RULES</code> table below it is the checklist. Replace the first with a description of your own system and the harness reviews it, though the expected values in <code>main</code> are still ExampleAir's. Nothing opens a socket.</p>
 </div>
 <pre><code>$ python3 labs/design_review_lab.py
 system under review: ExampleAir assistant platform
@@ -209,9 +209,9 @@ all lab checks passed</code></pre>
 <p>Check 36 names the modules that came out clean. That line is worth as much as the findings, because without it the next reviewer starts from zero.</p>
 <p><strong>Try next:</strong></p>
 <ul>
-<li>Make the harness treat unknowns as passes: in <code>review</code>, delete the line that appends the rule to <code>unanswered</code>, keep the <code>UNKNOWN</code> test and the <code>continue</code>, and rerun. Ten checks fail, four questions vanish, and the findings count does not move.</li>
+<li>Make the harness treat unknowns as passes: in <code>review</code>, delete the line that appends the rule to <code>unanswered</code>, keep the <code>if</code> test and the <code>continue</code>, and rerun. Ten checks fail, four questions vanish, and the findings count does not move.</li>
 <li>Remove the severity ordering from the findings: in <code>review</code>, change the sort key of the findings list to <code>f[0]</code> alone, and rerun. Two checks fail, 11 and 12: the findings are no longer ordered worst first, and the last finding's severity is <code>Critical</code>. The report still opens with <code>a2a-01</code>, because that id also sorts first.</li>
-<li>Replace <code>DESIGN</code> with a description of a system you work on, keeping the <code>name</code> key and setting each key you cannot fill to <code>UNKNOWN</code>. Those keys are your review's Part C. If <code>versions_documented</code> is one of them, set <code>versions_reachable</code> to <code>UNKNOWN</code> as well: <code>ver-01</code> reads both and is blocked only by the second, so the first alone ends the run with a <code>TypeError</code>. The run exits 1, because the expected values are ExampleAir's: read the printed column, not the verdict.</li>
+<li>Replace <code>DESIGN</code> with a description of a system you work on, keeping the <code>name</code> key and setting each key you cannot fill to <code>UNKNOWN</code>. Those keys are your review's Part C. <code>ver-01</code> reads two keys, <code>versions_reachable</code> and <code>versions_documented</code>, and is blocked when either is <code>UNKNOWN</code>. The run exits 1, because the expected values are ExampleAir's: read the printed column, not the verdict.</li>
 <li>Add a rule for something this course does not cover but your organisation requires. Decide what severity it carries and why. The run exits 1 whatever you add, because the expected counts are for 23 rules: leave its fact out of <code>DESIGN</code> and the rule appears in Part C.</li>
 <li>Run the harness twice, three months apart, and diff the two outputs. That diff is the only honest progress report.</li>
 </ul>
@@ -244,7 +244,7 @@ all lab checks passed</code></pre>
 <article class="exercise" data-exercise data-exercise-id="rev-x1" data-covers="rev-01">
 <h3>1. The check for a missing answer is deleted</h3>
 <div class="prose">
-<p>In <code>review</code>, delete the three lines that test whether the fact is <code>UNKNOWN</code>, append the rule to <code>unanswered</code> and <code>continue</code>. Every rule's test now runs on whatever the design holds, including nothing.</p>
+<p>In <code>review</code>, delete the three lines that start at <code>if gap is not None:</code>. They test whether a fact the rule reads is missing, append the rule to <code>unanswered</code> and <code>continue</code>. Every rule's test now runs on whatever the design holds, including nothing.</p>
 </div>
 <fieldset><legend>What does check 6, findings raised, print?</legend>
 <label><input type="radio" name="rev-x1" value="a"> <code>14</code>. A rule with no answer raises nothing, so the four pass quietly.</label>
@@ -342,7 +342,7 @@ all lab checks passed</code></pre>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
 <p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
 <ul class="controls">
-<li><span class="label std">Standard</span>The review's rules are checklist items from modules 1 to 25. Where an item rests on a specification, the citation is on the page that introduced it; many items are this project's defaults and carry none. This module adds no new normative claim; it is a method for applying them.</li>
+<li><span class="label base">Baseline</span>The review's rules are checklist items from modules 1 to 25. Where an item rests on a specification, the citation is on the page that introduced it; many items are this project's defaults and carry none. This module adds no new normative claim; it is a method for applying them.</li>
 <li><span class="label base">Baseline</span>Record three outcomes per question: answered and wrong, answered and right, and not stated.</li>
 <li><span class="label base">Baseline</span>Never evaluate a rule whose input is missing. Block it and report it.</li>
 <li><span class="label base">Baseline</span>Give an unanswered question the severity its rule carries, so it sorts with the findings.</li>

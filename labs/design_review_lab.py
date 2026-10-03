@@ -33,7 +33,7 @@ UNKNOWN = None
 DESIGN = {
     "name": "ExampleAir assistant platform",
     # Part 1, proving who is calling
-    "key_storage": "hashed",
+    "key_storage": "secrets-manager",
     "token_audience_checked": False,
     "credential_inventory": UNKNOWN,
     # Part 2, deciding what they may do
@@ -63,12 +63,13 @@ DESIGN = {
 }
 
 # check id, severity, module, the fact it depends on, test, finding.
+# The finding text is this lab's wording of the item, turned into a failure.
 # Every id, severity and module number below matches the module page that
 # defines it. Module numbers are the site's: the primer is 0, this lab is 26.
 RULES = [
     ("api-keys-04", "High", 1, "key_storage",
-     lambda d: d["key_storage"] != "hashed",
-     "API keys are not stored in a form that survives disclosure"),
+     lambda d: d["key_storage"] != "secrets-manager",
+     "Callers do not retrieve their API keys from a secrets manager"),
     ("jwt-02", "Critical", 5, "token_audience_checked",
      lambda d: not d["token_audience_checked"],
      "The audience is not validated against this service's own identifier"),
@@ -140,13 +141,26 @@ RULES = [
 
 RANK = {"Critical": 0, "High": 1, "Medium": 2}
 
+# Rules whose test reads a second fact. Such a rule is blocked when either
+# fact is missing, so no test ever runs on an answer the design did not give.
+ALSO_NEEDS = {"ver-01": ("versions_documented",)}
+
+
+def missing_fact(design, check_id, fact):
+    """The first fact this rule reads that the design leaves out, or None."""
+    for name in (fact,) + ALSO_NEEDS.get(check_id, ()):
+        if design.get(name, UNKNOWN) is UNKNOWN:
+            return name
+    return None
+
 
 def review(design):
     """Return findings, and separately the questions the design never answers."""
     findings, unanswered = [], []
     for check_id, severity, module, fact, test, text in RULES:
-        if design.get(fact, UNKNOWN) is UNKNOWN:
-            unanswered.append((check_id, severity, module, fact, text))
+        gap = missing_fact(design, check_id, fact)
+        if gap is not None:
+            unanswered.append((check_id, severity, module, gap, text))
             continue
         if test(design):
             findings.append((check_id, severity, module, text))
@@ -166,7 +180,7 @@ def coverage(design):
     """Which modules this review reached a conclusion about, and which not."""
     assessed, blocked = set(), set()
     for check_id, severity, module, fact, test, text in RULES:
-        if design.get(fact, UNKNOWN) is UNKNOWN:
+        if missing_fact(design, check_id, fact) is not None:
             blocked.add(module)
         else:
             assessed.add(module)
