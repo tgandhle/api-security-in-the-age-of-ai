@@ -176,9 +176,9 @@ def check_webhook(url, allow=None, resolver=resolve):
     parts = urllib.parse.urlsplit(url)
     if parts.scheme != "https":
         return "refuse: not https"
-    host = parts.netloc.lower()
-    if ":" in host:
-        host = host.split(":")[0]
+    # The host a client would connect to. netloc also carries any userinfo,
+    # so "allowed-host:x@other-host" must not be read as allowed-host.
+    host = parts.hostname or ""
     if host not in allow:
         return "refuse: %s is not an allowed webhook host" % host
     address = resolver(host)
@@ -466,6 +466,13 @@ def main():
     check("  and again", "accept: task-7781",
           open_hook.post({"body": body, "timestamp": NOW - 3600,
                           "token": "anything", "signature": ""}))
+
+    print()
+    print("Part D again: the allowed host as userinfo, another host behind it.")
+    check("  https://%s:x@inside.exampleair.example/a2a" % hook_host,
+          "refuse: inside.exampleair.example is not an allowed webhook host",
+          check_webhook("https://%s:x@inside.exampleair.example/a2a"
+                        % hook_host))
 
     failures = [r for r in RESULTS if r[2] != r[1]]
     print()
