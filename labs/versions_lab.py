@@ -8,7 +8,7 @@ exist to say so.
 
 Part A is what an announcement is made of, and what a version actually emits.
 Part B is the ordering constraint RFC 9745 places on the two dates. Part C
-computes each version's state at several points on the calendar. Part D
+computes v2's state at five points on the calendar, and v0-beta's today. Part D
 reconciles the documented inventory against what is reachable and what is
 receiving traffic. Part E is what a header never does.
 
@@ -113,7 +113,7 @@ def check(label, expected, actual):
 def main():
     print("today is %s; five deployments answer on the booking API" % TODAY)
     print()
-    print("Part A: what each version announces, and what it emits.")
+    print("Part A: what four of the versions announce, and what they emit.")
 
     for name in ("v3", "v2", "v1", "v1-internal"):
         v = VERSIONS[name]
@@ -144,13 +144,13 @@ def main():
     print()
     print("Part C: what a client can work out from the dates alone.")
 
-    for label, when in [("before the announcement", d(2026, 1, 1)),
+    for label, when in [("before its deprecation date", d(2026, 1, 1)),
                         ("the day it was deprecated", d(2026, 3, 1)),
                         ("today", TODAY),
                         ("the day it sunsets", d(2026, 12, 31)),
                         ("a month later", d(2027, 1, 31))]:
         check("v2 %s" % label, {
-            "before the announcement": "announced, not yet deprecated",
+            "before its deprecation date": "announced, not yet deprecated",
             "the day it was deprecated": "deprecated, 305 days left",
             "today": "deprecated, 92 days left",
             "the day it sunsets": "sunsets today",
