@@ -196,7 +196,7 @@ all lab checks passed</code></pre>
 <ul>
 <li>In the lab's <code>_authorization_code</code> method, verify the challenge using the <code>code_challenge_method</code> sent at redemption instead of the recorded one. Which check goes green, and what has the attacker just been allowed to choose?</li>
 <li>Delete the token revocation loop in the reuse branch. Which check fails, and which RFC 6749 requirement have you dropped?</li>
-<li>Add <code>"plain"</code> to <code>challenge_methods</code>. Two checks change. Explain why check 7's attack is now reachable again for any client that uses <code>plain</code>.</li>
+<li>Add <code>"plain"</code> to <code>challenge_methods</code>. One check changes: check 16 goes from <code>reject: invalid_request</code> to <code>accept</code>, and the run exits 1 with one failure. Explain why check 7's attack is now reachable again for any client that uses <code>plain</code>.</li>
 </ul>
 </div>
 
