@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Module 20 lab: MCP server authorization.
 
-Pinned to MCP protocol revision 2026-07-28, which the specification's
-versioning page calls the current revision.
+Pinned to MCP protocol revision 2026-07-28, which MCP's Versioning
+page calls the current protocol version.
 
 An MCP server is an OAuth 2.1 resource server with a tool-shaped front end.
 Almost everything the specification requires of it is a rule you have met
@@ -14,7 +14,7 @@ Part A is audience validation and the token passthrough anti-pattern, with
 the two servers sharing an issuer so the signature check cannot help.
 Part B implements the canonical resource URI rules and runs the
 specification's own valid and invalid examples. Part C implements the
-RFC 9207 issuer validation table exactly as the specification prints it,
+issuer validation table for RFC 9207 exactly as the MCP specification prints it,
 including the comparison rules it forbids. Part D is the WWW-Authenticate
 challenge and the step-up flow's scope union. Part E is state handle
 hijacking, which replaced session hijacking in this revision because MCP is
@@ -180,7 +180,7 @@ class McpServer:
         except Refused as exc:
             return "401 %s" % exc
         # "MCP servers MUST validate that access tokens were issued
-        # specifically for them as the intended audience."
+        # specifically for them as the intended audience" (Token Handling).
         if self.check_audience:
             aud = claims.get("aud")
             auds = aud if isinstance(aud, list) else [aud]
@@ -374,7 +374,7 @@ def main():
                                            safe=""))
 
     print()
-    print("Part C: the RFC 9207 issuer validation table.")
+    print("Part C: MCP's issuer validation table, which applies RFC 9207.")
     recorded = SHARED_AS
     check("advertises iss, iss present and matching", "proceed",
           check_iss(True, True, SHARED_AS, recorded))
