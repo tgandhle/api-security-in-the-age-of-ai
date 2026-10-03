@@ -121,7 +121,7 @@
 <tr><td>Result counts and facets</td><td>Computed after filtering</td><td>Anything computed before the filter and shown after it answers a question the caller was not allowed to ask.</td></tr>
 <tr><td>Document origin</td><td>Recorded at ingestion, always</td><td>You cannot recover it later, and every other control here depends on it.</td></tr>
 <tr><td>Untrusted origins in the corpus</td><td>Excluded from anything decision-bearing</td><td>Include them for discovery or search where a human reads the result and the source is shown.</td></tr>
-<tr><td>Ranking adjustments</td><td>Used for quality</td><td>Never counted as a defence. The lab's damping narrowed the margin from 0.09 to 0.06 and changed nothing.</td></tr>
+<tr><td>Ranking adjustments</td><td>Used for quality</td><td>Never counted as a defence. The lab's damping narrowed the margin from 0.08 to 0.06 and changed nothing.</td></tr>
 <tr><td>Memory writes</td><td>Carry source and origin</td><td>No exception. A memory without provenance cannot be judged or cleaned up.</td></tr>
 <tr><td>Deleting a poisoned document</td><td>Followed by a memory sweep</td><td>Deletion is not remediation on its own, because the claim already left the index.</td></tr>
 <tr><td>Who can write to the index</td><td>Enumerated, with each route reviewed</td><td>The upload form that feeds retrieval is an authorization decision wearing a different hat.</td></tr>
@@ -224,7 +224,7 @@ all lab checks passed</code></pre>
 <div class="prose">
 <p>Checks 5 to 11 are the module's first point, and the thing to notice is that post-filtering fails in both directions at once. The caller receives one document instead of three, which tells them something was removed, and two of their own documents never appeared because other tenants' content outranked them. Pre-filtering fixes both, because the documents the caller may not read were never candidates.</p>
 <p>Checks 12 to 17 are worth running against your own search. Three matches in the index, zero readable, and a nonsense query also returning zero. If your interface shows a total, a facet count or a suggestion computed before the filter, those two cases look different to a caller who is allowed to ask.</p>
-<p>Checks 22 to 26 are where I was wrong and the lab corrected me. I expected damping repeated terms to drop the stuffed document below the real policy. It does not: the margin narrows from 0.09 to 0.06 and the order is unchanged, because that document is made entirely of query terms. Checks 29 and 30 show what does work, and it is not a ranking change: restrict the corpus to documents of internal origin and the real policy is first again.</p>
+<p>Checks 22 to 26 are where I was wrong and the lab corrected me. I expected damping repeated terms to drop the stuffed document below the real policy. It does not: the margin narrows from 0.08 to 0.06 and the order is unchanged, because that document is made entirely of query terms. Checks 29 and 30 show what does work, and it is not a ranking change: restrict the corpus to documents of internal origin and the real policy is first again.</p>
 <p>Check 28 is the one to take to a design discussion about tenant isolation. The stuffed document was uploaded into ExampleAir's own tenant, so pre-filtering keeps it. Isolation answers "whose documents can I see" and says nothing about "who wrote the ones I can".</p>
 <p>Checks 38 to 40 close it. The poisoned document is deleted and its claim is still in memory with no source attached. The store that kept provenance still holds the claim too, and still will not use it.</p>
 <p><strong>Try next:</strong></p>
@@ -399,7 +399,7 @@ all lab checks passed</code></pre>
 <li data-check="ret-06" data-severity="High"><strong>Withdrawing a document triggers a memory sweep</strong> <span>The claim leaves the index before the document does. Deletion alone is not remediation.</span></li>
 <li data-check="ret-07" data-severity="High"><strong>Every write route into the index is enumerated and reviewed</strong> <span>An upload form that feeds retrieval is an authorization decision.</span></li>
 <li data-check="ret-08" data-severity="Medium"><strong>Retrieval activity is logged with a stated retention</strong> <span>OWASP asks for detailed immutable logs of retrieval activity.</span></li>
-<li data-check="ret-09" data-severity="Medium"><strong>No ranking adjustment is reported as a security control</strong> <span>State the margin it changes. In the lab it was 0.09 to 0.06, with the order unchanged.</span></li>
+<li data-check="ret-09" data-severity="Medium"><strong>No ranking adjustment is reported as a security control</strong> <span>State the margin it changes. In the lab it was 0.08 to 0.06, with the order unchanged.</span></li>
 </ul>
 
 <h2>Sources</h2>
