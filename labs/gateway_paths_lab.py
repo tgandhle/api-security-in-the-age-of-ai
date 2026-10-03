@@ -8,8 +8,8 @@ number of paths is almost never the number on the diagram.
 
 Part A runs the rules over the architecture as documented, where everything
 goes through the gateway and nothing is wrong. Part B reconciles that document
-against the connections actually observed. Part C runs the same rules over the
-real path set. Part D applies the remediation and reruns. Part E is what a
+against the connections actually observed. Part C runs the same rules over
+the paths the document left out. Part D applies the remediation and reruns. Part E is what a
 gateway was never going to fix.
 
 Needs nothing beyond Python 3.
@@ -136,7 +136,7 @@ def main():
           str(len({p["service"] for p in undocumented} - {p["service"] for p in DOCUMENTED})))
 
     print()
-    print("Part C: the same rules over the paths that exist.")
+    print("Part C: the same rules over the paths the document left out.")
     report(undocumented)
     print()
     for p in undocumented:
@@ -145,7 +145,7 @@ def main():
             "batch-nightly -> svc-reporting": "Critical: reachable without authentication",
             "partner-vpn -> svc-booking-v1": "Critical: reachable without authentication",
             "internet -> svc-booking-staging": "Critical: reachable without authentication",
-        }[label(p)], worst(p))
+        }.get(label(p), "not in the expected list"), worst(p))
     staging = [p for p in undocumented if p["service"] == "svc-booking-staging"][0]
     check("staging's second critical finding",
           "non-production deployment, production data, publicly reachable",
