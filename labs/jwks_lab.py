@@ -150,6 +150,11 @@ class KeyCache:
         keys = {}
         seen = set()
         for jwk in document["keys"]:
+            # RFC 7517 section 5: ignore a JWK whose key type is not
+            # understood or that is missing required members.
+            if (jwk.get("kty") != "RSA" or not isinstance(jwk.get("n"), str)
+                    or not isinstance(jwk.get("e"), str)):
+                continue
             kid = jwk.get("kid")
             if kid in seen:
                 keys[kid] = "ambiguous"
@@ -221,7 +226,7 @@ class Verifier:
         claims = claims_of(token)
         if claims["iss"] != ISSUER or AUDIENCE not in [claims["aud"]]:
             return "reject: issuer or audience mismatch"
-        if clock[0] > claims["exp"]:
+        if clock[0] >= claims["exp"]:      # RFC 7519 4.1.4: must be before exp
             return "reject: expired"
         return "accept"
 

@@ -12,7 +12,7 @@
 <main>
 <p class="kicker">Part 1: Proving who is calling &middot; Module 6</p>
 <h1>JWKS, revocation and introspection</h1>
-<p class="meta">Last reviewed 2026-09-30 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 
 <div class="prose">
 <p><strong>Objective.</strong> After this module you can say which key a verifier will use and why, write down which refresh outcomes are allowed to change what it holds, measure how long a withdrawn grant keeps working, and test the failure states rather than the happy path.</p>
@@ -44,8 +44,8 @@
 <p>Three assumptions do the damage.</p>
 <ul>
 <li><strong>"The cache is a performance detail."</strong> It is the thing that decides which keys are trusted. Every refresh outcome is a decision about whether to keep trusting what you hold, and if you never wrote those decisions down, your library made them for you.</li>
-<li><strong>"A failed refresh and an empty answer are the same thing."</strong> They are opposites. A 502 page or a timeout means you learned nothing, so the last known good set should stand. A successful, well-formed set containing no usable signing keys means the issuer just told you something, and ignoring it is how a key that was deliberately withdrawn keeps working. Systems that treat both as "keep what we have" cannot revoke a key. Systems that treat both as "empty the cache" fall over when the endpoint hiccups.</li>
-<li><strong>"Expiry is revocation."</strong> It is not. A self-contained token is a signed statement about the past. Nothing in it changes when the account is disabled. RFC 7009 says so plainly: "In practice, there could be a propagation delay, for example, in which some servers know about the invalidation while others do not."</li>
+<li><strong>"A failed refresh and an empty answer are the same thing."</strong> They are opposites. A 502 page or a timeout means you learned nothing, so the last known good set should stand. A successful, well-formed set containing no usable signing keys means the <a href="../../glossary/index.html#issuer">issuer</a> just told you something, and ignoring it is how a key that was deliberately withdrawn keeps working. Systems that treat both as "keep what we have" cannot revoke a key. Systems that treat both as "empty the cache" fall over when the endpoint hiccups.</li>
+<li><strong>"Expiry is <a href="../../glossary/index.html#revocation">revocation</a>."</strong> It is not. A self-contained token is a signed statement about the past. Nothing in it changes when the account is disabled. Even a revocation request does not reach every server at once. RFC 7009 section 2.1: "In practice, there could be a propagation delay, for example, in which some servers know about the invalidation while others do not."</li>
 </ul>
 <p>The ambiguity case is quieter. RFC 7517 section 4.5 says different keys in a set SHOULD use distinct <code>kid</code> values, and FAPI 2.0 section 5.4.2 says a server "should not serve a JWK set with multiple keys with the same <code>kid</code>". Both are recommendations, so a set with duplicates is malformed-ish rather than illegal, and a verifier that picks the first match will silently accept a token signed by whichever key the issuer happened to list first.</p>
 </div>
@@ -70,8 +70,8 @@ unknown kid after a refresh      n/a              reject, unknown kid</code></pr
 <li>If the <code>kid</code> is missing from the set, allow one bounded refresh, with request coalescing so concurrent misses cause one fetch, and a cooldown so a stream of unknown <code>kid</code> values cannot drive a fetch storm against your issuer.</li>
 <li>If two eligible keys share that <code>kid</code>, reject as ambiguous. Do not select by array order.</li>
 <li>Check the key is meant for this job: <code>use</code> of <code>sig</code>, and an <code>alg</code> your profile allows. A key published for encryption is not a verification key.</li>
-<li>Verify the signature, then apply the module 5 profile in full.</li>
-<li>For anything where a withdrawn grant must stop working sooner than the token expires, consult current state as well. That is <a href="../../glossary/index.html#introspection">introspection</a>, a denylist, or a gateway lookup, and it is a separate decision with its own freshness.</li>
+<li>Verify the <a href="../../glossary/index.html#signature">signature</a>, then apply the module 5 profile in full.</li>
+<li>For anything where a withdrawn grant must stop working sooner than the token expires, consult current state as well. That is <a href="../../glossary/index.html#introspection">introspection</a>, a denylist, or a <a href="../../glossary/index.html#api-gateway">gateway</a> lookup, and it is a separate decision with its own freshness.</li>
 </ol>
 
 <h3>The whole system</h3>
@@ -126,7 +126,7 @@ unknown kid after a refresh      n/a              reject, unknown kid</code></pr
 <div class="prose">
 <p><strong>Proves:</strong> that the signature was made by a key the issuer publishes now, or published recently enough that your cache still holds it, and, if you consult active state, that the grant was live at the moment you asked.</p>
 <p><strong>Doesn't prove:</strong> that the grant is live now. Every answer you have is as old as the cache it came from.</p>
-<div class="callout warn"><strong>Your revocation bound is a sum, not a setting.</strong> It is an upper limit: the access token lifetime, plus the key cache maximum age where key removal is the mechanism, plus the introspection cache TTL, plus any gateway or CDN cache in front. Teams quote the token lifetime and forget the rest. Measure it end to end by disabling an account and timing how long a request keeps succeeding, at every layer that answers.</div>
+<div class="callout warn"><strong>Your revocation bound is a sum, not a setting.</strong> It is an upper limit: the <a href="../../glossary/index.html#access-token">access token</a> lifetime, plus the key cache maximum age where key removal is the mechanism, plus the introspection cache TTL, plus any gateway or CDN cache in front. Teams quote the token lifetime and forget the rest. Measure it end to end by disabling an account and timing how long a request keeps succeeding, at every layer that answers.</div>
 </div>
 
 <h2>6. Prove it</h2>
@@ -136,7 +136,7 @@ unknown kid after a refresh      n/a              reject, unknown kid</code></pr
 <li>A token signed by the current key, with a cold cache.</li>
 <li>A token whose <code>kid</code> is not in the cache, where exactly one refresh happens no matter how many requests arrive at once.</li>
 <li>A second unknown <code>kid</code> inside the cooldown, which must not cause another fetch.</li>
-<li>A key rotated in during an overlap, where both old and new tokens verify.</li>
+<li>A key <a href="../../glossary/index.html#key-rotation">rotated in</a> during an overlap, where both old and new tokens verify.</li>
 <li>A key rotated out after the overlap, which must stop verifying without anyone restarting the service.</li>
 <li>A successful response containing an empty key list.</li>
 <li>A refresh returning a 502 error page, a truncated body, or a timeout, where the last known good set must survive and the triggering request must still fail.</li>
@@ -158,7 +158,7 @@ py -3 -m venv .venv          python3 -m venv .venv
 python -m pip install cryptography==50.0.1
 python labs/jwks_lab.py</code></pre>
 <div class="prose">
-<p>Inside an activated environment use <code>python</code>, not <code>py -3</code>. The Windows launcher ignores an active environment when you give it an explicit version: "To run the global interpreter, either deactivate the virtual environment, or explicitly specify the global Python version" (Python documentation, Using Python on Windows, Virtual environments). Outside an environment, <code>py -3</code> is still the right command on Windows.</p>
+<p>Inside an activated environment use <code>python</code>, not <code>py -3</code>. The <code>py</code> command uses an active environment only when you have not asked for a version: "If you are running in an active virtual environment, have not requested a particular version, and there is no shebang line, the default runtime will be that virtual environment" (Python 3.14 documentation, Using Python on Windows, Python install manager, Basic use). Outside an environment, <code>py -3</code> is still the right command on Windows.</p>
 <p>The issuer's key endpoint and the introspection endpoint are stubs in the process, the clock is a variable, and no sockets are opened.</p>
 </div>
 <pre><code>$ python3 labs/jwks_lab.py
@@ -199,14 +199,14 @@ all lab checks passed</code></pre>
 <ul>
 <li>In <code>KeyCache._absorb</code>, keep the old keys when the new set is empty. Check 11 flips to accept. You have just built the defect this module exists for.</li>
 <li>In <code>resolve</code>, change <code>if not self.loaded or stale:</code> to <code>if not self.loaded:</code>. Exit 1, two failures: checks 10 and 11 go from <code>reject: unknown kid</code> to <code>accept</code>. Which key can now never be withdrawn?</li>
-<li>In Part C, on the line that builds the <code>cached</code> resource server, change <code>cache_ttl=300</code> to <code>cache_ttl=3600</code> and rerun. Exit 1, one failure: check 21 goes from <code>reject: token not active</code> to <code>accept</code>. State the new revocation bound in seconds, then add the token lifetime to it for the upper limit. This lab's resource server reaches 3599 seconds, not the sum of 7230.</li>
+<li>In Part C, on the line that builds the <code>cached</code> <a href="../../glossary/index.html#resource-server">resource server</a>, change <code>cache_ttl=300</code> to <code>cache_ttl=3600</code> and rerun. Exit 1, one failure: check 21 goes from <code>reject: token not active</code> to <code>accept</code>. State the new revocation bound in seconds, then add the token lifetime to it for the upper limit. This lab's resource server reaches 3599 seconds, not the sum of 7230.</li>
 </ul>
 </div>
 
 <h2>8. Check your understanding</h2>
 <details><summary>Why is a 502 from the JWKS endpoint treated differently from a 200 carrying an empty key list?</summary><p>A 502 means you learned nothing, so the safe move is to keep the set you already trust and fail only the request that needed a refresh. An empty 200 is the issuer telling you something. Treating it as a failure means a key the issuer deliberately withdrew keeps verifying, which is the opposite of what was intended.</p></details>
 <details><summary>Two keys in the set share a <code>kid</code>. Your library picks the first and the token verifies. What is wrong?</summary><p>Which key verified your token is now decided by array order in someone else's document. RFC 7517 and FAPI 2.0 both recommend against publishing duplicates, so a set containing them is a fault at the issuer. Rejecting as ambiguous surfaces it; selecting silently hides it.</p></details>
-<details><summary>Your tokens live 15 minutes and you cache introspection for 5. What is your revocation bound?</summary><p>Not 15 minutes. The upper limit is 15 minutes for a token issued just before the withdrawal, plus 5 more for the cached introspection answer, plus anything a gateway or CDN holds. This lab's resource server, given those two numbers, stops sooner: a revoked token works for 299 seconds where introspection is consulted and for 900 seconds where validation is local only, because the verifier rejects an expired token before the cache is read. Quote the sum as the limit, and test it rather than calculating it.</p></details>
+<details><summary>Your tokens live 15 minutes and you cache introspection for 5. What is your revocation bound?</summary><p>Not 15 minutes. The upper limit is 15 minutes for a token issued just before the withdrawal, plus 5 more for the cached introspection answer, plus anything a gateway or CDN holds. This lab's resource server, given those two numbers, stops sooner: a revoked token works for 299 seconds where introspection is consulted and for 899 seconds where validation is local only, because the verifier rejects an expired token before the cache is read. Quote the sum as the limit, and test it rather than calculating it.</p></details>
 <details><summary>Why does an unknown <code>kid</code> need a cooldown rather than just triggering a refresh?</summary><p>Because the <code>kid</code> comes from the caller. Without a cooldown, an attacker sending tokens with invented key identifiers turns your resource servers into a load generator aimed at your own issuer, and the outage looks like the issuer's fault.</p></details>
 
 <section class="course-quiz" data-quiz data-quiz-id="jwks-and-revocation-check" data-correct-feedback="Correct. A successful, well formed response is the issuer telling you something, including when it contains no keys. Keeping the old set there is how a withdrawn key keeps verifying." data-incorrect-feedback="Not quite. A failed or malformed refresh means you learned nothing, so keeping the last known good set is right there. The empty set is the case that must replace what you hold.">
@@ -334,7 +334,7 @@ all lab checks passed</code></pre>
 <li><span class="label std">Standard</span>A revocation endpoint returns HTTP 200 whether the token was revoked or was already invalid, because "invalid tokens do not cause an error response since the client cannot handle such an error in a reasonable way". RFC 7009 section 2.2.</li>
 <li><span class="label std">Standard</span>Where the authorization server supports revoking access tokens, RFC 7009 section 2.1 recommends that revoking a refresh token also invalidates the access tokens issued from the same grant, and warns that "there could be a propagation delay, for example, in which some servers know about the invalidation while others do not".</li>
 <li><span class="label std">Standard</span>The introspection <code>active</code> member is a "Boolean indicator of whether or not the presented token is currently active". RFC 7662 section 2.2.</li>
-<li><span class="label std">Standard</span>An introspection response may be cached "at the cost of liveness of the information used by the protected resource to make authorization decisions", (RFC 7662 section 2.2), and a response carrying <code>exp</code> must not be cached beyond it (section 4).</li>
+<li><span class="label std">Standard</span>An introspection response may be cached "at the cost of liveness of the information used by the protected resource to make authorization decisions" (RFC 7662 section 2.2), and a response carrying <code>exp</code> must not be cached beyond it (section 4).</li>
 <li><span class="label base">Baseline</span>Refresh the key set on a schedule once it passes a maximum age, independently of whether any <code>kid</code> is missing.</li>
 <li><span class="label base">Baseline</span>On an unknown <code>kid</code>, allow one bounded refresh, coalesce concurrent misses into a single fetch, and apply a cooldown so caller-supplied identifiers cannot drive a fetch storm.</li>
 <li><span class="label base">Baseline</span>A successful, well formed key set is authoritative even when it contains zero usable signing keys. It replaces what you hold.</li>
@@ -365,6 +365,7 @@ all lab checks passed</code></pre>
 <li><a href="https://www.rfc-editor.org/rfc/rfc7662">RFC 7662: OAuth 2.0 Token Introspection</a>, October 2015. Sections 2.2, 4.</li>
 <li><a href="https://openid.net/specs/fapi-security-profile-2_0-final.html#name-json-web-key-sets">FAPI 2.0 Security Profile, section 5.4.2, JSON Web Key Sets</a>, OpenID Final Specification, 22 February 2025.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc8725">RFC 8725: JSON Web Token Best Current Practices</a>, February 2020. Section 3.8, pairing the verifying key with the issuer.</li>
+<li><a href="https://docs.python.org/3.14/using/windows.html">Python 3.14 documentation: Using Python on Windows</a>. Python install manager, Basic use: how the <code>py</code> command picks a runtime when a virtual environment is active.</li>
 </ul>
 </main>
 <footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
