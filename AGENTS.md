@@ -187,7 +187,7 @@ Work on one module per task unless told otherwise.
 - [ ] `python3 tools/check_site.py` prints `all checks passed`.
 - [ ] `python3 tools/extract_lessons.py --check` prints `content/ matches the published pages`.
 - [ ] `python3 tools/render_site.py` prints `the template reproduces every published page byte for byte`.
-- [ ] `python3 tools/check_transcripts.py` prints `all 26 published lab transcripts match a live run`. If it reports any as skipped, install the package the lab names and run it again, or say in your report which ones were not checked and why.
+- [ ] `python3 tools/check_transcripts.py` prints `all 27 published lab transcripts match a live run`. If it reports any as skipped, install the package the lab names and run it again, or say in your report which ones were not checked and why.
 - [ ] `python3 tools/build_lab_bundles.py --check` prints `every lab bundle matches its .py file`.
 - [ ] `python3 tools/extract_pages.py --check` prints `content/pages.json matches the published pages`.
 - [ ] `python3 tools/build_search_index.py --check` prints `the search index matches content/`.

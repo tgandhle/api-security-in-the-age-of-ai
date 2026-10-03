@@ -6,8 +6,33 @@ Work through the published modules in order. Each lesson includes an attack exam
 
 | Module | Lesson | Python lab |
 |---|---|---|
-| 1 | [API keys](topics/api-keys/index.html) | [Run the API keys lab](labs/api_keys_lab.py) |
-| 2 | [HMAC request signing](topics/hmac-request-signing/index.html) | [Run the HMAC lab](labs/hmac_lab.py) |
+| 0 | [Security concepts for the course](topics/security-foundations/index.html) | [`foundations_lab.py`](labs/foundations_lab.py) |
+| 1 | [API keys](topics/api-keys/index.html) | [`api_keys_lab.py`](labs/api_keys_lab.py) |
+| 2 | [HMAC request signing](topics/hmac-request-signing/index.html) | [`hmac_lab.py`](labs/hmac_lab.py) |
+| 3 | [Asymmetric request signing](topics/asymmetric-request-signing/index.html) | [`asymmetric_signing_lab.py`](labs/asymmetric_signing_lab.py) |
+| 4 | [OAuth basics](topics/oauth-basics/index.html) | [`oauth_lab.py`](labs/oauth_lab.py) |
+| 5 | [JWT validation](topics/jwt-validation/index.html) | [`jwt_lab.py`](labs/jwt_lab.py) |
+| 6 | [JWKS, revocation, and introspection](topics/jwks-and-revocation/index.html) | [`jwks_lab.py`](labs/jwks_lab.py) |
+| 7 | [Sender-constrained tokens: mTLS and DPoP](topics/sender-constrained-tokens/index.html) | [`bound_tokens_lab.py`](labs/bound_tokens_lab.py) |
+| 8 | [Workload and agent identity lifecycle](topics/credential-lifecycle/index.html) | [`credential_inventory_lab.py`](labs/credential_inventory_lab.py) |
+| 9 | [Object-level authorization](topics/object-level-authorization/index.html) | [`object_authorization_lab.py`](labs/object_authorization_lab.py) |
+| 10 | [Property and function authorization](topics/property-and-function-authorization/index.html) | [`property_function_lab.py`](labs/property_function_lab.py) |
+| 11 | [Business flows and idempotency](topics/business-flows-and-idempotency/index.html) | [`idempotency_lab.py`](labs/idempotency_lab.py) |
+| 12 | [Gateway enforcement](topics/gateway-enforcement/index.html) | [`gateway_paths_lab.py`](labs/gateway_paths_lab.py) |
+| 13 | [Request and response contracts](topics/request-and-response-contracts/index.html) | [`contracts_lab.py`](labs/contracts_lab.py) |
+| 14 | [SSRF and unsafe consumption of APIs](topics/ssrf-and-unsafe-consumption/index.html) | [`ssrf_lab.py`](labs/ssrf_lab.py) |
+| 15 | [Rate limiting and cost controls](topics/rate-limiting-and-cost/index.html) | [`rate_limit_lab.py`](labs/rate_limit_lab.py) |
+| 16 | [Webhooks](topics/webhooks/index.html) | [`webhook_lab.py`](labs/webhook_lab.py) |
+| 17 | [CORS](topics/cors/index.html) | [`cors_lab.py`](labs/cors_lab.py) |
+| 18 | [Versioning and deprecation](topics/versioning-and-deprecation/index.html) | [`versions_lab.py`](labs/versions_lab.py) |
+| 19 | [Delegation and token exchange](topics/delegation-and-token-exchange/index.html) | [`token_exchange_lab.py`](labs/token_exchange_lab.py) |
+| 20 | [MCP server authorization](topics/mcp-server-authorization/index.html) | [`mcp_auth_lab.py`](labs/mcp_auth_lab.py) |
+| 21 | [Agent-to-agent (A2A)](topics/agent-to-agent/index.html) | [`a2a_lab.py`](labs/a2a_lab.py) |
+| 22 | [Prompt injection and output handling](topics/prompt-injection-and-output-handling/index.html) | [`injection_lab.py`](labs/injection_lab.py) |
+| 23 | [Agent authority and approvals](topics/agent-authority-and-approvals/index.html) | [`approvals_lab.py`](labs/approvals_lab.py) |
+| 24 | [Data in model context](topics/data-in-model-context/index.html) | [`context_data_lab.py`](labs/context_data_lab.py) |
+| 25 | [Supply chain, retrieval, and memory](topics/supply-chain-retrieval-and-memory/index.html) | [`retrieval_lab.py`](labs/retrieval_lab.py) |
+| 26 | [Design review of a sample architecture using the checklist](topics/design-review/index.html) | [`design_review_lab.py`](labs/design_review_lab.py) |
 
 [Full module plan](index.html#path) · [Glossary](glossary/index.html) · [Review checklist](checklist/index.html)
 
@@ -30,7 +55,7 @@ python labs/jwks_lab.py
 
 Inside an activated environment use `python`, not `py -3`. The launcher ignores an active environment when given an explicit version: "To run the global interpreter, either deactivate the virtual environment, or explicitly specify the global Python version" (Python documentation, Using Python on Windows, Virtual environments). On macOS and Linux the equivalent is `python3 -m venv .venv` then `source .venv/bin/activate`.
 
-The labs are pure in-process Python with no shell, subprocess or path handling, so their output does not vary by platform. Checked, not assumed: `tools/check_transcripts.py` runs every lab whose output is published and compares it to the page byte for byte. All 26 match on Windows (Python 3.14.6, `python` in an activated environment) and on Linux (Python 3.11.15, `python3`), both with `cryptography==50.0.1`. Where that package is absent, the four labs that need it are reported as skipped rather than as passing. `tools/check_site.py` also produces identical output on both.
+The labs are pure in-process Python with no shell, subprocess or path handling, so their output does not vary by platform. Checked, not assumed: `tools/check_transcripts.py` runs every lab whose output is published and compares it to the page byte for byte. All 27 match on Windows (Python 3.14.6, `python` in an activated environment) and on Linux (Python 3.13.16 and 3.14.6, `python3`), all with `cryptography==50.0.1`. Where that package is absent, the four labs that need it are reported as skipped rather than as passing. `tools/check_site.py` also produces identical output on both.
 
 ## Licence
 
