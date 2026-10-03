@@ -12,7 +12,7 @@
 <main>
 <p class="kicker">Part 3: Edges and boundaries &middot; Module 18</p>
 <h1>Versioning and deprecation</h1>
-<p class="meta">Last reviewed 2026-09-30 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 
 <div class="prose">
 <p><strong>Objective.</strong> After this module you can announce a deprecation in a way machines can act on, set the two dates in the order the specification requires, tell what a client can work out at any point on that timeline, and say why announcing perfectly changes nothing on its own.</p>
@@ -25,7 +25,7 @@
 <h2>1. The attack</h2>
 <div class="prose">
 <p>Running example: ExampleAir's booking API, currently on v3. Company names are fictional. Five deployments answer requests. Three are in the documentation.</p>
-<p>The attack is picking the oldest one. Old versions are where the object check from <a href="../object-level-authorization/index.html">module 9</a> had not been written yet, where the response still carries the fields <a href="../property-and-function-authorization/index.html">module 10</a> removed, where the rate limit is the one you set two years ago. None of that was a mistake at the time. It became one when the fix shipped to v3 and stopped there.</p>
+<p>The attack is picking the oldest one. Old versions are where the object check from <a href="../object-level-authorization/index.html">module 9</a> had not been written yet, where the response still carries the fields <a href="../property-and-function-authorization/index.html">module 10</a> removed, where the <a href="../../glossary/index.html#rate-limit">rate limit</a> is the one you set two years ago. None of that was a mistake at the time. It became one when the fix shipped to v3 and stopped there.</p>
 <p>OWASP files this as <strong>API9:2023 Improper Inventory Management</strong>, and its advice is pointed: use external protection measures "for all exposed versions of your APIs, not just for the current production version". The word doing the work is <em>exposed</em>, which is a fact about your network rather than about your documentation.</p>
 </div>
 <div class="wrap"><table>
@@ -45,8 +45,8 @@
 <h3>Two headers, two dates, one ordering rule</h3>
 <div class="prose">
 <p>There are two RFCs for saying this in a way a client can act on, and they are short.</p>
-<p><strong>RFC 9745</strong>, published March 2025, defines the <code>Deprecation</code> response header field, "used to signal to consumers of a resource (identified by a URI) that the resource will be or has been deprecated". Its value is a date, so a future date announces a deprecation that has not happened yet and a past date says it already has.</p>
-<p><strong>RFC 8594</strong>, from May 2019, defines <code>Sunset</code>, which "indicates that a URI is likely to become unresponsive at a specified point in the future". It is honest about what happens afterwards: "after the Sunset time has arrived, it is likely that interactions with the resource will result in client-side errors (HTTP 4xx status codes), redirect responses (HTTP 3xx status codes), or the client might not be able to interact with the resource at all".</p>
+<p><strong>RFC 9745</strong>, published March 2025, defines the <a href="../../glossary/index.html#deprecation-header"><code>Deprecation</code> response header field</a>, "used to signal to consumers of a resource (identified by a URI) that the resource will be or has been deprecated". Its value is a date, so a future date announces a deprecation that has not happened yet and a past date says it already has.</p>
+<p><strong>RFC 8594</strong>, from May 2019, defines <a href="../../glossary/index.html#sunset-header"><code>Sunset</code></a>, which "indicates that a URI is likely to become unresponsive at a specified point in the future". It is honest about what happens afterwards: "after the Sunset time has arrived, it is likely that interactions with the resource will result in client-side errors (HTTP 4xx status codes), redirect responses (HTTP 3xx status codes), or the client might not be able to interact with the resource at all".</p>
 <p>The two are related by one rule, in RFC 9745 section 4: "the timestamp given in the <code>Sunset</code> HTTP header field MUST NOT be earlier than the one given in the <code>Deprecation</code> header field". Deprecated, then gone, in that order. It sounds too obvious to state until you have seen a migration plan with the dates the wrong way round, which is what happens when the sunset date comes from a contract and the deprecation date from an engineer.</p>
 <p>Both specifications add the same caution, and it is the point of Part E of the lab: the header is a hint. RFC 8594 and RFC 9745 both say so in their security considerations. A client that ignores it is not doing anything wrong at the protocol level, and your traffic graph is the only thing that knows whether anyone listened.</p>
 </div>
@@ -136,7 +136,7 @@
 <pre><code>Windows              macOS and Linux
 py -3 labs/versions_lab.py    python3 labs/versions_lab.py</code></pre>
 <div class="prose">
-<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The dates are real date arithmetic against a fixed today. Reachability and traffic are inventory data, so nothing connects to anything.</p>
+<p>On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>. The dates are real date arithmetic against a fixed today. Reachability and traffic are inventory data, so nothing connects to anything.</p>
 </div>
 <pre><code>$ python3 labs/versions_lab.py
 today is 2026-09-30; five deployments answer on the booking API
@@ -319,7 +319,7 @@ all lab checks passed</code></pre>
 <li><span class="label std">Standard</span>"The timestamp given in the <code>Sunset</code> HTTP header field MUST NOT be earlier than the one given in the <code>Deprecation</code> header field." RFC 9745 section 4.</li>
 <li><span class="label std">Standard</span>RFC 8594 section 3 states that after the sunset time "it is likely that interactions with the resource will result in client-side errors (HTTP 4xx status codes), redirect responses (HTTP 3xx status codes), or the client might not be able to interact with the resource at all".</li>
 <li><span class="label std">Standard</span>Both specifications treat the field as a hint rather than a guarantee, in their security considerations: RFC 9745 section 7 and RFC 8594 section 8.</li>
-<li><span class="label std">Standard</span>RFC 9745 section 3 defines the <code>deprecation</code> link relation type: a server can use a <code>Link</code> header with it to point at the documentation. It does not require one. RFC 8594 section 6 defines a <code>sunset</code> relation type for the same purpose.</li>
+<li><span class="label std">Standard</span>RFC 9745 section 3 defines the <code>deprecation</code> link relation type: a server can use a <code>Link</code> header with it to point at the documentation. It does not require one. RFC 8594 section 6 defines a <code>sunset</code> relation type, for linking to information about how a resource or service will be retired.</li>
 <li><span class="label std">Standard</span>OWASP recommends using external protection measures "for all exposed versions of your APIs, not just for the current production version", and an inventory that records for each host its environment, who should have network access to it, and which version it runs. OWASP API9:2023, How To Prevent.</li>
 <li><span class="label base">Baseline</span>Produce the version list from the network, not the documentation, and date it.</li>
 <li><span class="label base">Baseline</span>Set both dates at the moment the successor ships, in the required order, and check that order in the build.</li>
@@ -327,7 +327,7 @@ all lab checks passed</code></pre>
 <li><span class="label base">Baseline</span>Treat a version with traffic and unidentified callers as a finding, because it cannot be withdrawn until they are named.</li>
 <li><span class="label base">Baseline</span>Withdraw on the date, then verify from the network that it stopped answering.</li>
 <li><span class="label base">Baseline</span>Keep internal and non-production versions in the same inventory as the public ones.</li>
-<li><span class="label opt">Option</span>Return 410 Gone rather than 404 for a withdrawn version where you want clients to distinguish a retired resource from a wrong path.</li>
+<li><span class="label opt">Option</span>Return 410 Gone rather than 404 for a withdrawn version where you want clients to distinguish a retired resource from a wrong path. RFC 9110 section 15.5.11 says 410 "indicates that access to the target resource is no longer available at the origin server and that this condition is likely to be permanent", and section 15.5.5 says "the 410 (Gone) status code is preferred over 404 if the origin server knows, presumably through some configurable means, that the condition is likely to be permanent".</li>
 <li><span class="label opt">Option</span>Throttle a deprecated version progressively as its sunset approaches, so that the migration pressure is felt before the date rather than at it.</li>
 </ul>
 
@@ -348,6 +348,7 @@ all lab checks passed</code></pre>
 <ul class="prose">
 <li><a href="https://www.rfc-editor.org/rfc/rfc9745">RFC 9745: The Deprecation HTTP Response Header Field</a>, March 2025. Abstract and sections 2.1, 3, 4 and 7.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc8594">RFC 8594: The Sunset HTTP Header Field</a>, May 2019. Sections 1, 3, 6 and 8.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9110">RFC 9110: HTTP Semantics</a>, June 2022. Sections 15.5.5 and 15.5.11.</li>
 <li><a href="https://api-security.owasp.org/editions/2023/en/0xa9-improper-inventory-management/">OWASP API Security Top 10 2023, API9:2023 Improper Inventory Management</a>.</li>
 </ul>
 </main>
