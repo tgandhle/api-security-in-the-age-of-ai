@@ -12,7 +12,7 @@
 <main>
 <p class="kicker">Part 3: Edges and boundaries &middot; Module 15</p>
 <h1>Rate limiting and cost controls</h1>
-<p class="meta">Last reviewed 2026-09-30 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 
 <div class="prose">
 <p><strong>Objective.</strong> After this module you can pick between a fixed window, a sliding window and a token bucket for a stated reason, say what each one permits at its worst moment, and name the four things a request-rate limit does not bound at all.</p>
@@ -49,7 +49,7 @@
 <ul>
 <li><strong>Fixed window.</strong> Count per calendar minute, reset at the boundary. Its worst moment is the boundary, where two full windows fit inside two seconds, so the observed peak is twice the limit in an arbitrarily short time. Cheap to implement, and the peak is the part people do not picture.</li>
 <li><strong>Sliding window.</strong> Count the requests in the last sixty seconds, whenever the request arrives. There is no boundary, so there is no boundary burst. It costs more memory, because you are keeping timestamps rather than a counter.</li>
-<li><strong>Token bucket.</strong> A bucket of some capacity refilling at some rate. Capacity is the burst you are prepared to serve and rate is the average you are prepared to sustain, and separating those two numbers is the point. Its worst moment is a full bucket, which permits the whole capacity at once, on purpose.</li>
+<li><strong><a href="../../glossary/index.html#token-bucket">Token bucket</a>.</strong> A bucket of some capacity refilling at some rate. Capacity is the burst you are prepared to serve and rate is the average you are prepared to sustain, and separating those two numbers is the point. Its worst moment is a full bucket, which permits the whole capacity at once, on purpose.</li>
 </ul>
 <p>The token bucket's row in the table above says 101 rather than 100, and that is not a rounding error: it is the full bucket at 12:00:59 plus the 1.67 tokens that refilled by 12:01:00. Watching a limiter produce a number you did not predict is the fastest way to find out what it actually enforces.</p>
 </div>
@@ -57,7 +57,7 @@
 <h3>Four things a request count does not count</h3>
 <div class="prose">
 <p><strong>Cost.</strong> A request that reads one row and a request that runs a report are one request each. OWASP's prevention list starts with the resource side, "use a solution that makes it easy to limit memory, CPU, number of restarts, file descriptors, and processes such as Containers / Serverless code", and continues with the pricing side, "configure spending limits for all service providers/API integrations. When setting spending limits is not possible, billing alerts should be configured instead". Between those two sits the API's own answer: charge each request what it costs and limit the total.</p>
-<p><strong>Duration.</strong> A rate limit constrains a minute. It says nothing about a day, and one request a second for a day is 86,400 requests without a single refusal. If what you care about is the total, a rate limit is not the control; a quota is, and <a href="../business-flows-and-idempotency/index.html">module 11</a> is where the number comes from.</p>
+<p><strong>Duration.</strong> A <a href="../../glossary/index.html#rate-limit">rate limit</a> constrains a minute. It says nothing about a day, and one request a second for a day is 86,400 requests without a single refusal. If what you care about is the total, a rate limit is not the control; a quota is, and <a href="../business-flows-and-idempotency/index.html">module 11</a> is where the number comes from.</p>
 <p><strong>Identity.</strong> A per-caller limit is exactly as strong as the cost of becoming another caller. Where identities are free, the limit is a formality. OWASP's advice here is to tune by endpoint rather than globally: "rate limiting should be fine tuned based on the business needs. Some API Endpoints might require stricter policies", and specifically to "limit/throttle how many times or how often a single API client/user can execute a single operation (e.g. validate an OTP, or request password recovery without visiting the one-time URL)".</p>
 <p><strong>Where the counter lives.</strong> Four instances with local counters enforce four times your limit, and they do it silently, because each one is correct about what it saw. This is <a href="../business-flows-and-idempotency/index.html">module 11</a>'s shared-store argument in a second place, and it is the one most likely to be true in your system right now.</p>
 </div>
@@ -66,7 +66,7 @@
 <div class="prose">
 <p>429 is defined in RFC 6585 section 4, not in the core HTTP semantics document, and its definition is short and worth reading in full. It "indicates that the user has sent too many requests in a given amount of time", the response "SHOULD include details explaining the condition, and MAY include a Retry-After header indicating how long to wait before making a new request", and "responses with the 429 status code MUST NOT be stored by a cache". That last one is a requirement people miss and a cache will happily ignore on your behalf.</p>
 <p>The security considerations for 429, section 7.2 of the same RFC, say something more interesting: servers "are not required to use the 429 status code; when limiting resource usage, it may be more appropriate to just drop connections, or take other steps", because "when a server is under attack or just receiving a very large number of requests from a single party, responding to each with a 429 status code will consume resources". A polite refusal is still work. Under attack, the cheapest response is the right one.</p>
-<p>On telling clients their remaining quota: there is no standard. The IETF work on <code>RateLimit</code> header fields, <code>draft-ietf-httpapi-ratelimit-headers</code>, reached revision 11 in May 2026 and is still an Internet-Draft, with a "Not Ready" early review of the previous revision, completed in January 2026. Emitting those headers is reasonable and common. Calling them standard is not, and a client that depends on them is depending on your implementation.</p>
+<p>On telling clients their remaining quota: there is no standard. The IETF work on <code>RateLimit</code> header fields, <code>draft-ietf-httpapi-ratelimit-headers</code>, reached revision 11 in May 2026 and is still an Internet-Draft, with a "Not ready" early review of the previous revision, completed in January 2026. Emitting those headers is reasonable and common. Calling them standard is not, and a client that depends on them is depending on your implementation.</p>
 </div>
 
 <h3>The whole system</h3>
@@ -154,7 +154,7 @@
 <pre><code>Windows              macOS and Linux
 py -3 labs/rate_limit_lab.py    python3 labs/rate_limit_lab.py</code></pre>
 <div class="prose">
-<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The three limiters are real implementations, about ten lines each. The clock is a number the file increments, so nothing sleeps and every run produces the same output.</p>
+<p>On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>. The three limiters are real implementations, about ten lines each. The clock is a number the file increments, so nothing sleeps and every run produces the same output.</p>
 </div>
 <pre><code>$ python3 labs/rate_limit_lab.py
 the stated limit is 100 requests per 60 seconds
@@ -330,7 +330,7 @@ all lab checks passed</code></pre>
 <li><span class="label std">Standard</span>"Implement a limit on how often a client can interact with the API within a defined timeframe (rate limiting)." OWASP API4:2023, How To Prevent.</li>
 <li><span class="label std">Standard</span>"Rate limiting should be fine tuned based on the business needs. Some API Endpoints might require stricter policies." OWASP API4:2023, How To Prevent.</li>
 <li><span class="label std">Standard</span>"Limit/throttle how many times or how often a single API client/user can execute a single operation (e.g. validate an OTP, or request password recovery without visiting the one-time URL)." OWASP API4:2023, How To Prevent.</li>
-<li><span class="label std">Standard</span>"Use a solution that makes it easy to limit memory, CPU, number of restarts, file descriptors, and processes such as Containers / Serverless code." OWASP API4:2023, How To Prevent.</li>
+<li><span class="label std">Standard</span>"Use a solution that makes it easy to limit memory, CPU, number of restarts, file descriptors, and processes such as Containers / Serverless code (e.g. Lambdas)." OWASP API4:2023, How To Prevent.</li>
 <li><span class="label std">Standard</span>"Configure spending limits for all service providers/API integrations. When setting spending limits is not possible, billing alerts should be configured instead." OWASP API4:2023, How To Prevent.</li>
 <li><span class="label std">Standard</span>429 Too Many Requests "indicates that the user has sent too many requests in a given amount of time", the response "SHOULD include details explaining the condition, and MAY include a Retry-After header", and responses with it "MUST NOT be stored by a cache". RFC 6585 section 4.</li>
 <li><span class="label std">Standard</span>Servers "are not required to use the 429 status code; when limiting resource usage, it may be more appropriate to just drop connections, or take other steps", because responding to each request consumes resources. RFC 6585 section 7.2.</li>
@@ -362,7 +362,7 @@ all lab checks passed</code></pre>
 <li><a href="https://api-security.owasp.org/editions/2023/en/0xa4-unrestricted-resource-consumption/">OWASP API Security Top 10 2023, API4:2023 Unrestricted Resource Consumption</a>.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc6585">RFC 6585: Additional HTTP Status Codes</a>, April 2012. Section 4, 429 Too Many Requests, and section 7.2, its security considerations.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc9110">RFC 9110: HTTP Semantics</a>, June 2022. Section 10.2.3 defines <code>Retry-After</code>.</li>
-<li><a href="https://datatracker.ietf.org/doc/draft-ietf-httpapi-ratelimit-headers/">draft-ietf-httpapi-ratelimit-headers: RateLimit header fields for HTTP</a>. Revision 11, May 2026. An active Internet-Draft, not a standard.</li>
+<li><a href="https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-ratelimit-headers-11">draft-ietf-httpapi-ratelimit-headers: RateLimit header fields for HTTP</a>. Revision 11, May 2026. An active Internet-Draft, not a standard.</li>
 </ul>
 </main>
 <footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
