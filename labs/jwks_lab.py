@@ -96,7 +96,7 @@ def signature_ok(token, public_key):
 
 
 class KeyEndpoint:
-    """The issuer's jwks_uri. Its response is scripted, one entry per fetch."""
+    """The issuer's jwks_uri. Its response is scripted: entries are served in order, and the last one repeats."""
 
     def __init__(self):
         self.script = []
@@ -119,14 +119,17 @@ class KeyCache:
     The set is refreshed on a schedule once it passes max_age, and on demand
     when a kid is missing, with a cooldown so an unknown kid cannot drive a
     fetch storm. Without the scheduled refresh, a key removed by the issuer
-    keeps verifying for as long as its kid stays in the cache.
+    keeps verifying for as long as its kid stays in the cache. The cooldown
+    covers on-demand refreshes only: while the set is stale and the endpoint
+    is failing, every request retries the scheduled refresh.
 
     Project baseline, stated because no specification settles it:
       - A successful, well-formed set is authoritative. It replaces what we
         hold, even when it contains zero usable signing keys.
       - A malformed, truncated or failed retrieval is not authoritative. It
-        leaves the last known good set in place, but the request that needed
-        the refresh still fails.
+        leaves the last known good set in place. A request for a kid that is
+        not in that set still fails; a request for a kid that is in it is
+        served from the stale set.
     """
 
     max_age = 600
@@ -166,7 +169,8 @@ class KeyCache:
             document = self.endpoint.fetch()
         except Exception:
             return "retrieval failed"
-        if not isinstance(document, dict) or not isinstance(document.get("keys"), list):
+        if (not isinstance(document, dict) or not isinstance(document.get("keys"), list)
+                or not all(isinstance(jwk, dict) for jwk in document["keys"])):
             return "malformed"
         self._absorb(document)
         return "ok"
@@ -330,7 +334,8 @@ def main():
 
     rot.script = [{"keys": [jwk_a, jwk_b]}]
     clock[0] += 700
-    check("rotation overlap, old token still works", "accept", rot_verifier.verify(token_b, clock))
+    rot_verifier.verify(token_b, clock)
+    check("rotation overlap, old token still works", "accept", rot_verifier.verify(token_a, clock))
 
     rot.script = [{"keys": [jwk_b]}]
     clock[0] += 700

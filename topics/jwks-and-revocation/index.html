@@ -126,7 +126,7 @@ unknown kid after a refresh      n/a              reject, unknown kid</code></pr
 <div class="prose">
 <p><strong>Proves:</strong> that the signature was made by a key the issuer publishes now, or published recently enough that your cache still holds it, and, if you consult active state, that the grant was live at the moment you asked.</p>
 <p><strong>Doesn't prove:</strong> that the grant is live now. Every answer you have is as old as the cache it came from.</p>
-<div class="callout warn"><strong>Your revocation bound is a sum, not a setting.</strong> It is the access token lifetime, plus the key cache maximum age where key removal is the mechanism, plus the introspection cache TTL, plus any gateway or CDN cache in front. Teams quote the token lifetime and forget the rest. Measure it end to end by disabling an account and timing how long a request keeps succeeding, at every layer that answers.</div>
+<div class="callout warn"><strong>Your revocation bound is a sum, not a setting.</strong> It is an upper limit: the access token lifetime, plus the key cache maximum age where key removal is the mechanism, plus the introspection cache TTL, plus any gateway or CDN cache in front. Teams quote the token lifetime and forget the rest. Measure it end to end by disabling an account and timing how long a request keeps succeeding, at every layer that answers.</div>
 </div>
 
 <h2>6. Prove it</h2>
@@ -198,15 +198,15 @@ all lab checks passed</code></pre>
 <p><strong>Try next:</strong></p>
 <ul>
 <li>In <code>KeyCache._absorb</code>, keep the old keys when the new set is empty. Check 11 flips to accept. You have just built the defect this module exists for.</li>
-<li>Delete the <code>max_age</code> branch in <code>resolve</code>. Two checks change. Which key can now never be withdrawn?</li>
-<li>In Part C, on the line that builds the <code>cached</code> resource server, change <code>cache_ttl=300</code> to <code>cache_ttl=3600</code> and rerun. Exit 1, one failure: check 21 goes from <code>reject: token not active</code> to <code>accept</code>. State the new revocation bound in seconds, then add the token lifetime to it.</li>
+<li>In <code>resolve</code>, change <code>if not self.loaded or stale:</code> to <code>if not self.loaded:</code>. Exit 1, two failures: checks 10 and 11 go from <code>reject: unknown kid</code> to <code>accept</code>. Which key can now never be withdrawn?</li>
+<li>In Part C, on the line that builds the <code>cached</code> resource server, change <code>cache_ttl=300</code> to <code>cache_ttl=3600</code> and rerun. Exit 1, one failure: check 21 goes from <code>reject: token not active</code> to <code>accept</code>. State the new revocation bound in seconds, then add the token lifetime to it for the upper limit. This lab's resource server reaches 3599 seconds, not the sum of 7230.</li>
 </ul>
 </div>
 
 <h2>8. Check your understanding</h2>
 <details><summary>Why is a 502 from the JWKS endpoint treated differently from a 200 carrying an empty key list?</summary><p>A 502 means you learned nothing, so the safe move is to keep the set you already trust and fail only the request that needed a refresh. An empty 200 is the issuer telling you something. Treating it as a failure means a key the issuer deliberately withdrew keeps verifying, which is the opposite of what was intended.</p></details>
 <details><summary>Two keys in the set share a <code>kid</code>. Your library picks the first and the token verifies. What is wrong?</summary><p>Which key verified your token is now decided by array order in someone else's document. RFC 7517 and FAPI 2.0 both recommend against publishing duplicates, so a set containing them is a fault at the issuer. Rejecting as ambiguous surfaces it; selecting silently hides it.</p></details>
-<details><summary>Your tokens live 15 minutes and you cache introspection for 5. What is your revocation bound?</summary><p>Not 15 minutes. It is up to 15 minutes for a token issued just before the withdrawal, plus up to 5 more if the last introspection answer was cached just before it, plus anything a gateway or CDN holds. Quote the sum, and test it rather than calculating it.</p></details>
+<details><summary>Your tokens live 15 minutes and you cache introspection for 5. What is your revocation bound?</summary><p>Not 15 minutes. The upper limit is 15 minutes for a token issued just before the withdrawal, plus 5 more for the cached introspection answer, plus anything a gateway or CDN holds. This lab's resource server, given those two numbers, stops sooner: a revoked token works for 299 seconds where introspection is consulted and for 900 seconds where validation is local only, because the verifier rejects an expired token before the cache is read. Quote the sum as the limit, and test it rather than calculating it.</p></details>
 <details><summary>Why does an unknown <code>kid</code> need a cooldown rather than just triggering a refresh?</summary><p>Because the <code>kid</code> comes from the caller. Without a cooldown, an attacker sending tokens with invented key identifiers turns your resource servers into a load generator aimed at your own issuer, and the outage looks like the issuer's fault.</p></details>
 
 <section class="course-quiz" data-quiz data-quiz-id="jwks-and-revocation-check" data-correct-feedback="Correct. A successful, well formed response is the issuer telling you something, including when it contains no keys. Keeping the old set there is how a withdrawn key keeps verifying." data-incorrect-feedback="Not quite. A failed or malformed refresh means you learned nothing, so keeping the last known good set is right there. The empty set is the case that must replace what you hold.">
@@ -223,7 +223,7 @@ all lab checks passed</code></pre>
 <p class="kicker">Exercises</p>
 <h2>Change one thing and predict the output</h2>
 <div class="prose">
-<p>Each exercise edits one place in <a href="../../labs/jwks_lab.py"><code>labs/jwks_lab.py</code></a> and asks what the run prints. This lab is a state machine, so most edits here move more than one check. The answers are the real output of each variant.</p>
+<p>Each exercise edits one place in <a href="../../labs/jwks_lab.py"><code>labs/jwks_lab.py</code></a> and asks what the run prints. This lab is a state machine, so an edit here can move more than one check. The answers are the real output of each variant.</p>
 </div>
 
 <article class="exercise" data-exercise data-exercise-id="jwks-x1" data-covers="jwks-02">
@@ -242,7 +242,7 @@ all lab checks passed</code></pre>
 <details class="exercise-answers"><summary>Every option, and why</summary>
 <ul>
 <li data-option="a">Check 9 is a token signed by a key that is still in the set, so it accepts either way. Rotation overlap is not what breaks.</li>
-<li data-option="b">Correct. Exit 1, two failures: check 10, the old key removed after the overlap, and check 11, a successful empty set evicting the old key, both go from <code>reject: unknown kid</code> to <code>accept</code>. The key the issuer took away keeps verifying tokens, and it keeps verifying them until the process restarts. This is the whole reason for a scheduled refresh, and check <code>jwks-02</code> in the <a href="#reference">Reference</a> layer states it as a requirement rather than an optimisation.</li>
+<li data-option="b">Correct. Exit 1, two failures: check 10, the old key removed after the overlap, and check 11, a successful empty set evicting the old key, both go from <code>reject: unknown kid</code> to <code>accept</code>. The key the issuer took away keeps verifying tokens for as long as its <code>kid</code> stays in the cache, which is until some other request happens to bring an unknown <code>kid</code> and trigger a refresh. This is the whole reason for a scheduled refresh, and check <code>jwks-02</code> in the <a href="#reference">Reference</a> layer states it as a requirement rather than an optimisation.</li>
 <li data-option="c">Checks 12 and 14 are on-demand refreshes driven by a missing <code>kid</code>, which this edit leaves in place.</li>
 <li data-option="d">The on-demand refresh only fires when a <code>kid</code> is missing from the cache. A revoked key's <code>kid</code> is still in the cache, so nothing ever asks.</li>
 </ul>
@@ -313,7 +313,7 @@ all lab checks passed</code></pre>
 <details class="exercise-answers"><summary>Every option, and why</summary>
 <ul>
 <li data-option="a">Check 12 rejects either way. The request that needed the refresh fails whether or not the bad document is absorbed, which is why it hides the change.</li>
-<li data-option="b">Correct. Exit 1, one failure: check 13 goes from <code>accept</code> to <code>reject: unknown kid</code>. One malformed response from the key endpoint now takes down every caller holding a valid token, not just the one unlucky request. The lab's stated baseline is that a malformed or failed retrieval is not authoritative, and this is the measurement behind that sentence. Check <code>jwks-01</code> in the <a href="#reference">Reference</a> layer asks for every refresh outcome to have a documented and tested answer, and there are four of them: ok, empty, malformed and failed.</li>
+<li data-option="b">Correct. Exit 1, one failure: check 13 goes from <code>accept</code> to <code>reject: unknown kid</code>. One malformed response from the key endpoint now takes down every caller holding a valid token, not just the one unlucky request. The lab's stated baseline is that a malformed or failed retrieval is not authoritative, and this is the measurement behind that sentence. Check <code>jwks-01</code> in the <a href="#reference">Reference</a> layer asks for every refresh outcome to have a documented and tested answer. The lab tests four of them: keys present, empty, malformed and failed.</li>
 <li data-option="c">The transport failure path returns before the malformed test is reached, so those two are unchanged.</li>
 <li data-option="d">It does fail, and that is the point of check 13 sitting right after it: the question is what the next request sees.</li>
 </ul>
@@ -332,9 +332,9 @@ all lab checks passed</code></pre>
 <li><span class="label std">Standard</span>FAPI 2.0 section 5.4.2 recommends against using the <code>jku</code> and <code>x5u</code> JOSE headers.</li>
 <li><span class="label std">Standard</span>The <code>use</code> parameter indicates whether a public key is for encryption or for verifying signatures. RFC 7517 section 4.2. The <code>alg</code> parameter is OPTIONAL, section 4.4.</li>
 <li><span class="label std">Standard</span>A revocation endpoint returns HTTP 200 whether the token was revoked or was already invalid, because "invalid tokens do not cause an error response since the client cannot handle such an error in a reasonable way". RFC 7009 section 2.2.</li>
-<li><span class="label std">Standard</span>Revoking a refresh token should also invalidate access tokens issued from the same grant, and RFC 7009 section 2.1 warns that "there could be a propagation delay, for example, in which some servers know about the invalidation while others do not".</li>
+<li><span class="label std">Standard</span>Where the authorization server supports revoking access tokens, RFC 7009 section 2.1 recommends that revoking a refresh token also invalidates the access tokens issued from the same grant, and warns that "there could be a propagation delay, for example, in which some servers know about the invalidation while others do not".</li>
 <li><span class="label std">Standard</span>The introspection <code>active</code> member is a "Boolean indicator of whether or not the presented token is currently active". RFC 7662 section 2.2.</li>
-<li><span class="label std">Standard</span>An introspection response may be cached "at the cost of liveness of the information used by the protected resource to make authorization decisions", and a response carrying <code>exp</code> must not be cached beyond it. RFC 7662 section 2.2, with the stale-cache risk in section 4.</li>
+<li><span class="label std">Standard</span>An introspection response may be cached "at the cost of liveness of the information used by the protected resource to make authorization decisions", (RFC 7662 section 2.2), and a response carrying <code>exp</code> must not be cached beyond it (section 4).</li>
 <li><span class="label base">Baseline</span>Refresh the key set on a schedule once it passes a maximum age, independently of whether any <code>kid</code> is missing.</li>
 <li><span class="label base">Baseline</span>On an unknown <code>kid</code>, allow one bounded refresh, coalesce concurrent misses into a single fetch, and apply a cooldown so caller-supplied identifiers cannot drive a fetch storm.</li>
 <li><span class="label base">Baseline</span>A successful, well formed key set is authoritative even when it contains zero usable signing keys. It replaces what you hold.</li>
