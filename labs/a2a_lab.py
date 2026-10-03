@@ -18,8 +18,8 @@ which is a client-supplied address a server is about to POST to. Part E is
 the notification arriving at the other end.
 
 Signatures are real HMAC over a canonicalized document. Keys are generated
-for this run and never printed. Nothing opens a socket: the "fetch" of a card
-reads from a dict of fixtures.
+for this run and never printed. Nothing opens a socket: cards are built in
+memory and nothing is fetched.
 
 Needs nothing beyond Python 3.
 
@@ -103,7 +103,8 @@ def verify_card(card, keys):
         if key is None:
             continue
         expected = hmac.new(key, base, hashlib.sha256).hexdigest()
-        if hmac.compare_digest(entry.get("sig", ""), expected):
+        if hmac.compare_digest(str(entry.get("sig", "")).encode(),
+                               expected.encode()):
             return entry["kid"]
     raise Refused("no signature verifies")
 
@@ -127,10 +128,10 @@ def handle_auth_required(task, allow_out_of_band):
     """What a client should do when a task stops and asks for a credential.
 
     A2A's guidance is that the client obtains secondary credentials "through
-    a process outside of the A2A protocol itself". So a request that wants
-    the credential typed back into the A2A conversation is out of spec on
-    its face, and a request for the client's own A2A credential is not a
-    secondary credential at all.
+    a process outside of the A2A protocol itself". This lab goes one step
+    further and refuses a request that wants the credential typed back into
+    the A2A conversation, and a request for the client's own A2A credential
+    is not a secondary credential at all.
     """
     want = task.get("wants")
     if want == "our-own-a2a-credential":
@@ -219,7 +220,9 @@ class Webhook:
         if self.verify_sig:
             signed = ("%d." % note["timestamp"]).encode() + note["body"]
             expected = hmac.new(self.key, signed, hashlib.sha256).hexdigest()
-            if not hmac.compare_digest(note.get("signature", ""), expected):
+            if not hmac.compare_digest(
+                    str(note.get("signature", "")).encode(),
+                    expected.encode()):
                 return "reject: signature does not verify"
         if self.window is not None and abs(now - note["timestamp"]) > self.window:
             return "reject: outside the freshness window"
@@ -374,7 +377,7 @@ def main():
           "refuse: no out-of-band path for payments-gateway",
           handle_auth_required({"wants": "payments-gateway",
                                 "deliver_in": "out-of-band"}, out_of_band))
-    check("asks mid-task, having never mentioned it at the start",
+    check("asks for a second system that is not on the list",
           "refuse: no out-of-band path for crm-admin",
           handle_auth_required({"wants": "crm-admin",
                                 "deliver_in": "out-of-band"}, out_of_band))
@@ -393,8 +396,8 @@ def main():
              "refuse: metadata.exampleattacker.example is not an allowed "
              "webhook host")]:
         check("  %s" % url, expected, check_webhook(url))
-    # What the allowlist is actually doing: without it, each of these is a
-    # request the server makes to somewhere it should not reach.
+    # What the address check is doing: put these names on the allowlist and
+    # each is still refused, on the address it resolves to.
     open_allow = {"hooks.exampleair.example", "localhost",
                   "metadata.exampleattacker.example",
                   "inside.exampleair.example"}
@@ -459,7 +462,7 @@ def main():
               hook_key, token, timestamp=NOW - 3600)))
     open_hook = Webhook(hook_key, token, verify_sig=False, check_token=False,
                         window=None, remember=False)
-    check("the same POST to a webhook that verifies nothing",
+    check("a POST failing all four tests, to a webhook that verifies nothing",
           "accept: task-7781",
           open_hook.post({"body": body, "timestamp": NOW - 3600,
                           "token": "anything", "signature": ""}))
