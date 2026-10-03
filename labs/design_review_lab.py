@@ -63,8 +63,7 @@ DESIGN = {
 }
 
 # check id, severity, module, the fact it depends on, test, finding.
-# Every id and severity below matches the module page that defines it. The
-# guard at the end of main() re-checks that, so the table cannot drift.
+# Every id and severity below matches the module page that defines it.
 RULES = [
     ("api-keys-04", "High", 2, "key_storage",
      lambda d: d["key_storage"] != "hashed",

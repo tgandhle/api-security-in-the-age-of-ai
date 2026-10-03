@@ -209,8 +209,8 @@ all lab checks passed</code></pre>
 <p>Check 36 names the modules that came out clean. That line is worth as much as the findings, because without it the next reviewer starts from zero.</p>
 <p><strong>Try next:</strong></p>
 <ul>
-<li>Make the harness treat unknowns as passes and rerun. Ten checks fail, four questions vanish, and the findings count does not move.</li>
-<li>Remove the severity ordering and rerun. Two checks fail, and the report now opens with whichever check id sorts first.</li>
+<li>Make the harness treat unknowns as passes: in <code>review</code>, delete the line that appends the rule to <code>unanswered</code>, keep the <code>UNKNOWN</code> test and the <code>continue</code>, and rerun. Ten checks fail, four questions vanish, and the findings count does not move.</li>
+<li>Remove the severity ordering from the findings: in <code>review</code>, change the sort key of the findings list to <code>f[0]</code> alone, and rerun. Two checks fail, 11 and 12: the findings are no longer ordered worst first, and the last finding's severity is <code>Critical</code>. The report still opens with <code>a2a-01</code>, because that id also sorts first.</li>
 <li>Replace <code>DESIGN</code> with a description of a system you work on. The keys you cannot fill are your review's Part C.</li>
 <li>Add a rule for something this course does not cover but your organisation requires. Decide what severity it carries and why.</li>
 <li>Run the harness twice, three months apart, and diff the two outputs. That diff is the only honest progress report.</li>
