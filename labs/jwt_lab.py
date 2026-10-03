@@ -9,8 +9,7 @@ part A succeeds. The same attacks fail in part B.
 This lab needs one package, because Python has no asymmetric cryptography:
     python3 -m pip install cryptography==50.0.1
 
-Keys, tokens and signatures stay in memory. Nothing is printed but the check
-labels and their outcomes.
+Keys, tokens and signatures stay in memory and are never printed.
 
 Exit codes: 0 all checks matched, 1 a check did not match, 2 the package is
 missing so nothing ran.
@@ -153,7 +152,14 @@ class ProfileVerifier:
         self.audience = audience
 
     def verify(self, token, now=NOW):
-        header = header_of(token)
+        # The header is read before anything is authenticated, so a header that
+        # does not decode to a JSON object is a rejection, not a crash.
+        try:
+            header = header_of(token)
+        except ValueError:
+            return "reject: malformed token"
+        if not isinstance(header, dict):
+            return "reject: malformed token"
         if header.get("alg") not in self.allowed_algorithms:
             return "reject: algorithm not allowed"
         if header.get("typ") != self.token_type:
