@@ -12,11 +12,11 @@
 <main>
 <p class="kicker">Part 4: AI and agents &middot; Module 25</p>
 <h1>Supply chain, retrieval, and memory</h1>
-<p class="meta">Last reviewed 2026-10-01 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 
 <div class="prose">
-<p><strong>Objective.</strong> After this module you can explain why filtering a retrieval result is not the same as filtering the corpus, say what a result count discloses about documents a caller cannot read, show why ranking hygiene is not a security control, and keep provenance on anything an agent writes down.</p>
-<p><strong>Before you start.</strong> Retrieval makes a document store part of your authorization surface. Whoever can put a document into the index, and whoever can get one out of it, are security-relevant roles, and in most systems both are treated as plumbing.</p>
+<p><strong>Objective.</strong> After this module you can explain why filtering a retrieval result is not the same as filtering the corpus, say what a result count discloses about documents a caller cannot read, show why ranking hygiene is not a security control, and keep <a href="../../glossary/index.html#provenance">provenance</a> on anything an agent writes down.</p>
+<p><strong>Before you start.</strong> Retrieval makes a document store part of your <a href="../../glossary/index.html#authorization">authorization</a> surface. Whoever can put a document into the index, and whoever can get one out of it, are security-relevant roles, and in most systems both are treated as plumbing.</p>
 </div>
 <section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 26 of 27</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
 
@@ -25,7 +25,7 @@
 <h2>1. The attack</h2>
 <div class="prose">
 <p>Running example: one vector index shared by three carriers, ExampleAir, ExampleRail and ExampleBus. Company names are fictional. All three have a refund policy document, and the documents are similar, because refund policies are similar.</p>
-<p>OWASP covers this as <strong>LLM08:2025 Vector and Embedding Weaknesses</strong>, and the sentence that describes the deployment is short: "In multi-tenant environments where multiple classes of users or applications share the same vector database, there's a risk of context leakage between users or queries."</p>
+<p>OWASP covers this as <strong>LLM09:2026 Vector and Embedding Weaknesses</strong>, and the sentence that describes the deployment is short: "In multi-tenant deployments, similarity search frequently runs across the full index before access control is applied at the application layer."</p>
 <p>Four attacks, and the lab runs all four.</p>
 </div>
 <div class="wrap"><table>
@@ -36,15 +36,15 @@
 <tr><td>Put a document in the index</td><td>Any route that writes to the corpus</td><td class="yes">First place in the ranking, inside the victim's own tenant</td></tr>
 <tr><td>Have a claim written to memory</td><td>One retrieval that the agent summarised</td><td class="yes">A fact with no source attached that survives the document's deletion</td></tr>
 </tbody></table></div>
-<p class="prose">The last row is the one that lasts. OWASP's announcement of its agentic list puts it in one sentence: "Memory poisoning reshaped behaviour long after the initial interaction."</p>
+<p class="prose">The last row is the one that lasts. OWASP's announcement of its agentic list puts it in nine words: "Memory poisoning reshaped behaviour long after the initial interaction".</p>
 
 <h2>2. Why it works</h2>
 <h3>Filtering after you rank is not filtering</h3>
 <div class="prose">
 <p>There are two places to apply a tenant filter and they are not equivalent. Rank the whole corpus and then drop what the caller may not see, or restrict the corpus and then rank what is left.</p>
-<p>Checks 3 to 11 of the lab run both. Unfiltered, the top three for ExampleAir's own query are their refund policy, ExampleBus's refund policy, and ExampleRail's refund desk document. Post-filtering that result leaves one document. The caller asked for three and received one, and the two that were removed are gone from the response with no record of what they were.</p>
+<p>Checks 3 to 11 of the lab run both. Unfiltered, the top three for ExampleAir's own query are their refund policy, ExampleBus's refund policy, and ExampleRail's refund desk document. <a href="../../glossary/index.html#post-filtering">Post-filtering</a> that result leaves one document. The caller asked for three and received one, and the two that were removed are gone from the response with no record of what they were.</p>
 <p>Pre-filtering returns three ExampleAir documents, two of which the post-filtered version never showed at all, because other tenants' documents had taken their places in the ranking. So post-filtering is worse in two directions at once: it leaks the existence of other tenants' content through the missing slots, and it withholds the caller's own documents by letting other tenants outrank them.</p>
-<p>OWASP's mitigation names the shape directly: "Implement fine-grained access controls and permission-aware vector and embedding stores". Permission-aware means the store knows, not the code that reads the store's output.</p>
+<p>OWASP's mitigation names the shape directly: "Enforce tenant scoping inside the index query, not as a post-retrieval filter". Inside the index query means the store knows, not the code that reads the store's output.</p>
 </div>
 
 <h3>A count is an answer</h3>
@@ -59,7 +59,7 @@
 <p>Part C puts a document in the index that was written to win, not to be read: terms from the query and from the real policy, repeated. It takes first place, above the real policy, with a raw cosine score of 0.62 against 0.53.</p>
 <p>The obvious fix is the information-retrieval one. Damp repeated terms, so a word appearing ten times counts for less than ten times once. Check 25 is the result: the scores move to 0.59 against 0.53, and check 24 says the stuffed document is still first. I expected it to drop and it does not, because that document has only eight distinct terms and four of them are query terms, so damping the repetition narrows the margin without changing the order.</p>
 <p>That is the useful finding in this module. Ranking adjustments are a quality measure, and an attacker who can write to your index will beat them, because they can see the ranking and iterate. Check 28 adds that tenant isolation did not help either: the stuffed document was uploaded into ExampleAir's own tenant, so pre-filtering keeps it.</p>
-<p>What works is checks 29 and 30: rank only documents of internal origin, and the real policy is first again. The control is about where a document came from, which is <strong>LLM04:2025 Data and Model Poisoning</strong>: "The risks are particularly high with external data sources, which may contain unverified or malicious content", with the mitigations starting at tracking data origins and verifying legitimacy.</p>
+<p>What works is checks 29 and 30: rank only documents of internal origin, and the real policy is first again. The control is about where a document came from, which is <strong>LLM05:2026 Data and Model Poisoning</strong>: "The data poisoning surface expands because organizations increasingly rely on external datasets, RAG pipelines, shared model repositories, and agentic workflows", with the mitigations starting at tracking dataset and model lineage and validating data integrity. LLM09:2026 lists the same attack from the retrieval side, as "Retrieval-Time Data Poisoning".</p>
 </div>
 
 <h3>Memory outlives the document</h3>
@@ -103,13 +103,13 @@
 <ol class="steps prose">
 <li><strong>Filter the corpus before you rank it.</strong> The store is permission-aware, not the code reading its output.</li>
 <li><strong>Compute every number after the filter.</strong> Totals, facets, suggestions and anything else derived from the corpus.</li>
-<li><strong>Tag every document with its origin</strong> at ingestion, and classify it, which is OWASP's "Tag and classify data within the knowledge base to control access levels".</li>
+<li><strong>Tag every document with its origin</strong> at ingestion, and classify it, which is OWASP's "Track provenance for every embedding (source, ingestion time, trust tier, pipeline version)".</li>
 <li><strong>Decide which origins may answer which questions,</strong> and keep untrusted origins out of the corpus for decisions that matter.</li>
 <li><strong>Validate at ingestion,</strong> because that is the last point where you still know where a document came from.</li>
 <li><strong>Treat ranking adjustments as quality, not security.</strong> They narrow margins. Someone who can write to your index iterates against them.</li>
 <li><strong>Record provenance on every memory write,</strong> with the source document and its origin.</li>
 <li><strong>Make deletion reach memory.</strong> If a document is removed, find what was written from it.</li>
-<li><strong>Log retrievals.</strong> OWASP: "Maintain detailed immutable logs of retrieval activities to detect and respond promptly to suspicious behavior".</li>
+<li><strong>Log retrievals.</strong> OWASP: "Keep immutable logs of retrieval activity (tenant scope, query, returned IDs, similarity scores)".</li>
 </ol>
 
 <h2>4. Defaults and when to change them</h2>
@@ -130,7 +130,7 @@
 <h2>5. What it proves, and what it doesn't</h2>
 <div class="prose">
 <p><strong>Proves:</strong> that a caller's results contain only documents they may read, that no number in the response was computed over documents they may not, that every document in the corpus has a recorded origin, and that anything written to memory can be traced back and judged.</p>
-<p><strong>Doesn't prove:</strong> that the documents are true. Everything here is about where content came from and who may see it, not whether it is correct, and an internal document can be wrong or out of date. It also proves nothing about embeddings themselves, where OWASP notes that "attackers can exploit vulnerabilities to invert embeddings and recover significant amounts of source information", which is a property of the vectors rather than of your access control.</p>
+<p><strong>Doesn't prove:</strong> that the documents are true. Everything here is about where content came from and who may see it, not whether it is correct, and an internal document can be wrong or out of date. It also proves nothing about embeddings themselves, where OWASP notes that stored embeddings "can be inverted to recover source text", which is a property of the vectors rather than of your access control.</p>
 <div class="callout warn"><strong>Deleting the document is not the remediation.</strong> Checks 38 to 40 remove the stuffed document from the index and find the claim still sitting in memory, unattributed, with nothing linking it to the document that is now gone. If your incident response for a poisoned corpus ends at the corpus, it ends too early.</div>
 </div>
 
@@ -157,7 +157,7 @@
 <pre><code>Windows                         macOS and Linux
 py -3 labs/retrieval_lab.py     python3 labs/retrieval_lab.py</code></pre>
 <div class="prose">
-<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The similarity is real cosine similarity over bag-of-words vectors computed with the standard library, so every ranking in the output is arithmetic you can check by hand. Nothing opens a socket.</p>
+<p>On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>. The similarity is real cosine similarity over bag-of-words vectors computed with the standard library, so every ranking in the output is arithmetic you can check by hand. Nothing opens a socket.</p>
 </div>
 <pre><code>$ python3 labs/retrieval_lab.py
 similarity: real cosine over bag-of-words vectors
@@ -364,17 +364,17 @@ all lab checks passed</code></pre>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
 <p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
 <ul class="controls">
-<li><span class="label std">Standard</span>"In multi-tenant environments where multiple classes of users or applications share the same vector database, there's a risk of context leakage between users or queries." OWASP LLM08:2025 Vector and Embedding Weaknesses.</li>
-<li><span class="label std">Standard</span>"Implement fine-grained access controls and permission-aware vector and embedding stores." OWASP LLM08:2025.</li>
-<li><span class="label std">Standard</span>"Implement robust data validation pipelines for knowledge sources." OWASP LLM08:2025.</li>
-<li><span class="label std">Standard</span>"Tag and classify data within the knowledge base to control access levels and prevent data mismatch errors." OWASP LLM08:2025.</li>
-<li><span class="label std">Standard</span>"Maintain detailed immutable logs of retrieval activities to detect and respond promptly to suspicious behavior." OWASP LLM08:2025.</li>
-<li><span class="label std">Standard</span>"Attackers can exploit vulnerabilities to invert embeddings and recover significant amounts of source information, compromising data confidentiality." OWASP LLM08:2025.</li>
-<li><span class="label std">Standard</span>"Data poisoning occurs when pre-training, fine-tuning, or embedding data is manipulated to introduce vulnerabilities, backdoors, or biases." OWASP LLM04:2025 Data and Model Poisoning.</li>
-<li><span class="label std">Standard</span>"The risks are particularly high with external data sources, which may contain unverified or malicious content." OWASP LLM04:2025.</li>
-<li><span class="label std">Standard</span>LLM04:2025's mitigations include tracking data origins and verifying legitimacy, vetting data vendors and validating outputs against trusted sources, sandboxing to limit exposure to unverified sources, and data version control to detect manipulation.</li>
-<li><span class="label std">Standard</span>"Memory poisoning reshaped behaviour long after the initial interaction." OWASP's announcement of the Top 10 for Agentic Applications for 2026, describing ASI06 Memory &amp; Context Poisoning.</li>
-<li><span class="label std">Standard</span>"Dynamic MCP and A2A ecosystems revealed how easily runtime components could be poisoned." OWASP's announcement of the Top 10 for Agentic Applications for 2026, describing ASI04 Agentic Supply Chain Vulnerabilities.</li>
+<li><span class="label std">Standard</span>"In multi-tenant deployments, similarity search frequently runs across the full index before access control is applied at the application layer." OWASP LLM09:2026 Vector and Embedding Weaknesses.</li>
+<li><span class="label std">Standard</span>"Enforce tenant scoping inside the index query, not as a post-retrieval filter, and validate it server-side." OWASP LLM09:2026.</li>
+<li><span class="label std">Standard</span>"Normalize content before embedding: strip zero-width characters, white-on-white text, and Unicode homoglyphs at extraction." OWASP LLM09:2026.</li>
+<li><span class="label std">Standard</span>"Track provenance for every embedding (source, ingestion time, trust tier, pipeline version) so compromised batches can be invalidated and audited." OWASP LLM09:2026.</li>
+<li><span class="label std">Standard</span>"Keep immutable logs of retrieval activity (tenant scope, query, returned IDs, similarity scores)." OWASP LLM09:2026.</li>
+<li><span class="label std">Standard</span>"Stored embeddings can be inverted to recover source text." OWASP LLM09:2026.</li>
+<li><span class="label std">Standard</span>"Data poisoning occurs when pre-training, fine-tuning, or embedding data is tampered with to introduce vulnerabilities, backdoors, or biases." OWASP LLM05:2026 Data and Model Poisoning.</li>
+<li><span class="label std">Standard</span>"The data poisoning surface expands because organizations increasingly rely on external datasets, RAG pipelines, shared model repositories, and agentic workflows." OWASP LLM05:2026.</li>
+<li><span class="label std">Standard</span>OWASP LLM05:2026's mitigations include tracking dataset and model lineage and validating data integrity, vetting third-party vendors and comparing outputs against trusted sources, sandboxing to limit model interaction with unverified data, and data version control to track dataset changes and enable rollback.</li>
+<li><span class="label std">Standard</span>"Memory poisoning reshaped behaviour long after the initial interaction". OWASP's announcement of the Top 10 for Agentic Applications for 2026, describing ASI06 Memory &amp; Context Poisoning.</li>
+<li><span class="label std">Standard</span>"Dynamic MCP and A2A ecosystems revealed how easily runtime components could be poisoned". OWASP's announcement of the Top 10 for Agentic Applications for 2026, describing ASI04 Agentic Supply Chain Vulnerabilities.</li>
 <li><span class="label base">Baseline</span>Apply the permission filter to the corpus before ranking, never to the result afterwards.</li>
 <li><span class="label base">Baseline</span>Compute every number in a retrieval response after the filter, including totals, facets and suggestions.</li>
 <li><span class="label base">Baseline</span>Record an origin on every document at ingestion, and treat ingestion as the last point where it is knowable.</li>
@@ -398,14 +398,13 @@ all lab checks passed</code></pre>
 <li data-check="ret-05" data-severity="High"><strong>Every memory write records its source document and origin</strong> <span>A memory without provenance cannot be judged, found or cleaned up.</span></li>
 <li data-check="ret-06" data-severity="High"><strong>Withdrawing a document triggers a memory sweep</strong> <span>The claim leaves the index before the document does. Deletion alone is not remediation.</span></li>
 <li data-check="ret-07" data-severity="High"><strong>Every write route into the index is enumerated and reviewed</strong> <span>An upload form that feeds retrieval is an authorization decision.</span></li>
-<li data-check="ret-08" data-severity="Medium"><strong>Retrieval activity is logged with a stated retention</strong> <span>OWASP asks for detailed immutable logs of retrieval activity.</span></li>
+<li data-check="ret-08" data-severity="Medium"><strong>Retrieval activity is logged with a stated retention</strong> <span>OWASP LLM09:2026 recommends immutable logs of retrieval activity.</span></li>
 <li data-check="ret-09" data-severity="Medium"><strong>No ranking adjustment is reported as a security control</strong> <span>State the margin it changes. In the lab it was 0.08 to 0.06, with the order unchanged.</span></li>
 </ul>
 
 <h2>Sources</h2>
 <ul class="prose">
-<li><a href="https://genai.owasp.org/llmrisk/llm082025-vector-and-embedding-weaknesses/">OWASP LLM08:2025 Vector and Embedding Weaknesses</a>, from the OWASP Top 10 for LLM Applications 2025, dated 17 November 2024 on the OWASP resource page. Multi-tenant context leakage, embedding inversion, and the four mitigations quoted above.</li>
-<li><a href="https://genai.owasp.org/llmrisk/llm042025-data-and-model-poisoning/">OWASP LLM04:2025 Data and Model Poisoning</a>, from the same 2025 list. The definition, the warning about external data sources, and the mitigations beginning with tracking data origins.</li>
+<li><a href="https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/">OWASP GenAI LLM Top 10 2026</a>, version 2026, August 2026. The title page of the document reads "OWASP Top 10 for LLM Applications 2026". LLM09:2026 Vector and Embedding Weaknesses: cross-tenant leakage through shared similarity search, embedding inversion, retrieval-time data poisoning, and the mitigations quoted above. LLM05:2026 Data and Model Poisoning: the definition, the widening poisoning surface, and the mitigations beginning with tracking dataset and model lineage.</li>
 <li><a href="https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/">OWASP Top 10 for Agentic Applications for 2026</a>, released 9 December 2025. ASI04 Agentic Supply Chain Vulnerabilities and ASI06 Memory &amp; Context Poisoning. The two sentences quoted on this page are from <a href="https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/">OWASP's announcement of the list</a>, published the same day.</li>
 </ul>
 </main>
