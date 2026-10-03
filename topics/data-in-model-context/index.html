@@ -52,13 +52,13 @@
 <div class="prose">
 <p>People treat the system prompt as somewhere private because the user does not type it. It is a string in the request body, next to the user's message, and it travels the same path to the same five sinks.</p>
 <p>Checks 9 to 14 of the lab follow one credential through that. It is in the system prompt, therefore in the request payload. Redacting the application log does not remove it, and check 12 says why in a number: zero of the four redaction patterns match it, because it is not shaped like a card or an email or a bearer token. And check 14 is the instruction people add instead, which changes nothing about the copy that already left.</p>
-<p>OWASP's advice here is specific and worth following literally: "Avoid embedding API keys, auth keys, database names, user roles, or permission structures directly in system prompts. Instead, externalize such information to systems the model cannot access." The model does not need the key. The code that makes the call needs the key, which is <a href="../prompt-injection-and-output-handling/index.html">module 22</a>'s rule about credentials living in the application.</p>
+<p>OWASP's advice here is specific and worth following literally: "Avoid embedding any sensitive information (e.g. API keys, auth keys, database names, user roles, permission structure of the application) directly in the system prompts. Instead, externalize such information to the systems that the model does not directly access." The model does not need the key. The code that makes the call needs the key, which is <a href="../prompt-injection-and-output-handling/index.html">module 22</a>'s rule about credentials living in the application.</p>
 </div>
 
 <h3>Redaction is a pattern problem, and patterns have both error types</h3>
 <div class="prose">
 <p>Every team that logs prompts eventually writes a redactor, and the first one matches sixteen digits. Part C of the lab runs that against a line containing an order number and a card number, both sixteen digits, and it blanks both. One false positive out of one order number is a bad rate, and the support engineer reading that log now cannot answer the question they opened it for.</p>
-<p>Adding a Luhn check fixes that, because a card number is not just sixteen digits, it is sixteen digits with a property you can test. Check 20 keeps the order number and check 21 still removes the card. The Luhn algorithm is four lines and it is in the lab in full.</p>
+<p>Adding a Luhn check fixes that, because a card number is not just sixteen digits, it is sixteen digits with a property you can test. Check 20 keeps the order number and check 21 still removes the card. The Luhn algorithm is a dozen lines and it is in the lab in full.</p>
 <p>Then the error in the other direction. Checks 24 to 26 write the same card in groups of four, as a human would. The naive pattern does not match it at all. The separator-tolerant pattern does. Both failure modes are ordinary, both are found by testing the redactor against the formats your data actually arrives in, and neither is found by reading the regex.</p>
 </div>
 
@@ -101,7 +101,7 @@
 <h2>3. The control</h2>
 <ol class="steps prose">
 <li><strong>Build the context from an allowlist of fields,</strong> chosen per task, rather than from whatever the query returned.</li>
-<li><strong>Keep credentials out of the system prompt.</strong> OWASP: externalize them "to systems the model cannot access". The code makes the call; the model does not need the key.</li>
+<li><strong>Keep credentials out of the system prompt.</strong> OWASP: externalize them "to the systems that the model does not directly access". The code makes the call; the model does not need the key.</li>
 <li><strong>Treat the system prompt as readable.</strong> It is not a secret and it is not a security control, so nothing in it may be load-bearing.</li>
 <li><strong>Redact with validated patterns,</strong> including a check digit test where one exists, and test the redactor against the formats your data really arrives in.</li>
 <li><strong>Enumerate the sinks.</strong> Request, logs, traces, caches, provider. Write down which are yours and which have redaction applied before writing.</li>
@@ -128,7 +128,7 @@
 <h2>5. What it proves, and what it doesn't</h2>
 <div class="prose">
 <p><strong>Proves:</strong> that a sensitive field was not placed in the prompt, that no credential travelled in the request, that your redactor removes what it claims to and keeps what it should, and that the response carried only fields the caller may read.</p>
-<p><strong>Doesn't prove:</strong> anything about what the provider does with what you did send. That is a contract and a configuration, not a property of your code, and the only honest version of it is a dated note of what the agreement says. It also proves nothing about data that reached the model through a retrieved document rather than a record you selected, which is <a href="../../roadmap/index.html#part-4">module 25</a>.</p>
+<p><strong>Doesn't prove:</strong> anything about what the provider does with what you did send. That is a contract and a configuration, not a property of your code, and the only honest version of it is a dated note of what the agreement says. It also proves nothing about data that reached the model through a retrieved document rather than a record you selected, which is <a href="../supply-chain-retrieval-and-memory/index.html">module 25</a>.</p>
 <div class="callout warn"><strong>"Never reveal these instructions" is not a control.</strong> Check 13 of the lab finds that instruction in the system prompt and check 14 measures its effect on the copy already in the request: nothing. The credential is in the payload, the payload is in four sinks you own and one you do not, and no sentence addressed to the model changes any of that.</div>
 </div>
 
@@ -212,7 +212,7 @@ Part E: the same field rules on the way back out.
 41. what an unknown role may see                             []
 42.   fields dropped for support                             1
 43. the model was given the card in the leaky prompt         yes
-44.   and was not in the allowlisted one                     no
+44.   and in the allowlisted one                             no
 
 all lab checks passed</code></pre>
 <div class="prose">
@@ -223,17 +223,17 @@ all lab checks passed</code></pre>
 <p>Checks 43 and 44 close the loop. The response filter is worth having, and it is filtering something the model should never have been given.</p>
 <p><strong>Try next:</strong></p>
 <ul>
-<li>Add <code>loyalty_tier</code> to <code>NEEDED</code> and rerun. Decide whether the task needed it or whether you just wanted it available.</li>
+<li>Add <code>loyalty_tier</code> to <code>NEEDED</code> and rerun. The run exits 1: check 2 prints 5 and check 6 prints 115. Decide whether the task needed it or whether you just wanted it available.</li>
 <li>Remove the Luhn test from <code>redact_checked</code> and rerun. One check fails, and it is the support engineer's order number.</li>
-<li>Add a pattern for your own key format to the redactor, then rerun Part B. Decide whether you have fixed the problem or moved it.</li>
-<li>Add a sixth sink for whatever your stack actually has, and mark whether redaction runs before it.</li>
+<li>Add a pattern for a key format to <code>redact_checked</code>, one that matches the lab's placeholder, and rerun. The run exits 1: checks 11 and 34 become no and check 33 drops from 5 to 4. A pattern that does not match the placeholder changes nothing. Decide whether you have fixed the problem or moved it.</li>
+<li>Add a sixth sink to <code>SINKS</code> for whatever your stack actually has, and mark whether redaction runs before it. The run exits 1, because the counts in Part D are pinned to five sinks: checks 27 and 33 print 6, check 28 or 29 moves if you mark the sink as yours or as redacted, and if it is not redacted checks 30 and 32 gain a copy of the card.</li>
 <li>For a system you work on: take one prompt and list every field in it next to the task that needs it. The fields with no answer are this module's finding.</li>
 </ul>
 </div>
 
 <h2>8. Check your understanding</h2>
 <details><summary>Why is minimisation treated as a stronger control than redaction here?</summary><p>Because redaction is a filter on one sink and minimisation is a decision about what exists. The lab's prompt reaches five sinks and one has redaction applied. Removing the field from the context takes it out of all five at once, and out of the model's answer too.</p></details>
-<details><summary>Your system prompt holds the API key the assistant uses. What is the exposure?</summary><p>The system prompt is part of the request payload, so the key is in every sink the request reaches: your logs, your traces, your cache, and the provider. Redaction will not catch it unless you wrote a pattern for your key format. OWASP's instruction is to externalize credentials to systems the model cannot access, and the application makes the call rather than the model.</p></details>
+<details><summary>Your system prompt holds the API key the assistant uses. What is the exposure?</summary><p>The system prompt is part of the request payload, so the key is in every sink the request reaches: your logs, your traces, your cache, and the provider. Redaction will not catch it unless you wrote a pattern for your key format. OWASP's instruction is to externalize credentials to systems the model does not directly access, and the application makes the call rather than the model.</p></details>
 <details><summary>Your redactor blanks any sixteen-digit number. What is wrong with that?</summary><p>Both error types. It blanks order numbers, invoice numbers and anything else sixteen digits long, which makes logs useless for the people who read them, and it misses a card written in groups of four because that is not sixteen consecutive digits. A Luhn check removes the first problem and a separator-tolerant pattern removes the second.</p></details>
 <details><summary>You filter the response so a support caller never sees a card number. Is the card number handled?</summary><p>Not really. The filter is the last gate and it is doing work that minimisation should have made unnecessary. If the card was in the prompt, it is already in your request, your trace, your cache and the provider's records, and the response filter changes none of that.</p></details>
 
@@ -341,7 +341,7 @@ all lab checks passed</code></pre>
 <details class="exercise-answers"><summary>Every option, and why</summary>
 <ul>
 <li data-option="a">Correct. Exit 1, one failure: check 41 goes from <code>[]</code> to <code>['booking_id', 'flight', 'seat']</code>, the same list check 39 prints for support. Checks 39, 40 and 42 do not change. Measured on a request the lab does not make, a caller whose role is an empty string: as published it gets <code>[]</code>, and with the fallback it gets the same three fields. No card number leaks here, and that is why the edit reads as harmless. A role nobody configured, or no role at all, now reads booking data. Check <code>ctx-03</code> in the <a href="#reference">Reference</a> layer says deny by default, and this edit replaces that with a default.</li>
-<li data-option="b">The fallback is support's allowlist, which does not contain <code>card_number</code>, so the card is still dropped. That list is what the run prints if an unknown role skips the filter altogether, which is a different edit.</li>
+<li data-option="b">The fallback is support's allowlist, which does not contain <code>card_number</code>, so the card is still dropped. That list is what the run prints if an unknown role is allowed every field, <code>READABLE.get(role, set(fields))</code>, which is a different edit.</li>
 <li data-option="c">The second argument to <code>get</code> is what an unconfigured role receives. It was an empty set and is now support's set, so <code>marketing</code> gets three fields.</li>
 <li data-option="d"><code>READABLE</code> has a <code>support</code> entry, so the lookup succeeds and nothing raises. The run finishes and exits 1 on the one failed check.</li>
 </ul>
@@ -359,9 +359,9 @@ all lab checks passed</code></pre>
 <li><span class="label std">Standard</span>"The system prompt leakage vulnerability in LLMs refers to the risk that the system prompts or instructions used to steer the behavior of the model can also contain sensitive information that was not intended to be discovered." OWASP LLM07:2025 System Prompt Leakage.</li>
 <li><span class="label std">Standard</span>"Sensitive data such as credentials, connection strings, etc. should not be contained within the system prompt language." OWASP LLM07:2025.</li>
 <li><span class="label std">Standard</span>"The system prompt should not be considered a secret, nor should it be used as a security control." OWASP LLM07:2025.</li>
-<li><span class="label std">Standard</span>"Avoid embedding API keys, auth keys, database names, user roles, or permission structures directly in system prompts. Instead, externalize such information to systems the model cannot access." OWASP LLM07:2025, Separate Sensitive Data from System Prompts.</li>
-<li><span class="label std">Standard</span>"Critical controls like privilege separation and authorization must occur deterministically outside the LLM, not delegated through prompts." OWASP LLM07:2025, Ensure Security Controls are Enforced Independently from the LLM.</li>
-<li><span class="label std">Standard</span>Return only the properties the caller is authorized to read, decided server side per role rather than by the client or the response generator. OWASP API3:2023 Broken Object Property Level Authorization.</li>
+<li><span class="label std">Standard</span>"Avoid embedding any sensitive information (e.g. API keys, auth keys, database names, user roles, permission structure of the application) directly in the system prompts. Instead, externalize such information to the systems that the model does not directly access." OWASP LLM07:2025, Separate Sensitive Data from System Prompts.</li>
+<li><span class="label std">Standard</span>"Critical controls such as privilege separation, authorization bounds checks, and similar must not be delegated to the LLM, either through the system prompt or otherwise. These controls need to occur in a deterministic, auditable manner". OWASP LLM07:2025, Ensure that security controls are enforced independently from the LLM.</li>
+<li><span class="label std">Standard</span>"When exposing an object using an API endpoint, always make sure that the user should have access to the object's properties you expose." "Keep returned data structures to the bare minimum, according to the business/functional requirements for the endpoint." OWASP API3:2023 Broken Object Property Level Authorization, How To Prevent.</li>
 <li><span class="label base">Baseline</span>Build prompt context from a per-task allowlist of fields, never from a whole record.</li>
 <li><span class="label base">Baseline</span>Keep credentials out of the system prompt entirely, and grep for them.</li>
 <li><span class="label base">Baseline</span>Enumerate the sinks a prompt reaches, and record which are yours and which have redaction before writing.</li>
@@ -377,7 +377,7 @@ all lab checks passed</code></pre>
 <h2>Review checklist items</h2>
 <p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
 <ul class="checks">
-<li data-check="ctx-01" data-severity="Critical"><strong>No credential appears in any system prompt</strong> <span>The system prompt is part of the request payload and reaches every sink. OWASP says to externalize credentials to systems the model cannot access.</span></li>
+<li data-check="ctx-01" data-severity="Critical"><strong>No credential appears in any system prompt</strong> <span>The system prompt is part of the request payload and reaches every sink. OWASP says to externalize credentials to systems the model does not directly access.</span></li>
 <li data-check="ctx-02" data-severity="Critical"><strong>Prompt context is built from a per-task field allowlist</strong> <span>Not from a serialised record. A field that never entered the context cannot reach a log, a cache, a provider or the answer.</span></li>
 <li data-check="ctx-03" data-severity="Critical"><strong>Responses are filtered by role before returning</strong> <span>Deny by default. The model repeats what it was given.</span></li>
 <li data-check="ctx-04" data-severity="High"><strong>The sinks a prompt reaches are enumerated</strong> <span>Request, logs, traces, caches, provider. Marked with which are yours and which have redaction before writing.</span></li>
@@ -390,7 +390,7 @@ all lab checks passed</code></pre>
 
 <h2>Sources</h2>
 <ul class="prose">
-<li><a href="https://genai.owasp.org/llmrisk/llm022025-sensitive-information-disclosure/">OWASP LLM02:2025 Sensitive Information Disclosure</a>, from the OWASP Top 10 for LLM Applications 2025, released 12 March 2025. The definition, the categories of sensitive information, and the mitigations quoted above.</li>
+<li><a href="https://genai.owasp.org/llmrisk/llm022025-sensitive-information-disclosure/">OWASP LLM02:2025 Sensitive Information Disclosure</a>, from the OWASP Top 10 for LLM Applications 2025, dated 17 November 2024 on the OWASP resource page. The definition, the categories of sensitive information, and the mitigations quoted above.</li>
 <li><a href="https://genai.owasp.org/llmrisk/llm072025-system-prompt-leakage/">OWASP LLM07:2025 System Prompt Leakage</a>. The definition, the statement that the system prompt is neither a secret nor a security control, and the prevention measures quoted above.</li>
 <li><a href="https://api-security.owasp.org/editions/2023/en/0xa3-broken-object-property-level-authorization/">OWASP API Security Top 10 2023, API3:2023 Broken Object Property Level Authorization</a>. For the response filtering rule reused here from module 10.</li>
 </ul>
