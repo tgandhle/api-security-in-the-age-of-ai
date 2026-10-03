@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Module 7 lab: sender-constrained tokens, mTLS and DPoP.
 
-Three modules have ended with the same unblocked row: a stolen, current,
+Modules 4 and 5 ended with the same unblocked row: a stolen, current,
 genuine token still works. This is that row.
 
 Part A is the bearer baseline. Part B binds the token to a key the client
@@ -11,7 +11,7 @@ limit: neither one helps once the attacker has the key as well, and neither
 one notices a withdrawn grant.
 
 The TLS layer is simulated. A real resource server takes the client
-certificate from its TLS implementation, as RFC 8705 section 3.4 requires;
+certificate from its TLS implementation, as RFC 8705 section 3 requires;
 here the certificate is passed to the handler directly. Everything else,
 including the certificate, its DER encoding, the thumbprints and every
 signature, is real.
@@ -129,7 +129,7 @@ def make_proof(key, method, url, token=None, jti="p-1", iat=NOW, typ="dpop+jwt",
 
 
 class ResourceServer:
-    """Validates the token, then whatever binding the token declares."""
+    """Validates the token, then a jkt or x5t#S256 binding if the token declares one."""
 
     proof_window = 60
 
@@ -160,12 +160,12 @@ class ResourceServer:
         claims = claims_of(token)
         confirmation = claims.get("cnf", {})
 
+        if consult_revocation and claims["jti"] in self.revoked:
+            return "reject: token not active"
         if "jkt" in confirmation:
             return self._check_dpop(token, confirmation, method, url, proof)
         if "x5t#S256" in confirmation:
             return self._check_mtls(confirmation, certificate)
-        if consult_revocation and claims["jti"] in self.revoked:
-            return "reject: token not active"
         return "accept"
 
     def _check_dpop(self, token, confirmation, method, url, proof):
@@ -203,7 +203,7 @@ class ResourceServer:
         return "accept"
 
     def _check_mtls(self, confirmation, certificate):
-        # RFC 8705 section 3.4: take the certificate from the TLS layer and
+        # RFC 8705 section 3: take the certificate from the TLS layer and
         # verify it matches the one the token is bound to.
         if certificate is None:
             return "reject: no client certificate"

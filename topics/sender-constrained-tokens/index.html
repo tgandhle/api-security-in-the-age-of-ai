@@ -16,7 +16,7 @@
 
 <div class="prose">
 <p><strong>Objective.</strong> After this module you can explain what binding a token to a key actually proves, choose between certificate binding and DPoP for a given deployment, list the checks a resource server must make on a DPoP proof, and say precisely which attacks binding does not stop.</p>
-<p><strong>Before you start.</strong> Modules 4, 5 and 6 each ended with the same unblocked row: a stolen, current, genuine token still works. You should know what an <a href="../../glossary/index.html#access-token">access token</a> is, how it is validated, and why it is a <a href="../../glossary/index.html#bearer-credential">bearer credential</a>.</p>
+<p><strong>Before you start.</strong> Modules 4 and 5 each ended with the same unblocked row: a stolen, current, genuine token still works. Module 6 added a second: a withdrawn grant is accepted until the token expires. You should know what an <a href="../../glossary/index.html#access-token">access token</a> is, how it is validated, and why it is a <a href="../../glossary/index.html#bearer-credential">bearer credential</a>.</p>
 </div>
 <section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 8 of 27</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
 
@@ -44,10 +44,10 @@
 <p>A sender-constrained token carries a statement about a key its holder must be able to use. RFC 7800 calls that a confirmation, and it lives in the <code>cnf</code> claim. The token stops being "whoever holds this" and becomes "whoever holds this and can prove they hold that key".</p>
 <p>The two mechanisms differ in which layer does the proving:</p>
 <ul>
-<li><strong>Certificate binding, RFC 8705.</strong> The client authenticates the TLS connection with a certificate. The token carries <code>cnf</code> with <code>x5t#S256</code>, "a base64url-encoded SHA-256 hash of the DER encoding of the X.509 certificate". The resource server takes the certificate from its own TLS layer and compares. The proof is the TLS handshake, which already happened before your code ran.</li>
+<li><strong>Certificate binding, RFC 8705.</strong> The client authenticates the TLS connection with a certificate. The token carries <code>cnf</code> with <code>x5t#S256</code>, a base64url-encoded SHA-256 hash of the DER encoding of the X.509 certificate. The resource server takes the certificate from its own TLS layer and compares. The proof is the TLS handshake, which already happened before your code ran.</li>
 <li><strong>DPoP, RFC 9449.</strong> The client holds a keypair and signs a small JWT per request, the proof. The token carries <code>cnf</code> with <code>jkt</code>, the thumbprint of the public key. The proof names the method and URL it is for, carries a hash of the access token, and has a unique identifier so it cannot be replayed. The proof is application-layer, so it survives TLS termination at a load balancer.</li>
 </ul>
-<p>The failure modes are different too. Certificate binding fails when a proxy terminates TLS and the certificate never reaches the application, which is common and silent. DPoP fails when the server skips one of the proof's checks, because each omitted check reopens a specific attack: no <code>ath</code> and a proof works with any token, no <code>htu</code> and a proof captured from one endpoint works at another, no <code>jti</code> record and a captured proof can be replayed.</p>
+<p>The failure modes are different too. Certificate binding fails when a proxy terminates TLS and the certificate never reaches the application, which is common and silent. DPoP fails when the server skips one of the proof's checks, because each omitted check reopens a specific attack: no <code>ath</code> and a proof works with any token bound to the same key, no <code>htu</code> and a proof captured from one endpoint works at another, no <code>jti</code> record and a captured proof can be replayed.</p>
 </div>
 
 <h2>3. The control</h2>
@@ -71,7 +71,7 @@
 <li><code>iat</code> is inside a short window. RFC 9449 section 11.1 says servers "MUST only accept DPoP proofs for a limited time after their creation (preferably only for a relatively brief period on the order of seconds or minutes)".</li>
 <li><code>jti</code> has not been seen before, recorded only after everything above passes. This is module 2's nonce lesson, in a new place and for the same reason.</li>
 </ol>
-<p class="prose">For certificate binding the list is much shorter, and that is its appeal: obtain the certificate from the TLS layer and compare its thumbprint. RFC 8705 section 3.4 requires exactly that, and requires rejection with 401 and <code>invalid_token</code> when they do not match.</p>
+<p class="prose">For certificate binding the list is much shorter, and that is its appeal: obtain the certificate from the TLS layer and compare its thumbprint. RFC 8705 section 3 requires exactly that, and requires rejection with 401 and <code>invalid_token</code> when they do not match.</p>
 
 <h3>The whole system</h3>
 <div class="diagram">
@@ -189,9 +189,9 @@ all lab checks passed</code></pre>
 <p>Check 15 deserves a moment. The lab cannot tell the real client from an attacker holding its key, and neither can the control. That is not a gap in the lab, it is the definition of what proof of possession means.</p>
 <p><strong>Try next:</strong></p>
 <ul>
-<li>Comment out the <code>ath</code> comparison in <code>_check_dpop</code>. Check 10 goes green. Now a proof made for a read on one token authorizes any other token you can steal.</li>
-<li>Remove the <code>seen_proofs</code> record. Check 6 goes green, and your replay window becomes the proof window from the defaults table.</li>
-<li>Change <code>proof_window</code> to 86400 and rerun. Check 9 goes green. State what an attacker with one captured proof can now do for the next day.</li>
+<li>Comment out the <code>ath</code> comparison in <code>_check_dpop</code>. Check 10 changes from <code>reject: ath mismatch</code> to <code>accept</code>, and the lab exits 1 because it expected the rejection. Now a proof made for one token works with any other token bound to the same key.</li>
+<li>Delete the line in <code>_check_dpop</code> that adds the <code>jti</code> to <code>seen_proofs</code>. Check 6 changes to <code>accept</code> and the lab exits 1, and your replay window becomes the proof window from the defaults table.</li>
+<li>Change <code>proof_window</code> to 86400 and rerun. Check 9 changes to <code>accept</code> and the lab exits 1. State what an attacker can now do, for the next day, with one proof this server has not recorded.</li>
 </ul>
 </div>
 
@@ -235,7 +235,7 @@ all lab checks passed</code></pre>
 <ul>
 <li data-option="a">Check 4 sends no proof, so it is refused by the first line of the function, which this edit leaves alone.</li>
 <li data-option="b">Correct. Exit 1, one failure: check 5 goes from <code>reject: proof key not bound to token</code> to <code>accept</code>. This is the whole of DPoP collapsing into theatre. The attacker generates a key, signs a perfectly valid proof with it, and the server accepts, because nothing ever asked whether that key is the one the token was issued against. Check <code>bind-02</code> in the <a href="#reference">Reference</a> layer is this one comparison.</li>
-<li data-option="c">Check 6 replays a captured proof, and the <code>jti</code> record catches it before the thumbprint would have.</li>
+<li data-option="c">Check 6 replays the real client's own proof, so the thumbprint matches with or without this edit. The <code>jti</code> record is what refuses it.</li>
 <li data-option="d">It does not. The signature check proves the proof was signed by the key in its own header, which the attacker chose. The two checks answer different questions, and only one of them is about the token.</li>
 </ul>
 </details>
@@ -267,7 +267,7 @@ all lab checks passed</code></pre>
 <article class="exercise" data-exercise data-exercise-id="bind-x3" data-covers="bind-03">
 <h3>3. The proof jti is recorded before the proof is verified</h3>
 <div class="prose">
-<p>In <code>_check_dpop</code>, move the <code>jti</code> lookup and the line that records it above the proof signature check, so a <code>jti</code> is recorded before anything about the proof is known to be valid.</p>
+<p>In <code>_check_dpop</code>, move four lines so they sit directly above the <code>try:</code> that starts the proof signature check, in this order: <code>claims = claims_of(proof)</code>, then the <code>if</code> that looks the <code>jti</code> up in <code>seen_proofs</code>, its <code>return</code>, and the <code>self.seen_proofs.add</code> line that records it. The first of the four has to move too, because the other three read <code>claims</code>; move only those three and the run stops at check 3 with an <code>UnboundLocalError</code>. Now a <code>jti</code> is recorded before anything about the proof is known to be valid.</p>
 </div>
 <fieldset><legend>What does the run print differently?</legend>
 <label><input type="radio" name="bind-x3" value="a"> Check 6, the captured proof, becomes <code>accept</code>.</label>
@@ -316,8 +316,8 @@ all lab checks passed</code></pre>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
 <p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
 <ul class="controls">
-<li><span class="label std">Standard</span>For certificate-bound access tokens the hash should be represented using the <code>x5t#S256</code> confirmation method, "a base64url-encoded SHA-256 hash of the DER encoding of the X.509 certificate", with no padding, line breaks or whitespace. RFC 8705 section 3.1.</li>
-<li><span class="label std">Standard</span>A protected resource must obtain the client certificate from its TLS implementation layer and must verify it matches the certificate associated with the access token, rejecting a mismatch with HTTP 401 and <code>invalid_token</code>. RFC 8705 section 3.4.</li>
+<li><span class="label std">Standard</span>When a certificate-bound access token is represented as a JWT, the certificate hash should be represented using the <code>x5t#S256</code> confirmation method, a base64url-encoded SHA-256 hash of the DER encoding of the X.509 certificate. The value must omit padding and must not include line breaks or whitespace. RFC 8705 section 3.1.</li>
+<li><span class="label std">Standard</span>A protected resource must obtain the client certificate from its TLS implementation layer and must verify it matches the certificate associated with the access token, rejecting a mismatch with HTTP 401 and <code>invalid_token</code>. RFC 8705 section 3.</li>
 <li><span class="label std">Standard</span>A DPoP proof JWT carries <code>typ</code> of <code>dpop+jwt</code> and the claims <code>jti</code>, <code>htm</code>, <code>htu</code> and <code>iat</code>. RFC 9449 section 4.2.</li>
 <li><span class="label std">Standard</span>When a DPoP proof accompanies an access token it must carry <code>ath</code>, the base64url SHA-256 hash of the ASCII encoding of that token. RFC 9449 section 4.2.</li>
 <li><span class="label std">Standard</span>The <code>jkt</code> confirmation value must be the base64url encoding of the JWK SHA-256 thumbprint of the DPoP public key. RFC 9449 section 6.1, using the thumbprint of RFC 7638.</li>
@@ -348,11 +348,12 @@ all lab checks passed</code></pre>
 
 <h2>Sources</h2>
 <ul class="prose">
-<li><a href="https://www.rfc-editor.org/rfc/rfc8705">RFC 8705: OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens</a>, February 2020. Sections 3.1, 3.4.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc8705">RFC 8705: OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens</a>, February 2020. Sections 3, 3.1.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc9449">RFC 9449: OAuth 2.0 Demonstrating Proof of Possession (DPoP)</a>, September 2023. Sections 4.2, 4.3, 6.1, 7.1, 11.1.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc7638">RFC 7638: JSON Web Key (JWK) Thumbprint</a>, September 2015. The canonical form the <code>jkt</code> value is computed from.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc7800">RFC 7800: Proof-of-Possession Key Semantics for JSON Web Tokens (JWTs)</a>, April 2016. The <code>cnf</code> claim.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc9700">RFC 9700: Best Current Practice for OAuth 2.0 Security</a>, January 2025. Section 2.2.1.</li>
+<li><a href="https://openid.net/specs/fapi-security-profile-2_0-final.html">FAPI 2.0 Security Profile</a>, OpenID Foundation, Final, 22 February 2025. Section 5.3.2.1.</li>
 </ul>
 </main>
 <footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
