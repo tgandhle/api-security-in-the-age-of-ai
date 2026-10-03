@@ -204,9 +204,9 @@ all lab checks passed</code></pre>
 <p>Checks 27 and 28 are the smallest finding here and the easiest to ship: a refusal that explains itself. "Address literal, private" is a true statement about the caller's input and a fact about your network they did not have before.</p>
 <p><strong>Try next:</strong></p>
 <ul>
-<li>Add <code>"attacker.example"</code> to <code>ALLOWED_HOSTS</code> and rerun. Which checks change, and which do not? The ones that do not are the reason host allowlisting is not the whole control.</li>
-<li>Change <code>as_address</code> to try bases 10, 16 and 8 in order rather than by prefix. Check 14 still passes and now passes for the wrong reason: print what the octal form resolves to under that version.</li>
-<li>Make the stub resolver in Part C return <code>127.0.0.1</code>. Check 19 changes and checks 20 to 23 follow it, which shows which step actually refused the request.</li>
+<li>Add <code>"attacker.example"</code> to <code>ALLOWED_HOSTS</code> and rerun. No check changes: the run exits 0 and prints the same 40 lines, because the allowlist is an exact match and check 11 still prints <code>reject: host not on the allowlist</code>. Which checks print <code>169.254.169.254</code> for a URL whose host is on the allowlist? Those are the reason host allowlisting is not the whole control.</li>
+<li>Change <code>as_address</code> to try bases 10, 16 and 8 in order rather than by prefix. The run exits 1 with one failure: check 14 still rejects, and its reason changes from <code>reject: address literal, link-local</code> to <code>reject: address literal, reserved</code>. It now rejects for the wrong reason: print what the octal form resolves to under that version.</li>
+<li>In Part C, change the line <code>resolve = lambda host: public</code> to <code>resolve = lambda host: ipaddress.ip_address("127.0.0.1")</code>. The run exits 1 with five failures: check 19 changes to <code>reject: resolves to loopback</code> and checks 20 to 23 print the same, which shows which step actually refused the request.</li>
 <li>Take a URL fetcher in your own codebase and write down which of the nine control steps it performs. Most perform two.</li>
 </ul>
 </div>
