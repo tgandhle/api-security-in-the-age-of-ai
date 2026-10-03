@@ -221,6 +221,107 @@ all lab checks passed</code></pre>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 </section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="rate-limiting-and-cost-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/rate_limit_lab.py"><code>labs/rate_limit_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant. One variant changes nothing, and its answer carries the measurement from a request the lab does not make.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="rate-x1" data-covers="rate-02">
+<h3>1. The token bucket refill has no cap</h3>
+<div class="prose">
+<p>In <code>TokenBucket.allow</code>, drop the <code>min(self.capacity, ...)</code> around the refill, so the first statement reads:</p>
+</div>
+<pre><code>self.tokens = self.tokens + (now - self.updated) * self.per_second</code></pre>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="rate-x1" value="a"> Check 10, the full bucket at t=0, allows more than 100.</label>
+<label><input type="radio" name="rate-x1" value="b"> Check 11, one more at t=0, becomes <code>allowed</code>.</label>
+<label><input type="radio" name="rate-x1" value="c"> Check 13, one per second for 600 seconds, changes.</label>
+<label><input type="radio" name="rate-x1" value="d" data-correct="true"> Nothing. All 22 checks pass.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 10 still prints <code>100 allowed</code>. It sends exactly 100 requests, and all of them arrive at t=0, where no time has passed and the refill adds nothing.</li>
+<li data-option="b">Check 11 still prints <code>refused</code>. The bucket is empty and it is still t=0, so the refill is zero with or without the cap.</li>
+<li data-option="c">Check 13 still prints <code>600 allowed</code>. That caller is never refused under either version, so a larger balance has nothing to change.</li>
+<li data-option="d">Correct. Exit 0, 33 of 33 lines identical. No bucket in the lab sits idle before a burst, so the cap never shows. Measured on a request the lab does not make, a new bucket left idle until t=600 that then receives 2000 requests in that one second: as published it prints <code>100 allowed</code>, and without the cap it prints <code>1100 allowed</code>. The burst is no longer the capacity. It is however long the caller stayed quiet. Check <code>rate-02</code> in the <a href="#reference">Reference</a> layer says a token bucket permits its capacity, and this one line is what makes that sentence true.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="rate-x2" data-covers="rate-03">
+<h3>2. The cost is checked but not recorded</h3>
+<div class="prose">
+<p>In <code>SlidingWindow.allow</code>, replace the two-line loop that appends one timestamp per unit of cost with a single <code>self.seen.append(now)</code>. The comparison above it, which adds <code>cost</code> to the count, stays.</p>
+</div>
+<fieldset><legend>What does check 17, the cost-weighted traffic, print?</legend>
+<label><input type="radio" name="rate-x2" value="a"> <code>4 allowed</code>, unchanged, because the comparison still uses the cost.</label>
+<label><input type="radio" name="rate-x2" value="b" data-correct="true"> <code>91 allowed</code>.</label>
+<label><input type="radio" name="rate-x2" value="c"> <code>100 allowed</code>, the same as unweighted traffic.</label>
+<label><input type="radio" name="rate-x2" value="d"> <code>51 allowed</code>.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">The comparison adds the cost of the request in front of it, but the count it adds that to is now one per earlier request, not 50. The first refusal comes at t=51, not at t=2.</li>
+<li data-option="b">Correct. Exit 1, one failure: check 17 goes from <code>4 allowed</code> to <code>91 allowed</code>. Measured second by second, the variant allows t=0 to t=50, refuses t=51 to t=59, and allows t=60 to t=99. Each request is weighed on the way in and then remembered as one unit, so the window fills 50 times slower than the work arrives. The limiter still refuses sometimes, which is what makes this hard to spot. Check <code>rate-03</code> in the <a href="#reference">Reference</a> layer asks for a limit on cost, and that means the cost is what gets stored as well as what gets compared.</li>
+<li data-option="c">Close, and not what the run prints. The comparison still adds 50 for the incoming request, so the variant refuses the nine requests from t=51 to t=59, when the window holds more than 50 timestamps.</li>
+<li data-option="d">51 is how many get through before the first refusal. The traffic runs to t=99, and from t=60 one old timestamp ages out every second and one new request is allowed in its place.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="rate-x3" data-covers="rate-01">
+<h3>3. Each batch gets its own counter</h3>
+<div class="prose">
+<p>In the last check in <code>main</code>, pass a new <code>SlidingWindow()</code> to <code>send</code> in place of <code>shared</code>, so each of the four batches is counted by a limiter created for it.</p>
+</div>
+<fieldset><legend>Which check changes?</legend>
+<label><input type="radio" name="rate-x3" value="a" data-correct="true"> Check 22, the shared counter.</label>
+<label><input type="radio" name="rate-x3" value="b"> Checks 21 and 22 both.</label>
+<label><input type="radio" name="rate-x3" value="c"> Check 20, the 50 identities.</label>
+<label><input type="radio" name="rate-x3" value="d"> Nothing. It is the same caller and the same traffic.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Correct. Exit 1, one failure: check 22 goes from <code>100 allowed</code> to <code>400 allowed</code>, the same number check 21 prints for four instances with local counters. The limiter code is untouched and every limiter is right about what it saw. The only thing that changed is how many counters exist. Check <code>rate-01</code> in the <a href="#reference">Reference</a> layer is about exactly that, and it is why the test it asks for uses two instances, not two requests.</li>
+<li data-option="b">Check 21 builds its own list of four limiters, which this edit does not touch. It prints <code>400 allowed</code> before and after.</li>
+<li data-option="c">Check 20 uses its own list of 50 limiters and still prints <code>5000 allowed</code>.</li>
+<li data-option="d">The caller and the traffic are the same. The counter is not, and a limiter only refuses what its own counter has seen.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="rate-x4" data-covers="rate-02">
+<h3>4. The sliding window keeps a timestamp one second longer</h3>
+<div class="prose">
+<p>In <code>SlidingWindow.allow</code>, change the test that drops old timestamps from <code>self.seen[0] &lt;= now - self.window</code> to <code>self.seen[0] &lt; now - self.window</code>.</p>
+</div>
+<fieldset><legend>Which check changes?</legend>
+<label><input type="radio" name="rate-x4" value="a"> Check 7, 100 more at t=60, becomes <code>100 allowed</code>.</label>
+<label><input type="radio" name="rate-x4" value="b"> Check 17, the cost-weighted traffic, allows fewer than 4.</label>
+<label><input type="radio" name="rate-x4" value="c" data-correct="true"> Check 9, the request at t=119.</label>
+<label><input type="radio" name="rate-x4" value="d"> Nothing. One second either way is inside the window.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 7 still prints <code>0 allowed</code>. The edit keeps timestamps for longer, so it can only refuse more, and the batch from t=59 is one second old at t=60 under either test.</li>
+<li data-option="b">Check 17 still prints <code>4 allowed</code>. Measured second by second, the two later requests are allowed at t=61 and t=62 where the published lab allows them at t=60 and t=61. The count is the same.</li>
+<li data-option="c">Correct. Exit 1, one failure: check 9 goes from <code>allowed</code> to <code>refused</code>. The batch from t=59 is exactly 60 seconds old at t=119. The published test drops it there and the edited one keeps it for one more second, so the window is now 61 seconds long. This is the direction that fails safe, and it is still a finding: a caller who waits the published 60 seconds is refused. Check <code>rate-02</code> in the <a href="#reference">Reference</a> layer says to test the boundary, and check 9 is that test.</li>
+<li data-option="d">Check 9 sits exactly on the edge on purpose. A test one second later would have passed under both versions and shown nothing.</li>
+</ul>
+</details>
+</article>
+</section>
+
 <p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
 <span class="layer" id="reference" style="margin-top:3rem">Reference</span>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
