@@ -210,7 +210,7 @@ Part D: what the inventory does not fix.
 
 all lab checks passed</code></pre>
 <div class="prose">
-<p>Part A is the part that feels like work and is the easy half. Seven of eight credentials have a finding, and every one of them is a question a person could answer in a minute if you could find the person.</p>
+<p>Part A is the part that feels like work and is the easy half. Six of eight credentials have a finding, and every one of them is a question a person could answer in a minute if you could find the person.</p>
 <p>Check 10 is the module. The register has no opinion about <code>cred-009</code>, not because it is healthy but because it is absent, and every rule in Part A ran to completion without mentioning it. A rule engine over an incomplete list produces a clean report, which is indistinguishable from a clean estate until you compare the list with the systems.</p>
 <p>Part C separates the three remediations that get confused with each other. <code>cred-002</code>, <code>cred-006</code> and <code>cred-008</code> are record fixes: the credential was fine, the record was not. <code>cred-004</code> is a rotation plus a split, because a credential two systems share is the one that never gets rotated. <code>cred-003</code> and <code>cred-005</code> are withdrawals, and they leave the register entirely.</p>
 <p>Check 20 is the order-of-operations trap. Delete the record without revoking the credential and every report goes green while the credential keeps working. Check 21 is the standing cost: the reconciliation was correct on the day it ran, and <code>cred-010</code> appeared the day after.</p>
@@ -218,7 +218,7 @@ all lab checks passed</code></pre>
 <ul>
 <li>Add a credential to <code>DEPLOYED</code> and not to <code>REGISTER</code>, then rerun. Count how many of the nine rules mention it.</li>
 <li>Change <code>UNUSED_DAYS</code> to 730 and rerun. Watch <code>cred-003</code> lose a finding without anything about it changing.</li>
-<li>Set <code>cred-005</code>'s <code>retire_by</code> to <code>None</code> instead of withdrawing it, and rerun. The report goes clean. State what is different about the running system.</li>
+<li>In the <code>REGISTER</code> record for <code>cred-005</code>, set <code>retire_by</code> to <code>None</code> instead of withdrawing it, change nothing else, and rerun. <code>cred-005</code> goes <code>clean</code> in Part A and in check 5, and the run exits 1 with one failure, because check 5 expected <code>Critical: past its retirement date and still live</code>. State what is different about the running system.</li>
 <li>Give <code>cred-007</code>, the signing key, a 90-day interval instead of 365. Decide whether you would defend that in a review, and write down the reason either way.</li>
 </ul>
 </div>
