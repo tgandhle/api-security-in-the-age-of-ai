@@ -118,7 +118,7 @@ def findings(entry):
     if len(entry["systems"]) > 1:
         out.append(("Medium", "shared by %d systems" % len(entry["systems"])))
     if days_since(entry["last_used"]) > UNUSED_DAYS:
-        out.append(("Medium", "live but unused for %d days" % days_since(entry["last_used"])))
+        out.append(("Medium", "unused for %d days" % days_since(entry["last_used"])))
     if entry["scope"] is None:
         out.append(("Medium", "no scope recorded, so its reach is unknown"))
     return sorted(out, key=lambda f: RANK[f[0]])
@@ -189,7 +189,7 @@ def main():
     fixed = {k: dict(v) for k, v in REGISTER.items()}
     deployed = set(DEPLOYED)
 
-    # Fix the record: ownership, scope and the missing rotation interval.
+    # Fix the record: ownership, the missing rotation interval and the revocation route.
     fixed["cred-002"].update(owner="team-integrations", owner_kind="team")
     fixed["cred-006"].update(rotate_every_days=180)
     fixed["cred-008"].update(revocation="AS revocation endpoint")

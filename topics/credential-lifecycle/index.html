@@ -115,7 +115,7 @@
 <tr><td>Rotation interval, asymmetric signing keys</td><td>365 days, with the successor published before the cutover</td><td>Rotation is cheaper here because the public half can be published in advance and both keys accepted during an overlap. That is a reason to prefer asymmetric, not a reason to rotate less carefully.</td></tr>
 <tr><td>Retirement condition</td><td>Recorded at issue, with a date or a named event</td><td>A credential issued for a pilot, a migration or a single partner gets the end of that thing as its condition. "Until we decide otherwise" is not a condition.</td></tr>
 <tr><td>Revocation route</td><td>Recorded and tested at issue</td><td>Test it on a credential you can afford to lose, before you need it on one you cannot. Module 6 is the mechanism; this is whether anyone knows it exists.</td></tr>
-<tr><td>Unused threshold</td><td>Withdraw an active credential unused for 90 days</td><td>Raise it for genuinely seasonal work, and record why. A credential kept alive for an annual job is a decision, not an oversight, once it is written down.</td></tr>
+<tr><td>Unused threshold</td><td>Withdraw an active credential unused for more than 90 days</td><td>Raise it for genuinely seasonal work, and record why. A credential kept alive for an annual job is a decision, not an oversight, once it is written down.</td></tr>
 <tr><td>One credential per system</td><td>Yes</td><td>A credential two systems share cannot be rotated without coordinating two changes, which is why shared credentials are the ones that never get rotated.</td></tr>
 <tr><td>Reconciliation</td><td>Monthly, automated, reading the deployment</td><td>More often where credentials are created programmatically, which includes most agent deployments. The interval is your exposure window for an unknown credential.</td></tr>
 <tr><td>Register contents</td><td>Metadata only</td><td>Never store the secret value. Store where it lives, not what it is.</td></tr>
@@ -139,14 +139,14 @@
 <li>Every credential with a rotation interval and a last-rotated date, and the overdue ones named.</li>
 <li>Every credential with a retirement condition, and the ones past it named.</li>
 <li>Every credential with a revocation route that someone has executed at least once.</li>
-<li>Evidence that a withdrawn credential is refused, taken from the system, dated after the record was removed.</li>
+<li>Evidence that a withdrawn credential is refused, taken from the system, dated after the revocation and before the record was removed.</li>
 <li>The date of the last reconciliation, visible next to any statement that the estate is clean.</li>
 </ul>
 </div>
 
 <h2>7. Exercise</h2>
 <div class="prose">
-<p>Download <a href="../../labs/credential_inventory_lab.py"><code>labs/credential_inventory_lab.py</code></a>. It needs nothing beyond Python 3, like modules 1, 2 and 4.</p>
+<p>Download <a href="../../labs/credential_inventory_lab.py"><code>labs/credential_inventory_lab.py</code></a>. It needs nothing beyond Python 3, like every module except 3, 5, 6 and 7.</p>
 </div>
 <pre><code>Windows              macOS and Linux
 py -3 labs/credential_inventory_lab.py    python3 labs/credential_inventory_lab.py</code></pre>
@@ -164,7 +164,7 @@ Part A: the register as found.
   cred-003   API key                4 findings
                High     owned by a person, not a team
                High     rotation overdue by 1349 days
-               Medium   live but unused for 596 days
+               Medium   unused for 596 days
                Medium   no scope recorded, so its reach is unknown
   cred-004   OAuth client secret    2 findings
                High     rotation overdue by 607 days
@@ -212,11 +212,11 @@ all lab checks passed</code></pre>
 <div class="prose">
 <p>Part A is the part that feels like work and is the easy half. Six of eight credentials have a finding, and every one of them is a question a person could answer in a minute if you could find the person.</p>
 <p>Check 10 is the module. The register has no opinion about <code>cred-009</code>, not because it is healthy but because it is absent, and every rule in Part A ran to completion without mentioning it. A rule engine over an incomplete list produces a clean report, which is indistinguishable from a clean estate until you compare the list with the systems.</p>
-<p>Part C separates the three remediations that get confused with each other. <code>cred-002</code>, <code>cred-006</code> and <code>cred-008</code> are record fixes: the credential was fine, the record was not. <code>cred-004</code> is a rotation plus a split, because a credential two systems share is the one that never gets rotated. <code>cred-003</code> and <code>cred-005</code> are withdrawals, and they leave the register entirely.</p>
+<p>Part C separates the three remediations that get confused with each other. <code>cred-008</code> is a record fix: the credential was fine, the record was not. <code>cred-002</code> and <code>cred-006</code> are a record fix and then a rotation, because once the owner and the interval are written down both are still overdue. <code>cred-004</code> is a rotation plus a split, because a credential two systems share is the one that never gets rotated. <code>cred-005</code> is a withdrawal: revoked, then removed. <code>cred-003</code> is the stale record from check 9, so only its record goes. Both leave the register entirely.</p>
 <p>Check 20 is the order-of-operations trap. Delete the record without revoking the credential and every report goes green while the credential keeps working. Check 21 is the standing cost: the reconciliation was correct on the day it ran, and <code>cred-010</code> appeared the day after.</p>
 <p><strong>Try next:</strong></p>
 <ul>
-<li>Add a credential to <code>DEPLOYED</code> and not to <code>REGISTER</code>, then rerun. Count how many of the nine rules mention it.</li>
+<li>Add a credential to <code>DEPLOYED</code> and not to <code>REGISTER</code>, then rerun. Count how many of the nine rules mention it. The run exits 1 with three failures, checks 8, 18 and 21, because the lab expects exactly one unknown credential.</li>
 <li>Change <code>UNUSED_DAYS</code> to 730 and rerun. Watch <code>cred-003</code> lose a finding without anything about it changing.</li>
 <li>In the <code>REGISTER</code> record for <code>cred-005</code>, set <code>retire_by</code> to <code>None</code> instead of withdrawing it, change nothing else, and rerun. <code>cred-005</code> goes <code>clean</code> in Part A and in check 5, and the run exits 1 with one failure, because check 5 expected <code>Critical: past its retirement date and still live</code>. State what is different about the running system.</li>
 <li>Give <code>cred-007</code>, the signing key, a 90-day interval instead of 365. Decide whether you would defend that in a review, and write down the reason either way.</li>
@@ -227,7 +227,7 @@ all lab checks passed</code></pre>
 <details><summary>Your credential register has no findings. What have you actually established?</summary><p>That every credential you recorded is owned, scoped and current. Nothing about the credentials you did not record. The register alone cannot distinguish a clean estate from a stale list, which is why the date of the last reconciliation and the number of unknowns it found belong next to any statement that the estate is clean.</p></details>
 <details><summary>Why is a credential shared by two systems the one that is never rotated?</summary><p>Because rotating it is a coordinated change across two owners and two deployment schedules, so it is always a worse time than next quarter. The fix is structural rather than procedural: issue one credential per system so that rotation is a local operation.</p></details>
 <details><summary>A pilot ended eighteen months ago. Someone removes its credential from the register. What is the state of the system?</summary><p>Unchanged, and now unreviewable. The credential is still accepted and the last record of its existence is gone. Revocation happens in the system that accepts the credential, and removing the record comes after you have confirmed it is refused.</p></details>
-<details><summary>What does a workload identity change about this problem, and what does it not?</summary><p>It removes the long-lived value that had to be rotated and distributed, so rotation and leakage largely stop being your problem. It does not remove ownership, scope, retirement or reconciliation: something still issues those identities, something decides what each one reaches, and you still have to know which workloads exist. The specifications are explicit that an identity is not an authorization.</p></details>
+<details><summary>What does a workload identity change about this problem, and what does it not?</summary><p>It removes the long-lived value that had to be rotated and distributed, so rotation and leakage largely stop being your problem. It does not remove ownership, scope, retirement or reconciliation: something still issues those identities, something decides what each one reaches, and you still have to know which workloads exist. An identity is not an authorization: deciding what each identity may do is Part 2.</p></details>
 
 <section class="course-quiz" data-quiz data-quiz-id="credential-lifecycle-check" data-correct-feedback="Correct. Revocation happens in the system that accepts the credential. Confirm it is refused, then remove the record, so you never end up with a clean register and a live credential." data-incorrect-feedback="Not quite. Editing or deleting the record changes what your reports say and changes nothing about what the system accepts. The credential has to be revoked where it is accepted, and confirmed refused, before the record goes.">
 <p class="kicker">Quick check</p>
@@ -256,7 +256,7 @@ all lab checks passed</code></pre>
     out.append(("High", "owned by a person, not a team"))</code></pre>
 <fieldset><legend>What does check 3, <code>cred-003 legacy reporting</code>, print?</legend>
 <label><input type="radio" name="life-x1" value="a"> <code>clean</code></label>
-<label><input type="radio" name="life-x1" value="b"> <code>Medium: live but unused for 596 days</code></label>
+<label><input type="radio" name="life-x1" value="b"> <code>Medium: unused for 596 days</code></label>
 <label><input type="radio" name="life-x1" value="c" data-correct="true"> <code>High: rotation overdue by 1349 days</code></label>
 <label><input type="radio" name="life-x1" value="d"> <code>High: owned by a person, not a team</code>, as before.</label>
 </fieldset>
@@ -266,8 +266,8 @@ all lab checks passed</code></pre>
 <ul>
 <li data-option="a"><code>cred-003</code> had four findings and the edit removes one. Part A now lists it with <code>3 findings</code>, so it is not clean.</li>
 <li data-option="b">That finding is still there, but it is Medium. The overdue rotation is High, and <code>findings</code> sorts by severity, so the High line is the one check 3 prints.</li>
-<li data-option="c">Correct. Exit 1, one failure: check 3 goes from <code>High: owned by a person, not a team</code> to <code>High: rotation overdue by 1349 days</code>, and Part A lists <code>cred-003</code> with <code>3 findings</code> instead of 4. The severity did not move, so a report that counts findings by severity looks the same as before. What went missing is the only line that said the owner is <code>a.okonkwo</code>, one person, who can leave. Check <code>life-02</code> in the <a href="#reference">Reference</a> layer is that line. No other check changes, because <code>cred-003</code> is the only record in the lab owned by a person.</li>
-<li data-option="d">The text <code>owned by a person, not a team</code> came from the two deleted lines. Nothing else in the lab can print it.</li>
+<li data-option="c">Correct. Exit 1, one failure: check 3 goes from <code>High: owned by a person, not a team</code> to <code>High: rotation overdue by 1349 days</code>, and Part A lists <code>cred-003</code> with <code>3 findings</code> instead of 4. The worst severity did not move, so a report that shows each credential's worst finding still says High for <code>cred-003</code>. What went missing is the only line that said the owner is <code>a.okonkwo</code>, one person, who can leave. Check <code>life-02</code> in the <a href="#reference">Reference</a> layer is that line. No other check changes, because <code>cred-003</code> is the only record in the lab owned by a person.</li>
+<li data-option="d">The text <code>owned by a person, not a team</code> came from the two deleted lines. No rule is left that can produce it. It now appears only in the failure summary, as the value check 3 expected.</li>
 </ul>
 </details>
 </article>
@@ -358,7 +358,7 @@ all lab checks passed</code></pre>
 <li><span class="label base">Baseline</span>The register holds metadata only. Never the secret value.</li>
 <li><span class="label base">Baseline</span>Rotate shared secrets every 90 days and asymmetric signing keys every 365, with the successor published before the cutover, and record a reason for any interval you lengthen.</li>
 <li><span class="label base">Baseline</span>Issue one credential per system. A credential two systems share is the one that never gets rotated.</li>
-<li><span class="label base">Baseline</span>Withdraw an active credential unused for 90 days, or record why it is kept.</li>
+<li><span class="label base">Baseline</span>Withdraw an active credential unused for more than 90 days, or record why it is kept.</li>
 <li><span class="label base">Baseline</span>Reconcile the register against the deployment monthly, reading the systems, and report both directions of the difference.</li>
 <li><span class="label base">Baseline</span>Revoke first, confirm the credential is refused, then remove the record. Never the other order.</li>
 <li><span class="label base">Baseline</span>Publish the date of the last reconciliation and the count of unknowns beside any statement that the estate is clean.</li>
@@ -385,7 +385,7 @@ all lab checks passed</code></pre>
 <li><a href="https://www.rfc-editor.org/rfc/rfc6749">RFC 6749: The OAuth 2.0 Authorization Framework</a>, October 2012. Sections 2.1 and 4.4.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc9700">RFC 9700: Best Current Practice for OAuth 2.0 Security</a>, January 2025. Section 2.5. It recommends asymmetric client authentication and does not set a rotation interval.</li>
 <li><a href="https://github.com/spiffe/spiffe/blob/main/standards/SPIFFE-ID.md">SPIFFE-ID specification</a> and <a href="https://github.com/spiffe/spiffe/blob/main/standards/X509-SVID.md">X509-SVID specification</a>. The X509-SVID specification defines where the SPIFFE ID appears and sets no certificate lifetime.</li>
-<li><a href="https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/">OWASP Top 10 for Agentic Applications</a>, released 9 December 2025. ASI03, Identity &amp; Privilege Abuse, is one of its ten entries. The title carries no year.</li>
+<li><a href="https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/">OWASP Top 10 for Agentic Applications</a>, released 9 December 2025. ASI03, Identity &amp; Privilege Abuse, is one of its ten entries. The announcement linked here carries no year in its headline; the document's own title ends "for 2026".</li>
 </ul>
 </main>
 <footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
