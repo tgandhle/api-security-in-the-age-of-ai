@@ -199,7 +199,7 @@ all lab checks passed</code></pre>
 <ul>
 <li>In <code>KeyCache._absorb</code>, keep the old keys when the new set is empty. Check 11 flips to accept. You have just built the defect this module exists for.</li>
 <li>Delete the <code>max_age</code> branch in <code>resolve</code>. Two checks change. Which key can now never be withdrawn?</li>
-<li>Set <code>cache_ttl</code> on the resource server to 3600 and rerun. Check 21 changes. State the new revocation bound in seconds, then add the token lifetime to it.</li>
+<li>In Part C, on the line that builds the <code>cached</code> resource server, change <code>cache_ttl=300</code> to <code>cache_ttl=3600</code> and rerun. Exit 1, one failure: check 21 goes from <code>reject: token not active</code> to <code>accept</code>. State the new revocation bound in seconds, then add the token lifetime to it.</li>
 </ul>
 </div>
 
