@@ -21,7 +21,8 @@ You may not, without prior written permission:
 The specifications, RFCs and standards cited throughout remain the property
 of their respective publishers and are quoted here under fair dealing for
 the purposes of criticism, review and instruction. Those quotations are
-identified on each page, in its Sources section.
+identified on the page that carries them, by a citation beside the quotation
+or in the page's Sources section.
 
 The code in labs/ and tools/ is provided as teaching material. It is written
 to demonstrate behaviour, not to be deployed, and it carries no warranty of

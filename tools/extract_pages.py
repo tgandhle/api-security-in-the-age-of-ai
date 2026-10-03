@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Extract the four non-lesson pages into content/pages.json.
+"""Extract three of the four non-lesson pages into content/pages.json.
 
 Standard library only.
 
 tools/extract_lessons.py handles topics/ and protocols/, which all share the
 same page template. The home page, glossary, checklist and roadmap do not:
-index.html has no <main> at all, and checklist/index.html is generated.
+index.html has its own layout inside <main id="main-content">, and
+checklist/index.html is generated.
 
 What this captures, and what it deliberately does not:
 

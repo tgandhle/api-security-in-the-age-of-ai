@@ -13,8 +13,7 @@ Install once, from the project root:
     python3 -m playwright install chromium
     npm install axe-core@4.13.0
 
-On Windows use py -3 in place of python3; there is no python3 command on a
-default Windows install.
+On Windows use py -3 in place of python3.
 
 Then:
     python3 tools/check_a11y.py

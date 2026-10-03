@@ -42,7 +42,7 @@ The lab links open Python source files. Download the project and run a lab with 
 
 ## Running the labs on Windows
 
-`python3` is not a working command on a default Windows install. Use `py -3` in place of `python3`.
+Use `py -3` in place of `python3` on Windows. The Python install manager does add a `python3` command, but the Python documentation says it "is not meant to be widely used or recommended".
 
 For the modules that need a package, install it into a virtual environment so it does not change the Python the rest of your machine uses:
 
@@ -53,7 +53,7 @@ python -m pip install cryptography==50.0.1
 python labs/jwks_lab.py
 ```
 
-Inside an activated environment use `python`, not `py -3`. The launcher ignores an active environment when given an explicit version: "To run the global interpreter, either deactivate the virtual environment, or explicitly specify the global Python version" (Python documentation, Using Python on Windows, Virtual environments). On macOS and Linux the equivalent is `python3 -m venv .venv` then `source .venv/bin/activate`.
+Inside an activated environment use `python`, not `py -3`. The `py` command uses an active environment only when no version is requested: "If you are running in an active virtual environment, have not requested a particular version, and there is no shebang line, the default runtime will be that virtual environment" (Python 3.14 documentation, Using Python on Windows, Python install manager, Basic use). On macOS and Linux the equivalent is `python3 -m venv .venv` then `source .venv/bin/activate`.
 
 The labs are pure in-process Python with no shell or subprocess, and the only file access is the optional `--key-file` in `hmac_lab.py`, so their output does not vary by platform. Checked, not assumed: `tools/check_transcripts.py` runs every lab whose output is published and compares it to the page byte for byte. All 27 match on Windows (Python 3.14.6, `python` in an activated environment) and on Linux (Python 3.13.16 and 3.14.6, `python3`), all with `cryptography==50.0.1`. Where that package is absent, the four labs that need it are reported as skipped rather than as passing. `tools/check_site.py` also produces identical output on both.
 

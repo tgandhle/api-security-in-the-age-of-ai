@@ -15,7 +15,7 @@ Each page has two layers, in this order.
 6. Prove it: the negative tests an implementation must pass.
 7. Lab: link, run command, and real output.
 8. Check your understanding, in three parts:
-   - Two or three questions with answers in a bare `<details>`.
+   - Three or four questions with answers in a bare `<details>`.
    - One quick check, a single multiple-choice question in `<section class="course-quiz" data-quiz>`. This is the only assessment the course dashboard counts.
    - Two to four exercises in `<section class="course-exercises" data-exercises>`, each an `<article data-exercise>` that changes one thing in the lab and asks what the run prints.
 
@@ -25,7 +25,7 @@ Each page has two layers, in this order.
 - Sources: primary sources only, with pinned revisions where a spec is versioned.
 
 ## Claim labels
-- **Standard:** backed by a cited specification.
+- **Standard:** backed by a cited specification, and stated at the strength the source states it: requires, recommends or allows.
 - **Baseline:** this project's default. The Learn section explains why.
 - **Option:** valid depending on the threat model.
 
@@ -40,7 +40,7 @@ Each page has two layers, in this order.
 - After editing any checklist item, run `python3 tools/build_checklist.py`.
 - Record the review date at the top of each page.
 - Every page must pass `python3 tools/check_a11y.py` with no violations, in light and dark mode at desktop and mobile width. Automated rules are a floor, not a conformance claim.
-- Every lab section must carry the Windows note, because `python3` is not a working command on a default Windows install and the audience includes Windows users.
+- Every lab section must carry the Windows note, because `python3` is not the recommended command on Windows and the audience includes Windows users.
 - A lab that needs a package installs it into a virtual environment, and the page says that inside one the command is `python`, not `py -3`.
 - `react-poc/` is an unpublished experiment and is exempt from these conventions. Lesson content is authored in `topics/`, never there.
 

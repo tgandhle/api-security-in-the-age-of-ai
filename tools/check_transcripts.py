@@ -30,7 +30,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 LABS = ROOT / "labs"
 
-# The form every page is supposed to use. README and 25 of 26 pages use it.
+# The form every page is supposed to use. README and all 27 pages use it.
 CANONICAL = re.compile(r"python3 (labs/\w+\.py)$")
 # Also recognised, so a deviation is reported rather than silently skipped.
 LOOSE = re.compile(r"(?:python3|py -3|python) ((?:labs/)?\w+\.py)$")

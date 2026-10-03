@@ -17,7 +17,7 @@
           "id": "overview",
           "aria-labelledby": "course-overview"
         },
-        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>New security engineers who can read Python and HTTP requests.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. Four labs also need the <code>cryptography</code> package. No account or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 27 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Learning outcomes for the published release</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
+        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>New security engineers who can read Python and HTTP requests.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. Four labs also need the <code>cryptography</code> package. No account or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 27 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Examples of learning outcomes</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
       },
       {
         "tag": "h2",
@@ -36,7 +36,7 @@
     ]
   },
   "glossary": {
-    "intro": "<h1>Glossary</h1>\n<p class=\"prose meta\">Terms used across the site, in plain language. Each module links here the first time it uses a term.</p>",
+    "intro": "<h1>Glossary</h1>\n<p class=\"prose meta\">Terms used across the site, in plain language. Each module links here the first time it uses one of these terms.</p>",
     "terms": [
       {
         "id": "access-token",
@@ -51,12 +51,17 @@
       {
         "id": "agent-card",
         "term": "Agent card",
-        "definition": "A JSON document an A2A server publishes, by default at <code>/.well-known/agent-card.json</code>, declaring its name, interfaces, skills and security schemes. It may be signed, and a signature establishes that the key holder wrote it, not who the key holder is."
+        "definition": "A JSON document an A2A server publishes, at the standard path <code>/.well-known/agent-card.json</code> in A2A v1.0.1, declaring its name, interfaces, skills and security schemes. It may be signed, and a signature establishes that the key holder wrote it, not who the key holder is."
       },
       {
         "id": "algorithm-confusion",
         "term": "Algorithm confusion",
         "definition": "An attack that changes which algorithm a verifier uses, so a value the attacker knows becomes the verifying key. The classic case swaps RS256 for HS256 and signs with the issuer's public key."
+      },
+      {
+        "id": "allowlist",
+        "term": "Allowlist",
+        "definition": "A list of the values a check accepts, with everything else refused. It states what an endpoint is for, so a field, host or algorithm added later stays out until someone lists it. A denylist only describes what existed on the day it was written."
       },
       {
         "id": "api-gateway",
@@ -72,6 +77,16 @@
         "id": "asymmetric-signature",
         "term": "Asymmetric signature",
         "definition": "A signature made with a private key and checked with the matching public key. Knowing the public key lets you verify, not sign, so the verifier can't forge signatures."
+      },
+      {
+        "id": "at-least-once-delivery",
+        "term": "At-least-once delivery",
+        "definition": "Delivery in which a sender that receives no acknowledgement sends the event again, so a receiver can get the same event more than once. A repeat is the sender doing its job, not an attack, and the receiver has to handle it without doing the work twice."
+      },
+      {
+        "id": "audience",
+        "term": "Audience",
+        "definition": "Who a token is for. In a JWT it is the <code>aud</code> claim, which \"identifies the recipients that the JWT is intended for\". A service checks that its own identifier appears there: when the claim is present and does not name the service processing it, the JWT must be rejected. RFC 7519 section 4.1.3."
       },
       {
         "id": "authentication",
@@ -176,7 +191,7 @@
       {
         "id": "content-digest",
         "term": "Content-Digest",
-        "definition": "A header carrying a hash of the message body, defined by RFC 9530. It is the only way a request body enters an HTTP message signature, and then only if it is a covered component and the receiver recomputes it."
+        "definition": "A header carrying a hash of the message body, defined by RFC 9530. RFC 9421 does not cover message content on its own, so a request body enters an HTTP message signature through a digest field such as this one, and then only if it is a covered component and the receiver recomputes it."
       },
       {
         "id": "cors",
@@ -204,6 +219,16 @@
         "definition": "An arrangement where one party acts for another while keeping its own identity, so a token names both. RFC 8693 section 1.1 contrasts it with impersonation."
       },
       {
+        "id": "deny-by-default",
+        "term": "Deny by default",
+        "definition": "Refusing anything that no rule explicitly allows. Forgetting a new route, role or field then produces a refusal, not an exposure. It protects what nobody thought about, not a rule somebody wrote wrongly."
+      },
+      {
+        "id": "deprecation-header",
+        "term": "Deprecation header",
+        "definition": "The <code>Deprecation</code> HTTP response header field, \"used to signal to consumers of a resource (identified by a URI) that the resource will be or has been deprecated\". Its value is a date, which may be in the future or in the past. RFC 9745 says to treat it as a hint, and that deprecating a resource does not change how it behaves."
+      },
+      {
         "id": "derived-component",
         "term": "Derived component",
         "definition": "A signature input derived from the control data or other parts of the message rather than from a header field, written with a leading <code>@</code>, such as <code>@method</code>, <code>@authority</code> or <code>@path</code>. RFC 9421 section 2.2."
@@ -217,6 +242,11 @@
         "id": "enumeration",
         "term": "Enumeration",
         "definition": "Walking a range of identifiers to discover which ones exist. Sequential identifiers make it a loop; a refusal that distinguishes \"forbidden\" from \"not found\" makes it a map."
+      },
+      {
+        "id": "excessive-agency",
+        "term": "Excessive agency",
+        "definition": "OWASP LLM03:2026: \"the vulnerability that enables damaging actions to be performed in response to unexpected, ambiguous or manipulated outputs from an LLM, regardless of what is causing the LLM to malfunction\". OWASP says the root cause is typically one or more of excessive functionality, excessive permissions and excessive autonomy."
       },
       {
         "id": "fetch",
@@ -234,6 +264,11 @@
         "definition": "A fixed-length fingerprint of data, such as SHA-256. Anyone can compute it, and changing one byte of input changes the output completely. A hash alone proves nothing about who made it."
       },
       {
+        "id": "hidden-context",
+        "term": "Hidden context",
+        "definition": "The system instructions and operational context an application places in a model's context and does not show the user. OWASP LLM08:2026 Hidden Context Exposure says it \"typically includes the system prompt\", and that it should not be \"solely relied upon as a security boundary\"."
+      },
+      {
         "id": "hmac",
         "term": "HMAC",
         "definition": "Hash-based message authentication code. A hash computed with a secret key mixed in, so only key holders can produce or check it."
@@ -249,6 +284,11 @@
         "definition": "A value, such as a transaction ID, that lets the receiver recognize a repeated business operation and return the original result instead of doing the work twice."
       },
       {
+        "id": "idempotent",
+        "term": "Idempotent",
+        "definition": "A request method is idempotent \"if the intended effect on the server of multiple identical requests with that method is the same as the effect for a single such request\". RFC 9110 section 9.2.2 names PUT, DELETE and the safe methods, and POST is not among them. An operation sent by POST has to get the property from the application, for example with an <a href=\"#idempotency-key\">idempotency key</a>."
+      },
+      {
         "id": "impersonation",
         "term": "Impersonation",
         "definition": "An arrangement where the acting party is given the rights of another and is \"indistinguishable from\" it in that context, so nothing downstream can tell a different party made the call. RFC 8693 section 1.1."
@@ -256,12 +296,17 @@
       {
         "id": "improper-output-handling",
         "term": "Improper output handling",
-        "definition": "Passing a model's output downstream without validating or encoding it for where it is going. OWASP LLM05:2025. The bug is in the calling code rather than in the model's answer."
+        "definition": "Passing a model's output downstream without validating or encoding it for where it is going. OWASP LLM10:2026. The bug is in the calling code rather than in the model's answer."
       },
       {
         "id": "indirect-prompt-injection",
         "term": "Indirect prompt injection",
         "definition": "Injection that arrives in content the model retrieves, such as a web page or a document, rather than from the person typing. Nobody has to attack the system; a document is edited and the agent reads it."
+      },
+      {
+        "id": "instance-metadata-service",
+        "term": "Instance metadata service",
+        "definition": "A service a cloud platform offers to the machines it runs, conventionally on the link-local address <code>169.254.169.254</code>. It is reachable from inside and hands out credentials, which makes it a usual target of <a href=\"#ssrf\">SSRF</a>."
       },
       {
         "id": "insufficient-coverage",
@@ -274,9 +319,19 @@
         "definition": "Asking the authorization server whether a token is active right now. It answers for the moment you ask, so caching the answer trades liveness for load."
       },
       {
+        "id": "issuer",
+        "term": "Issuer",
+        "definition": "The party that issued a token. In a JWT the <code>iss</code> claim \"identifies the principal that issued the JWT\" (RFC 7519 section 4.1.1). A verifier compares it with the issuer it expects and confirms that the verifying key belongs to that issuer."
+      },
+      {
         "id": "jwks",
         "term": "JWKS",
         "definition": "JSON Web Key Set. The set of public keys an issuer publishes so verifiers can check its signatures, each identified by a key id. Covered in module 6."
+      },
+      {
+        "id": "jws",
+        "term": "JWS",
+        "definition": "JSON Web Signature. A format that \"represents content secured with digital signatures or Message Authentication Codes (MACs)\" (RFC 7515 section 1). It protects integrity and does not hide the content. The JWTs in this course are JWSs whose payload is the claims."
       },
       {
         "id": "jwt",
@@ -297,6 +352,11 @@
         "id": "luhn-check",
         "term": "Luhn check",
         "definition": "The check digit algorithm card numbers satisfy. In a redactor it separates a card number from any other long number, which stops the redactor blanking order and invoice numbers that people need to read."
+      },
+      {
+        "id": "mass-assignment",
+        "term": "Mass assignment",
+        "definition": "Binding the keys of a client's request straight onto an internal object, so a caller can set a property they should not by adding it to otherwise valid JSON. It was API6:2019 and is now part of OWASP API3:2023 Broken Object Property Level Authorization."
       },
       {
         "id": "may-act-claim",
@@ -351,12 +411,17 @@
       {
         "id": "prompt-injection",
         "term": "Prompt injection",
-        "definition": "Content that alters a model's behaviour because instructions and data occupy the same sequence with nothing marking which is which. OWASP LLM01:2025 notes that fool-proof prevention is unclear, so the controls that hold sit either side of the model."
+        "definition": "Content that alters a model's behaviour because instructions and data occupy the same sequence with nothing marking which is which. OWASP LLM01:2026 says \"no reliable prevention mechanism exists today\", so the controls that hold sit either side of the model."
+      },
+      {
+        "id": "proof-of-possession",
+        "term": "Proof of possession",
+        "definition": "Showing that you can use a particular key, usually by signing something with it, rather than only presenting a token. It proves the presenter holds the key, not who the presenter is, so an attacker who has the key passes too."
       },
       {
         "id": "protected-resource-metadata",
         "term": "Protected resource metadata",
-        "definition": "A document a resource server publishes at a well-known location, naming its authorization servers and its supported scopes. RFC 9728. MCP requires servers to implement it and clients to use it to find the authorization server."
+        "definition": "A document a resource server publishes at a well-known location, naming its authorization servers and its supported scopes. RFC 9728. MCP revision 2026-07-28 requires servers to implement it and clients to use it to find the authorization server."
       },
       {
         "id": "provenance",
@@ -371,7 +436,7 @@
       {
         "id": "push-notification-config",
         "term": "Push notification configuration",
-        "definition": "In A2A, the webhook a client gives a server for task updates: an HTTPS URL, an optional token tying notifications to one task, and optional authentication details. The URL is supplied by the client, so the server must not POST to it blindly."
+        "definition": "In A2A v1.0.1, the webhook a client gives a server for task updates: an HTTPS URL, an optional token unique to the task or session, and optional authentication details. The URL is supplied by the client, so the server should not POST to it blindly."
       },
       {
         "id": "query-string",
@@ -379,9 +444,19 @@
         "definition": "The part of a URL after the question mark and before any fragment. It often contains named parameters and may be recorded in request logs."
       },
       {
+        "id": "rate-limit",
+        "term": "Rate limit",
+        "definition": "A cap on how many requests, or how much cost, a caller may send in a period of time. The HTTP status code for the refusal is 429, which \"indicates that the user has sent too many requests in a given amount of time\" (RFC 6585 section 4). It constrains a rate and says nothing about a total, which is what a quota is for."
+      },
+      {
         "id": "redirect-uri",
         "term": "Redirect URI",
         "definition": "The address the authorization server returns the user to with the authorization code. It must be registered in advance and matched exactly, or an attacker can choose where the code goes."
+      },
+      {
+        "id": "refresh-token",
+        "term": "Refresh token",
+        "definition": "A credential a client uses to obtain a new access token from the authorization server when the current one expires. It is sent only to the authorization server and never to a resource server (RFC 6749 section 1.5), and it is one more long-lived credential to protect."
       },
       {
         "id": "replay-attack",
@@ -406,12 +481,22 @@
       {
         "id": "revocation",
         "term": "Revocation",
-        "definition": "Withdrawing a grant before its token expires. A self-contained token does not change when this happens, so a resource server only notices if it consults current state."
+        "definition": "Withdrawing a credential, or the grant behind a token, before it expires. A self-contained token does not change when this happens, so a resource server only notices if it consults current state."
+      },
+      {
+        "id": "schema",
+        "term": "Schema",
+        "definition": "A machine-readable description of the shape a request or response body must have: its fields, their types and their limits. A validator checks a parsed object against it, so a schema cannot refuse what goes wrong before or during parsing."
       },
       {
         "id": "scope",
         "term": "Scope",
         "definition": "The set of permissions a client requests and the resource owner grants. A scope limits what a token can do; it does not decide who may act on a specific object."
+      },
+      {
+        "id": "secrets-manager",
+        "term": "Secrets manager",
+        "definition": "A service that stores secrets such as API keys and signing keys, and from which an application retrieves them when it runs. The secret then has one controlled home and stays out of source code and configuration files."
       },
       {
         "id": "sender-constrained-token",
@@ -439,19 +524,39 @@
         "definition": "A URI naming a workload, of the form <code>spiffe://trust-domain/path</code>, carried in a certificate's Subject Alternative Name. It is an identity, not an authorization, and the trust domain has no central registry."
       },
       {
+        "id": "ssrf",
+        "term": "SSRF",
+        "definition": "Server-side request forgery. Getting a server to make a request to an address the attacker chose, which reaches what only the server can reach. OWASP API7:2023: \"Server-Side Request Forgery (SSRF) flaws occur when an API is fetching a remote resource without validating the user-supplied URL.\""
+      },
+      {
         "id": "state-handle",
         "term": "State handle",
         "definition": "A value a stateless server mints to carry state across requests, handed back to it as an ordinary argument. Possession of one is not authentication, so the server binds it to the caller it was minted for and refuses it from anyone else."
       },
       {
+        "id": "sunset-header",
+        "term": "Sunset header",
+        "definition": "The <code>Sunset</code> HTTP response header field, which \"indicates that a URI is likely to become unresponsive at a specified point in the future\" (RFC 8594). When a response carries both, its timestamp must not be earlier than the one in the <a href=\"#deprecation-header\">Deprecation header</a> (RFC 9745 section 4)."
+      },
+      {
         "id": "system-prompt",
         "term": "System prompt",
-        "definition": "The instructions an application puts in front of a model. It travels in the request payload like any other field, so OWASP states it is neither a secret nor a security control, and credentials do not belong in it."
+        "definition": "The instructions an application puts in front of a model. It travels in the request payload like any other field. OWASP LLM08:2026 counts it as hidden context, whose contents \"should not be considered a secret\" and which should not be \"solely relied upon as a security boundary\", and says credentials should not be embedded in it."
+      },
+      {
+        "id": "thumbprint",
+        "term": "Thumbprint",
+        "definition": "A hash of a key or a certificate, used to identify it. RFC 7638 defines the JWK thumbprint: a hash over only the required members of the key, ordered by name, with no whitespace, so everyone computes the same value. In DPoP it is the <code>jkt</code> value that names the key a token is bound to."
       },
       {
         "id": "tls",
         "term": "TLS",
         "definition": "Transport Layer Security. Encrypts a connection and proves the server's identity to the client. It protects data in transit, not after it arrives."
+      },
+      {
+        "id": "token-bucket",
+        "term": "Token bucket",
+        "definition": "A rate limiting algorithm: a bucket of some capacity that refills at some rate, where a request spends tokens and is refused when too few are left. Capacity is the burst you are prepared to serve and rate is the average you are prepared to sustain. Its worst moment is a full bucket, which permits the whole capacity at once."
       },
       {
         "id": "token-exchange",
@@ -461,7 +566,7 @@
       {
         "id": "token-passthrough",
         "term": "Token passthrough",
-        "definition": "A server accepting a token that was not issued for it and forwarding it unchanged to a downstream API. Both halves are forbidden by the MCP specification: the audience check is the first, and the forwarding is what turns it into a confused deputy."
+        "definition": "A server accepting a token that was not issued for it and forwarding it unchanged to a downstream API. Both halves are forbidden by the MCP specification, revision 2026-07-28: the audience check is the first, and the forwarding is what can turn it into a confused deputy."
       },
       {
         "id": "token-profile",
@@ -474,9 +579,19 @@
         "definition": "Any point where a request or a value moves from somewhere you do not control to somewhere you do. Checks belong on the boundary, and a check is only a control if every path to the handler crosses it."
       },
       {
+        "id": "webhook",
+        "term": "Webhook",
+        "definition": "An HTTP request a sender posts to a URL the receiver gave it, to report that something happened. Anyone who knows the URL can post to it, so the receiver has to check who sent the event, that it is fresh, and that it has not been handled already."
+      },
+      {
         "id": "workload-identity",
         "term": "Workload identity",
         "definition": "An identity issued to a running service by its platform, rather than a secret handed to it at deployment. It removes the long-lived value that had to be rotated and distributed; it does not remove ownership, scope or retirement."
+      },
+      {
+        "id": "zero-trust",
+        "term": "Zero trust",
+        "definition": "A security model in which network location alone earns no trust. NIST SP 800-207 section 2.1 lists it as a tenet: \"All communication is secured regardless of network location\", and \"Network location alone does not imply trust\"."
       }
     ]
   },
