@@ -229,6 +229,109 @@ all lab checks passed</code></pre>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 </section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="business-flows-and-idempotency-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/idempotency_lab.py"><code>labs/idempotency_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant. One variant changes nothing, and its answer carries the measurement from a request the lab does not make.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="flow-x1" data-covers="flow-02">
+<h3>1. The in-flight case is not handled</h3>
+<div class="prose">
+<p>In <code>begin</code>, delete the two lines that return <code>409 a request with this key is still in progress</code> when the entry's state is <code>in_flight</code>. The reservation itself, further down, stays.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="flow-x1" value="a"> Check 10 becomes <code>200 credited 10000</code> and check 11 becomes <code>2</code>.</label>
+<label><input type="radio" name="flow-x1" value="b"> Nothing. The key is still reserved before the work, so all 26 checks pass.</label>
+<label><input type="radio" name="flow-x1" value="c" data-correct="true"> Check 10 becomes <code>200 replayed: None</code>. Check 11 stays <code>1</code>.</label>
+<label><input type="radio" name="flow-x1" value="d"> The run ends in a traceback, because the reserved entry has no response to replay.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">That is the output of a different mistake, the key recorded only after the work, which checks 12 and 13 already show. Here the reservation is still written, so request B finds an entry and returns early. It never reaches <code>commit</code>, and check 11 stays <code>1</code>.</li>
+<li data-option="b">The reservation does hold, and that is why the credit count does not move. The response still changes: check 10 no longer prints <code>409 a request with this key is still in progress</code>.</li>
+<li data-option="c">Correct. Exit 1, one failure: check 10 goes from <code>409 a request with this key is still in progress</code> to <code>200 replayed: None</code>. Check 11 still prints <code>1</code>. With the 409 gone, an entry that is still in flight falls through to the replay line, and the response stored against it so far is <code>None</code>. No miles are credited twice. The client is told 200 for an operation that has not finished, with an empty answer in place of the real one. Check <code>flow-02</code> in the <a href="#reference">Reference</a> layer asks for the second copy to be refused, and a 200 is not a refusal.</li>
+<li data-option="d">Formatting <code>None</code> into the reply does not raise. The run ends with <code>1 check(s) did not match the expected outcome:</code> and exit code 1, not a traceback.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="flow-x2" data-covers="flow-04">
+<h3>2. The key is looked up without the caller</h3>
+<div class="prose">
+<p>In <code>slot</code>, ignore the flag and return the key on its own:</p>
+</div>
+<pre><code>def slot(self, account, key, scope_by_caller):
+    return key</code></pre>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="flow-x2" value="a"> Checks 16 and 17, the other caller under global scoping.</label>
+<label><input type="radio" name="flow-x2" value="b" data-correct="true"> Checks 18 and 19, the same request with keys scoped per caller.</label>
+<label><input type="radio" name="flow-x2" value="c"> Check 20, which goes from <code>0</code> to <code>1</code>.</label>
+<label><input type="radio" name="flow-x2" value="d"> None. Every call in Part C says which scoping it wants.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Checks 16 and 17 pass <code>scope_by_caller=False</code>, so they already use the key on its own. The edit gives them the same slot as before, and they still print <code>200 replayed: credited 10000</code> and <code>500</code>.</li>
+<li data-option="b">Correct. Exit 1, two failures: check 18 goes from <code>200 credited 10000</code> to <code>200 replayed: credited 10000</code>, and check 19 goes from <code>10500</code> to <code>500</code>. <code>acct-91</code> sends its own request with a key <code>acct-77</code> has used, is told 200, and receives nothing. The reply is the one stored for somebody else's credit. Check <code>flow-04</code> in the <a href="#reference">Reference</a> layer says a key from another caller is unrelated, and this one function is where that is decided.</li>
+<li data-option="c">Check 20 counts <code>acct-91</code>'s credits on a ledger that only ever uses global scoping. It printed <code>0</code> before the edit and prints <code>0</code> after it.</li>
+<li data-option="d">The call behind check 18 does not pass the flag. It relies on the default, <code>scope_by_caller=True</code>, and the edit makes that default mean nothing.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="flow-x3" data-covers="flow-06">
+<h3>3. The expiry test includes the boundary</h3>
+<div class="prose">
+<p>In <code>begin</code>, change <code>now &gt; entry["expires"]</code> to <code>now &gt;= entry["expires"]</code>.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="flow-x3" value="a"> Check 22 becomes <code>200 replayed: credited 10000</code>.</label>
+<label><input type="radio" name="flow-x3" value="b"> Check 21 becomes <code>200 credited 10000</code>.</label>
+<label><input type="radio" name="flow-x3" value="c"> Check 23 becomes <code>3</code>.</label>
+<label><input type="radio" name="flow-x3" value="d" data-correct="true"> Nothing. All 26 checks pass.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 22 arrives at <code>NOW + KEY_TTL + 1</code>, one second past the stored expiry. Both comparisons call that expired, so it still prints <code>200 credited 10000</code>.</li>
+<li data-option="b">Check 21 arrives one hour in, with 23 hours of the window left. Both comparisons call that live, so it still prints <code>200 replayed: credited 10000</code>.</li>
+<li data-option="c">Check 23 counts the first request and the one after the window. Check 21 is still a replay, so the count stays <code>2</code>.</li>
+<li data-option="d">Correct. Exit 0, 37 of 37 lines identical. The lab retries one hour in and one second past the window, and never at the boundary itself. Measured on a request the lab does not make, the same key at exactly <code>NOW + KEY_TTL</code>: as published the ledger answers <code>200 replayed: credited 10000</code> and has applied 1 credit, and with the edit it answers <code>200 credited 10000</code> and has applied 2. Whether 24 hours means up to and including the last second is part of the number you publish. Check <code>flow-06</code> in the <a href="#reference">Reference</a> layer asks for the retention period to match the retry schedule, and no check in this lab would tell you which of the two versions you shipped.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="flow-x4" data-covers="flow-05">
+<h3>4. The fingerprint is built two different ways</h3>
+<div class="prose">
+<p>In <code>begin</code>, add the account to the payload that gets fingerprinted. Leave <code>commit</code> as it is, so it still fingerprints the miles alone:</p>
+</div>
+<pre><code>payload = {"account": account, "miles": miles}</code></pre>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="flow-x4" value="a" data-correct="true"> Checks 6, 16 and 21. Each replay becomes <code>422 key reused with a different payload</code>.</label>
+<label><input type="radio" name="flow-x4" value="b"> Check 16 only, because that is the one request from a different account.</label>
+<label><input type="radio" name="flow-x4" value="c"> None. A retry comes from the same account, so the fingerprint is the same both times.</label>
+<label><input type="radio" name="flow-x4" value="d"> Checks 6, 7 and 8. The retry is no longer recognised, so it is applied a second time.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Correct. Exit 1, three failures: checks 6, 16 and 21 each go from <code>200 replayed: credited 10000</code> to <code>422 key reused with a different payload</code>. Once a request completes, <code>commit</code> stores a fingerprint of the miles alone. Every later <code>begin</code> compares it with a fingerprint that includes the account, and the two can never match. Nothing is credited twice: check 7 still prints <code>1</code> and check 8 still prints <code>14200</code>. But the client whose response was lost never gets it. It is told its honest retry is a different request. Check 10 still prints the 409, because the entry it finds was written by <code>begin</code>, with the same fields. Check <code>flow-05</code> in the <a href="#reference">Reference</a> layer says the stored response is replayed, and here no completed request can ever be replayed.</li>
+<li data-option="b">Check 16 does change, and not because of the account. Checks 6 and 21 retry from <code>acct-77</code>, the account that made the first request, and they are refused the same way.</li>
+<li data-option="c">It would be the same if both fingerprints came from <code>begin</code>. The stored one comes from <code>commit</code>, which this edit does not touch.</li>
+<li data-option="d">The retry is refused, not executed. A 422 returns before <code>commit</code> runs, so check 7 still prints <code>1</code> and check 8 still prints <code>14200</code>.</li>
+</ul>
+</details>
+</article>
+</section>
+
 <p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
 <span class="layer" id="reference" style="margin-top:3rem">Reference</span>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
