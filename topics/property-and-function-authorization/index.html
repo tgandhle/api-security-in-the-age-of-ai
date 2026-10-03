@@ -216,6 +216,109 @@ all lab checks passed</code></pre>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 </section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="property-and-function-authorization-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/property_function_lab.py"><code>labs/property_function_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant. One variant changes nothing, and its answer carries the measurement from a request the lab does not make.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="prop-x1" data-covers="prop-05">
+<h3>1. The writable list is derived from the readable list</h3>
+<div class="prose">
+<p>Near the top of the file, replace the tuple assigned to <code>WRITABLE</code> so that one list serves both questions:</p>
+</div>
+<pre><code>WRITABLE = READABLE</code></pre>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="prop-x1" value="a"> Nothing. <code>READABLE</code> is an allowlist too, so the update is still filtered.</label>
+<label><input type="radio" name="prop-x1" value="b"> Checks 10, 12 and 13 change. The caller sets its tier and becomes staff.</label>
+<label><input type="radio" name="prop-x1" value="c" data-correct="true"> Checks 10 and 12 change. Check 12 prints <code>platinum</code>.</label>
+<label><input type="radio" name="prop-x1" value="d"> Only check 3 changes, because <code>READABLE</code> builds the response.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">The update is still filtered, by the wrong list. <code>READABLE</code> contains <code>loyalty_tier</code> and <code>points</code>, which a customer may see and may not set, and the body in Part B sends both.</li>
+<li data-option="b">Check 13 still prints <code>False</code>. <code>is_staff</code> is not readable, so it is not on the shared list either, and check 10 still names it as ignored.</li>
+<li data-option="c">Correct. Exit 1, two failures. Check 10 goes from <code>200 updated, ignored ['fraud_score', 'is_staff', 'loyalty_tier', 'points']</code> to <code>200 updated, ignored ['fraud_score', 'is_staff']</code>, and check 12 goes from <code>silver</code> to <code>platinum</code>. The lab has no check that prints the point balance after this update. Measured directly, it is 12400 as published and 999999 with this edit. The code still has an allowlist, and a reviewer looking for one finds it. Check <code>prop-05</code> in the <a href="#reference">Reference</a> layer asks that neither list is derived from the other, and this one line is that derivation.</li>
+<li data-option="d">The edit leaves <code>READABLE</code> as it was, so check 3 still prints <code>5 fields</code>. What changed is which list the update copies from.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="prop-x2" data-covers="prop-01">
+<h3>2. The update blocks the four fields the test sends</h3>
+<div class="prose">
+<p>In <code>update_allowed</code>, replace the test inside the loop, <code>if key in WRITABLE:</code>, with a list of the fields a client must not set. Leave the line that builds <code>ignored</code> as it is.</p>
+</div>
+<pre><code>if key not in ("loyalty_tier", "points", "is_staff", "fraud_score"):</code></pre>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="prop-x2" value="a"> Check 10 changes, because the ignored list is now empty.</label>
+<label><input type="radio" name="prop-x2" value="b"> Check 22 changes. The write to the other customer's record is refused.</label>
+<label><input type="radio" name="prop-x2" value="c"> Checks 12 and 13 change. A denylist lets the tier and the staff flag through.</label>
+<label><input type="radio" name="prop-x2" value="d" data-correct="true"> Nothing. All 25 checks pass.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">The line that builds <code>ignored</code> still reads <code>WRITABLE</code>, and the edit does not touch it. Check 10 prints the same four names.</li>
+<li data-option="b">Check 22 sets <code>email</code>, which is not on the new list, so it is still written and the check still prints <code>attacker@mail.example</code>. Neither version of this function looks at owners.</li>
+<li data-option="c">Those two fields are on the denylist by name, so both are still blocked. Check 12 prints <code>silver</code> and check 13 prints <code>False</code>.</li>
+<li data-option="d">Correct. Exit 0, 37 of 37 lines identical. The body in Part B carries one writable field and exactly the four fields the new list names, so the lab cannot tell the two versions apart. Measured on a request the lab does not make, where the caller sends <code>{"internal_notes": "cleared"}</code> for its own profile: as published the function returns <code>200 updated, ignored ['internal_notes']</code> and the note still reads <code>manual review 2025-11</code>. With the denylist it returns the same string, and the note now reads <code>cleared</code>. The field was written, and the line that would be logged says it was ignored. Check <code>prop-01</code> in the <a href="#reference">Reference</a> layer says to send a body containing every field of the record, because a test that sends only the fields somebody thought of passes against both versions.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="prop-x3" data-covers="prop-02">
+<h3>3. A route with no rule is allowed</h3>
+<div class="prose">
+<p>In <code>dispatch_by_table</code>, change what the function returns when the table has no entry for the method and path, from <code>"403 no rule for this route"</code> to <code>"200 ok"</code>.</p>
+</div>
+<fieldset><legend>Which check changes?</legend>
+<label><input type="radio" name="prop-x3" value="a" data-correct="true"> Check 20, the request to <code>/api/internal/export</code>.</label>
+<label><input type="radio" name="prop-x3" value="b"> Checks 18 and 20. A customer has no rule for DELETE either.</label>
+<label><input type="radio" name="prop-x3" value="c"> Checks 16, 18 and 20, every route table refusal in Part C.</label>
+<label><input type="radio" name="prop-x3" value="d"> Check 25, the admin report in the correct table.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Correct. Exit 1, one failure: check 20 goes from <code>403 no rule for this route</code> to <code>200 ok</code>. It is the only request in the lab whose method and path are missing from <code>ROUTES</code>. The table now gives the same answer as the prefix rule in check 19, for the same reason: nobody thought about that route. Checks 16, 18, 21 and 25, the routes that do have a rule, print what they printed before, so a test that only tries listed routes cannot see this change. Check <code>prop-02</code> in the <a href="#reference">Reference</a> layer says to test an unlisted route, and check 20 is that test.</li>
+<li data-option="b">Check 18 has a rule. <code>("DELETE", "/api/profile")</code> is in <code>ROUTES</code> with the staff role only, so a customer is refused by the role test, which this edit does not touch. It still prints <code>403 forbidden</code>.</li>
+<li data-option="c">Checks 16 and 18 print <code>403 forbidden</code>, not <code>403 no rule for this route</code>. Both routes are listed, and both refusals come from the role test.</li>
+<li data-option="d"><code>("GET", "/api/admin/reports")</code> is listed for staff only, so check 25 is another role refusal and still prints <code>403 forbidden</code>.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="prop-x4" data-covers="prop-03">
+<h3>4. The prefix rule gets a second prefix</h3>
+<div class="prose">
+<p>Somebody reports that customers can call the promote endpoint. The fix that gets merged is in <code>dispatch_by_prefix</code>, and it adds the users path to the test:</p>
+</div>
+<pre><code>if path.startswith(("/api/admin/", "/api/users/")) and role != "staff":</code></pre>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="prop-x4" value="a"> Checks 15, 17 and 19 all become <code>403 forbidden</code>.</label>
+<label><input type="radio" name="prop-x4" value="b" data-correct="true"> Check 15 becomes <code>403 forbidden</code>. Checks 17 and 19 still print <code>200 ok</code>.</label>
+<label><input type="radio" name="prop-x4" value="c"> Checks 15 and 21 change. Staff can no longer promote.</label>
+<label><input type="radio" name="prop-x4" value="d"> Nothing. <code>/api/users/promote</code> does not start with <code>/api/admin/</code>.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 17 is <code>DELETE /api/profile</code> and check 19 is <code>GET /api/internal/export</code>. Neither path starts with either prefix, so both still print <code>200 ok</code>.</li>
+<li data-option="b">Correct. Exit 1, one failure: check 15 goes from <code>200 ok</code> to <code>403 forbidden</code>. The run reports a failure only because the lab expects the prefix rule to make this mistake. The reported hole is closed. The other two are not: a customer can still delete a profile in check 17, and can still reach the route nobody wrote a rule for in check 19. The rule is still a statement about where a path lives, with one more path in it. Check <code>prop-03</code> in the <a href="#reference">Reference</a> layer asks that administrative functions are identified by what they do, and a longer list of prefixes does not do that.</li>
+<li data-option="c">Check 21 goes through <code>dispatch_by_table</code>, which this edit does not touch. It still prints <code>200 ok</code>.</li>
+<li data-option="d">It does not need to. <code>startswith</code> accepts a tuple and matches if the path starts with any entry, and <code>/api/users/promote</code> starts with the second one.</li>
+</ul>
+</details>
+</article>
+</section>
+
 <p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
 <span class="layer" id="reference" style="margin-top:3rem">Reference</span>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
