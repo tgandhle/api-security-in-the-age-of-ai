@@ -247,6 +247,105 @@ all lab checks passed</code></pre>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 </section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="agent-to-agent-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/a2a_lab.py"><code>labs/a2a_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant. One variant changes nothing, and its answer carries the measurement from a notification the lab does not send.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="a2a-x1" data-covers="a2a-05">
+<h3>1. The canonical form stops sorting keys</h3>
+<div class="prose">
+<p>In <code>canonical</code>, delete <code>sort_keys=True,</code> from the <code>json.dumps</code> call. The signer and the verifier both call this function, so both change together.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="a2a-x1" value="a"> Nothing. Both sides serialise the same way, so every signature still matches.</label>
+<label><input type="radio" name="a2a-x1" value="b"> Every card is refused, starting with check 1.</label>
+<label><input type="radio" name="a2a-x1" value="c" data-correct="true"> Check 3 becomes <code>refused: no signature verifies</code> and check 5 becomes <code>no</code>.</label>
+<label><input type="radio" name="a2a-x1" value="d"> Only check 5 changes. Check 3 still prints <code>partner-2026</code>.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">That holds only while the card reaches the verifier with its keys in the order the signer had them. Check 3 reverses the order, which is what any re-serialisation between the two is free to do.</li>
+<li data-option="b">Check 1 still prints <code>partner-2026</code>. That card is verified in the same key order it was signed in, so the unsorted bytes happen to agree.</li>
+<li data-option="c">Correct. Exit 1, two failures. Check 3, the same card with its keys in the opposite order, goes from <code>partner-2026</code> to <code>refused: no signature verifies</code>, and check 5 goes from <code>yes</code> to <code>no</code>. The other 47 checks print what they printed before, including check 1. A genuine card from the real partner is now refused because something in between changed the key order, which is not a change to the card at all. Check <code>a2a-05</code> in the <a href="#reference">Reference</a> layer asks for JCS, and sorted keys are the part of it this lab depends on.</li>
+<li data-option="d">Check 5 is the cause and check 3 is the effect. The verifier computes its MAC over the bytes check 5 compares, so when those differ the signature cannot match.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="a2a-x2" data-covers="a2a-02">
+<h3>2. The delivery route is not checked</h3>
+<div class="prose">
+<p>In <code>handle_auth_required</code>, delete the two lines that test <code>task.get("deliver_in") == "a2a-message"</code> and return the refusal.</p>
+</div>
+<fieldset><legend>What does check 24 print?</legend>
+<label><input type="radio" name="a2a-x2" value="a" data-correct="true"> <code>obtain seating-vendor-api out of band, then resume the task</code></label>
+<label><input type="radio" name="a2a-x2" value="b"> <code>refuse: no out-of-band path for seating-vendor-api</code></label>
+<label><input type="radio" name="a2a-x2" value="c"> <code>refuse: credentials do not travel in the task conversation</code>, as before. The list of allowed credentials still covers it.</label>
+<label><input type="radio" name="a2a-x2" value="d"> The same as option a, and check 25 changes too.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Correct. Exit 1, one failure: check 24 goes from <code>refuse: credentials do not travel in the task conversation</code> to <code>obtain seating-vendor-api out of band, then resume the task</code>. The other 48 checks are unchanged. Read the new line with care. The request asked for the credential inside the task conversation, and the client now answers with a sentence about going out of band, because nothing looks at the route any more. The credential is on the pre-agreed list, so the list check passes it. Check <code>a2a-02</code> in the <a href="#reference">Reference</a> layer is about the route, and the list in <code>a2a-07</code> does not stand in for it.</li>
+<li data-option="b"><code>seating-vendor-api</code> is in the <code>out_of_band</code> set the lab passes, so the list check does not refuse it. That reason appears only for <code>payments-gateway</code> and <code>crm-admin</code>, in checks 26 and 27.</li>
+<li data-option="c">The list answers which credential, not which route. This credential is on the list, so with the route test gone nothing refuses the request.</li>
+<li data-option="d">Check 25 asks for <code>our-own-a2a-credential</code>, which the first test in the function refuses before the deleted lines would have run. It still prints <code>refuse: that is the credential we authenticate to it with</code>.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="a2a-x3" data-covers="a2a-03">
+<h3>3. The webhook allowlist is removed and the address check stays</h3>
+<div class="prose">
+<p>In <code>check_webhook</code>, delete the two lines that test <code>host not in allow</code> and return the refusal. Leave the resolved address check as it is.</p>
+</div>
+<fieldset><legend>What happens to checks 30, 31 and 32?</legend>
+<label><input type="radio" name="a2a-x3" value="a"> All three become <code>accept</code>.</label>
+<label><input type="radio" name="a2a-x3" value="b"> Nothing. The address check refuses all three, with the same lines as before.</label>
+<label><input type="radio" name="a2a-x3" value="c"> Check 30 becomes <code>accept</code>. Checks 31 and 32 print the same lines as before.</label>
+<label><input type="radio" name="a2a-x3" value="d" data-correct="true"> Check 30 becomes <code>accept</code>. Checks 31 and 32 still refuse, with a different reason.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Checks 31 and 32 resolve to 127.0.0.1 and 169.254.169.254. The address check is still there and refuses both.</li>
+<li data-option="b">The address check has nothing to say about check 30. <code>hooks.exampleattacker.example</code> resolves to 203.0.113.9, which this lab treats as a public address.</li>
+<li data-option="c">The outcome of checks 31 and 32 is the same and the printed lines are not. Their old reason named the allowlist, and that test no longer exists.</li>
+<li data-option="d">Correct. Exit 1, three failures. Check 30 goes from <code>refuse: hooks.exampleattacker.example is not an allowed webhook host</code> to <code>accept</code>. Check 31 goes from <code>refuse: localhost is not an allowed webhook host</code> to <code>refuse: resolves to 127.0.0.1, which is not a public address</code>, and check 32 goes from <code>refuse: metadata.exampleattacker.example is not an allowed webhook host</code> to <code>refuse: resolves to 169.254.169.254, which is not a public address</code>. The address check stops the internal targets and lets through any public host a client names, so the server now POSTs task results wherever it is told to. Check <code>a2a-03</code> in the <a href="#reference">Reference</a> layer asks for both checks because each one catches what the other cannot see.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="a2a-x4" data-covers="a2a-04">
+<h3>4. The freshness test loses its abs()</h3>
+<div class="prose">
+<p>In <code>Webhook.post</code>, change the freshness test from <code>abs(now - note["timestamp"]) &gt; self.window</code> to <code>now - note["timestamp"] &gt; self.window</code>.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="a2a-x4" value="a"> Check 47, captured an hour ago, becomes <code>accept: task-7782</code>.</label>
+<label><input type="radio" name="a2a-x4" value="b" data-correct="true"> Nothing. All 49 checks pass.</label>
+<label><input type="radio" name="a2a-x4" value="c"> Check 42 becomes <code>reject: outside the freshness window</code>.</label>
+<label><input type="radio" name="a2a-x4" value="d"> Checks 48 and 49 change, because they carry a timestamp an hour old.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 47 is an hour in the past. <code>now - note["timestamp"]</code> is 3600 with or without <code>abs()</code>, and 3600 is more than the 300 second window.</li>
+<li data-option="b">Correct. Exit 0, 63 of 63 lines identical. Every timestamp in the lab is now or in the past, so the lab cannot tell the two versions apart. Measured on a notification the lab does not send, correctly signed, with the right task token and a timestamp one hour in the future: as published the webhook answers <code>reject: outside the freshness window</code>, and without <code>abs()</code> it answers <code>accept: task-7783</code>. The window now has one edge. A notification stamped ahead of the receiver's clock stays acceptable until that time arrives and for 300 seconds after it. Check <code>a2a-04</code> in the <a href="#reference">Reference</a> layer asks for freshness, and a test that only looks backwards checks half of it.</li>
+<li data-option="c">Check 42 carries the current time. The difference is 0 either way.</li>
+<li data-option="d">Checks 48 and 49 go to a webhook built with <code>window=None</code>, which skips the freshness test entirely. They print <code>accept: task-7781</code> as before.</li>
+</ul>
+</details>
+</article>
+</section>
 <p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
 <span class="layer" id="reference" style="margin-top:3rem">Reference</span>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
