@@ -192,9 +192,9 @@ all lab checks passed</code></pre>
 <p>Checks 2 and 3 are the two algorithm attacks, and part A is not a strawman: <code>TrustingVerifier</code> holds exactly one key and picks the operation from the token's header, which is how the defect appears in real code. Check 17 is the leeway working as intended, and is worth understanding before you tighten it.</p>
 <p><strong>Try next:</strong></p>
 <ul>
-<li>Add <code>"HS256"</code> to <code>ProfileVerifier.allowed_algorithms</code>. Check 8 goes green. You have just reintroduced the confusion attack by widening one tuple.</li>
-<li>Delete the <code>typ</code> check. One check changes. Which token did you just accept, and what was it issued to do?</li>
-<li>Move the claim loop above the signature check. Everything still passes. Explain why that ordering is still wrong, using module 2's reasoning about the nonce cache.</li>
+<li>Add <code>"HS256"</code> to <code>ProfileVerifier.allowed_algorithms</code>. The run exits 1 with one failure: check 8 still rejects, but the reason changes from <code>reject: algorithm not allowed</code> to <code>reject: signature check failed</code>. The confusion attack is not back, because this verifier always runs the RS256 check, whatever the header says. By widening one tuple you have removed one of the two controls that stopped it.</li>
+<li>Delete the <code>typ</code> check. One check changes: it still rejects, for a different reason. Which token is now refused only because it happens to lack a claim, and what was it issued to do?</li>
+<li>In <code>ProfileVerifier.verify</code>, move the <code>claims = claims_of(token)</code> line and the <code>for name in self.required_claims</code> loop under it, four lines in all, above the <code>if not rs256_ok</code> check. Everything still passes: exit 0, and all 17 checks print as before. Explain why that ordering is still wrong, using module 2's reasoning about the nonce cache.</li>
 </ul>
 </div>
 
@@ -218,7 +218,7 @@ all lab checks passed</code></pre>
 <p class="kicker">Exercises</p>
 <h2>Change one thing and predict the output</h2>
 <div class="prose">
-<p>Each exercise edits one place in <a href="../../labs/jwt_lab.py"><code>labs/jwt_lab.py</code></a> and asks what the run prints. Two of them change nothing at all, and the reason is the same both times: the lab has no token that tells the two versions apart. Where that happens, the answer gives the measurement from a token that does.</p>
+<p>Each exercise edits one place in <a href="../../labs/jwt_lab.py"><code>labs/jwt_lab.py</code></a> and asks what the run prints. One of them changes nothing at all, and in another the run fails but the token is still refused, for a different reason. The cause is the same both times: the lab has no token that one version accepts and the other refuses. Where that happens, the answer gives the measurement from a token that does.</p>
 </div>
 
 <article class="exercise" data-exercise data-exercise-id="jwt-x1" data-covers="jwt-02">
