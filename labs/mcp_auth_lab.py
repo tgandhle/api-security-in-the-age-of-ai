@@ -69,7 +69,10 @@ def mint(payload, key):
 
 
 def verify(token, key, now=NOW):
-    head, body, sig = token.split(".")
+    parts = token.split(".")
+    if len(parts) != 3:
+        raise Refused("malformed token")
+    head, body, sig = parts
     signed = ("%s.%s" % (head, body)).encode("ascii")
     if not hmac.compare_digest(
             sig, b64u(hmac.new(key, signed, hashlib.sha256).digest())):
@@ -105,7 +108,7 @@ def canonical_resource(text):
     netloc = parts.netloc.lower()
     path = parts.path
     if path == "/":
-        path = ""          # prefer the form without a trailing slash
+        path = ""          # drops a bare root slash only; /mcp/ is kept as given
     return urllib.parse.urlunsplit(
         (parts.scheme.lower(), netloc, path, parts.query, ""))
 
@@ -149,16 +152,25 @@ class McpServer:
         self.counter = 0
         self.upstream = None
 
+    # RFC 9728 section 3.1: the well-known suffix goes between the host and
+    # the resource's own path, not after the path.
+    def metadata_url(self):
+        parts = urllib.parse.urlsplit(self.resource)
+        path = "" if parts.path == "/" else parts.path
+        return urllib.parse.urlunsplit(
+            (parts.scheme, parts.netloc,
+             "/.well-known/oauth-protected-resource" + path, parts.query, ""))
+
     # The 401 the specification's flow starts with.
     def challenge(self, scope=None):
-        parts = ['Bearer resource_metadata="%s/.well-known/'
-                 'oauth-protected-resource"' % self.resource.rstrip("/")]
+        parts = ['Bearer resource_metadata="%s"' % self.metadata_url()]
         if scope:
             parts.append('scope="%s"' % scope)
         return "401 " + ", ".join(parts)
 
     def insufficient(self, scope):
-        return ('403 Bearer error="insufficient_scope", scope="%s"' % scope)
+        return ('403 Bearer error="insufficient_scope", scope="%s", '
+                'resource_metadata="%s"' % (scope, self.metadata_url()))
 
     def call(self, name, token=None, handle=None, now=NOW):
         if token is None:
@@ -287,8 +299,8 @@ def main():
 
     print("Part A: audience validation, and token passthrough.")
     check("no token at all",
-          '401 Bearer resource_metadata="https://mcp.exampletools.example/mcp'
-          '/.well-known/oauth-protected-resource", scope="customers:read"',
+          '401 Bearer resource_metadata="https://mcp.exampletools.example'
+          '/.well-known/oauth-protected-resource/mcp", scope="customers:read"',
           strict.call("fetch_customer"))
     check("a token issued for this MCP server",
           "upstream says: 200 served https://mcp.exampletools.example/mcp "
@@ -317,7 +329,9 @@ def main():
           "upstream says: 200 served user-41 for nobody named",
           passthrough.call("fetch_customer", for_api))
     check("  the caller the upstream log names after a passthrough",
-          "user-41", verify(for_api, as_key)["sub"])
+          "user-41",
+          passthrough.call("fetch_customer", for_api).split("served ")[1]
+          .split(" for ")[0])
     check("  the caller it names when the MCP server holds its own token",
           "https://mcp.exampletools.example/mcp",
           strict.call("fetch_customer", for_mcp).split("served ")[1]
@@ -375,7 +389,7 @@ def main():
           "reject: iss does not match the recorded issuer",
           check_iss(True, True, "https://login.attacker.example", recorded))
     for variant, why in [(SHARED_AS + "/", "a trailing slash"),
-                         (SHARED_AS.replace("login", "LOGIN"), "a capital"),
+                         (SHARED_AS.replace("login", "Login"), "a capital"),
                          (SHARED_AS + ":443", "the default port")]:
         check("  differing only by %s" % why,
               "reject: iss does not match the recorded issuer",
@@ -388,7 +402,9 @@ def main():
                    "scope": " ".join(granted), "exp": NOW + 300}, as_key)
     denied = strict.call("open_cart", narrow)
     check("a cart:read token calling a cart:write tool",
-          '403 Bearer error="insufficient_scope", scope="cart:write"', denied)
+          '403 Bearer error="insufficient_scope", scope="cart:write", '
+          'resource_metadata="https://mcp.exampletools.example'
+          '/.well-known/oauth-protected-resource/mcp"', denied)
     challenge = parse_challenge(denied)
     check("  the error the challenge names", "insufficient_scope",
           challenge.get("error", "no error parameter"))
@@ -410,8 +426,10 @@ def main():
           "a handle, not a challenge",
           "a handle, not a challenge" if after_union.startswith("cart-")
           else after_union),
-    check("the replaced token, back on the tool it had working",
-          '403 Bearer error="insufficient_scope", scope="cart:read"',
+    check("the replaced token, on the tool its old scope covered",
+          '403 Bearer error="insufficient_scope", scope="cart:read", '
+          'resource_metadata="https://mcp.exampletools.example'
+          '/.well-known/oauth-protected-resource/mcp"',
           strict.call("read_cart", lost, handle="cart-1"))
 
     print()
@@ -432,7 +450,7 @@ def main():
                         random_handles=False)
     guessable = unbound.open_cart(verify(victim, as_key))
     check("a server that keys state by the handle alone", "cart-1", guessable)
-    check("  the same caller reading it", "200 seat-14C",
+    check("  another caller reading it", "200 seat-14C",
           unbound.read_cart(verify(attacker, as_key), guessable))
     check("  and the next handle it will mint", "cart-2",
           "cart-%d" % (unbound.counter + 1))

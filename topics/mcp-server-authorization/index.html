@@ -26,10 +26,10 @@
 <div class="prose">
 <p>Running example: an MCP server that exposes a company's CRM to an assistant as a set of tools. Company names are fictional. The MCP server is at <code>https://mcp.exampletools.example/mcp</code>, the CRM API behind it is at <code>https://api.examplecrm.example</code>, and both are protected by the same authorization server, which is the common arrangement.</p>
 <p>An MCP server is an OAuth 2.1 resource server with a tool-shaped front end. The specification says so directly: "A protected <em>MCP server</em> acts as an OAuth 2.1 resource server, capable of accepting and responding to protected resource requests using access tokens." Almost every rule it places on that server is one you have already met in this course. What is new is how many of them are stated as MUST, and how many deployments fail them anyway.</p>
-<p>Three attacks, which are the three this module covers.</p>
+<p>Five attacks. The lab runs the first four, and module 22 picks up the fifth.</p>
 </div>
 <div class="wrap"><table>
-<thead><tr><th>Attack</th><th>What the attacker does</th><th>What the specification says</th></tr></thead>
+<thead><tr><th>Attack</th><th>What the attacker does</th><th>What the MCP documents say</th></tr></thead>
 <tbody>
 <tr><td>Token passthrough</td><td>Presents a token issued for the CRM to the MCP server, which accepts it and forwards it on</td><td class="yes">"MCP servers <strong>MUST NOT</strong> accept any tokens that were not explicitly issued for the MCP server."</td></tr>
 <tr><td>Missing audience validation</td><td>Reuses any token the shared authorization server issued, for any resource</td><td class="yes">Servers "<strong>MUST</strong> validate that access tokens were issued specifically for them as the intended audience"</td></tr>
@@ -50,15 +50,15 @@
 <h3>Why passthrough is forbidden and not just discouraged</h3>
 <div class="prose">
 <p>The security best practices document names token passthrough as "an anti-pattern where an MCP server accepts tokens from an MCP client without validating that the tokens were properly issued <em>to the MCP server</em> and passes them through to the downstream API", and separates it into two dimensions: audience validation failures, and the forwarding itself. The forwarding is what turns a broken check into a confused deputy, because "the downstream API may incorrectly trust the token as if it came from the MCP server or assume the token was validated by the upstream API".</p>
-<p>The reasons given are not abstract. Security controls that depend on the token's audience are bypassed. The audit trail breaks in both directions: "The MCP Server will be unable to identify or distinguish between MCP Clients when clients are calling with an upstream-issued access token which may be opaque to the MCP Server", and "The downstream Resource Server's logs may show requests that appear to come from a different source with a different identity". Checks 7 and 8 of the lab are that pair of log lines, and they name different callers for the same user action.</p>
+<p>The reasons given are not abstract. Security controls that depend on the token's audience are bypassed. The audit trail breaks in both directions: "The MCP Server will be unable to identify or distinguish between MCP Clients when clients are calling with an upstream-issued access token which may be opaque to the MCP Server", and "The downstream Resource Server's logs may show requests that appear to come from a different source with a different identity". Checks 7 and 8 of the lab are that pair of log lines, and they name different callers for the same user.</p>
 <p>The correct shape is the one <a href="../delegation-and-token-exchange/index.html">module 19</a> built: two tokens. The specification states it plainly. "If the MCP server makes requests to upstream APIs, it may act as an OAuth client to them. The access token used at the upstream API is a separate token, issued by the upstream authorization server. The MCP server <strong>MUST NOT</strong> pass through the token it received from the MCP client."</p>
 </div>
 
 <h3>What changed in this revision</h3>
 <div class="prose">
 <p>Three changes in 2026-07-28 matter for a review, and none of them is where you would look for it.</p>
-<p><strong>MCP is stateless and has no protocol-level sessions.</strong> Servers that need state across requests "mint an explicit handle, such as a shopping cart ID or a workflow ID, and receive it back as an ordinary tool argument on each request". That makes the handle a parameter supplied by the caller, which is <a href="../object-level-authorization/index.html">module 9</a>'s problem wearing a new hat, and the specification's answer is the same: bind the handle server side, "for example by keying stored state as <code>&lt;user_id&gt;:&lt;handle&gt;</code> where the user ID is derived from the verified token rather than supplied by the client". Part E of the lab is that one line of difference.</p>
-<p><strong>Dynamic client registration is deprecated.</strong> Clients and servers "<strong>SHOULD</strong> support OAuth Client ID Metadata Documents" and "<strong>MAY</strong> support the OAuth 2.0 Dynamic Client Registration Protocol", with DCR "deprecated and retained for backwards compatibility". If you reviewed an MCP deployment against an earlier revision and recorded DCR as expected, that note is now out of date.</p>
+<p><strong>MCP is stateless and has no protocol-level sessions.</strong> Servers that need state across requests "mint an explicit handle, such as a shopping cart ID or a workflow ID, and receive it back as an ordinary tool argument on each request". That makes the handle a parameter supplied by the caller, which is <a href="../object-level-authorization/index.html">module 9</a>'s problem wearing a new hat, and the Security Best Practices document's answer is the same: bind the handle server side, "for example by keying stored state as <code>&lt;user_id&gt;:&lt;handle&gt;</code> where the user ID is derived from the verified token rather than supplied by the client". Part E of the lab is that one line of difference.</p>
+<p><strong>Dynamic client registration is deprecated.</strong> Authorization servers and MCP clients "<strong>SHOULD</strong> support OAuth Client ID Metadata Documents" and "<strong>MAY</strong> support the OAuth 2.0 Dynamic Client Registration Protocol", with DCR "deprecated and retained for backwards compatibility". If you reviewed an MCP deployment against an earlier revision and recorded DCR as expected, that note is now out of date.</p>
 <p><strong>Mix-up protection is now explicit.</strong> The client records the issuer before redirecting and validates the <code>iss</code> parameter on the way back, per RFC 9207, and the comparison is "simple string comparison". The specification goes out of its way to forbid being helpful about it: clients "<strong>MUST NOT</strong> apply scheme or host case folding, default-port elision, trailing-slash, or percent-encoding normalization" first. Part C of the lab is the four-row table and then three issuers that differ only by the normalisations you are forbidden to apply.</p>
 </div>
 
@@ -109,7 +109,7 @@
 <li><strong>Keep <code>scopes_supported</code> minimal,</strong> because a client whose challenge carries no scope is documented to fall back to requesting everything in it.</li>
 <li><strong>Bind state handles to the authenticated user</strong> server side, and generate them with a secure random source rather than a counter.</li>
 <li><strong>Validate the <code>iss</code> parameter by simple string comparison,</strong> against an issuer recorded before the redirect, with no normalisation applied first.</li>
-<li><strong>Treat tool descriptions from a server you do not operate as untrusted input,</strong> which is where <a href="../../roadmap/index.html#part-4">module 22</a> picks up.</li>
+<li><strong>Treat tool descriptions from a server you do not operate as untrusted input,</strong> which is where <a href="../prompt-injection-and-output-handling/index.html">module 22</a> picks up.</li>
 </ol>
 
 <h2>4. Defaults and when to change them</h2>
@@ -122,10 +122,10 @@
 <tr><td><code>resource</code> parameter</td><td>Always sent, canonical URI, no fragment, no trailing slash</td><td>Send it even when ignored. The specification says to.</td></tr>
 <tr><td><code>scopes_supported</code></td><td>The minimal set for basic functionality</td><td>Publishing the full catalogue turns the client's documented fallback into a request for everything you have.</td></tr>
 <tr><td>Scope challenges</td><td>All scopes the operation needs, in one challenge</td><td>Challenging one scope at a time forces a round trip per permission and the specification calls that out.</td></tr>
-<tr><td>Client scope accumulation</td><td>Union of previously requested and newly challenged</td><td>Replacing instead of unioning loses a permission the client already had, which the lab shows as a 403 on a tool that was working.</td></tr>
+<tr><td>Client scope accumulation</td><td>Union of previously requested and newly challenged</td><td>Replacing instead of unioning loses a permission the client already had, which the lab shows as a 403 on a tool the first token could call.</td></tr>
 <tr><td>State handles</td><td>Random, bound to the user server side</td><td>A sequential handle is enumerable and an unbound one is an authorization bypass.</td></tr>
 <tr><td>Client registration</td><td>Client ID Metadata Documents</td><td>Dynamic client registration is deprecated in this revision. Use it only against an authorization server that cannot do the former.</td></tr>
-<tr><td>Fetching discovery URLs a server gave you</td><td>Validated against SSRF</td><td>These are attacker-supplied URLs. <a href="../ssrf-and-unsafe-consumption/index.html">Module 14</a> is the method; the specification points at the same private ranges.</td></tr>
+<tr><td>Fetching discovery URLs a server gave you</td><td>Validated against SSRF</td><td>These are attacker-supplied URLs. <a href="../ssrf-and-unsafe-consumption/index.html">Module 14</a> is the method; the Security Best Practices document points at the same private ranges.</td></tr>
 </tbody></table></div>
 
 <h2>5. What it proves, and what it doesn't</h2>
@@ -165,7 +165,7 @@ MCP protocol revision 2026-07-28
 signing keys: random, this run only; nothing is printed
 
 Part A: audience validation, and token passthrough.
- 1. no token at all                                        401 Bearer resource_metadata="https://mcp.exampletools.example/mcp/.well-known/oauth-protected-resource", scope="customers:read"
+ 1. no token at all                                        401 Bearer resource_metadata="https://mcp.exampletools.example/.well-known/oauth-protected-resource/mcp", scope="customers:read"
  2. a token issued for this MCP server                     upstream says: 200 served https://mcp.exampletools.example/mcp for user-41
  3. a token issued for the API behind it                   401 token audience is 'https://api.examplecrm.example', not this server
  4.   did its signature verify                             yes
@@ -198,19 +198,19 @@ Part C: the RFC 9207 issuer validation table.
 27.   differing only by the default port                   reject: iss does not match the recorded issuer
 
 Part D: the challenge, and the step-up scope union.
-28. a cart:read token calling a cart:write tool            403 Bearer error="insufficient_scope", scope="cart:write"
+28. a cart:read token calling a cart:write tool            403 Bearer error="insufficient_scope", scope="cart:write", resource_metadata="https://mcp.exampletools.example/.well-known/oauth-protected-resource/mcp"
 29.   the error the challenge names                        insufficient_scope
 30.   the scope it names                                   cart:write
 31. scopes a client that unions will ask for               ['cart:read', 'cart:write']
 32. scopes a client that replaces will ask for             ['cart:write']
 33. the unioned token, on the tool that first failed       a handle, not a challenge
-34. the replaced token, back on the tool it had working    403 Bearer error="insufficient_scope", scope="cart:read"
+34. the replaced token, on the tool its old scope covered  403 Bearer error="insufficient_scope", scope="cart:read", resource_metadata="https://mcp.exampletools.example/.well-known/oauth-protected-resource/mcp"
 
 Part E: state handles, which replaced sessions in this revision.
 35. the owner reading their own cart                       200 seat-14C
 36. another caller presenting the same handle              404 no such cart for this caller
 37. a server that keys state by the handle alone           cart-1
-38.   the same caller reading it                           200 seat-14C
+38.   another caller reading it                            200 seat-14C
 39.   and the next handle it will mint                     cart-2
 40. handle length when generated with secrets              21
 
@@ -227,17 +227,17 @@ all lab checks passed</code></pre>
 <div class="prose">
 <p>Checks 3 and 4 are the module in two lines. The token is refused because its audience names the CRM, and its signature verified, because the same authorization server issued it. Nothing else in that request was wrong.</p>
 <p>Checks 9 and 10 are the easy case, and they are there for contrast. A token from an unrelated authorization server fails on its signature, and it fails on the server that skips the audience check too. That is why the audience check feels unnecessary until the day you consolidate onto one identity provider, at which point it becomes the only check doing the work.</p>
-<p>Checks 7 and 8 are the audit consequence. The same user action produces an upstream log line naming <code>user-41</code> under passthrough and one naming the MCP server, acting for <code>user-41</code>, when the server holds its own token. The second is the one you can investigate.</p>
+<p>Checks 7 and 8 are the audit consequence. The same user's request produces an upstream log line naming <code>user-41</code> under passthrough and one naming the MCP server, acting for <code>user-41</code>, when the server holds its own token. The second is the one you can investigate.</p>
 <p>Part B runs the specification's own examples, including both that it rejects. The <code>mcp.example.com</code> hostnames in that part are the specification's, quoted unchanged so you can compare the lab with it line by line; everywhere else this course uses the reserved <code>.example</code> domain. It is worth noticing that <code>mcp.example.com</code> fails for a boring reason, a missing scheme, and that the fragment case needs its own rule because a URI with a fragment is otherwise perfectly well formed.</p>
 <p>Part C is the part most likely to be implemented wrongly, because every instinct in URL handling says to normalise before comparing. Checks 25 to 27 are three issuers that differ from the recorded one only by a trailing slash, a capital letter and an explicit default port. All three are rejections, and the specification lists each of those normalisations as one clients MUST NOT apply.</p>
-<p>Check 34 is the quiet one. A client that responded to the <code>cart:write</code> challenge by asking for <code>cart:write</code> alone now gets a 403 on <code>read_cart</code>, a tool it had working a moment earlier. Nothing failed; it threw away a permission it already held. The union in check 31 is a client-side responsibility and the specification says so.</p>
+<p>Check 34 is the quiet one. A client that responded to the <code>cart:write</code> challenge by asking for <code>cart:write</code> alone now gets a 403 on <code>read_cart</code>, a tool its first token was allowed to call. Nothing failed; it threw away a permission it already held. The union in check 31 is a client-side responsibility and the specification says so.</p>
 <p>Part F is the one that reads as a server bug and is usually filed as a client bug. When a challenge carries no <code>scope</code>, the client's documented behaviour is to request every scope in <code>scopes_supported</code>. Check 43 is a seven-scope token including <code>admin:all</code>, produced by a correct client against a server that published its whole catalogue.</p>
 <p><strong>Try next:</strong></p>
 <ul>
 <li>Set <code>check_audience=False</code> on the strict server and rerun. One check fails, and it is the only one that was protecting you.</li>
 <li>Make <code>check_iss</code> lowercase and strip a trailing slash before comparing, the way you would for any other URL. Two checks fail, 25 and 26, and each one is a normalisation the specification forbids. Check 27, the default port, still rejects.</li>
-<li>Set <code>bind_handles=False</code> on the bound server and rerun. Decide whether you would have caught that in review, given that the handle is random and 21 characters long.</li>
-<li>Add a tool that needs two scopes and return them in separate challenges. Count the authorization round trips.</li>
+<li>Set <code>bind_handles=False</code> on the bound server and rerun. One check fails: check 36 now prints <code>200 seat-14C</code> for the other caller, and check 40 still reports a random 21-character handle. Decide whether you would have caught that in review.</li>
+<li>Add a tool that needs two scopes. This takes more than a new entry in <code>tools</code>: <code>call</code> compares one scope string against the token, so change it to check each scope in turn, then return the missing ones in separate challenges and count the authorization round trips. It is two, against one when both scopes are in a single challenge.</li>
 <li>For an MCP server you run or connect to: find where the inbound token goes. If it appears in an outbound request, you have found the finding.</li>
 </ul>
 </div>
@@ -246,7 +246,7 @@ all lab checks passed</code></pre>
 <details><summary>Your MCP server verifies the token's signature against your authorization server's key and the token is not expired. Is that enough?</summary><p>No. If the same authorization server also protects the API behind your MCP server, a token issued for that API verifies identically. The audience claim is the only thing separating them, and validating it is a MUST: servers "MUST validate that access tokens were issued specifically for them as the intended audience".</p></details>
 <details><summary>Why is forwarding the client's token to the upstream API worse than merely accepting it?</summary><p>Accepting it breaks one boundary; forwarding it breaks a second. The upstream API may treat the token as having come from the MCP server, or as having already been validated by it. Audit breaks in both directions: the MCP server cannot distinguish its clients, and the upstream's logs name a different identity than the service actually calling. The specification states MUST NOT for the forwarding specifically.</p></details>
 <details><summary>A client receives a 403 with <code>scope="files:write"</code>. It re-authorizes asking for <code>files:write</code>. What has it done wrong?</summary><p>It dropped whatever it already had. The specification makes scope accumulation a client-side responsibility and tells clients to compute the union of previously requested scopes and the challenged ones, because servers emit per-operation challenges and are not required to include scopes already granted.</p></details>
-<details><summary>Your MCP server mints 32-character random workflow handles. Is handle hijacking addressed?</summary><p>Only partly. Random handles make guessing impractical, but the specification's requirement is that possession of a handle MUST NOT be treated as authentication. A handle that leaks, through a log or a shared transcript, still works unless the server binds it to the authenticated user and rejects it when anyone else presents it.</p></details>
+<details><summary>Your MCP server mints 32-character random workflow handles. Is handle hijacking addressed?</summary><p>Only partly. Random handles make guessing impractical, but the Security Best Practices document's requirement is that possession of a handle MUST NOT be treated as authentication. A handle that leaks, through a log or a shared transcript, still works unless the server binds it to the authenticated user and rejects it when anyone else presents it.</p></details>
 
 <section class="course-quiz" data-quiz data-quiz-id="mcp-server-authorization-check" data-correct-feedback="Correct. One authorization server means one signing key, so the audience claim is the only thing that distinguishes a token for the MCP server from a token for the API behind it." data-incorrect-feedback="Not quite. The signature, the issuer and the expiry all check out on a token the shared authorization server issued for the other resource. Only the audience tells the two apart.">
 <p class="kicker">Quick check</p>
@@ -377,20 +377,20 @@ all lab checks passed</code></pre>
 <li><span class="label std">Standard</span>Clients "<strong>MUST</strong> implement PKCE" and "<strong>MUST</strong> verify PKCE support before proceeding", "<strong>MUST</strong> use the <code>S256</code> code challenge method when technically capable", and "<strong>MUST</strong> refuse to proceed" when <code>code_challenge_methods_supported</code> is absent. MCP 2026-07-28, Authorization Security Considerations, Authorization Code Protection.</li>
 <li><span class="label std">Standard</span>Clients compare the <code>iss</code> parameter to the recorded issuer using simple string comparison (RFC 3986 section 6.2.1), and "<strong>MUST NOT</strong> apply scheme or host case folding, default-port elision, trailing-slash, or percent-encoding normalization" first. MCP 2026-07-28, Authorization, Authorization Response Validation. RFC 9207 section 2.4.</li>
 <li><span class="label std">Standard</span>Servers "<strong>SHOULD</strong> include a <code>scope</code> parameter in the <code>WWW-Authenticate</code> header", clients "<strong>MUST</strong> treat the scopes provided in the challenge as authoritative for the current operation", and clients "<strong>MUST NOT</strong> assume any particular set relationship between the challenged scope set and <code>scopes_supported</code>". MCP 2026-07-28, Authorization, Scope Selection Strategy.</li>
-<li><span class="label std">Standard</span>Insufficient scope at runtime: 403 with <code>error="insufficient_scope"</code>, a <code>scope</code> parameter and <code>resource_metadata</code>; servers "<strong>SHOULD</strong> include all scopes required for the current operation in a single challenge". Clients compute "the union of the client's previously requested scope set and the scopes from the current challenge". MCP 2026-07-28, Authorization, Scope Challenge Handling and Step-Up Authorization Flow.</li>
+<li><span class="label std">Standard</span>Insufficient scope at runtime: the server "<strong>SHOULD</strong> respond with" 403 with <code>error="insufficient_scope"</code>, a <code>scope</code> parameter and <code>resource_metadata</code>; servers "<strong>SHOULD</strong> include all scopes required for the current operation in a single challenge". Clients compute "the union of the client's previously requested scope set and the scopes from the current challenge". MCP 2026-07-28, Authorization, Scope Challenge Handling and Step-Up Authorization Flow.</li>
 <li><span class="label std">Standard</span>"MCP servers that implement authorization <strong>MUST</strong> verify all inbound requests. MCP servers <strong>MUST NOT</strong> treat possession of a state handle as authentication." Servers "<strong>SHOULD</strong> bind handles server-side to the authenticated user, for example by keying stored state as <code>&lt;user_id&gt;:&lt;handle&gt;</code> where the user ID is derived from the verified token rather than supplied by the client". MCP 2026-07-28, Security Best Practices, State Handle Hijacking.</li>
 <li><span class="label std">Standard</span>"MCP proxy servers using static client IDs <strong>MUST</strong> obtain user consent for each dynamically registered client before forwarding to third-party authorization servers." MCP 2026-07-28, Authorization Security Considerations, Confused Deputy Problem.</li>
-<li><span class="label std">Standard</span>Clients and servers "<strong>SHOULD</strong> support OAuth Client ID Metadata Documents" and "<strong>MAY</strong> support the OAuth 2.0 Dynamic Client Registration Protocol", which is "deprecated and retained for backwards compatibility". MCP 2026-07-28, Authorization, Overview.</li>
+<li><span class="label std">Standard</span>Authorization servers and MCP clients "<strong>SHOULD</strong> support OAuth Client ID Metadata Documents" and "<strong>MAY</strong> support the OAuth 2.0 Dynamic Client Registration Protocol", which is "deprecated and retained for backwards compatibility". MCP 2026-07-28, Authorization, Overview.</li>
 <li><span class="label std">Standard</span>"descriptions of tool behavior such as annotations should be considered untrusted, unless obtained from a trusted server". MCP 2026-07-28, Specification, Security and Trust &amp; Safety.</li>
-<li><span class="label std">Standard</span>Clients fetching OAuth discovery URLs "<strong>MUST</strong> consider SSRF risks", "<strong>SHOULD</strong> require HTTPS" and "<strong>SHOULD</strong> block requests to private and reserved IP address ranges". MCP 2026-07-28, Security Best Practices, Server-Side Request Forgery. RFC 9728 section 7.7.</li>
+<li><span class="label std">Standard</span>MCP clients deployed to a server "<strong>MUST</strong> consider SSRF risks" when fetching OAuth-related URLs, "<strong>SHOULD</strong> require HTTPS" and "<strong>SHOULD</strong> block requests to private and reserved IP address ranges". MCP 2026-07-28, Security Best Practices, Server-Side Request Forgery. RFC 9728 section 7.7.</li>
 <li><span class="label base">Baseline</span>Record the protocol revision the implementation targets, and recheck it against the current one on a schedule.</li>
 <li><span class="label base">Baseline</span>Test audience validation with a token your own authorization server issued for a different resource, not only with a forged one.</li>
 <li><span class="label base">Baseline</span>Keep <code>scopes_supported</code> to the minimal set for basic functionality, since the client's documented fallback requests all of it.</li>
 <li><span class="label base">Baseline</span>Require authorization on any HTTP-transport server, treating the specification's optionality as covering <code>stdio</code> servers only.</li>
 <li><span class="label base">Baseline</span>Generate state handles from a secure random source and bind them to the authenticated user.</li>
-<li><span class="label opt">Option</span>Bind the MCP server's access tokens to their holder with the mechanisms in <a href="../sender-constrained-tokens/index.html">module 8</a> where a stolen bearer token is in the threat model.</li>
+<li><span class="label opt">Option</span>Bind the MCP server's access tokens to their holder with the mechanisms in <a href="../sender-constrained-tokens/index.html">module 7</a> where a stolen bearer token is in the threat model.</li>
 <li><span class="label opt">Option</span>Expire state handles as well as binding them, where the workflow has a natural lifetime.</li>
-<li><span class="label opt">Option</span>Route the client's OAuth discovery requests through an egress proxy that blocks internal destinations, which the specification suggests for server-side client deployments.</li>
+<li><span class="label opt">Option</span>Route the client's OAuth discovery requests through an egress proxy that blocks internal destinations, which the Security Best Practices document suggests for server-side client deployments.</li>
 </ul>
 
 <h2>Review checklist items</h2>
@@ -414,7 +414,7 @@ all lab checks passed</code></pre>
 <li><a href="https://modelcontextprotocol.io/specification/versioning">MCP Versioning</a>. Revision identifiers, the Draft, Current and Final states, and the statement that 2026-07-28 is the current protocol version.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc8707.html">RFC 8707: Resource Indicators for OAuth 2.0</a>, February 2020. Section 2.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc9207">RFC 9207: OAuth 2.0 Authorization Server Issuer Identification</a>, March 2022. Sections 1, 2, 2.3 and 2.4.</li>
-<li><a href="https://www.rfc-editor.org/rfc/rfc9728">RFC 9728: OAuth 2.0 Protected Resource Metadata</a>, April 2025. Sections 7.4 and 7.7.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9728">RFC 9728: OAuth 2.0 Protected Resource Metadata</a>, April 2025. Sections 3, 3.1, 7.4 and 7.7.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc6750">RFC 6750: The OAuth 2.0 Authorization Framework: Bearer Token Usage</a>, October 2012. Sections 3 and 3.1. Updated by RFC 8996 and RFC 9700.</li>
 </ul>
 </main>
