@@ -48,7 +48,7 @@ except ImportError:
     sys.exit(2)
 
 NOW = 1716307200          # the same clock module 2 used
-WINDOW_SECONDS = 300      # project baseline: how old a created value may be
+WINDOW_SECONDS = 300      # project baseline: how far created may be from now, either way
 AUTHORITY = "api.hotel.example"
 
 

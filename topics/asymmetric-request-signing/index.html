@@ -12,11 +12,11 @@
 <main>
 <p class="kicker">Part 1: Proving who is calling &middot; Module 3</p>
 <h1>Asymmetric request signing</h1>
-<p class="meta">Last reviewed 2026-09-30 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 
 <div class="prose">
-<p><strong>Objective.</strong> After this module you can say exactly what an asymmetric request signature adds over an HMAC and what it does not, build an RFC 9421 signature base, list the checks a verifier must make and the order they go in, and recognise the coverage mistakes that leave a signed request no safer than an unsigned one.</p>
-<p><strong>Before you start.</strong> Module 2 ended with one row that never turned green: take the key from the receiver and sign new requests as the caller. You should know what an <a href="../../glossary/index.html#hmac">HMAC</a> proves, how a <a href="../../glossary/index.html#canonical-string">canonical string</a> is built, and why a <a href="../../glossary/index.html#nonce">nonce</a> is recorded only after the signature verifies.</p>
+<p><strong>Objective.</strong> After this module you can say exactly what an asymmetric request signature adds over an <a href="../../glossary/index.html#hmac">HMAC</a> and what it does not, build an RFC 9421 <a href="../../glossary/index.html#signature-base">signature base</a>, list the checks a verifier must make and the order they go in, and recognise the coverage mistakes that leave a signed request no safer than an unsigned one.</p>
+<p><strong>Before you start.</strong> Module 2 ended with one row that never turned green: take the key from the receiver and sign new requests as the caller. You should know what an HMAC proves, how a <a href="../../glossary/index.html#canonical-string">canonical string</a> is built, and why a <a href="../../glossary/index.html#nonce">nonce</a> is recorded only after the signature verifies.</p>
 </div>
 <section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 4 of 27</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
 
@@ -39,7 +39,7 @@
 <tr><td>The caller's private key</td><td class="yes">Signs any request</td><td class="yes">Signs any request</td></tr>
 <tr><td>A validly signed request for an action the caller may not take</td><td class="yes">Accepted by the signature layer</td><td class="yes">Accepted by the signature layer</td></tr>
 </tbody></table></div>
-<p class="prose">Two rows in the middle turn green, and that is the whole point of this module. The last three do not. One of them, the uncovered body, is the mistake this module spends the most time on, because it is the one that makes a correctly implemented signature worthless.</p>
+<p class="prose">Two rows in the middle turn green, and that is the whole point of this module. The last three do not. One of them, the uncovered body, is the mistake this module spends the most time on, because it is the one that makes a correctly implemented <a href="../../glossary/index.html#signature">signature</a> worthless.</p>
 
 <h2>2. Why it works</h2>
 <div class="prose">
@@ -48,15 +48,15 @@
 <ul>
 <li><strong>A breached verifier cannot forge.</strong> This is the row from module 2. It matters most when the receiver is the larger, more exposed party, which is the usual shape.</li>
 <li><strong>Many receivers cost nothing extra.</strong> With HMAC, every additional receiver is another copy of the secret and another place it can leak. With a keypair, the caller signs once and publishes one public key.</li>
-<li><strong>A third party can check.</strong> Anyone with the public key can verify a captured request without being able to have produced it. That is a useful property in an incident review or a dispute. It is not legal non-repudiation: it holds exactly as far as private key custody holds, and no further.</li>
+<li><strong>A third party can check.</strong> Anyone with the public key can verify a captured request without being able to have produced it. That is a useful property in an incident review or a dispute. It is not legal <a href="../../glossary/index.html#non-repudiation">non-repudiation</a>: it holds exactly as far as private key custody holds, and no further.</li>
 </ul>
-<p>What changes is who can sign. What does not change is what the signature covers, and that is where real deployments fail. RFC 9421 section 7.2.1 is explicit that portions of a message outside the covered components remain "modifiable by intermediaries" without invalidating the signature. Section 7.2.8 goes further: the specification "does not define a means to directly cover HTTP message content", so the body is protected only by covering a digest header that describes it. Signing a request and not covering its body is a common and silent mistake, and the algorithm you chose has nothing to do with it.</p>
+<p>What changes is who can sign. What does not change is what the signature covers, and that is where real deployments fail. RFC 9421 section 7.2.1 is explicit that portions of a message outside the <a href="../../glossary/index.html#covered-components">covered components</a> are "susceptible to modification by an attacker without affecting the signature". Section 1 goes further: the specification "does not define a means to directly cover HTTP message content", so the body is protected only by covering a digest header that describes it, which section 7.2.8 discusses. Signing a request and not covering its body is a common and silent mistake, and the algorithm you chose has nothing to do with it.</p>
 </div>
 
 <h2>3. The control</h2>
 <h3>The signature base</h3>
 <div class="prose">
-<p>RFC 9421 section 2.5 defines the thing that actually gets signed: the signature base, "an ASCII string containing the canonicalized HTTP message components covered by the signature". One line per <a href="../../glossary/index.html#covered-components">covered component</a>, each as a quoted lowercase name, a colon, a space, and the value. The last line is always <code>@signature-params</code>, which lists the covered set and the parameters. Section 2.3 defines it and requires that it never appear inside its own covered list.</p>
+<p>RFC 9421 section 2.5 defines the thing that actually gets signed: the signature base, an ASCII string "containing the canonicalized HTTP message components covered by the signature". One line per covered component, each as a quoted lowercase name, a colon, a space, and the value. The last line is always <code>@signature-params</code>, which lists the covered set and the parameters. Section 2.3 defines it and requires that it never appear inside its own covered list.</p>
 <p>This is module 2's canonical string with the guesswork removed. You no longer decide the separator, the ordering, or how a missing field is represented: the specification does, and both sides can be tested against it.</p>
 </div>
 <pre><code>"@method": POST
@@ -66,17 +66,17 @@
 "content-digest": sha-256=:u0zCPnrSXArDEbOkaTNMlcxECQy9moI7jortdbeoXHg=:
 "@signature-params": ("@method" "@authority" "@path" "content-type" "content-digest");created=1716307200;nonce="n-001";keyid="exampleair-2026-a";alg="ed25519"</code></pre>
 <div class="prose">
-<p>Names beginning with <code>@</code> are <a href="../../glossary/index.html#derived-component">derived components</a>: values taken from the request line rather than a header. RFC 9421 section 2.2 defines <code>@method</code>, <code>@target-uri</code>, <code>@authority</code>, <code>@scheme</code>, <code>@request-target</code>, <code>@path</code>, <code>@query</code>, <code>@query-param</code> and <code>@status</code>. The <code>content-digest</code> value is an RFC 9530 field: a hash of the body, expressed as a structured field, which is the only way the body enters the signature at all.</p>
+<p>Names beginning with <code>@</code> are <a href="../../glossary/index.html#derived-component">derived components</a>: values derived from the control data of the message, such as the method and the target URI, rather than read from a header. RFC 9421 section 2.2 defines <code>@method</code>, <code>@target-uri</code>, <code>@authority</code>, <code>@scheme</code>, <code>@request-target</code>, <code>@path</code>, <code>@query</code>, <code>@query-param</code> and <code>@status</code>. The <a href="../../glossary/index.html#content-digest"><code>content-digest</code></a> value is an RFC 9530 field: a <a href="../../glossary/index.html#hash">hash</a> of the body, expressed as a structured field, which is the only way the body enters the signature at all.</p>
 <p>The signed bytes travel in two fields, both dictionaries keyed by a label the signer chooses. RFC 9421 section 4.1 defines the first, section 4.2 the second:</p>
 </div>
 <pre><code>Signature-Input: sig1=  the @signature-params value, byte for byte
 Signature:       sig1=:base64 of the signature over the base:</code></pre>
-<p class="prose meta">The verifier reads <code>Signature-Input</code>, rebuilds the base from the message in front of it, and checks the result against <code>Signature</code>. If the two bases differ by one byte, the check fails, which is exactly the behaviour you want and exactly why the canonicalization rules are worth having in a specification rather than in your own documentation.</p>
+<p class="prose meta">The verifier reads <code>Signature-Input</code>, rebuilds the base from the message in front of it, and checks the result against <code>Signature</code>. If the two bases differ by one byte, the check fails, which is exactly the behaviour you want and exactly why the <a href="../../glossary/index.html#canonicalization">canonicalization</a> rules are worth having in a specification rather than in your own documentation.</p>
 
 <h3>What a verifier checks, in order</h3>
 <ol class="steps prose">
 <li>Resolve <a href="../../glossary/index.html#keyid">keyid</a> to a key you already know. An unknown <code>keyid</code> is a rejection, never a prompt to go and fetch something the caller named.</li>
-<li>Check <code>alg</code> against your allowlist. RFC 9421 section 6.2.2 registers the identifiers; your application decides which of them you accept.</li>
+<li>Check <code>alg</code> against your <a href="../../glossary/index.html#allowlist">allowlist</a>. RFC 9421 section 6.2.2 registers the identifiers; your application decides which of them you accept.</li>
 <li>Check that <code>alg</code> is appropriate for that key. Without this you have module 5's <a href="../../glossary/index.html#algorithm-confusion">algorithm confusion</a> in a new place: a message claiming <code>hmac-sha256</code> against a key you hold as a public value.</li>
 <li>Check that every component your application requires is in the covered list. If <code>content-digest</code> is not there, stop. The signature will verify and it will mean nothing about the body.</li>
 <li>Rebuild the signature base from the message as received. A covered component that is not present is a rejection, not a blank line.</li>
@@ -84,7 +84,7 @@ Signature:       sig1=:base64 of the signature over the base:</code></pre>
 <li>Recompute the digest from the received body and compare. Covering <code>content-digest</code> ties the header to the signer. Recomputing is what ties the header to the bytes that arrived.</li>
 <li>Check <code>created</code> against your window, and <code>expires</code> if present.</li>
 <li>Check and record <code>nonce</code>, only now, for the same reason module 2 recorded it last: a forged request must not be able to fill your store.</li>
-<li>Hand the request to authorization. A verified signature says who signed; it says nothing about what they may do.</li>
+<li>Hand the request to <a href="../../glossary/index.html#authorization">authorization</a>. A verified signature says who signed; it says nothing about what they may do.</li>
 </ol>
 
 <h3>The whole system</h3>
@@ -171,7 +171,7 @@ py -3 -m venv .venv          python3 -m venv .venv
 python -m pip install cryptography==50.0.1
 python labs/asymmetric_signing_lab.py</code></pre>
 <div class="prose">
-<p>Inside an activated environment use <code>python</code>, not <code>py -3</code>. The Windows launcher ignores an active environment when you give it an explicit version: "To run the global interpreter, either deactivate the virtual environment, or explicitly specify the global Python version" (Python documentation, Using Python on Windows, Virtual environments). Outside an environment, <code>py -3</code> is still the right command on Windows.</p>
+<p>Inside an activated environment use <code>python</code>, not <code>py -3</code>. The <code>py</code> command uses an active environment only when you have not asked for a version: "If you are running in an active virtual environment, have not requested a particular version, and there is no shebang line, the default runtime will be that virtual environment" (Python 3.14 documentation, Using Python on Windows, Python install manager, Basic use). Outside an environment, <code>py -3</code> is still the right command on Windows.</p>
 <p>Every signature base, signature and digest in the lab is real. The <code>Signature-Input</code> and <code>Signature</code> fields are serialized and parsed as text, with a parser that covers the subset the lab produces rather than the whole Structured Fields grammar.</p>
 </div>
 <pre><code>$ python3 labs/asymmetric_signing_lab.py
@@ -233,9 +233,9 @@ all lab checks passed</code></pre>
 
 <h2>8. Check your understanding</h2>
 <details><summary>Your verifier accepts a request, the signature is valid, and the body was replaced in transit. How?</summary><p>Two ways. Either <code>content-digest</code> was not in the covered component list, so the body was never inside the signature at all, or it was covered but the verifier never recomputed the digest from the received bytes. Both produce a valid signature over a message whose body you cannot trust. Checks 10 and 12 in the lab are these two cases.</p></details>
-<details><summary>An HMAC and an Ed25519 signature both prove the key was used. What does the second one add?</summary><p>That the verifier could not have produced it. With a shared secret, verifying and signing are the same capability, so a breached or motivated receiver can forge requests as the caller, and no third party can distinguish the two. With a keypair the receiver holds only a public key. That is the row that turns green.</p></details>
+<details><summary>An HMAC and an Ed25519 signature both prove the key was used. What does the second one add?</summary><p>That the verifier could not have produced it. With a <a href="../../glossary/index.html#shared-secret">shared secret</a>, verifying and signing are the same capability, so a breached or motivated receiver can forge requests as the caller, and no third party can distinguish the two. With a keypair the receiver holds only a public key. That is the row that turns green.</p></details>
 <details><summary>A request arrives with <code>keyid</code> naming a key you have never seen. What do you do?</summary><p>Reject it. The temptation is to resolve the <code>keyid</code> by fetching something, which hands the caller control of which key you verify against. Keys are established out of band, before the first request, and <code>keyid</code> only selects among the ones you already hold.</p></details>
-<details><summary>Why check the algorithm against the key as well as against an allowlist?</summary><p>Because a key and an algorithm can each be acceptable and still be wrong together. A message claiming <code>hmac-sha256</code> for a <code>keyid</code> you hold as a public value is asking you to treat a public value as a shared secret. RFC 9421 section 1.4 requires an application to define "a means of determining that the signature algorithm used to verify the signature is appropriate for the key material and context of the message" for exactly this reason.</p></details>
+<details><summary>Why check the algorithm against the key as well as against an allowlist?</summary><p>Because a key and an algorithm can each be acceptable and still be wrong together. A message claiming <code>hmac-sha256</code> for a <code>keyid</code> you hold as a public value is asking you to treat a public value as a shared secret. RFC 9421 section 1.4 requires an application to define a "means of determining that the signature algorithm used to verify the signature is appropriate for the key material and context of the message" for exactly this reason.</p></details>
 
 <section class="course-quiz" data-quiz data-quiz-id="asymmetric-request-signing-check" data-correct-feedback="Correct. With a shared secret, verifying and signing are the same capability, so a breached receiver can sign as the caller. A public key verifies and cannot sign, which is the row module 2 left open." data-incorrect-feedback="Not quite. Tampering and replay were already blocked in module 2 by the signature and the nonce, and a stolen private key defeats both schemes equally. The change is what a breached receiver can do.">
 <p class="kicker">Quick check</p>
@@ -354,15 +354,15 @@ all lab checks passed</code></pre>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
 <p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
 <ul class="controls">
-<li><span class="label std">Standard</span>Sign the signature base of RFC 9421 section 2.5, "an ASCII string containing the canonicalized HTTP message components covered by the signature", not a format of your own.</li>
+<li><span class="label std">Standard</span>Sign the signature base of RFC 9421 section 2.5, an ASCII string "containing the canonicalized HTTP message components covered by the signature", not a format of your own.</li>
 <li><span class="label std">Standard</span>The <code>@signature-params</code> component is required as the last line of the signature base and must not be enumerated within the covered components of any signature, including itself. RFC 9421 section 2.3.</li>
 <li><span class="label std">Standard</span>Carry the covered components and parameters in <code>Signature-Input</code> and the signature in <code>Signature</code>, both Dictionary structured fields. RFC 9421 sections 4.1 and 4.2.</li>
-<li><span class="label std">Standard</span>Use a registered algorithm identifier from the HTTP Signature Algorithms registry, RFC 9421 section 6.2.2, such as <code>ed25519</code>, <code>ecdsa-p256-sha256</code> or <code>rsa-pss-sha512</code>.</li>
-<li><span class="label std">Standard</span>RFC 9421 section 1.4 requires an application or profile to specify, at a minimum, the set of component identifiers and signature parameters that are expected and required, a means of retrieving key material, "the set of allowable signature algorithms to be used by signers and accepted by verifiers", "a means of determining that the signature algorithm used to verify the signature is appropriate for the key material and context of the message", and the errors returned when validation fails. Write these down before you implement.</li>
-<li><span class="label std">Standard</span>Cover a body digest explicitly. RFC 9421 section 7.2.8 states that the specification "does not define a means to directly cover HTTP message content", so the body is only protected by covering a digest field that describes it.</li>
-<li><span class="label std">Standard</span>Treat anything outside the covered components as untrusted. RFC 9421 section 7.2.1 notes that uncovered portions remain "modifiable by intermediaries" without invalidating the signature.</li>
-<li><span class="label std">Standard</span>Compute <code>Content-Digest</code> as defined in RFC 9530 section 2, using an active algorithm from its registry in section 7.2, currently <code>sha-512</code> and <code>sha-256</code>.</li>
-<li><span class="label std">Standard</span>For <code>ecdsa-p256-sha256</code> the signature value is R and S concatenated, not a DER encoding. RFC 9421 section 3.3.4.</li>
+<li><span class="label std">Standard</span>RFC 9421 section 2.3 defines the value of the <code>alg</code> parameter as an algorithm from the HTTP Signature Algorithms registry. Section 6.2.2 lists its initial contents, which include <code>ed25519</code>, <code>ecdsa-p256-sha256</code> and <code>rsa-pss-sha512</code>.</li>
+<li><span class="label std">Standard</span>RFC 9421 section 1.4 requires an application or profile to specify, at a minimum, the set of component identifiers and signature parameters that are expected and required, a means of retrieving key material, the "set of allowable signature algorithms to be used by signers and accepted by verifiers", a "means of determining that the signature algorithm used to verify the signature is appropriate for the key material and context of the message", and the errors returned when validation fails, among other items. Write these down before you implement.</li>
+<li><span class="label std">Standard</span>To protect the body, cover a digest of it. RFC 9421 section 1 states that the specification "does not define a means to directly cover HTTP message content", and section 7.2.8 that a digest field from RFC 9530 "can be included just like any other field", so the body is only protected by covering a digest field that describes it.</li>
+<li><span class="label std">Standard</span>Treat anything outside the covered components as untrusted. RFC 9421 section 7.2.1 says "The verifier should only trust message components that have been signed", because portions not covered are "susceptible to modification by an attacker without affecting the signature".</li>
+<li><span class="label std">Standard</span>Compute <code>Content-Digest</code> as defined in RFC 9530 section 2, using an algorithm whose status is Active, which section 5 recommends. The initial registry contents in section 7.2 list two: <code>sha-512</code> and <code>sha-256</code>.</li>
+<li><span class="label std">Standard</span>For <code>ecdsa-p256-sha256</code> the signature value is R followed by S, each zero-padded to 32 octets (RFC 9421 section 3.3.4), not a DER encoding.</li>
 <li><span class="label base">Baseline</span>Verify in this order: resolve <code>keyid</code>, check <code>alg</code> against the allowlist, check <code>alg</code> against the key, check required coverage, rebuild the base, verify the signature, recompute the digest, check <code>created</code> and <code>expires</code>, record the <code>nonce</code>.</li>
 <li><span class="label base">Baseline</span>Recompute the digest from the received bytes on every request. Covering <code>content-digest</code> without recomputing it protects the header and not the body.</li>
 <li><span class="label base">Baseline</span>Accept a <code>created</code> value within 300 seconds of server time in either direction, and document that number as the replay window for anything you do not record.</li>
@@ -389,9 +389,9 @@ all lab checks passed</code></pre>
 
 <h2>Sources</h2>
 <ul class="prose">
-<li><a href="https://www.rfc-editor.org/rfc/rfc9421">RFC 9421: HTTP Message Signatures</a>, February 2024. Sections 1.4, 2.2, 2.3, 2.5, 3.3.4, 4.1, 4.2, 6.2.2, 7.2.1, 7.2.8.</li>
-<li><a href="https://www.rfc-editor.org/rfc/rfc9530">RFC 9530: Digest Fields</a>, February 2024. Sections 2, 6.1, 7.2.</li>
-<li><a href="https://docs.python.org/3/using/windows.html">Python documentation: Using Python on Windows</a>. Virtual environments and the launcher's behaviour with an explicit version.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9421">RFC 9421: HTTP Message Signatures</a>, February 2024. Sections 1, 1.4, 2.2, 2.3, 2.5, 3.3.4, 4.1, 4.2, 6.2.2, 7.2.1, 7.2.8.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9530">RFC 9530: Digest Fields</a>, February 2024. Sections 2, 5, 7.2.</li>
+<li><a href="https://docs.python.org/3.14/using/windows.html">Python 3.14 documentation: Using Python on Windows</a>. Python install manager, Basic use: how the <code>py</code> command picks a runtime when a virtual environment is active.</li>
 </ul>
 </main>
 <footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
