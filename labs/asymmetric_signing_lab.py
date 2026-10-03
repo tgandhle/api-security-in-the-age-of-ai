@@ -166,9 +166,12 @@ class Verifier:
         headers = message["headers"]
         if "signature-input" not in headers or "signature" not in headers:
             return "reject: no signature"
-        label, components, params = parse_signature_input(headers["signature-input"])
-        fields = dict(params)
-        signature = base64.b64decode(headers["signature"].split("=:", 1)[1].rstrip(":"))
+        try:
+            label, components, params = parse_signature_input(headers["signature-input"])
+            fields = dict(params)
+            signature = base64.b64decode(headers["signature"].split("=:", 1)[1].rstrip(":"))
+        except (ValueError, IndexError):
+            return "reject: malformed signature fields"
 
         keyid = fields.get("keyid")
         if keyid not in self.keys:
@@ -202,12 +205,13 @@ class Verifier:
         if "expires" in fields and now > fields["expires"]:
             return "reject: signature expired"
         nonce = fields.get("nonce")
-        if nonce is not None:
-            # Recorded after the signature verifies, so forged requests
-            # cannot fill the store. Module 2 taught this order.
-            if nonce in self.seen_nonces:
-                return "reject: nonce already used"
-            self.seen_nonces.add(nonce)
+        if nonce is None:
+            return "reject: nonce missing"
+        # Recorded after the signature verifies, so forged requests
+        # cannot fill the store. Module 2 taught this order.
+        if nonce in self.seen_nonces:
+            return "reject: nonce already used"
+        self.seen_nonces.add(nonce)
         return "accept"
 
     def _signature_ok(self, entry, alg, signature, base):
@@ -288,9 +292,10 @@ def main():
     print("Part A: a shared secret, as in module 2.")
 
     shared_store = {"exampleair-hmac": {"alg": "hmac-sha256", "material": shared_secret}}
-    receiver = Verifier(shared_store)
-    signed = sign_message(request(), "exampleair-hmac", "hmac-sha256", COVERED, [],
-                          hmac_signer(shared_secret))
+    receiver = Verifier(shared_store, require_covered=("content-digest",),
+                        recompute_digest=True, allowed_algs=("hmac-sha256",))
+    signed = sign_message(request(), "exampleair-hmac", "hmac-sha256", COVERED,
+                          [("nonce", "n-000")], hmac_signer(shared_secret))
     check("the real client signs a transfer", "accept", receiver.verify(signed))
     check("one covered field changed in flight", "reject: signature check failed",
           receiver.verify(dict(signed, path="/v2/transfer-fast")))
