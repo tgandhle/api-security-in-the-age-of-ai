@@ -14,9 +14,10 @@ with a real SQLite database for the SQL half. Part D is why filtering the
 input is not the control, with five bypasses of a keyword filter. Part E is
 the blast radius of a tool call the model was talked into making.
 
-OWASP's own framing for Part B: "Treat the model as any other user, adopting
-a zero-trust approach, and apply proper input validation on responses
-coming from the model to backend functions."
+OWASP's own framing for Part B, from LLM10:2026 Improper Output Handling:
+"Treat the model as any other user, adopting a zero-trust approach, and
+apply proper input validation on responses coming from the model to backend
+functions."
 
 Needs nothing beyond Python 3. sqlite3, html, shlex, urllib and unicodedata
 are all standard library.
@@ -292,8 +293,7 @@ def main():
     check("  but it is still a shell metacharacter string", "yes",
           "yes" if "; rm -rf /" in escaped_html else "no")
     check("shlex.quote makes it one shell word", "yes",
-          "yes" if quoted_shell.startswith("'")
-          and quoted_shell.endswith("'") else "no")
+          "yes" if shlex.split(quoted_shell) == [PAYLOAD] else "no")
     check("  and that output in HTML still has its tag", "yes",
           "yes" if "<script>" in quoted_shell else "no")
     check("urllib quote leaves an angle bracket", "no",
@@ -369,7 +369,8 @@ def main():
     check("tools a viewer role reaches", "['read_booking', 'search_flights']",
           str(reachable_viewer))
     check("  writes a viewer can perform", "0",
-          str(len([n for n in reachable_viewer if n == "hold_seat"])))
+          str(len([n for n in reachable_viewer
+                   if n not in ("read_booking", "search_flights")])))
 
     failures = [r for r in RESULTS if r[2] != r[1]]
     print()
