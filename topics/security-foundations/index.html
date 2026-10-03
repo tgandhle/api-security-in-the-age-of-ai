@@ -12,7 +12,7 @@
 <main>
 <p class="kicker">Primer &middot; Module 0</p>
 <h1>Security concepts for the course</h1>
-<p class="meta">Last reviewed 2026-09-30 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 
 <div class="prose">
 <p><strong>Objective.</strong> After this module you can say who can produce and who can check each of a hash, an HMAC and a signature, state what TLS authenticates and what it does not, tell authentication from authorization without hesitating, and name the trust boundary a given check sits on.</p>
@@ -51,22 +51,22 @@
 <tr><td><a href="../../glossary/index.html#asymmetric-signature">Asymmetric signature</a></td><td>The private key holder</td><td>Anyone with the public key</td><td>That the private key holder produced it, to anyone who cares</td></tr>
 </tbody></table></div>
 <div class="prose">
-<p>Read the first row carefully, because it is the one people get wrong. A hash has no key in it. That is not a limitation to work around, it is the definition, and it means a hash sent next to the thing it describes protects nothing: whoever can change one can change the other. A hash becomes useful the moment it is carried inside something a key protects, which is exactly what <a href="../asymmetric-request-signing/index.html">module 3</a> does when it covers <code>Content-Digest</code> in a signature.</p>
+<p>Read the first row carefully, because it is the one people get wrong. A hash has no key in it. That is not a limitation to work around, it is the definition, and it means a hash sent next to the thing it describes protects nothing: whoever can change one can change the other. A hash becomes useful the moment it is carried inside something a key protects, which is exactly what <a href="../asymmetric-request-signing/index.html">module 3</a> does when it covers <code>Content-Digest</code> in a <a href="../../glossary/index.html#signature">signature</a>.</p>
 <p>The second and third rows differ only in the "can produce" column, and that single difference is worth a whole module. If the party checking your requests can also produce them, then a valid request proves that one of two parties made it, which is not what anyone means by proving who sent it.</p>
 </div>
 
 <h3>What TLS does, and where it stops</h3>
 <div class="prose">
-<p>RFC 8446 states TLS 1.3's guarantees in its first section, and they are narrower than the way the protocol gets talked about:</p>
+<p>RFC 9846 lists, in its first section, the properties a <a href="../../glossary/index.html#tls">TLS</a> 1.3 channel should provide, and they are narrower than the way the protocol gets talked about:</p>
 <ul>
-<li><strong>Authentication.</strong> "The server side of the channel is always authenticated; the client side is optionally authenticated." The default is one-way. Your service proves it is your service; the caller proves nothing unless you deployed mutual TLS.</li>
+<li><strong>Authentication.</strong> "The server side of the channel is always authenticated; the client side is optionally authenticated." The default is one-way. Your service proves it is your service; the caller proves nothing unless you deployed <a href="../../glossary/index.html#mtls">mutual TLS</a>.</li>
 <li><strong>Confidentiality.</strong> "Data sent over the channel after establishment is only visible to the endpoints."</li>
 <li><strong>Integrity.</strong> "Data sent over the channel after establishment cannot be modified by attackers without detection."</li>
 </ul>
 <p>Every one of those is about the channel, and every one of them ends where the channel ends. Three consequences follow, and they are where TLS gets over-read:</p>
 <ul>
 <li>A request that arrived over TLS has an authenticated <em>server</em>, which is you. It says nothing about the caller. A credential in the request is what says something about the caller.</li>
-<li>Integrity holds between the two endpoints of the connection. If a load balancer or gateway terminates TLS, it is an endpoint, and everything past it is a new decision about trust. <a href="../sender-constrained-tokens/index.html">Module 7</a> is where that becomes concrete.</li>
+<li>Integrity holds between the two endpoints of the connection. If a load balancer or <a href="../../glossary/index.html#api-gateway">gateway</a> terminates TLS, it is an endpoint, and everything past it is a new decision about trust. <a href="../sender-constrained-tokens/index.html">Module 7</a> is where that becomes concrete.</li>
 <li>None of it applies to data at rest, in a log, in a trace or in a crash dump. A credential is protected in transit and is plaintext at both ends, which is most of why <a href="../api-keys/index.html">module 1</a> exists.</li>
 </ul>
 </div>
@@ -75,7 +75,7 @@
 <div class="prose">
 <p><a href="../../glossary/index.html#authentication">Authentication</a> answers "who is calling". <a href="../../glossary/index.html#authorization">Authorization</a> answers "may this caller do this, to this object". They are separate questions with separate answers, they fail in different ways, and a system can do the first perfectly and never ask the second. Part 1 of this course is entirely the first question. Part 2 is entirely the second.</p>
 <p>A <a href="../../glossary/index.html#trust-boundary">trust boundary</a> is any point where data or a request moves from somewhere you do not control to somewhere you do. Checks belong on the boundary, and the practical failure is that a check gets performed once, on one path, and then the value is treated as validated everywhere afterwards. When a second path reaches the same handler without crossing that check, the handler cannot tell. This is why "the gateway validates it" is an answer that needs a second question: can anything reach this service without passing the gateway.</p>
-<p>One more distinction the course leans on constantly. A <a href="../../glossary/index.html#bearer-credential">bearer credential</a> is one where holding it is sufficient: possession is the whole claim. A <a href="../../glossary/index.html#sender-constrained-token">sender-constrained</a> one additionally requires proving you hold a key it names. API keys, most access tokens and session cookies are bearer credentials, which is why so much of Part 1 is about limiting what a stolen one is worth.</p>
+<p>One more distinction the course leans on constantly. A <a href="../../glossary/index.html#bearer-credential">bearer credential</a> is one where holding it is sufficient: possession is the whole claim. A <a href="../../glossary/index.html#sender-constrained-token">sender-constrained</a> one additionally requires proving you hold a key it names. <a href="../../glossary/index.html#api-key">API keys</a>, most <a href="../../glossary/index.html#access-token">access tokens</a> and session cookies are bearer credentials, which is why so much of Part 1 is about limiting what a stolen one is worth.</p>
 </div>
 
 <h3>The whole system</h3>
@@ -112,7 +112,7 @@
 </div>
 <ol class="steps prose">
 <li><strong>What is being protected, and from whom?</strong> Integrity, confidentiality, attribution or availability. They need different mechanisms and get confused constantly.</li>
-<li><strong>Who can produce this value, and who can check it?</strong> If the answer is the same set both times, you have a shared secret and the receiver can forge. That may be acceptable. It has to be a decision.</li>
+<li><strong>Who can produce this value, and who can check it?</strong> If the answer is the same set both times, you have a <a href="../../glossary/index.html#shared-secret">shared secret</a> and the receiver can forge. That may be acceptable. It has to be a decision.</li>
 <li><strong>Where does the channel end?</strong> Name the endpoints. Everything past the last TLS termination is a separate trust relationship whether or not you designed it as one.</li>
 <li><strong>Which question is this check answering?</strong> Who is calling, or what they may do. If a single check appears to answer both, it is answering one and assuming the other.</li>
 <li><strong>What does holding this credential get you?</strong> If the answer is "everything it authorizes", it is a bearer credential, and the whole of your exposure is wherever it can be copied from.</li>
@@ -158,7 +158,7 @@
 <pre><code>Windows              macOS and Linux
 py -3 labs/foundations_lab.py    python3 labs/foundations_lab.py</code></pre>
 <div class="prose">
-<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The two keys in the file are fixed so the run is reproducible. Real keys are random and are never written in a file, which is <a href="../hmac-request-signing/index.html">module 2</a>.</p>
+<p>On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>. The two keys in the file are fixed so the run is reproducible. Real keys are random and are never written in a file, which is <a href="../hmac-request-signing/index.html">module 2</a>.</p>
 </div>
 <pre><code>$ python3 labs/foundations_lab.py
 message: {"partnerTxnId":"EXA-000042","miles":10000}
@@ -219,7 +219,7 @@ all lab checks passed</code></pre>
 </div>
 
 <h2>8. Check your understanding</h2>
-<details><summary>A request arrives over TLS 1.3 with a valid certificate. What do you know about the caller?</summary><p>Nothing. RFC 8446 says the server side is always authenticated and the client side only optionally. The certificate you validated is yours, presented by you, to them. Anything you know about the caller comes from a credential in the request.</p></details>
+<details><summary>A request arrives over TLS 1.3 with a valid certificate. What do you know about the caller?</summary><p>Nothing. RFC 9846 says the server side is always authenticated and the client side only optionally. The certificate you validated is yours, presented by you, to them. Anything you know about the caller comes from a credential in the request.</p></details>
 <details><summary>Your partner sends a body and a SHA-256 of that body. What has that bought you?</summary><p>Protection against accidental corruption, and nothing against an attacker, who changes the body and recomputes the hash. A hash has no key, so producing one is available to everybody on the path. It is worth something only when it is carried inside something keyed, such as a covered <code>Content-Digest</code> in a signature.</p></details>
 <details><summary>An HMAC on a request verifies. Name precisely what you have established.</summary><p>That someone holding that key produced this exact request. Since both you and your partner hold the key, that set has at least two members, and you are one of them. If you need to attribute a request to your partner specifically, an HMAC cannot do it.</p></details>
 <details><summary>Every credential check in your service passes and a customer's data went to the wrong caller. Which check was missing?</summary><p>The one comparing the object being requested to the caller who requested it. Authentication established who was calling and did so correctly. Nothing in that answer says anything about which records they may read, and nothing in Part 1 of this course adds it.</p></details>
@@ -342,9 +342,9 @@ all lab checks passed</code></pre>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
 <p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
 <ul class="controls">
-<li><span class="label std">Standard</span>TLS authenticates the server by default and the client only if you configure it. "The server side of the channel is always authenticated; the client side is optionally authenticated." RFC 8446 section 1.</li>
-<li><span class="label std">Standard</span>TLS protects the channel, not the stored data. Its guarantees are that data sent "after establishment is only visible to the endpoints" and "cannot be modified by attackers without detection". RFC 8446 section 1. Both end at the endpoints.</li>
-<li><span class="label std">Standard</span>An HMAC is computed with a key shared by both parties, so verification capability equals production capability. Use HMAC as specified in RFC 2104 and FIPS 198-1. That is this page's advice: RFC 2104 is Informational and requires nothing.</li>
+<li><span class="label std">Standard</span>TLS authenticates the server by default and the client only if you configure it. "The server side of the channel is always authenticated; the client side is optionally authenticated." RFC 9846 section 1.</li>
+<li><span class="label std">Standard</span>TLS protects the channel, not the stored data. The properties it lists are that data sent "after establishment is only visible to the endpoints" and "cannot be modified by attackers without detection". RFC 9846 section 1. Both end at the endpoints.</li>
+<li><span class="label std">Standard</span>An HMAC is computed with a key shared by both parties, so verification capability equals production capability. RFC 2104 section 1 says message authentication codes "are used between two parties that share a secret key" and that HMAC "uses a secret key for calculation and verification". FIPS 198-1 section 1 says the same. Use HMAC as specified in RFC 2104 and FIPS 198-1. That is this page's advice: RFC 2104 is Informational and "does not specify an Internet standard of any kind".</li>
 <li><span class="label base">Baseline</span>Never treat a hash sent alongside the data it describes as integrity protection. Carry it inside something a key protects.</li>
 <li><span class="label base">Baseline</span>For every value in a request, be able to name who can produce it and who can check it, and record the answer where the design is written down.</li>
 <li><span class="label base">Baseline</span>Name the last TLS termination before your code, and treat everything past it as a separate trust relationship.</li>
@@ -368,9 +368,9 @@ all lab checks passed</code></pre>
 
 <h2>Sources</h2>
 <ul class="prose">
-<li><a href="https://www.rfc-editor.org/rfc/rfc8446">RFC 8446: The Transport Layer Security (TLS) Protocol Version 1.3</a>, August 2018. Section 1, on what TLS authenticates and protects.</li>
-<li><a href="https://www.rfc-editor.org/rfc/rfc2104">RFC 2104: HMAC: Keyed-Hashing for Message Authentication</a>, February 1997.</li>
-<li><a href="https://doi.org/10.6028/NIST.FIPS.198-1">NIST FIPS 198-1: The Keyed-Hash Message Authentication Code (HMAC)</a>, July 2008.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9846">RFC 9846: The Transport Layer Security (TLS) Protocol Version 1.3</a>, July 2026. Obsoletes RFC 8446. Section 1, on what TLS authenticates and protects.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc2104">RFC 2104: HMAC: Keyed-Hashing for Message Authentication</a>, February 1997. Informational. Updated by RFC 6151. Section 1, on the key the two parties share.</li>
+<li><a href="https://doi.org/10.6028/NIST.FIPS.198-1">NIST FIPS 198-1: The Keyed-Hash Message Authentication Code (HMAC)</a>, July 2008. Section 1.</li>
 </ul>
 </main>
 <footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
