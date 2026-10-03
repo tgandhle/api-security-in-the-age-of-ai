@@ -124,7 +124,7 @@ all lab checks passed</code></pre>
 <p class="kicker">Exercises</p>
 <h2>Change one thing and predict the output</h2>
 <div class="prose">
-<p>Each exercise edits one line of <a href="../../labs/api_keys_lab.py"><code>labs/api_keys_lab.py</code></a> and asks what the run prints. This lab asserts every result, so a change that breaks something stops the run and names the check it stopped on. The answers are the real output of each variant, so you can settle any disagreement by running it.</p>
+<p>Each exercise makes one small edit to <a href="../../labs/api_keys_lab.py"><code>labs/api_keys_lab.py</code></a> and asks what the run prints. This lab asserts every result, so a change that breaks something stops the run and says what failed, usually by naming the check it stopped on. The answers are the real output of each variant, so you can settle any disagreement by running it.</p>
 </div>
 
 <article class="exercise" data-exercise data-exercise-id="api-keys-x1" data-covers="api-keys-01">
@@ -198,7 +198,7 @@ all lab checks passed</code></pre>
 </details>
 </article>
 
-<article class="exercise" data-exercise data-exercise-id="api-keys-x4" data-covers="api-keys-01">
+<article class="exercise" data-exercise data-exercise-id="api-keys-x4" data-covers="api-keys-05">
 <h3>4. The query check looks for a substring instead of parsing</h3>
 <div class="prose">
 <p>In the protected branch, replace the parsed-query test with a substring test on the raw target:</p>
@@ -218,7 +218,7 @@ all lab checks passed</code></pre>
 <li data-option="a">Check 13 puts <code>api_key=</code> in the query, so the substring is right there and the request is rejected either way.</li>
 <li data-option="b">Check 15 sends the encoded name and a plain <code>api_key=</code> in the same target, so the literal is present. It is the encoded name on its own that separates the two, and the lab never sends that.</li>
 <li data-option="c">Check 17 is <code>/balance?api_key=</code>, which contains the literal too.</li>
-<li data-option="d">Correct. 19 of 19 lines identical, exit 0, because every target in this lab contains the literal <code>api_key=</code> somewhere. The case that tells them apart is a percent-encoded name on its own, <code>/balance?%61pi_key=...</code>. Measured on that target with a valid key in the header: the substring version answers <code>accept</code>, and the published parsed-query version answers <code>reject: query credential</code>. A green suite is not coverage, which is what check <code>api-keys-05</code> in the <a href="#reference">Reference</a> layer asks you to test.</li>
+<li data-option="d">Correct. 19 of 19 lines identical, exit 0, because every target in this lab that has a query string contains the literal <code>api_key=</code> somewhere. The case that tells them apart is a percent-encoded name on its own, <code>/balance?%61pi_key=...</code>. Measured on that target with a valid key in the header: the substring version answers <code>accept</code>, and the published parsed-query version answers <code>reject: query credential</code>. A green suite is not coverage, which is what check <code>api-keys-05</code> in the <a href="#reference">Reference</a> layer asks you to test.</li>
 </ul>
 </details>
 </article>
