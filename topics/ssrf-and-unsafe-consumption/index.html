@@ -12,7 +12,7 @@
 <main>
 <p class="kicker">Part 3: Edges and boundaries &middot; Module 14</p>
 <h1>SSRF and unsafe consumption of APIs</h1>
-<p class="meta">Last reviewed 2026-09-30 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 
 <div class="prose">
 <p><strong>Objective.</strong> After this module you can explain why a check on a URL string never holds, normalise a host through every spelling an address has, place the check where a redirect cannot go around it, and say what is still open once the URL is validated.</p>
@@ -24,7 +24,7 @@
 
 <h2>1. The attack</h2>
 <div class="prose">
-<p>Running example: ExampleAir lets a partner supply a URL for their logo, and fetches it. Company names are fictional. <code>169.254.169.254</code> is a link-local address, the one instance metadata services conventionally answer on, and it is the address in most published SSRF write-ups for a reason: it is reachable from inside and it hands out credentials.</p>
+<p>Running example: ExampleAir lets a partner supply a URL for their logo, and fetches it. Company names are fictional. <code>169.254.169.254</code> is a link-local address, the one <a href="../../glossary/index.html#instance-metadata-service">instance metadata services</a> conventionally answer on, and it is the address in most published <a href="../../glossary/index.html#ssrf">SSRF</a> write-ups for a reason: it is reachable from inside and it hands out credentials.</p>
 <p>OWASP states the class in one sentence, as <strong>API7:2023 Server Side Request Forgery</strong>: "Server-Side Request Forgery (SSRF) flaws occur when an API is fetching a remote resource without validating the user-supplied URL."</p>
 <p>The interesting part is not that validation is missing. It is that the validation people write first does not work, and looks like it does. A check that the partner's hostname appears in the URL passes for the real one and for all three of the others:</p>
 </div>
@@ -63,7 +63,7 @@ http://api.partner.example.attacker.example/v1/logo.png       a subdomain prefix
 <h3>And then the response</h3>
 <div class="prose">
 <p>OWASP's API10:2023 is about the half of this that happens after the fetch: developers "tend to trust data received from third-party APIs more than user input", and apply weaker validation to it. Three of its vulnerability indicators are about exactly this flow: the API "blindly follows redirections", "does not limit the number of resources available to process third-party services responses", and "does not implement timeouts for interactions with third-party services".</p>
-<p>So a response you fetched is input. It goes through <a href="../request-and-response-contracts/index.html">module 13</a>'s limits, because it is somebody else's request body arriving at your parser, and any URL inside it is a URL a caller supplied. And the response does not go back to the caller unchanged: "do not send raw responses to clients", because what came back may be a page from a service the caller was never supposed to know exists. That includes your own error text. A rejection that says the address was private has told the caller that the address exists and is internal.</p>
+<p>So a response you fetched is input. It goes through <a href="../request-and-response-contracts/index.html">module 13</a>'s limits, because it is somebody else's request body arriving at your parser, and any URL inside it is a URL a caller supplied. And the response does not go back to the caller unchanged (API7:2023: "do not send raw responses to clients"), because what came back may be a page from a service the caller was never supposed to know exists. That includes your own error text. A rejection that says the address was private has told the caller that the address exists and is internal.</p>
 </div>
 
 <h3>The whole system</h3>
@@ -96,7 +96,7 @@ http://api.partner.example.attacker.example/v1/logo.png       a subdomain prefix
 <h2>3. The control</h2>
 <ol class="steps prose">
 <li><strong>Parse with a real parser</strong> and use only the host component. Never a substring test, a prefix test or a regular expression over the whole URL.</li>
-<li><strong>Allowlist the scheme</strong>, and the port if you accept one. OWASP names both: an allow list of "URL schemes and ports".</li>
+<li><strong><a href="../../glossary/index.html#allowlist">Allowlist</a> the scheme</strong>, and the port if you accept one. OWASP names both: an allow list of "URL schemes and ports".</li>
 <li><strong>Refuse address literals outright</strong> where the partner is supposed to give you a name. If you must accept them, normalise every spelling first.</li>
 <li><strong>Allowlist the host</strong> against exact names. "Ends with our partner's domain" is the subdomain bypass written as a rule.</li>
 <li><strong>Resolve, and classify the address</strong> against the special-purpose ranges. Refuse loopback, link-local, private, reserved, multicast and unspecified.</li>
@@ -153,7 +153,7 @@ http://api.partner.example.attacker.example/v1/logo.png       a subdomain prefix
 <pre><code>Windows              macOS and Linux
 py -3 labs/ssrf_lab.py    python3 labs/ssrf_lab.py</code></pre>
 <div class="prose">
-<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The URL parsing and the address classification are real, using <code>urllib.parse</code> and <code>ipaddress</code>. The fetching and the name resolution are stubs, so the lab opens no sockets and reaches no network. The address standing in for a public one is from RFC 5737's documentation range, which Python's <code>ipaddress</code> correctly reports as not globally routable, so the lab names those ranges explicitly rather than letting them pass by accident.</p>
+<p>On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>. The URL parsing and the address classification are real, using <code>urllib.parse</code> and <code>ipaddress</code>. The fetching and the name resolution are stubs, so the lab opens no sockets and reaches no network. The address standing in for a public one is from RFC 5737's documentation range, which Python's <code>ipaddress</code> correctly reports as not globally routable, so the lab names those ranges explicitly rather than letting them pass by accident.</p>
 </div>
 <pre><code>$ python3 labs/ssrf_lab.py
 the partner supplies a URL and the service fetches it
@@ -192,7 +192,7 @@ Part D: what URL validation does not settle.
 25. the connection resolved it again to                  169.254.169.254
 26. the two agree                                        False
 27. the rejection reason, returned to the caller verbatim reject: address literal, private
-28. what the caller learns from it                       the address exists and is internal
+28. what the caller learns from it                       which rule refused the request
 29. a URL in that response, given the same checks        reject: address literal, link-local
 
 all lab checks passed</code></pre>
@@ -201,7 +201,7 @@ all lab checks passed</code></pre>
 <p>Checks 12 to 15 are the same address four times. If your defence is a list of bad addresses written the way people write them, it stops none of these. The normalisation that catches all four is short, and the comment in it matters: the base is decided by the prefix, because <code>025177524776</code> read as decimal is somewhere else entirely.</p>
 <p>Checks 19 to 22 are the redirect, and they are a sequence rather than four separate cases. Check 19 is a URL that passes every check in Part B, correctly. Check 20 follows its redirect and fetches the metadata service. Checks 21 and 22 are the two fixes, and the second is the one to use if you cannot use the first.</p>
 <p>Checks 24 to 26 are the case that survives everything above. Validation resolved the name and got a public address. The connection resolved it again and got the metadata service. Both lookups were correct, nothing was bypassed, and the request went somewhere you refused. The fix is in step 6 of the control: connect to the address, not the name.</p>
-<p>Checks 27 and 28 are the smallest finding here and the easiest to ship: a refusal that explains itself. "Address literal, private" is a true statement about the caller's input and a fact about your network they did not have before.</p>
+<p>Checks 27 and 28 are the smallest finding here and the easiest to ship: a refusal that explains itself. "Address literal, private" is a true statement about the caller's input, and it tells them which rule refused the request, so they know what to change on the next attempt.</p>
 <p><strong>Try next:</strong></p>
 <ul>
 <li>Add <code>"attacker.example"</code> to <code>ALLOWED_HOSTS</code> and rerun. No check changes: the run exits 0 and prints the same 40 lines, because the allowlist is an exact match and check 11 still prints <code>reject: host not on the allowlist</code>. Which checks print <code>169.254.169.254</code> for a URL whose host is on the allowlist? Those are the reason host allowlisting is not the whole control.</li>
@@ -341,7 +341,7 @@ all lab checks passed</code></pre>
 <li><span class="label std">Standard</span>"Disable HTTP redirections", and "do not send raw responses to clients". OWASP API7:2023, How To Prevent.</li>
 <li><span class="label std">Standard</span>"Always validate and properly sanitize data received from integrated APIs before using it", and "maintain an allowlist of well-known locations integrated APIs may redirect yours to: do not blindly follow redirects". OWASP API10:2023, How To Prevent.</li>
 <li><span class="label std">Standard</span>OWASP API10:2023 lists blindly following redirections, not limiting the resources used to process third-party responses, and not implementing timeouts for third-party interactions among its vulnerability indicators.</li>
-<li><span class="label std">Standard</span>Classify resolved addresses against IANA's special-purpose address registries, restructured by RFC 6890: <code>169.254.0.0/16</code> Link Local (RFC 3927), <code>127.0.0.0/8</code> Loopback (RFC 1122), and <code>10.0.0.0/8</code>, <code>172.16.0.0/12</code> and <code>192.168.0.0/16</code> Private-Use (RFC 1918).</li>
+<li><span class="label std">Standard</span>IANA's special-purpose address registries, restructured by RFC 6890, record <code>169.254.0.0/16</code> as Link Local (RFC 3927), <code>127.0.0.0/8</code> as Loopback (RFC 1122), and <code>10.0.0.0/8</code>, <code>172.16.0.0/12</code> and <code>192.168.0.0/16</code> as Private-Use (RFC 1918), each with Global set to False. RFC 6890, section 2.2.2. RFC 8190, section 2.1, renames that column Globally Reachable. Classifying a resolved address against these entries is this project's baseline, in checklist item <code>out-02</code>.</li>
 <li><span class="label base">Baseline</span>Prefer an identifier you resolve to a URL yourself over accepting a URL at all.</li>
 <li><span class="label base">Baseline</span>Inspect only the host component the parser returned. Never a substring, prefix or regular-expression test on the whole URL.</li>
 <li><span class="label base">Baseline</span>Allow <code>https</code> only, allowlist hosts by exact match, and refuse address literals.</li>
@@ -363,15 +363,15 @@ all lab checks passed</code></pre>
 <li data-check="out-05" data-severity="High"><strong>Host normalisation covers every spelling of an address</strong> <span>Decimal, hexadecimal, octal and IPv4-mapped IPv6, with the base decided by the prefix.</span></li>
 <li data-check="out-06" data-severity="High"><strong>Schemes and hosts are allowlisted, hosts by exact match</strong> <span>Suffix matching is the subdomain bypass expressed as a rule.</span></li>
 <li data-check="out-07" data-severity="High"><strong>Responses have size limits, timeouts and parsing limits</strong> <span>A response is input. Any URL inside it is a caller-supplied URL.</span></li>
-<li data-check="out-08" data-severity="Medium"><strong>Neither responses nor refusal reasons reach the caller unchanged</strong> <span>One status, no detail. "Address literal, private" is a fact about your network.</span></li>
+<li data-check="out-08" data-severity="Medium"><strong>Neither responses nor refusal reasons reach the caller unchanged</strong> <span>One status, no detail. "Address literal, private" tells the caller which rule refused them.</span></li>
 </ul>
 
 <h2>Sources</h2>
 <ul class="prose">
 <li><a href="https://api-security.owasp.org/editions/2023/en/0xa7-server-side-request-forgery/">OWASP API Security Top 10 2023, API7:2023 Server Side Request Forgery</a>.</li>
 <li><a href="https://api-security.owasp.org/editions/2023/en/0xaa-unsafe-consumption-of-apis/">OWASP API Security Top 10 2023, API10:2023 Unsafe Consumption of APIs</a>.</li>
-<li><a href="https://www.rfc-editor.org/rfc/rfc6890">RFC 6890: Special-Purpose IP Address Registries</a>, April 2013. The registry entries and the RFCs behind them.</li>
-<li><a href="https://www.rfc-editor.org/rfc/rfc5737">RFC 5737: IPv4 Address Blocks Reserved for Documentation</a>, January 2010. "The blocks 192.0.2.0/24 (TEST-NET-1), 198.51.100.0/24 (TEST-NET-2), and 203.0.113.0/24 (TEST-NET-3) are provided for use in documentation", and they "SHOULD NOT appear on the public Internet". The lab uses one in place of a public address.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc6890">RFC 6890: Special-Purpose IP Address Registries</a>, April 2013. Updated by RFC 8190. Section 2.2.2, the registry entries and the RFCs behind them.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc5737">RFC 5737: IPv4 Address Blocks Reserved for Documentation</a>, January 2010. Section 3: "The blocks 192.0.2.0/24 (TEST-NET-1), 198.51.100.0/24 (TEST-NET-2), and 203.0.113.0/24 (TEST-NET-3) are provided for use in documentation". Section 4: they "SHOULD NOT appear on the public Internet". The lab uses one in place of a public address.</li>
 </ul>
 </main>
 <footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>

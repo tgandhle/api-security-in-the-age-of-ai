@@ -53,7 +53,10 @@ def looks_right(url):
 def as_address(host):
     """Turn a host into an IP address if it is one.
 
-    Reads dotted, IPv6, or one integer in base 8, 10 or 16.
+    Reads dotted, IPv6, or one integer in base 8, 10 or 16. It does not read
+    a dotted form whose parts are octal or hexadecimal, such as
+    0251.0376.0251.0376, which C's inet_aton accepts. validate() still
+    refuses that host, because it is not on the allowlist.
     """
     if host is None:
         return None
@@ -213,12 +216,12 @@ def main():
     check("validation resolved the name to", "203.0.113.10", validated.split()[-1])
     check("the connection resolved it again to", "169.254.169.254", str(connected))
     check("the two agree", "False", str(validated.split()[-1] == str(connected)))
-    # A rejection returned to the caller verbatim tells them what it found.
+    # A rejection returned to the caller verbatim names the rule that fired.
     detail = validate("https://10.0.0.5/internal")
     check("the rejection reason, returned to the caller verbatim",
           "reject: address literal, private", detail)
-    check("what the caller learns from it", "the address exists and is internal",
-          "the address exists and is internal" if "private" in detail else "nothing")
+    check("what the caller learns from it", "which rule refused the request",
+          "which rule refused the request" if "private" in detail else "nothing")
     # And a URL inside that response starts the whole thing again.
     next_url = "https://169.254.169.254/latest/meta-data/iam/"
     check("a URL in that response, given the same checks",
