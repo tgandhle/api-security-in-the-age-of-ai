@@ -24,7 +24,7 @@
 
 <h2>1. The attack</h2>
 <div class="prose">
-<p>Running example: ExampleAir's customer profile endpoint. Company names are fictional. The caller is a real customer, correctly authenticated, asking for its own profile. Module 9's ownership check passes on every request in this module.</p>
+<p>Running example: ExampleAir's customer profile endpoint. Company names are fictional. The caller is a real customer, correctly authenticated, asking for its own profile. Module 9's ownership check passes on every request in this module except one, in check 22.</p>
 <p>Three separate things go wrong, and they are usually found in the same codebase because they have the same cause: a handler that treats an object as one indivisible thing.</p>
 <ul>
 <li><strong>The response carries more than it should.</strong> The handler serialises the record, and the record has a fraud score, internal notes and a staff flag on it. The customer asked for their profile and received the company's assessment of them.</li>
@@ -144,11 +144,11 @@
 <pre><code>Windows              macOS and Linux
 py -3 labs/property_function_lab.py    python3 labs/property_function_lab.py</code></pre>
 <div class="prose">
-<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The caller is a customer, authenticated, and owns the profile it is asking for. Module 9's check passes on all 25 checks.</p>
+<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The caller is a customer, authenticated, and owns the profile it is asking for. Module 9's check passes on every request except the one in check 22, where check 23 prints <code>would refuse</code>.</p>
 </div>
 <pre><code>$ python3 labs/property_function_lab.py
 caller: acct-77, role customer, authenticated and authorized for its own
-        profile object. Module 9's check passes on every request below.
+        profile object. Module 9's check passes on every request below except check 22.
 
 Part A: which properties leave the service.
  1. fields returned by the whole-record serializer     10 fields

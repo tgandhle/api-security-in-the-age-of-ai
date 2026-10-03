@@ -106,7 +106,7 @@ def dispatch_by_table(method, path, role, table=None):
 
 def main():
     print("caller: %s, role customer, authenticated and authorized for its own" % CALLER)
-    print("        profile object. Module 9's check passes on every request below.")
+    print("        profile object. Module 9's check passes on every request below except check 22.")
     print()
     print("Part A: which properties leave the service.")
 
