@@ -234,6 +234,109 @@ all lab checks passed</code></pre>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 </section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="design-review-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/design_review_lab.py"><code>labs/design_review_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant. One variant changes nothing, and its answer carries the measurement from a design the lab does not review.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="rev-x1" data-covers="rev-01">
+<h3>1. The check for a missing answer is deleted</h3>
+<div class="prose">
+<p>In <code>review</code>, delete the three lines that test whether the fact is <code>UNKNOWN</code>, append the rule to <code>unanswered</code> and <code>continue</code>. Every rule's test now runs on whatever the design holds, including nothing.</p>
+</div>
+<fieldset><legend>What does check 6, findings raised, print?</legend>
+<label><input type="radio" name="rev-x1" value="a"> <code>14</code>. A rule with no answer raises nothing, so the four pass quietly.</label>
+<label><input type="radio" name="rev-x1" value="b" data-correct="true"> <code>18</code>. The four silences become findings.</label>
+<label><input type="radio" name="rev-x1" value="c"> Nothing. The run stops with a traceback when a test meets a missing value.</label>
+<label><input type="radio" name="rev-x1" value="d"> <code>14</code>, and check 17 still prints <code>4</code>, because the unanswered list is built elsewhere.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">That is a different edit: keep the test and the <code>continue</code>, and delete only the <code>append</code>. Measured, that one fails ten checks and check 6 stays at <code>14</code>. Here the test is gone too, so each rule is evaluated.</li>
+<li data-option="b">Correct. Exit 1, 21 checks fail. Check 6 goes from <code>14</code> to <code>18</code>, check 7 from <code>12</code> to <code>15</code>, check 9 from <code>0</code> to <code>1</code>, and check 17 from <code>4</code> to <code>0</code>. The four blocked rules are all written as <code>not d[...]</code>, and a missing value is falsy, so each one fires. Check 23 still prints <code>18</code>, and check 37 goes from <code>18 open items, 4 unanswerable</code> to <code>18 open items, 0 unanswerable</code>. The total is the same and the report is wrong: four questions for the team became four claims the document does not support, three of them Critical. Check <code>rev-01</code> in the <a href="#reference">Reference</a> layer says missing information blocks a rule. Without the block, the outcome depends on how each test happens to be written.</li>
+<li data-option="c">No test raises. <code>not None</code> is <code>True</code> in Python, so the four tests return a result and the run finishes with exit code 1 and a list of 21 mismatches.</li>
+<li data-option="d">The deleted lines are the only place <code>unanswered</code> is filled. Check 17 prints <code>0</code> and check 18 prints <code>[]</code>.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="rev-x2" data-covers="rev-02">
+<h3>2. Unanswered questions are sorted by check id alone</h3>
+<div class="prose">
+<p>In <code>review</code>, drop the severity from the sort key of the unanswered list, so the line reads:</p>
+</div>
+<pre><code>unanswered.sort(key=lambda u: u[0])</code></pre>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="rev-x2" value="a"> Check 18 lists the four ids in a different order.</label>
+<label><input type="radio" name="rev-x2" value="b"> Check 20, severity of the worst one, becomes <code>Medium</code>.</label>
+<label><input type="radio" name="rev-x2" value="c"> Checks 18 and 19 both change.</label>
+<label><input type="radio" name="rev-x2" value="d" data-correct="true"> Nothing. All 37 checks pass.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 18 still prints <code>['ctr-02', 'gw-01', 'life-01', 'ret-08']</code>. The three Critical ids happen to sort before the Medium one alphabetically, so the two orderings agree on this design.</li>
+<li data-option="b">The first entry is still <code>ctr-02</code>, which is Critical. <code>ret-08</code>, the Medium one, sorts last under either key.</li>
+<li data-option="c">Check 19 lists the facts in the same order as check 18 lists the ids, and that order did not move.</li>
+<li data-option="d">Correct. Exit 0, 51 of 51 lines identical. The published design has no silence that tells the two sort keys apart. Measured on a design the lab does not review, the published one with <code>key_storage</code> also set to <code>UNKNOWN</code>, which blocks the High rule <code>api-keys-04</code>: as published the unanswered ids are <code>['ctr-02', 'gw-01', 'life-01', 'api-keys-04', 'ret-08']</code> and the severity of the worst one is <code>Critical</code>. With the edit the ids are <code>['api-keys-04', 'ctr-02', 'gw-01', 'life-01', 'ret-08']</code> and the severity of the worst one is <code>High</code>. Three Critical questions now sit below a High one because of how their ids are spelled. Check <code>rev-02</code> in the <a href="#reference">Reference</a> layer asks for unanswered questions to carry their rule's severity, and a severity that does not affect the order is not being carried anywhere.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="rev-x3" data-covers="rev-04">
+<h3>3. Findings are sorted by check id alone</h3>
+<div class="prose">
+<p>In <code>review</code>, make the same change to the findings list:</p>
+</div>
+<pre><code>findings.sort(key=lambda f: f[0])</code></pre>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="rev-x3" value="a"> Check 10. The first finding is no longer <code>a2a-01</code>.</label>
+<label><input type="radio" name="rev-x3" value="b"> None. Ids in alphabetical order are already worst first, as they were for the unanswered list.</label>
+<label><input type="radio" name="rev-x3" value="c" data-correct="true"> Checks 11 and 12. The order is no longer worst first, and the last finding is Critical.</label>
+<label><input type="radio" name="rev-x3" value="d"> Checks 10 to 14. Every check that reads the order of the findings.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 10 still prints <code>a2a-01</code>. That id sorts first alphabetically as well as by severity, so the top of the report looks untouched.</li>
+<li data-option="b">That held for four unanswered questions and does not hold for fourteen findings. The two High findings, <code>out-06</code> and <code>ret-05</code>, now sit in the middle of the Critical ones.</li>
+<li data-option="c">Correct. Exit 1, two failures. Check 11 goes from <code>yes</code> to <code>no</code>, and check 12 goes from <code>High</code> to <code>Critical</code>, because the list now ends with <code>ver-01</code>. Checks 10 and 13 do not move, so a reader who looks only at the first finding sees the same report. Check <code>rev-04</code> in the <a href="#reference">Reference</a> layer asks for worst first, and this run shows why the lab tests the whole order and the last item, not only the first.</li>
+<li data-option="d">Checks 10 and 13 read the first finding, which is unchanged. Check 14 filters the Critical ids out of the list, and they were already in id order among themselves, so it prints the same twelve ids.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="rev-x4" data-covers="rev-03">
+<h3>4. A module with one silent rule counts as blocked</h3>
+<div class="prose">
+<p>In <code>coverage</code>, stop removing the assessed modules from the blocked ones, so the last line reads:</p>
+</div>
+<pre><code>return sorted(assessed), sorted(blocked)</code></pre>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="rev-x4" value="a" data-correct="true"> Checks 33 and 34. A fourth module appears in the blocked list.</label>
+<label><input type="radio" name="rev-x4" value="b"> Check 32. The modules the review reached a conclusion about drop from <code>16</code> to <code>15</code>.</label>
+<label><input type="radio" name="rev-x4" value="c"> None. A module is either assessed or blocked, so the subtraction removed nothing.</label>
+<label><input type="radio" name="rev-x4" value="d"> Checks 32, 33 and 34. One module moves from one list to the other.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Correct. Exit 1, two failures. Check 33 goes from <code>3</code> to <code>4</code>, and check 34 from <code>[9, 13, 14]</code> to <code>[9, 13, 14, 26]</code>. The lab's module 26 holds three rules. The design answers two of them, <code>ret-01</code> and <code>ret-05</code>, and is silent on the third, <code>ret-08</code>. Check 32 still prints <code>16</code>, so that module is now reported both as concluded and as blocked, and the two counts add up to 20 for the 19 modules the rule table covers. Check <code>rev-03</code> in the <a href="#reference">Reference</a> layer asks the report to state concluded, clean and blocked, and a reader can only use those numbers if each module lands in one of them.</li>
+<li data-option="b">The edit does not touch the assessed set, so check 32 still prints <code>16</code>. Subtracting the other way, blocked from assessed, is a different edit. Measured, that one fails three checks, 32, 33 and 34.</li>
+<li data-option="c">One module is in both sets. The lab's module 26 has two answered rules and one silent rule, and the subtraction is what kept it out of the blocked list.</li>
+<li data-option="d">Nothing moves. The module is added to the blocked list and stays in the assessed one, which is why check 32 does not change.</li>
+</ul>
+</details>
+</article>
+</section>
+
 <p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
 <span class="layer" id="reference" style="margin-top:3rem">Reference</span>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
