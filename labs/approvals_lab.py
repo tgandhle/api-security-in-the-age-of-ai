@@ -12,7 +12,7 @@ lesson in a new setting. Part C is the difference between what the approver
 read and what the executor used. Part D is single use and expiry. Part E is
 the blanket approval, measured rather than argued about.
 
-OWASP LLM06:2025 names the root cause this module is about as excessive
+OWASP LLM03:2026 names the root cause this module is about as excessive
 autonomy: systems that lack independent verification and approval for
 high-impact actions. The approval in Parts A to D is that verification. The
 point of the lab is that having one is not the same as it working.

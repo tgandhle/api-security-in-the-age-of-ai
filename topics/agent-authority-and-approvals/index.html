@@ -12,10 +12,10 @@
 <main>
 <p class="kicker">Part 4: AI and agents &middot; Module 23</p>
 <h1>Agent authority and approvals</h1>
-<p class="meta">Last reviewed 2026-10-01 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 
 <div class="prose">
-<p><strong>Objective.</strong> After this module you can bind an approval to the exact parameters that will execute, say which fields an approval covers and which it merely accompanies, keep the summary a human read and the values a service used in agreement, and measure what a blanket approval actually authorises.</p>
+<p><strong>Objective.</strong> After this module you can bind an approval to the exact parameters that will execute, say which fields an approval covers and which it merely accompanies, keep the summary a human read and the values a service used in agreement, and measure what a <a href="../../glossary/index.html#blanket-approval">blanket approval</a> actually authorises.</p>
 <p><strong>Before you start.</strong> <a href="../prompt-injection-and-output-handling/index.html">Module 22</a> ended by saying that an injection which talks an agent into an allowed call with allowed arguments passes every check in that module. Human approval is the usual answer to that, and this module is about the gap between having an approval step and that step meaning something.</p>
 </div>
 <section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 24 of 27</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
@@ -26,7 +26,7 @@
 <div class="prose">
 <p>Running example: an ExampleAir support agent that can issue refunds. Company names are fictional. A human approves each refund above a threshold, in a queue, by reading a line that says what is about to happen and clicking approve.</p>
 <p>The attack is not against the human. It is against the distance between the click and the execution. A proposal is written, read by a person, and then read again by the service that carries it out, and those are two different reads of a mutable thing.</p>
-<p>OWASP's name for the underlying condition is <strong>LLM06:2025 Excessive Agency</strong>, defined as "the vulnerability that enables damaging actions to be performed in response to unexpected, ambiguous or manipulated outputs from an LLM, regardless of what is causing the LLM to malfunction". It names three root causes, and the third is the one this module addresses: excessive autonomy, meaning systems that lack independent verification and approval for high-impact actions. Its mitigation is to "Utilise human-in-the-loop control to require a human to approve high-impact actions".</p>
+<p>OWASP's name for the underlying condition is <strong>LLM03:2026 <a href="../../glossary/index.html#excessive-agency">Excessive Agency</a></strong>, defined as "the vulnerability that enables damaging actions to be performed in response to unexpected, ambiguous or manipulated outputs from an LLM, regardless of what is causing the LLM to malfunction". It names three root causes, and the third is the one this module addresses: excessive autonomy, meaning systems that lack independent verification and approval for high-impact actions. Its mitigation is to "Use human-in-the-loop control to require a human to approve high-impact actions".</p>
 <p>OWASP's announcement of its Top 10 for Agentic Applications describes the complementary failure, <strong>ASI09 Human-Agent Trust Exploitation</strong>, this way: "Confident, polished explanations misled human operators into approving harmful actions". Both of these are real. This module is about the half you can test.</p>
 </div>
 <div class="wrap"><table>
@@ -46,12 +46,12 @@
 <div class="prose">
 <p>The structure of almost every approval queue is: the agent writes a proposal, a human reads it and approves, and a service reads it again and executes. Between the second and third step there is a window, and in that window the proposal is a row in a database that the agent, or anything that has talked the agent into something, can still write to.</p>
 <p>Checks 1 to 4 of the lab are that window. The same approval, the same proposal id, a rewrite in between, and a refund of 4,000 to a different account where the human read "Refund 40 to T. Okafor". Nothing about the approval was forged. The approval was for a proposal id, and the proposal id still exists.</p>
-<p>The fix is the same one this course has used since <a href="../hmac-request-signing/index.html">module 2</a>: do not approve a reference, approve the content. The approval carries a MAC over the parameters as they stood when the human saw them, and the executor recomputes it over the parameters it is about to use. Check 5 is that same rewrite against a bound approval, and it names the two fields that changed.</p>
+<p>The fix is the same one this course has used since <a href="../hmac-request-signing/index.html">module 2</a>: do not approve a reference, approve the content. The approval carries a MAC over the parameters as they stood when the human saw them, and the executor recomputes it over the parameters it is about to use. Check 5 is that same rewrite against a <a href="../../glossary/index.html#bound-approval">bound approval</a>, and it names the two fields that changed.</p>
 </div>
 
 <h3>An approval covers what it covers</h3>
 <div class="prose">
-<p>This is <a href="../asymmetric-request-signing/index.html">module 3</a>'s lesson in a different costume. RFC 9421 calls it insufficient coverage, in section 7.2.1, and the principle does not care whether the thing signing is a client or a reviewer: a signature protects the components it lists, and everything else is present but unprotected.</p>
+<p>This is <a href="../asymmetric-request-signing/index.html">module 3</a>'s lesson in a different costume. RFC 9421 calls it <a href="../../glossary/index.html#insufficient-coverage">insufficient coverage</a>, in section 7.2.1, and the principle does not care whether the thing signing is a client or a reviewer: a <a href="../../glossary/index.html#signature">signature</a> protects the components it lists, and everything else is present but unprotected.</p>
 <p>Part B of the lab makes that measurable. A narrow approval covering <code>tool</code> and <code>amount</code> catches two of five field changes. The wide approval catches five of five. The field the narrow one misses that matters is <code>account_id</code>: the amount the human approved, paid to somebody else, with an approval that verifies perfectly.</p>
 <p>So the design question is not "is the approval signed" but "which fields are inside it". Any field that changes what happens belongs inside, and the test for that is to change each field in turn and see whether the approval still verifies, which is exactly what checks 9 to 13 do.</p>
 </div>
@@ -109,10 +109,10 @@
 <li><strong>Approve content, not a reference.</strong> The approval carries a MAC over the parameters, so the executor never has to trust that the row it re-reads is the row the human saw.</li>
 <li><strong>Cover every field that changes what happens,</strong> and test it by changing each field in turn and confirming the approval stops verifying.</li>
 <li><strong>Derive the summary from the covered fields.</strong> If the human reads a name and the call uses an id, put the id in both.</li>
-<li><strong>Give each approval a nonce and spend it on first use,</strong> so an approved action happens once. This is <a href="../business-flows-and-idempotency/index.html">module 11</a>'s problem with a human in it.</li>
+<li><strong>Give each approval a <a href="../../glossary/index.html#nonce">nonce</a> and spend it on first use,</strong> so an approved action happens once. This is <a href="../business-flows-and-idempotency/index.html">module 11</a>'s problem with a human in it.</li>
 <li><strong>Give each approval a lifetime</strong> short enough that it expires with the context that justified it.</li>
 <li><strong>Keep approvals per action,</strong> and where a session-level approval is genuinely needed, record how many of the operation's fields it constrains.</li>
-<li><strong>Put the authorization in the downstream system too.</strong> OWASP: "Implement authorization in downstream systems rather than relying on an LLM to decide if an action is allowed or not." An approval is not a substitute for the service checking.</li>
+<li><strong>Put the <a href="../../glossary/index.html#authorization">authorization</a> in the downstream system too.</strong> OWASP LLM03:2026: "Implement authorization in logic rather than relying on an LLM to decide if an action is allowed or not." OWASP places that check in the tool, in a policy decision point in front of the downstream system, or in the downstream system itself. An approval is not a substitute for the service checking.</li>
 <li><strong>Execute in the user's security context,</strong> which OWASP also lists, so the approval and the credential agree about who this is for.</li>
 <li><strong>Log the approved parameters alongside the executed ones,</strong> so an incident can answer the only question that matters afterwards.</li>
 </ol>
@@ -128,14 +128,14 @@
 <tr><td>Lifetime</td><td>Minutes, not days</td><td>Long enough for the operator to finish, short enough that the context still holds.</td></tr>
 <tr><td>Session-wide approvals</td><td>Avoided</td><td>If you must, state the number of operation fields they constrain. Zero is a legitimate answer and a legitimate finding.</td></tr>
 <tr><td>Which actions need approval</td><td>A written list, by impact</td><td>Derive it from what the action does, not from how often it happens.</td></tr>
-<tr><td>Downstream authorization</td><td>Enforced regardless of the approval</td><td>OWASP's instruction. The approval says a human agreed; it does not say the caller is entitled.</td></tr>
+<tr><td>Downstream authorization</td><td>Enforced regardless of the approval</td><td>OWASP LLM03:2026 says not to rely on an LLM to decide if an action is allowed. The approval says a human agreed; it does not say the caller is entitled.</td></tr>
 <tr><td>The approver's view</td><td>Shows the values that will execute</td><td>ASI09 is about confident explanations. A summary that explains rather than states is the wrong shape.</td></tr>
 </tbody></table></div>
 
 <h2>5. What it proves, and what it doesn't</h2>
 <div class="prose">
 <p><strong>Proves:</strong> that the parameters executed are the parameters a human was shown, that no covered field changed in between, that the approval was used once and within its lifetime, and that you can say which fields it covered.</p>
-<p><strong>Doesn't prove:</strong> that the approval was a good idea. ASI09 is precisely the case where the human read an accurate summary of a harmful action and approved it anyway, persuaded by a confident explanation. Nothing in this module helps there, and a well-bound approval of the wrong action executes exactly as reliably as a well-bound approval of the right one.</p>
+<p><strong>Doesn't prove:</strong> that the approval was a good idea. ASI09 includes the case where the human read an accurate summary of a harmful action and approved it anyway, persuaded by a confident explanation. Nothing in this module helps there, and a well-bound approval of the wrong action executes exactly as reliably as a well-bound approval of the right one.</p>
 <div class="callout warn"><strong>An approval that verifies can still be an approval of something else.</strong> Check 21 of the lab binds the approval to the summary the human read and then changes the destination account. The summary is identical, the approval verifies, and the money goes elsewhere. Binding is necessary and the choice of what to bind is the whole control.</div>
 </div>
 
@@ -162,7 +162,7 @@
 <pre><code>Windows                         macOS and Linux
 py -3 labs/approvals_lab.py     python3 labs/approvals_lab.py</code></pre>
 <div class="prose">
-<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. Approvals are real HMAC over a canonical JSON document. Keys are generated for the run and never printed, so nothing in the output changes between runs.</p>
+<p>On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>. Approvals are real <a href="../../glossary/index.html#hmac">HMAC</a> over a canonical JSON document. Keys are generated for the run and never printed, so nothing in the output changes between runs.</p>
 </div>
 <pre><code>$ python3 labs/approvals_lab.py
 approval keys: random, this run only; nothing is printed
@@ -237,7 +237,7 @@ all lab checks passed</code></pre>
 <details><summary>Your approval record stores the proposal id and who approved it. What is wrong with that?</summary><p>It approves a reference. The executor reads the proposal a second time, and between the human's read and that one the row can be rewritten by whatever produced it. The approval should carry a MAC over the parameters as the human saw them, so the executor can confirm it is running the same thing rather than the same identifier.</p></details>
 <details><summary>An approval covers the tool name and the amount. Is that enough?</summary><p>Only if nothing else changes what happens, and the destination almost always does. The lab's narrow approval catches two field changes out of five, and one of the three it misses pays the approved amount to a different account. Cover every field that changes the outcome, and test coverage by changing each field and confirming the approval stops verifying.</p></details>
 <details><summary>The summary shown to the approver reads "Refund 40 to T. Okafor" and the call uses an account id. Where is the risk?</summary><p>In the gap between them. The id can change while the summary stays identical, so a human approving that sentence has not seen the value that decides where the money goes. Derive the summary from the covered fields, and make sure no field outside them changes the outcome.</p></details>
-<details><summary>Is a well-bound approval a defence against prompt injection?</summary><p>Partly, and only for the actions that require one. It stops an injected change to the parameters after approval, and it does nothing about a human being persuaded to approve a harmful action in the first place, which OWASP files as ASI09. It also does not replace authorization in the downstream service, which OWASP lists separately for exactly this reason.</p></details>
+<details><summary>Is a well-bound approval a defence against prompt injection?</summary><p>Partly, and only for the actions that require one. It stops an injected change to the parameters after approval, and it does nothing about a human being persuaded to approve a harmful action in the first place, which OWASP files as ASI09. It also does not replace authorization in the downstream service. OWASP LLM03:2026 lists authorization that does not rely on the LLM as a separate measure from user approval.</p></details>
 
 <section class="course-quiz" data-quiz data-quiz-id="agent-authority-and-approvals-check" data-correct-feedback="Correct. Approving an identifier approves whatever that identifier holds at execution time, which is a second read of a mutable thing." data-incorrect-feedback="Not quite. The approval was genuine, the approver was real, and the audit record is intact. The defect is that it bound a proposal id rather than the parameters, so a rewrite between the click and the execution changes what runs.">
 <p class="kicker">Quick check</p>
@@ -359,14 +359,14 @@ all lab checks passed</code></pre>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
 <p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
 <ul class="controls">
-<li><span class="label std">Standard</span>"Excessive Agency is the vulnerability that enables damaging actions to be performed in response to unexpected, ambiguous or manipulated outputs from an LLM, regardless of what is causing the LLM to malfunction." OWASP LLM06:2025 Excessive Agency.</li>
-<li><span class="label std">Standard</span>LLM06:2025 names three root causes: excessive functionality, excessive permissions, and excessive autonomy, the last being systems that lack independent verification and approval for high-impact actions.</li>
-<li><span class="label std">Standard</span>"Utilise human-in-the-loop control to require a human to approve high-impact actions before they are taken." OWASP LLM06:2025.</li>
-<li><span class="label std">Standard</span>"Implement authorization in downstream systems rather than relying on an LLM to decide if an action is allowed or not." OWASP LLM06:2025.</li>
-<li><span class="label std">Standard</span>Execute extensions in the specific user's security context, and restrict both the functions available and the permissions they hold to the minimum necessary. OWASP LLM06:2025.</li>
-<li><span class="label std">Standard</span>"Implement human-in-the-loop controls for privileged operations to prevent unauthorized actions." OWASP LLM01:2025, Require human approval for high-risk actions.</li>
+<li><span class="label std">Standard</span>"Excessive Agency is the vulnerability that enables damaging actions to be performed in response to unexpected, ambiguous or manipulated outputs from an LLM, regardless of what is causing the LLM to malfunction." OWASP LLM03:2026 Excessive Agency.</li>
+<li><span class="label std">Standard</span>OWASP LLM03:2026 names three root causes: excessive functionality, excessive permissions, and excessive autonomy, the last being systems that lack independent verification and approval for high-impact actions.</li>
+<li><span class="label std">Standard</span>"Use human-in-the-loop control to require a human to approve high-impact actions before they are taken." OWASP LLM03:2026, prevention measure 6, Require user approval.</li>
+<li><span class="label std">Standard</span>"Implement authorization in logic rather than relying on an LLM to decide if an action is allowed or not." OWASP LLM03:2026, prevention measure 7, Complete mediation.</li>
+<li><span class="label std">Standard</span>OWASP LLM03:2026 also lists these prevention measures: execute tools in the context of the specific user, and limit both the functions tools implement and the permissions they are granted to the minimum necessary (measures 2, 4 and 5).</li>
+<li><span class="label std">Standard</span>"Require explicit human confirmation before any privileged, irreversible, or externally visible action, surfacing the exact rendered action rather than a summary to the reviewer." OWASP LLM01:2026 Prompt Injection, prevention and mitigation strategy 7.</li>
 <li><span class="label std">Standard</span>"Confident, polished explanations misled human operators into approving harmful actions", from OWASP's announcement of the Top 10 for Agentic Applications, describing ASI09 Human-Agent Trust Exploitation.</li>
-<li><span class="label std">Standard</span>A signature protects the components it covers and nothing else, and a verifier must decide which components it requires to be covered rather than accepting whatever the signer chose. RFC 9421 section 7.2.1, Insufficient Coverage. The same reasoning decides an approval's coverage.</li>
+<li><span class="label std">Standard</span>Any part of a message that a signature does not cover can be modified without affecting the signature, so an application should require as much of the message as possible to be signed, and a verifier should trust only the components that were signed. RFC 9421 section 7.2.1, Insufficient Coverage. Section 1.4 requires an application to specify which components must be covered. The same reasoning decides an approval's coverage.</li>
 <li><span class="label base">Baseline</span>Bind the approval to the parameters with a MAC, never to a proposal identifier.</li>
 <li><span class="label base">Baseline</span>Cover every field that changes the outcome, and prove coverage by changing each field in turn.</li>
 <li><span class="label base">Baseline</span>Derive the approver's summary from the covered fields, so the sentence and the call cannot disagree.</li>
@@ -387,7 +387,7 @@ all lab checks passed</code></pre>
 <li data-check="apv-03" data-severity="Critical"><strong>The approver's summary is derived from the covered fields</strong> <span>A summary built separately can stay identical while a field outside it changes where the money goes.</span></li>
 <li data-check="apv-04" data-severity="High"><strong>Approvals are single use</strong> <span>A nonce spent on execution. An approved action happens once.</span></li>
 <li data-check="apv-05" data-severity="High"><strong>Approvals expire</strong> <span>Short enough that the approval does not outlive the context that justified it.</span></li>
-<li data-check="apv-06" data-severity="High"><strong>Downstream services authorize independently of the approval</strong> <span>OWASP's instruction. An approval records that a human agreed, not that the caller is entitled.</span></li>
+<li data-check="apv-06" data-severity="High"><strong>Downstream services authorize independently of the approval</strong> <span>OWASP LLM03:2026 says not to rely on an LLM to decide if an action is allowed. An approval records that a human agreed, not that the caller is entitled.</span></li>
 <li data-check="apv-07" data-severity="Medium"><strong>Session-wide approvals are recorded with the fields they constrain</strong> <span>Zero is a legitimate answer and a legitimate finding.</span></li>
 <li data-check="apv-08" data-severity="Medium"><strong>The list of actions requiring approval is written down</strong> <span>Derived from what each action does rather than from how often it happens.</span></li>
 <li data-check="apv-09" data-severity="Medium"><strong>Approved and executed parameters are both logged</strong> <span>So an incident can answer whether they were the same without rebuilding the state.</span></li>
@@ -395,10 +395,9 @@ all lab checks passed</code></pre>
 
 <h2>Sources</h2>
 <ul class="prose">
-<li><a href="https://genai.owasp.org/llmrisk/llm062025-excessive-agency/">OWASP LLM06:2025 Excessive Agency</a>, from the OWASP Top 10 for LLM Applications 2025. The definition, the three root causes, and the prevention measures quoted above.</li>
-<li><a href="https://genai.owasp.org/llmrisk/llm01-prompt-injection/">OWASP LLM01:2025 Prompt Injection</a>. "Implement human-in-the-loop controls for privileged operations to prevent unauthorized actions."</li>
-<li><a href="https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/">OWASP Top 10 for Agentic Applications for 2026</a>, version 2026, released 9 December 2025. ASI09 Human-Agent Trust Exploitation and ASI02 Tool Misuse. The sentence quoted above about confident, polished explanations is from OWASP's <a href="https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/">announcement of the list</a>, not from the ASI09 entry.</li>
-<li><a href="https://www.rfc-editor.org/rfc/rfc9421">RFC 9421: HTTP Message Signatures</a>, February 2024. Section 7.2.1, Insufficient Coverage, for the principle that a signature protects only what it covers.</li>
+<li><a href="https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/">OWASP GenAI LLM Top 10 2026</a>, version 2026, August 2026. The title page of the document reads "OWASP Top 10 for LLM Applications 2026". LLM03:2026 Excessive Agency: the definition, the three root causes, and the prevention measures quoted above. LLM01:2026 Prompt Injection, strategy 7: "Require explicit human confirmation before any privileged, irreversible, or externally visible action, surfacing the exact rendered action rather than a summary to the reviewer."</li>
+<li><a href="https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/">OWASP Top 10 for Agentic Applications for 2026</a>, version 2026, released 9 December 2025. ASI09 Human-Agent Trust Exploitation and ASI02 Tool Misuse and Exploitation. The sentence quoted above about confident, polished explanations is from OWASP's <a href="https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/">announcement of the list</a>, not from the ASI09 entry.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9421">RFC 9421: HTTP Message Signatures</a>, February 2024. Section 7.2.1, Insufficient Coverage, for the principle that a signature protects only what it covers. Section 1.4, Application of HTTP Message Signatures, for the requirement that an application specify the components that must be covered.</li>
 </ul>
 </main>
 <footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
