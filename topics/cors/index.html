@@ -241,6 +241,106 @@ all 71 lab checks passed</code></pre>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 </section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="cors-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/cors_lab.py"><code>labs/cors_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant. One variant changes nothing, and its answer carries the measurement from a request the lab does not make.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="cors-x1" data-covers="cors-01">
+<h3>1. The allowlist is matched by prefix</h3>
+<div class="prose">
+<p>In <code>allowlist_server</code>, replace the membership test with a prefix test. <code>ALLOWED_ORIGINS</code> stays as it is:</p>
+</div>
+<pre><code>if request_origin.startswith(ALLOWED_ORIGINS):</code></pre>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="cors-x1" value="a"> Check 66. The attacker on <code>booking-rewards.example</code> now gets <code>success</code>.</label>
+<label><input type="radio" name="cors-x1" value="b"> None. All 71 checks pass.</label>
+<label><input type="radio" name="cors-x1" value="c" data-correct="true"> Checks 70 and 71. The fourth of the five origins is now allowed.</label>
+<label><input type="radio" name="cors-x1" value="d"> Checks 70 and 71. The fourth and the fifth of the five origins are now allowed.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 66 still prints <code>failure</code>. <code>https://booking-rewards.example</code> does not begin with either listed origin, so a prefix test refuses it too. An unrelated origin is the test a loosened comparison still passes.</li>
+<li data-option="b">The lab carries a lookalike origin for exactly this edit, so the run does not stay clean. It exits 1.</li>
+<li data-option="c">Correct. Exit 1, two failures. Check 70 goes from <code>['success', 'success', 'failure', 'failure', 'failure']</code> to <code>['success', 'success', 'failure', 'success', 'failure']</code>, and in check 71 the fourth entry goes from <code>None</code> to <code>'https://app.examplehotels.example.evil.example'</code>. That origin begins with an allowed one, so the server sends it back with credentials allowed, and anyone can register a host of that shape. Checks 65 to 68 print the same as before, which is why check <code>cors-01</code> in the <a href="#reference">Reference</a> layer asks for a lookalike as well as a disallowed origin.</li>
+<li data-option="d">The fifth origin is <code>http://app.examplehotels.example</code>. It differs from the listed origin inside the scheme, before the host starts, so it is not a prefix match and its entry in checks 70 and 71 does not move.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="cors-x2" data-covers="cors-02">
+<h3>2. The reflecting server sends a wildcard instead</h3>
+<div class="prose">
+<p>Someone reads that echoing the origin is unsafe and changes <code>reflecting_server</code> to stop echoing. In the pair it returns for <code>Access-Control-Allow-Origin</code>, replace <code>request_origin</code> with the string <code>"*"</code>. The <code>Access-Control-Allow-Credentials</code> pair stays <code>"true"</code>.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="cors-x2" value="a"> Only check 64, which now prints <code>*</code>. A wildcard matches every origin, so checks 62, 63 and 69 still print <code>success</code>.</label>
+<label><input type="radio" name="cors-x2" value="b"> Check 63, the attacker, becomes <code>failure</code>. Check 62, the real app, stays <code>success</code>.</label>
+<label><input type="radio" name="cors-x2" value="c"> Check 64 prints <code>*</code>, and check 69 shows <code>success</code> only for the two origins on the allowlist.</label>
+<label><input type="radio" name="cors-x2" value="d" data-correct="true"> Checks 62 and 63 both become <code>failure</code>, check 64 prints <code>*</code>, and check 69 shows five failures.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">A wildcard succeeds only when credentials were not included. Checks 62, 63 and 69 all call <code>cors_check</code> with <code>"include"</code>, so the wildcard line is skipped and <code>*</code> is then compared with the origin as a plain string. It equals none of them.</li>
+<li data-option="b">The check has no idea which origin is the real app. It compares one string with another, and <code>*</code> differs from <code>https://app.examplehotels.example</code> just as it differs from the attacker's origin.</li>
+<li data-option="c">Check 69 runs against <code>reflecting_server</code>, which has no list. <code>ALLOWED_ORIGINS</code> is read only by <code>allowlist_server</code>, and check 70 is the one that uses it.</li>
+<li data-option="d">Correct. Exit 1, four failures. Checks 62 and 63 go from <code>success</code> to <code>failure</code>, check 64 goes from <code>https://booking-rewards.example</code> to <code>*</code>, and check 69 goes from five times <code>success</code> to five times <code>failure</code>. The attacker is locked out, and so is the real dashboard, because a wildcard with credentials included fails the check for every origin. That is the same outcome as check 38 in Part B. The edit closes the hole by breaking the integration, which is not a fix anyone keeps. Check <code>cors-02</code> in the <a href="#reference">Reference</a> layer is the assertion that catches this pairing before it ships.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="cors-x3" data-covers="cors-07">
+<h3>3. The non-wildcard name rule is removed from the preflight</h3>
+<div class="prose">
+<p>In <code>preflight_fetch</code>, delete the whole <code>for name, _ in headers:</code> loop, the one that returns <code>is a non-wildcard name and was not listed</code>. The loop after it, over <code>unsafe_request_header_names(headers)</code>, stays.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="cors-x3" value="a"> Check 44 becomes <code>ok</code>. The wildcard now covers <code>Authorization</code>.</label>
+<label><input type="radio" name="cors-x3" value="b" data-correct="true"> Check 44 still prints <code>network error</code>, but check 45 gives a different reason.</label>
+<label><input type="radio" name="cors-x3" value="c"> Nothing. All 71 checks pass.</label>
+<label><input type="radio" name="cors-x3" value="d"> Checks 44 and 59 both change.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Not in this lab. Check 44 sends its request with credentials included, and the loop that is left honours <code>*</code> in <code>Access-Control-Allow-Headers</code> only when credentials are not included. <code>Authorization</code> is an unsafe name that was not listed, so the preflight is still refused.</li>
+<li data-option="b">Correct. Exit 1, one failure: check 45 goes from <code>Authorization is a non-wildcard name and was not listed</code> to <code>header authorization is not allowed by the preflight</code>. Check 44 is unchanged. The request is still refused, by a different rule, and only because this request includes credentials. Measured on a preflight the lab does not make, with credentials omitted, <code>Access-Control-Allow-Origin: *</code>, <code>Access-Control-Allow-Methods: PATCH</code> and <code>Access-Control-Allow-Headers: *</code>, for the same request carrying <code>Authorization</code>: as published the answer is <code>network error</code> with the non-wildcard reason, and with the loop deleted it is <code>ok</code> with a max age of 5. Check <code>cors-07</code> in the <a href="#reference">Reference</a> layer exists because the wildcard never covers this one name, with or without credentials.</li>
+<li data-option="c">The lab compares the reason in check 45 as well as the outcome in check 44, so a change of reason fails the run even though the verdict is the same.</li>
+<li data-option="d">Check 59 is answered by <code>PreflightCache.header_match</code>, which carries its own non-wildcard comparison. This edit does not touch it, and check 59 still prints <code>False</code>.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="cors-x4" data-covers="cors-05">
+<h3>4. Vary is sent only when the origin is refused</h3>
+<div class="prose">
+<p>In <code>allowlist_server</code>, remove the <code>("Vary", "Origin")</code> pair from the list returned for an allowed origin. The last line of the function, which returns <code>Vary</code> alone for every other origin, stays.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="cors-x4" value="a" data-correct="true"> Nothing. All 71 checks pass.</label>
+<label><input type="radio" name="cors-x4" value="b"> Check 68 prints <code>None</code> instead of <code>Origin</code>.</label>
+<label><input type="radio" name="cors-x4" value="c"> Check 65, the real app, becomes <code>failure</code>.</label>
+<label><input type="radio" name="cors-x4" value="d"> Check 71 changes, because it prints what the allowlist sent.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Correct. Exit 0, 84 of 84 lines identical. The only place the lab reads <code>Vary</code> is check 68, and that reads the response to the attacker, which this edit leaves alone. Measured on a lookup the lab does not make, the <code>Vary</code> header on the response to <code>https://app.examplehotels.example</code>: as published it is <code>Origin</code>, and with the pair removed it is <code>None</code>. The allowed response is the one that names an origin and allows credentials, so it is the one a shared cache must not serve to a different origin, and it is now the one with nothing telling the cache so. Check <code>cors-05</code> in the <a href="#reference">Reference</a> layer says wherever the response depends on the origin, which is both branches.</li>
+<li data-option="b">That is the other branch. Removing <code>Vary</code> from the refusal changes check 68 from <code>Origin</code> to <code>None</code> and the run exits 1. This edit removes it from the allowed response, which check 68 never sees.</li>
+<li data-option="c"><code>cors_check</code> reads <code>Access-Control-Allow-Origin</code> and <code>Access-Control-Allow-Credentials</code> and nothing else. <code>Vary</code> is an instruction to caches, and the check never looks at it.</li>
+<li data-option="d">Check 71 prints only the <code>Access-Control-Allow-Origin</code> value sent to each of the five origins. Those values are unchanged.</li>
+</ul>
+</details>
+</article>
+</section>
 <p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
 <span class="layer" id="reference" style="margin-top:3rem">Reference</span>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
