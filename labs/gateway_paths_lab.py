@@ -147,9 +147,10 @@ def main():
             "internet -> svc-booking-staging": "Critical: reachable without authentication",
         }.get(label(p), "not in the expected list"), worst(p))
     staging = [p for p in undocumented if p["service"] == "svc-booking-staging"][0]
+    criticals = [text for sev, text in findings(staging) if sev == "Critical"]
     check("staging's second critical finding",
           "non-production deployment, production data, publicly reachable",
-          [text for sev, text in findings(staging) if sev == "Critical"][1])
+          criticals[1] if len(criticals) > 1 else "none")
 
     print()
     print("Part D: after the remediation.")
