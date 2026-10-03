@@ -181,7 +181,7 @@ nonces recorded by the shared verifier: 1</code></pre>
 <p><strong>Try next:</strong></p>
 <ul>
 <li>In <code>Verifier.verify</code>, move the nonce check and the line that records the nonce above the signature check, then run it again. Every verdict stays the same. The last line does not: attempt 9 is forged, and it is now recorded, so the count becomes 2. An attacker who cannot sign can still fill the cache.</li>
-<li>Remove <code>host</code> from <code>canonical_string</code>. One verdict changes, and only one.</li>
+<li>Remove <code>host</code> from the list <code>canonical_string</code> joins, and leave its parameters as they are. One verdict changes, and only one.</li>
 </ul>
 </div>
 
@@ -210,7 +210,7 @@ nonces recorded by the shared verifier: 1</code></pre>
 <article class="exercise" data-exercise data-exercise-id="hmac-x1" data-covers="hmac-02">
 <h3>1. The receiver re-serializes the body before hashing it</h3>
 <div class="prose">
-<p>In <code>canonical_string</code> the body hash covers the bytes that arrived. Make it parse the JSON and hash a compact re-serialization instead:</p>
+<p>In <code>canonical_string</code> the body hash covers the bytes that arrived. Add <code>json</code> to the <code>import</code> line at the top of the lab. Then make <code>canonical_string</code> parse the JSON and hash a compact re-serialization instead:</p>
 </div>
 <pre><code>body = json.dumps(json.loads(body), separators=(",", ":")).encode()
 body_hash = hashlib.sha256(body).hexdigest()</code></pre>
