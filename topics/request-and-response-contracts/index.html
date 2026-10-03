@@ -188,7 +188,7 @@ all lab checks passed</code></pre>
 <p><strong>Try next:</strong></p>
 <ul>
 <li>Change the depth in <code>nested</code> from 100000 to 200. Check 11 stops crashing and check 13 still refuses it, which is the difference between a limit and a cliff.</li>
-<li>Pass <code>object_pairs_hook</code> to the handler's parse in Part A so that a repeated name raises. Both checks 1 and 3 change, and that is the fix.</li>
+<li>Pass <code>object_pairs_hook</code> to the handler's parse in Part A so that a repeated name raises <code>ValueError</code>. The run stops at that line with a traceback and exit code 1, before check 1, so no check prints. The body is refused, and that is the fix.</li>
 <li>Add a field to <code>accepts_schema</code> requiring <code>miles</code> to be below a million. Check 10 flips, and check 19 does not. Say why.</li>
 <li>Take the JSON parser of another language you use and run the Part A body through it. Write down which of RFC 8259's three behaviours it implements.</li>
 </ul>
