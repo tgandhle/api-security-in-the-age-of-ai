@@ -214,7 +214,7 @@ all lab checks passed</code></pre>
 <li>Set <code>require_may_act=False</code> on the main server and rerun. Three checks fail, and they are the three that decide whether an agent can act for a user who never said it could.</li>
 <li>Change the resource server's chain walk to stop after one level instead of all of them. Decide whether that is a fix or a smaller version of the same bug.</li>
 <li>Add a fifth hop to Part E and print the chain. Decide what depth you would refuse at, and what you would do with a token that exceeded it.</li>
-<li>Remove the <code>min()</code> in the lifetime cap and rerun. One check fails, and the token it issues outlives the session it came from.</li>
+<li>On the line that sets <code>ttl</code>, replace <code>min(want_seconds, left)</code> with <code>want_seconds</code> and rerun. Two checks fail, 34 and 43, and the token it issues outlives the session it came from.</li>
 <li>For a service you work on: list the paths where it calls another service on a user's behalf, and mark which of the four shapes each one is. The ones you cannot classify are the finding.</li>
 </ul>
 </div>
