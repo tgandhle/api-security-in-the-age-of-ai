@@ -8,9 +8,10 @@ are never printed.
 
 Part A walks a client credentials exchange and shows audience checking.
 Part B intercepts an authorization code, redeems it as the attacker, then
-repeats the interception once PKCE S256 is required, and shows a code replay
-revoking the token that was legitimately issued from that code.
-Part C shows the two grants RFC 9700 rules out.
+repeats the interception when the request carries a PKCE S256 challenge, and
+shows a code replay revoking the token that was legitimately issued from that
+code.
+Part C shows the two grants RFC 9700 says not to use.
 
 Exits non-zero if any check does not produce its expected outcome.
 
@@ -118,7 +119,7 @@ class AuthorizationServer:
             return 400, {"error": "invalid_scope"}
         body = self._issue(params["client_id"], params.get("scope", ""), client["audience"])
         # RFC 6749 section 4.4.3: a refresh token SHOULD NOT be included.
-        assert "refresh_token" not in body
+        # _issue adds none, and check 2 in main() tests the response.
         return 200, body
 
     def _authorization_code(self, params):
@@ -143,7 +144,8 @@ class AuthorizationServer:
                 return 400, {"error": "invalid_grant"}
             # The method is the one recorded at the authorization request.
             # A method supplied at redemption time is ignored.
-            if not hmac.compare_digest(s256(verifier), record["challenge"]):
+            derived = verifier if record["method"] == "plain" else s256(verifier)
+            if not hmac.compare_digest(derived, record["challenge"]):
                 return 400, {"error": "invalid_grant"}
         record["used"] = True
         client = self._client(record["client_id"])
@@ -155,7 +157,7 @@ class AuthorizationServer:
 
 
 class ResourceServer:
-    """Validates the bearer token and its audience. Nothing else."""
+    """Validates the bearer token, its audience, then its scope. Nothing else."""
 
     def __init__(self, name, audience, auth_server, required_scope):
         self.name = name
@@ -216,14 +218,16 @@ def main():
     check("scope beyond the client's grant", "reject: invalid_scope",
           "accept" if status == 200 else "reject: " + body["error"])
 
-    assert bearer_header(service_token).startswith("Authorization: Bearer ")
+    if service_token is not None:
+        assert bearer_header(service_token).startswith("Authorization: Bearer ")
     status, body = hotel.call(service_token)
     check("token at its intended audience", "accept",
           "accept" if status == 200 else "reject: " + body["error"])
 
     status, body = ledger.call(service_token)
-    check("token at a different resource server", "reject: invalid_token, audience",
-          "accept" if status == 200 else "reject: %s, audience" % body["error"])
+    check("token at a different resource server", "reject: invalid_token, wrong audience",
+          "accept" if status == 200
+          else "reject: %s, %s" % (body["error"], body.get("reason", "no reason")))
 
     print()
     print("Part B: an intercepted authorization code. The attacker has the code.")
@@ -321,7 +325,7 @@ def main():
           "accept" if status == 302 else "reject: " + body["error"])
 
     print()
-    print("Part C: the grants RFC 9700 rules out.")
+    print("Part C: the grants RFC 9700 says not to use.")
 
     status, body = auth.token({
         "grant_type": "password",

@@ -49,7 +49,7 @@
 <li><strong>"A token proves who the user is."</strong> An OAuth access token is an authorization artifact. It says the resource owner granted this <a href="../../glossary/index.html#scope">scope</a> to this client. It is not an identity assertion, and it is not permission for every operation the scope touches.</li>
 </ul>
 <p>PKCE closes the third gap with a value that never crosses the front channel. The client generates a random <a href="../../glossary/index.html#code-verifier">code verifier</a>, sends only its SHA-256 hash as the <a href="../../glossary/index.html#code-challenge">code challenge</a>, and presents the verifier later on the back channel. An attacker who captures the code has the hash at best, and cannot work backwards to the verifier.</p>
-<p>That is why the method matters. With <code>plain</code>, the challenge is the verifier, so anyone who sees the authorization request can redeem the code. RFC 7636 section 7.2 says <code>plain</code> "SHOULD NOT be used and exists only for compatibility with deployed implementations."</p>
+<p>That is why the method matters. With <code>plain</code>, the challenge is the verifier, so anyone who sees the authorization request can redeem the code. RFC 7636 section 7.2 says <code>plain</code> "SHOULD NOT be used and exists only for compatibility with deployed implementations".</p>
 </div>
 
 <h2>3. The control</h2>
@@ -131,7 +131,7 @@ Back channel, server to server over TLS:
 <tr><td>Challenge method</td><td>S256</td><td>Only if the client genuinely cannot compute SHA-256 and the server is known to accept <code>plain</code>. Treat that as a finding.</td></tr>
 <tr><td>Redirect URI matching</td><td>Exact string match against a registered list</td><td>Never loosened. Localhost port numbers for native apps are the documented exception.</td></tr>
 <tr><td>Code lifetime</td><td>60 seconds, single use</td><td>RFC 6749 recommends a maximum of 10 minutes. Shorter is better; the code is redeemed immediately in practice.</td></tr>
-<tr><td>Browser token storage</td><td>A backend for frontend, so the token never reaches page scripts</td><td>Only if the token must live in the browser. Then revisit module 1's storage discussion and accept the XSS exposure.</td></tr>
+<tr><td>Browser token storage</td><td>A backend for frontend, so the token never reaches page scripts</td><td>Only if the token must live in the browser. Then accept the XSS exposure: any script on the page can read the token.</td></tr>
 <tr><td>Token binding</td><td>Bearer, with short lifetimes</td><td>Theft is a material risk. Then use mTLS or DPoP, covered in module 7.</td></tr>
 </tbody></table></div>
 
@@ -171,7 +171,7 @@ Part A: client credentials. A service authenticates as itself.
  3. wrong client secret                      reject: invalid_client
  4. scope beyond the client's grant          reject: invalid_scope
  5. token at its intended audience           accept
- 6. token at a different resource server     reject: invalid_token, audience
+ 6. token at a different resource server     reject: invalid_token, wrong audience
 
 Part B: an intercepted authorization code. The attacker has the code.
  7. no PKCE, attacker redeems stolen code    accept
@@ -185,17 +185,17 @@ Part B: an intercepted authorization code. The attacker has the code.
 15. redirect URI off by one character        reject: invalid_request
 16. authorization request asks for plain     reject: invalid_request
 
-Part C: the grants RFC 9700 rules out.
+Part C: the grants RFC 9700 says not to use.
 17. password grant                           reject: unsupported_grant_type
 18. response_type=token                      reject: unsupported_response_type
 
 all lab checks passed</code></pre>
 <div class="prose">
-<p>Check 7 is the attack. Checks 8 through 10 are the same interception against a server that requires S256. Check 14 is the part most implementations skip: replaying a code does not just fail, it invalidates the token the real client already obtained from it.</p>
+<p>Check 7 is the attack. Checks 8 through 10 are the same interception against a code whose authorization request carried an S256 challenge. Check 14 is the part most implementations skip: replaying a code does not just fail, it invalidates the token the real client already obtained from it.</p>
 <p><strong>Try next:</strong></p>
 <ul>
-<li>In the lab's <code>_authorization_code</code> method, verify the challenge using the <code>code_challenge_method</code> sent at redemption instead of the recorded one. Which check goes green, and what has the attacker just been allowed to choose?</li>
-<li>Delete the token revocation loop in the reuse branch. Which check fails, and which RFC 6749 requirement have you dropped?</li>
+<li>In the lab's <code>_authorization_code</code> method, verify the challenge using the <code>code_challenge_method</code> sent at redemption instead of the recorded one. Three checks change and the run exits 1. Which one is the attacker getting in, and what has the attacker just been allowed to choose?</li>
+<li>Delete the token revocation loop in the reuse branch. Which check fails, and which RFC 6749 recommendation have you dropped?</li>
 <li>Add <code>"plain"</code> to <code>challenge_methods</code>. One check changes: check 16 goes from <code>reject: invalid_request</code> to <code>accept</code>, and the run exits 1 with one failure. Explain why check 7's attack is now reachable again for any client that uses <code>plain</code>.</li>
 </ul>
 </div>
@@ -203,7 +203,7 @@ all lab checks passed</code></pre>
 <h2>8. Check your understanding</h2>
 <details><summary>Why does PKCE use a hash rather than sending the verifier in the authorization request?</summary><p>The authorization request travels through the browser, so anything in it can be read. Sending the hash means an attacker who captures the request still cannot produce the verifier the token endpoint will ask for. With <code>plain</code> the challenge is the verifier, which is why RFC 7636 says not to use it.</p></details>
 <details><summary>A public mobile app has no client secret. What stops a malicious app on the same device from redeeming its code?</summary><p>PKCE. The malicious app can register for the same redirect URI and receive the code, but it never saw the verifier, which was generated in the real app's memory and sent only on the back channel.</p></details>
-<details><summary>Your service uses client credentials and the authorization server returns a refresh token. What do you do?</summary><p>Question it. RFC 6749 section 4.4.3 says a refresh token SHOULD NOT be included, because the client can authenticate and request a new token whenever it needs one. A refresh token here is extra long-lived credential to protect for no benefit.</p></details>
+<details><summary>Your service uses client credentials and the authorization server returns a refresh token. What do you do?</summary><p>Question it. RFC 6749 section 4.4.3 says a refresh token SHOULD NOT be included. The client can authenticate and request a new token whenever it needs one. A refresh token here is extra long-lived credential to protect for no benefit.</p></details>
 <details><summary>You validate a token's signature, issuer and expiry, and it passes. Is the request authorized?</summary><p>No. Those checks say the token is genuine and current. They do not say it was issued for your resource server, or that its scope covers this operation, or that this caller may touch this particular object. Audience and scope are in this module; object-level authorization is module 9.</p></details>
 
 <section class="course-quiz" data-quiz data-quiz-id="oauth-basics-check" data-correct-feedback="Correct. The verifier never crosses the front channel, so capturing the code and the authorization request is not enough to redeem it." data-incorrect-feedback="Not quite. Exact redirect URI matching and single-use codes both help, but neither stops an attacker who holds a fresh, unused code. The verifier is what they cannot obtain.">
@@ -264,8 +264,8 @@ all lab checks passed</code></pre>
 <details class="exercise-answers"><summary>Every option, and why</summary>
 <ul>
 <li data-option="a">Check 7 uses the registered callback exactly, so it accepts either way. That check is about the absence of PKCE, not about the URI.</li>
-<li data-option="b">Correct. Exit 1, one failure: check 15 goes from <code>reject: invalid_request</code> to <code>accept</code>. That request adds a character to the end of the registered callback, which a prefix match cannot see. Where the added characters go is what decides how bad it is, and a path or a query the attacker controls is enough to read the code out of the redirect. RFC 9700 section 2.1 requires simple string comparison, and check <code>oauth-02</code> in the <a href="#reference">Reference</a> layer says the same.</li>
-<li data-option="c">Check 16 is refused for its challenge method before the URI is examined.</li>
+<li data-option="b">Correct. Exit 1, one failure: check 15 goes from <code>reject: invalid_request</code> to <code>accept</code>. That request adds a character to the end of the registered callback, which a prefix match cannot see. Where the added characters go is what decides how bad it is, and a path or a query the attacker controls is enough to read the code out of the redirect. RFC 9700 section 2.1 requires exact string matching, and check <code>oauth-02</code> in the <a href="#reference">Reference</a> layer says the same.</li>
+<li data-option="c">Check 16 sends the registered callback exactly, so it passes the URI match either way. It is refused for its challenge method.</li>
 <li data-option="d">It does still reject a different host, which is exactly why this bug survives review. The attack is a suffix on the host you already registered, not a different one.</li>
 </ul>
 </details>
@@ -310,8 +310,8 @@ all lab checks passed</code></pre>
 <details class="exercise-answers"><summary>Every option, and why</summary>
 <ul>
 <li data-option="a">Check 7 already sends the right client id. Every redemption in this lab does.</li>
-<li data-option="b">Those three are refused by the PKCE comparison, which this edit does not touch.</li>
-<li data-option="c">Correct. Exit 0, 27 of 27 lines identical, <code>all lab checks passed</code>. Every redemption in the lab uses the client the code was issued to, so the binding check never fires and removing it costs nothing that the lab can see. Measured separately, with a second client registered at the same callback and holding the verifier: as published the server answers <code>reject: invalid_grant</code>, and without the binding it answers <code>accept</code>. The verifier is handed over on purpose there, because that is the only way to see which check was doing the work. Check <code>oauth-04</code> in the <a href="#reference">Reference</a> layer asks for codes bound to client and redirect URI, and this lab tests the second half and not the first.</li>
+<li data-option="b">Those three are refused by the PKCE checks, which this edit does not touch.</li>
+<li data-option="c">Correct. Exit 0, 27 of 27 lines identical, <code>all lab checks passed</code>. Every redemption in the lab uses the client the code was issued to, so the binding check never fires and removing it costs nothing that the lab can see. Measured separately, with a second client registered at the same callback and holding the verifier: as published the server answers <code>reject: invalid_grant</code>, and without the binding it answers <code>accept</code>. The verifier is handed over on purpose there, because that is the only way to see which check was doing the work. Check <code>oauth-04</code> in the <a href="#reference">Reference</a> layer asks for codes bound to client and redirect URI, and this lab tests neither half at redemption: check 15 tests the redirect URI at the authorization request, not the binding of the code.</li>
 <li data-option="d">Check 13 rejects on reuse, which is recorded against the code itself and is unaffected.</li>
 </ul>
 </details>
