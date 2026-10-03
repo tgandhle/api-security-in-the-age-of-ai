@@ -12,7 +12,7 @@
 <main>
 <p class="kicker">Part 3: Edges and boundaries &middot; Module 13</p>
 <h1>Request and response contracts</h1>
-<p class="meta">Last reviewed 2026-09-30 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 
 <div class="prose">
 <p><strong>Objective.</strong> After this module you can explain how two parsers reading the same bytes reach different answers and what that costs you, name the values a JSON parser accepts that no contract describes, and place limits in the only order that works: before the parser, not in the schema.</p>
@@ -24,7 +24,7 @@
 
 <h2>1. The attack</h2>
 <div class="prose">
-<p>Running example: ExampleAir's partner transfer endpoint, taking a JSON body with a transaction identifier and a number of miles. Company names are fictional. Authentication passes, the object and property checks pass, and the schema validator approves the body.</p>
+<p>Running example: ExampleAir's partner transfer endpoint, taking a JSON body with a transaction identifier and a number of miles. Company names are fictional. <a href="../../glossary/index.html#authentication">Authentication</a> passes, the object and property checks pass, and the <a href="../../glossary/index.html#schema">schema</a> validator approves the body.</p>
 <p>The body is <code>{"partnerTxnId": "EXA-42", "miles": 10, "miles": 90000}</code>.</p>
 <p>The validator read <code>miles</code> as 10 and approved it. The handler read <code>miles</code> as 90000 and credited it. Both were correct, in the sense that neither did anything its library does not do by default, and both reported success. Nothing logged an error, because from each component's point of view nothing went wrong.</p>
 <p>That is one of three ways the parsing step betrays the checks built on top of it. The second is values the parser will hand you that your contract never described. The third is inputs whose cost lands during parsing, before any validator exists to refuse them.</p>
@@ -46,7 +46,7 @@
 <h3>The same bytes, two objects</h3>
 <div class="prose">
 <p>RFC 8259 is unusually direct about the repeated-name case. It says "the names within an object SHOULD be unique", which is a recommendation rather than a requirement, and then describes what actually happens when they are not: "Many implementations report the last name/value pair only. Other implementations report an error or fail to parse the object, and some implementations report all of the name/value pairs, including duplicates."</p>
-<p>Three behaviours, all in use, and the RFC calls the result "unpredictable". So the question "what does this body mean" has no single answer, and any two components that parse it separately can disagree. The exposure is largest wherever a request is parsed more than once: a gateway and a service, a validator and a handler, a service written in one language calling one written in another. The attacker does not need to know which parser does what. Sending both values and seeing which one takes effect is one request.</p>
+<p>Three behaviours, all in use, and the RFC calls the result "unpredictable". So the question "what does this body mean" has no single answer, and any two components that parse it separately can disagree. The exposure is largest wherever a request is parsed more than once: a <a href="../../glossary/index.html#api-gateway">gateway</a> and a service, a validator and a handler, a service written in one language calling one written in another. The attacker does not need to know which parser does what. Sending both values and seeing which one takes effect is one request.</p>
 </div>
 
 <h3>Values with no place in the contract</h3>
@@ -94,7 +94,7 @@
 <li><strong>Limit the declared size, and the decoded size while decoding.</strong> Not after. A body that expands from kilobytes to megabytes has already cost you by the time you can measure the result.</li>
 <li><strong>Inspect the text before building an object.</strong> Nesting depth and repeated names are both visible in the bytes, and both are cheap to measure without a parser.</li>
 <li><strong>Reject repeated names outright.</strong> Not last-wins, not first-wins: rejected. Any resolution you choose is a resolution some other component will choose differently.</li>
-<li><strong>Configure the parser to refuse what the format forbids.</strong> <code>NaN</code> and <code>Infinity</code> are not JSON. Python's <code>json</code> module accepts them by default and has a setting, <code>parse_constant</code>, that refuses them. Check what your library does.</li>
+<li><strong>Configure the parser to refuse what the format forbids.</strong> <code>NaN</code> and <code>Infinity</code> are not JSON. Python's <code>json</code> module accepts them by default and has a setting, <code>parse_constant</code>, that can refuse them. Check what your library does.</li>
 <li><strong>Bound number range and literal length</strong> at the parser or immediately after, since the grammar bounds neither.</li>
 <li><strong>Then validate against the schema</strong>, on the object you now have, for types, required fields, ranges and formats.</li>
 <li><strong>Apply the same discipline to responses.</strong> A response you consume from another service is somebody else's request body arriving at your parser, which is <a href="../ssrf-and-unsafe-consumption/index.html">module 14</a>.</li>
@@ -145,7 +145,7 @@
 <pre><code>Windows              macOS and Linux
 py -3 labs/contracts_lab.py    python3 labs/contracts_lab.py</code></pre>
 <div class="prose">
-<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. Every parser result in this lab is real behaviour of Python's own <code>json</code> module on the machine you run it on. The first-wins parser, the depth limit and the size limit are the lab's own code. The parser results are not simulated, which also means checks 9 and 11 describe CPython: the checks compare the kind of failure rather than its message, because messages change between versions, but a different Python or a different runtime could in principle fail differently. If a check does not match on your machine, that is the lab telling you something true about your parser.</p>
+<p>On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>. Every parser result in this lab is real behaviour of Python's own <code>json</code> module on the machine you run it on. The first-wins parser, the depth limit and the size limit are the lab's own code. The parser results are not simulated, which also means checks 9 and 11 describe CPython: the checks compare the kind of failure rather than its message, because messages change between versions, but a different Python or a different runtime could in principle fail differently. If a check does not match on your machine, that is the lab telling you something true about your parser.</p>
 </div>
 <pre><code>$ python3 labs/contracts_lab.py
 every parser result below is Python's json module on this machine
@@ -196,7 +196,7 @@ all lab checks passed</code></pre>
 
 <h2>8. Check your understanding</h2>
 <details><summary>Two services parse the same request body. Why is that a security problem rather than a duplication problem?</summary><p>Because a repeated name has no single meaning. RFC 8259 recommends unique names and documents three behaviours implementations show when they are not: last wins, error, and all pairs kept. Two components can each follow their library's default and reach different values, so a validator can approve one number while a handler acts on another. Either reject repeated names or make sure only one component parses the request.</p></details>
-<details><summary>Your schema says miles is a number greater than zero. Does infinity satisfy it?</summary><p>In most implementations, yes. <code>Infinity</code> is not valid JSON, and Python's parser produces it anyway unless told otherwise, at which point it is a number and it is greater than zero. The fix is in the parser's configuration, not in the schema, and it needs a bounded range on the field as well.</p></details>
+<details><summary>Your schema says miles is a number greater than zero. Does infinity satisfy it?</summary><p>In the lab, yes, which check 10 shows. <code>Infinity</code> is not valid JSON, and Python's parser produces it anyway unless told otherwise, at which point it is a number and it is greater than zero. The fix is in the parser's configuration, not in the schema, and it needs a bounded range on the field as well.</p></details>
 <details><summary>Why can a nesting limit not live in the schema?</summary><p>Because the schema runs on an object and a deeply nested body is an attack on the process of building one. The parser exhausts its stack first, so the validator that would have refused the input never executes. Depth is visible in the text, so it can be measured before parsing, which is the only place the check does any good.</p></details>
 <details><summary>You accept gzipped request bodies and limit bodies to 1 MiB. What is the limit on?</summary><p>Whichever number you measured. If it is the bytes that arrived, a 64 KiB body can decode to megabytes and you have no limit on the thing that costs you. The limit has to be enforced during decompression, on the bytes produced, with the decoder stopped when it passes the threshold.</p></details>
 
@@ -351,6 +351,8 @@ all lab checks passed</code></pre>
 <ul class="prose">
 <li><a href="https://www.rfc-editor.org/rfc/rfc8259">RFC 8259: The JavaScript Object Notation (JSON) Data Interchange Format</a>, December 2017. Sections 4, 6 and 9.</li>
 <li><a href="https://api-security.owasp.org/editions/2023/en/0xa4-unrestricted-resource-consumption/">OWASP API Security Top 10 2023, API4:2023 Unrestricted Resource Consumption</a>.</li>
+<li><a href="https://docs.python.org/3.14/library/json.html">Python 3.14 documentation: json, JSON encoder and decoder</a>. Standard Compliance and Interoperability: by default the module accepts <code>NaN</code> and <code>Infinity</code>, keeps only the last value of a repeated name, and imposes no limits beyond those of Python's datatypes and interpreter. <code>parse_constant</code> and <code>object_pairs_hook</code> are the parameters that alter the first two.</li>
+<li><a href="https://docs.python.org/3.14/library/stdtypes.html#int-max-str-digits">Python 3.14 documentation: Built-in Types, Integer string conversion length limitation</a>. CPython's default limit is 4300 digits, and a conversion past it raises <code>ValueError</code>.</li>
 </ul>
 </main>
 <footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>

@@ -35,7 +35,7 @@ def check(label, expected, actual):
 def outcome(fn, *args, **kwargs):
     """Run it and report what kind of thing happened, never the message.
 
-    Messages vary between Python versions; the kind of failure does not.
+    Messages vary between Python versions far more than the kind of failure does.
     """
     try:
         return "ok: %s" % (fn(*args, **kwargs),)
