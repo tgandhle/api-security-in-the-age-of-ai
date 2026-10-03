@@ -235,7 +235,7 @@ all lab checks passed</code></pre>
 <p><strong>Try next:</strong></p>
 <ul>
 <li>Set <code>check_audience=False</code> on the strict server and rerun. One check fails, and it is the only one that was protecting you.</li>
-<li>Make <code>check_iss</code> lowercase and strip a trailing slash before comparing, the way you would for any other URL. Three checks fail, and each one is a normalisation the specification forbids.</li>
+<li>Make <code>check_iss</code> lowercase and strip a trailing slash before comparing, the way you would for any other URL. Two checks fail, 25 and 26, and each one is a normalisation the specification forbids. Check 27, the default port, still rejects.</li>
 <li>Set <code>bind_handles=False</code> on the bound server and rerun. Decide whether you would have caught that in review, given that the handle is random and 21 characters long.</li>
 <li>Add a tool that needs two scopes and return them in separate challenges. Count the authorization round trips.</li>
 <li>For an MCP server you run or connect to: find where the inbound token goes. If it appears in an outbound request, you have found the finding.</li>
