@@ -12,10 +12,10 @@
 <main>
 <p class="kicker">Part 3: Edges and boundaries &middot; Module 16</p>
 <h1>Webhooks</h1>
-<p class="meta">Last reviewed 2026-09-30 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 
 <div class="prose">
-<p><strong>Objective.</strong> After this module you can build a receiver that rejects forged and replayed events, say exactly what a signature must cover and why, and tell a duplicate that is an attack from a duplicate that is the sender doing its job.</p>
+<p><strong>Objective.</strong> After this module you can build a receiver that rejects forged and <a href="../../glossary/index.html#replay-attack">replayed</a> events, say exactly what a <a href="../../glossary/index.html#signature">signature</a> must cover and why, and tell a duplicate that is an attack from a duplicate that is the sender doing its job.</p>
 <p><strong>Before you start.</strong> This module is <a href="../hmac-request-signing/index.html">module 2</a>'s signature, <a href="../business-flows-and-idempotency/index.html">module 11</a>'s duplicate handling and <a href="../request-and-response-contracts/index.html">module 13</a>'s limits, applied to an endpoint whose whole job is to be posted to by somebody else.</p>
 </div>
 <section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 17 of 27</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
@@ -25,7 +25,7 @@
 <h2>1. The attack</h2>
 <div class="prose">
 <p>Running example: ExampleHotels posts an event to ExampleAir when a payment settles, and ExampleAir credits the account. Company names are fictional.</p>
-<p>The endpoint is a public URL that changes your data. It has no session, no token from a login, and no user. Being on the internet authenticates nobody, so the signature is not an extra layer here: it is the entire authentication, and everything about its strength is decided by what it covers.</p>
+<p>The endpoint is a public URL that changes your data. It has no session, no token from a login, and no user. Being on the internet <a href="../../glossary/index.html#authentication">authenticates</a> nobody, so the signature is not an extra layer here: it is the entire authentication, and everything about its strength is decided by what it covers.</p>
 <p>Which means the interesting failures are not "no signature". They are signatures that verify correctly on a request you should have refused.</p>
 </div>
 <div class="wrap"><table>
@@ -39,14 +39,14 @@
 <tr><td>Two copies arriving before either finishes</td><td class="yes">Applied twice</td><td class="yes">Applied twice</td><td class="no">Applied once</td></tr>
 <tr><td>A refund before the payment it refunds</td><td class="yes">Applied in that order</td><td class="yes">Applied in that order</td><td class="yes">Applied in that order</td></tr>
 </tbody></table></div>
-<p class="prose">The last row never turns green, and it is not a security failure. Delivery is at least once and in no particular order, and a receiver that assumes otherwise is wrong about the protocol rather than about the attacker.</p>
+<p class="prose">The last row never turns green, and it is not a security failure. Delivery is <a href="../../glossary/index.html#at-least-once-delivery">at least once</a> and in no particular order, and a receiver that assumes otherwise is wrong about the protocol rather than about the attacker.</p>
 
 <h2>2. Why it works</h2>
 <h3>There is a standard for this, and it is worth knowing</h3>
 <div class="prose">
-<p>Most webhook implementations follow a vendor's convention. There is also an IETF answer, and it is specific: RFC 8417 defines a Security Event Token, a JWT describing "statements of fact from the perspective of an issuer about a subject", and RFC 8935 defines delivering one over HTTP POST. If you are designing a sender, these are worth reading before inventing a header.</p>
-<p>RFC 8935 section 2 lists what a recipient verifies, and the list is a good checklist whatever format you use: that it can parse the event, that the event "is authentic (i.e., it was issued by the issuer specified within the SET)", that the recipient "is identified as an intended audience", that the issuer "is recognized as an issuer that the SET Recipient is willing to receive SETs from", and that the recipient "is willing to accept this SET from this SET Transmitter". Note that the last two are separate questions: who wrote the event and who handed it to you are different, and both need an answer.</p>
-<p>RFC 8417 section 2.2 requires <code>iss</code>, <code>iat</code> and <code>jti</code>, defines <code>events</code>, and recommends <code>aud</code>. The <code>jti</code> is the one this module leans on: the specification notes it "MAY be used by clients to track whether a particular SET has already been received", which is module 11's idempotency key arriving under a different name.</p>
+<p>Most <a href="../../glossary/index.html#webhook">webhook</a> implementations follow a vendor's convention. There is also an IETF answer, and it is specific: RFC 8417 defines a Security Event Token, a <a href="../../glossary/index.html#jwt">JWT</a> describing "statements of fact from the perspective of an issuer about a subject", and RFC 8935 defines delivering one over HTTP POST. If you are designing a sender, these are worth reading before inventing a header.</p>
+<p>RFC 8935 section 2 lists what a recipient verifies, and the list is a good checklist whatever format you use: that it can parse the event, that the event "is authentic (i.e., it was issued by the issuer specified within the SET, and if signed, was signed by a key belonging to the issuer)", that the recipient "is identified as an intended audience", that the <a href="../../glossary/index.html#issuer">issuer</a> "is recognized as an issuer that the SET Recipient is willing to receive SETs from", and that the recipient "is willing to accept this SET from this SET Transmitter". Note that the last two are separate questions: who wrote the event and who handed it to you are different, and both need an answer.</p>
+<p>RFC 8417 section 2.2 requires <code>iss</code>, <code>iat</code> and <code>jti</code>, defines <code>events</code>, and recommends <code>aud</code>. The <code>jti</code> is the one this module leans on: the specification notes it "MAY be used by clients to track whether a particular SET has already been received", which is module 11's <a href="../../glossary/index.html#idempotency-key">idempotency key</a> arriving under a different name.</p>
 </div>
 
 <h3>What the signature covers is the whole question</h3>
@@ -58,7 +58,7 @@
 
 <h3>Duplicates are normal</h3>
 <div class="prose">
-<p>This is the part that gets designed wrong most often, because the instinct is to treat a repeated event as an attack. Delivery is at least once. A sender that does not receive your acknowledgement will send again, and it is right to. RFC 8935 section 2 is explicit about how to respond: when an event has already been received, "the SET Recipient MUST respond as it would if the SET had not been previously received".</p>
+<p>This is the part that gets designed wrong most often, because the instinct is to treat a repeated event as an attack. Delivery is at least once. A sender that does not receive your acknowledgement will send again, and it is right to. RFC 8935 section 2 is explicit about how to respond: when an event has already been received, the "SET Recipient MUST respond as it would if the SET had not been previously received".</p>
 <p>That requirement does two things. It keeps honest senders from retrying forever, and it stops the response becoming an oracle: a receiver that answers differently for events it has seen has told a prober which event identifiers are real.</p>
 <p>So record the identifier, apply the event once, and answer the same way both times. And record it before doing the work, not after, for the reason module 11 gave: two copies arriving close together both find nothing recorded, and both apply.</p>
 </div>
@@ -97,7 +97,7 @@
 <li><strong>Apply size limits and a timeout first,</strong> then parse under <a href="../request-and-response-contracts/index.html">module 13</a>'s rules. This is an unauthenticated endpoint until the signature verifies, so the parsing happens before you know who is calling.</li>
 <li><strong>Verify a signature over the body and the timestamp together.</strong> One value, both inputs. A signature over the body alone is valid forever.</li>
 <li><strong>Compare that timestamp against your clock</strong> and refuse anything outside a stated window.</li>
-<li><strong>Compare in constant time</strong>, with a library function built for it.</li>
+<li><strong>Compare in <a href="../../glossary/index.html#constant-time-comparison">constant time</a></strong>, with a library function built for it.</li>
 <li><strong>Claim the event identifier before doing the work,</strong> in a store every instance shares.</li>
 <li><strong>Answer identically</strong> whether or not you have seen the event. RFC 8935 requires it, and it also keeps the endpoint from being a lookup service for event identifiers.</li>
 <li><strong>Acknowledge fast and process asynchronously.</strong> A sender waiting on your business logic will time out and retry, which produces duplicates you then have to handle anyway.</li>
@@ -151,7 +151,7 @@
 <pre><code>Windows              macOS and Linux
 py -3 labs/webhook_lab.py    python3 labs/webhook_lab.py</code></pre>
 <div class="prose">
-<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. Every signature is a real HMAC over the real bytes. The transport is a stub, so nothing listens on a port. The keys are random per run and no key material is printed, so the output is the same every time.</p>
+<p>On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>. Every signature is a real <a href="../../glossary/index.html#hmac">HMAC</a> over the real bytes. The transport is a stub, so nothing listens on a port. The keys are random per run and no key material is printed, so the output is the same every time.</p>
 </div>
 <pre><code>$ python3 labs/webhook_lab.py
 key source: random, this run only; no secret is printed
@@ -325,13 +325,13 @@ all lab checks passed</code></pre>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
 <p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
 <ul class="controls">
-<li><span class="label std">Standard</span>A Security Event Token is a JWT describing "statements of fact from the perspective of an issuer about a subject", with <code>iss</code>, <code>iat</code> and <code>jti</code> REQUIRED, <code>events</code> carrying the event statements, and <code>aud</code> RECOMMENDED. RFC 8417 sections 1 and 2.2.</li>
+<li><span class="label std">Standard</span>A Security Event Token is a JWT describing "statements of fact from the perspective of an issuer about a subject", with <code>iss</code>, <code>iat</code> and <code>jti</code> REQUIRED, <code>events</code> carrying the event statements, and <code>aud</code> RECOMMENDED. RFC 8417 sections 1, 2 and 2.2.</li>
 <li><span class="label std">Standard</span>The <code>jti</code> is REQUIRED and "MUST be unique within a particular event feed", and it "MAY be used by clients to track whether a particular SET has already been received". RFC 8417 section 2.2.</li>
-<li><span class="label std">Standard</span>Verify that you can parse the event, that it "is authentic (i.e., it was issued by the issuer specified within the SET)", that you are "identified as an intended audience", that the issuer is one you are "willing to receive SETs from", and that you are "willing to accept this SET from this SET Transmitter". RFC 8935 section 2. Who wrote it and who delivered it are separate questions.</li>
-<li><span class="label std">Standard</span>Acknowledge a valid event with 202 Accepted, and respond to an error with 400 Bad Request. RFC 8935 sections 2.2 and 2.3.</li>
-<li><span class="label std">Standard</span>For an event already received, "the SET Recipient MUST respond as it would if the SET had not been previously received". RFC 8935 section 2.</li>
-<li><span class="label std">Standard</span>Security events carrying personal data or passing through third parties "MUST be encrypted using JWE or secured for confidentiality by other means", and integrity requires signing unless ensured by other means. RFC 8417 section 5.1.</li>
-<li><span class="label std">Standard</span>Where the sender signs HTTP requests rather than the payload, use RFC 9421 and cover a body digest, as in <a href="../asymmetric-request-signing/index.html">module 3</a>.</li>
+<li><span class="label std">Standard</span>Verify that you can parse the event, that it "is authentic (i.e., it was issued by the issuer specified within the SET, and if signed, was signed by a key belonging to the issuer)", that you are "identified as an intended audience", that the issuer is one you are "willing to receive SETs from", and that you are "willing to accept this SET from this SET Transmitter". RFC 8935 section 2. Who wrote it and who delivered it are separate questions.</li>
+<li><span class="label std">Standard</span>Acknowledge a valid event with 202 Accepted, and respond to an event that fails parsing, validation or authentication with 400 Bad Request. RFC 8935 sections 2.2 and 2.3.</li>
+<li><span class="label std">Standard</span>For an event already received, the "SET Recipient MUST respond as it would if the SET had not been previously received". RFC 8935 section 2.</li>
+<li><span class="label std">Standard</span>Security events carrying personal data or passing through third parties "MUST be encrypted using JWE [RFC7516] or secured for confidentiality by other means", and integrity requires signing unless ensured by other means. RFC 8417 section 5.1.</li>
+<li><span class="label std">Standard</span>Where the sender signs HTTP requests rather than the payload, the signature format is RFC 9421, which on its own "does not provide coverage for the content of an HTTP message under the signature". The body is covered by signing a <code>Content-Digest</code> field, and the specification says "it is important that the verifier validate not only the signature but also the value of the Content-Digest field itself against the actual received content". RFC 9421 section 7.2.8. <a href="../asymmetric-request-signing/index.html">Module 3</a> covers this.</li>
 <li><span class="label base">Baseline</span>Sign the timestamp and the raw body as one value, and verify the exact bytes received rather than a re-serialised form.</li>
 <li><span class="label base">Baseline</span>Compare the covered timestamp against your clock, with a stated window of 300 seconds.</li>
 <li><span class="label base">Baseline</span>Compare signatures in constant time.</li>
@@ -358,9 +358,9 @@ all lab checks passed</code></pre>
 
 <h2>Sources</h2>
 <ul class="prose">
-<li><a href="https://www.rfc-editor.org/rfc/rfc8417">RFC 8417: Security Event Token (SET)</a>, July 2018. Sections 1, 2.2 and 5.1.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc8417">RFC 8417: Security Event Token (SET)</a>, July 2018. Sections 1, 2, 2.2 and 5.1.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc8935">RFC 8935: Push-Based Security Event Token (SET) Delivery Using HTTP</a>, November 2020. Sections 2, 2.1, 2.2, 2.3 and 3.</li>
-<li><a href="https://www.rfc-editor.org/rfc/rfc9421">RFC 9421: HTTP Message Signatures</a>, February 2024. For senders signing the request rather than the payload.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9421">RFC 9421: HTTP Message Signatures</a>, February 2024. Section 7.2.8. For senders signing the request rather than the payload.</li>
 </ul>
 </main>
 <footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
