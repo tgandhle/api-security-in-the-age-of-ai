@@ -3,7 +3,7 @@
 
 An approval is a control only if the thing executed is the thing approved.
 That sentence sounds obvious and almost every implementation of it is wrong
-in one of four ways, each of which this lab reproduces.
+in one of a few ways, which this lab reproduces part by part.
 
 Part A is the gap between approving and executing, where the proposal is
 read twice and can change in between. Part B is coverage: an approval binds
@@ -235,8 +235,8 @@ def main():
     check("an approval bound to the parameters, against the swap",
           "refused: changed after approval: account_id",
           outcome(check_approval, wide, relabelled, key))
-    check("  so the summary must be derived from the covered fields", "no",
-          "yes" if "account_id" in render(original) else "no")
+    check("  the summary shows the account id", "no",
+          "yes" if original["account_id"] in render(original) else "no")
 
     print()
     print("Part D: single use, and expiry.")
@@ -253,7 +253,7 @@ def main():
     check("  the same two attempts with no single-use record", "2",
           str(unguarded))
     fresh = approve(original, key, nonce="n-2")
-    check("the same approval a minute later", "executed",
+    check("a fresh approval a minute later", "executed",
           outcome(check_approval, fresh, original, key, now=NOW + 60))
     check("and after its lifetime", "refused: approval has expired",
           outcome(check_approval, fresh, original, key, now=NOW + TTL))
@@ -274,10 +274,12 @@ def main():
     blanket = approve({"session": "s-1"}, key, nonce="blanket-1")
     check("approvals a blanket policy issues, for the same twelve", "1",
           str(len([blanket])))
-    # The executor presents the session handle, because that is all the
-    # blanket approval binds. The operation's own parameters are not in it.
+    # The executor presents the operation with the session handle. The
+    # blanket approval covers only the handle, so nothing else in the
+    # operation is compared.
     authorised = sum(1 for p in session_ops
-                     if outcome(check_approval, blanket, {"session": "s-1"},
+                     if outcome(check_approval, blanket,
+                                dict(p, session="s-1"),
                                 key).startswith("executed"))
     check("  operations it authorises", "12", str(authorised))
     check("  fields of an operation it constrains", "0",
@@ -288,7 +290,8 @@ def main():
     escalated = dict(session_ops[0], tool="send_payment", amount=40000)
     check("a payment slipped into that session, under the blanket",
           "executed",
-          outcome(check_approval, blanket, {"session": "s-1"}, key))
+          outcome(check_approval, blanket,
+                  dict(escalated, session="s-1"), key))
     check("  the same payment under a per-action approval",
           "refused: changed after approval: amount,tool",
           outcome(check_approval, per_action[0], escalated, key))
