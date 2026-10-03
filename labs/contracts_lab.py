@@ -9,10 +9,11 @@ costs you.
 
 Part A is one body and two answers. Part B is values a JSON parser accepts
 that the contract did not anticipate. Part C is shapes that cost you before
-any validator runs. Part D is why a schema cannot fix Part C.
+any validator runs. Part D is why a schema cannot fix Part C, or Part A.
 
-Everything here is real behaviour of Python's own json module, observed on the
-machine you run it on, not a simulation. Where behaviour could differ between
+Every parser result here is real behaviour of Python's own json module,
+observed on the machine you run it on, not a simulation. The first-wins parser
+and the two limits are the lab's own code. Where behaviour could differ between
 Python versions, the checks compare categories rather than messages.
 
 Needs nothing beyond Python 3.
@@ -81,14 +82,15 @@ def accepts_schema(body):
     """A contract of the kind teams actually write: types and required fields."""
     if not isinstance(body, dict):
         return False
-    if set(body) < {"partnerTxnId", "miles"}:
+    if not {"partnerTxnId", "miles"} <= set(body):
         return False
     return isinstance(body.get("partnerTxnId"), str) and \
-        isinstance(body.get("miles"), (int, float)) and body["miles"] > 0
+        isinstance(body.get("miles"), (int, float)) and \
+        not isinstance(body["miles"], bool) and body["miles"] > 0
 
 
 def main():
-    print("all behaviour below is Python's json module on this machine")
+    print("every parser result below is Python's json module on this machine")
     print()
     print("Part A: one body, two answers.")
 
@@ -138,9 +140,10 @@ def main():
     check("its decoded size over 1 MiB", "True", str(len(payload) > 1_048_576))
     check("expansion ratio over 100 to 1", "True",
           str(len(payload) // len(compressed) > 100))
+    decoded = zlib.decompressobj().decompress(compressed, 1_048_576 + 1)
     check("a decoded-size limit of 1 MiB, applied while decoding",
           "reject: body too large",
-          "reject: body too large" if len(payload) > 1_048_576 else "ok")
+          "reject: body too large" if len(decoded) > 1_048_576 else "ok")
 
     print()
     print("Part D: why the schema cannot do Part C's job.")

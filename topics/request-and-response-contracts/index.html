@@ -40,19 +40,19 @@
 <tr><td>64 KiB compressed, megabytes decoded</td><td class="yes">Decoded in full, then validated, then discarded</td><td class="no">Rejected while decoding, at the limit</td></tr>
 <tr><td>Exactly what the contract describes</td><td class="no">Approved</td><td class="no">Approved</td></tr>
 </tbody></table></div>
-<p class="prose">Five of these reach the schema in a state the schema cannot describe, and one of them never reaches it at all. That is the shape of the module: a contract is a statement about a parsed object, and most of these problems are decided before there is one.</p>
+<p class="prose">Four of these reach the schema in a state the schema cannot describe, and two of them never reach it at all. That is the shape of the module: a contract is a statement about a parsed object, and most of these problems are decided before there is one.</p>
 
 <h2>2. Why it works</h2>
 <h3>The same bytes, two objects</h3>
 <div class="prose">
 <p>RFC 8259 is unusually direct about the repeated-name case. It says "the names within an object SHOULD be unique", which is a recommendation rather than a requirement, and then describes what actually happens when they are not: "Many implementations report the last name/value pair only. Other implementations report an error or fail to parse the object, and some implementations report all of the name/value pairs, including duplicates."</p>
-<p>Three behaviours, all conformant. So the question "what does this body mean" has no single answer, and any two components that parse it separately can disagree. The exposure is largest wherever a request is parsed more than once: a gateway and a service, a validator and a handler, a service written in one language calling one written in another. The attacker does not need to know which parser does what. Sending both values and seeing which one takes effect is one request.</p>
+<p>Three behaviours, all in use, and the RFC calls the result "unpredictable". So the question "what does this body mean" has no single answer, and any two components that parse it separately can disagree. The exposure is largest wherever a request is parsed more than once: a gateway and a service, a validator and a handler, a service written in one language calling one written in another. The attacker does not need to know which parser does what. Sending both values and seeing which one takes effect is one request.</p>
 </div>
 
 <h3>Values with no place in the contract</h3>
 <div class="prose">
-<p>RFC 8259 section 6 is equally clear that "numeric values that cannot be represented in the grammar below (such as Infinity and NaN) are not permitted", and Python's <code>json</code> module parses both by default. It is not alone in this, and the reason is compatibility with what other implementations emit. The result is that a field your contract says is a positive number can arrive as infinity and satisfy a check for being greater than zero.</p>
-<p>The range problem is next to it. JSON's grammar puts no limit on the magnitude of a number, and section 6 notes only that "good interoperability can be achieved by implementations that expect no more precision or range than" an IEEE 754 double provides. So <code>1e400</code> is valid JSON, and what your parser gives you for it is a decision your parser made, not one the format made. Python gives you infinity.</p>
+<p>RFC 8259 section 6 is equally clear that "numeric values that cannot be represented in the grammar below (such as Infinity and NaN) are not permitted", and Python's <code>json</code> module parses both by default, which checks 5 and 6 in the lab show. The result is that a field your contract says is a positive number can arrive as infinity and satisfy a check for being greater than zero.</p>
+<p>The range problem is next to it. JSON's grammar puts no limit on the magnitude of a number. Section 6 allows an implementation to set its own limits, and notes that "good interoperability can be achieved by implementations that expect no more precision or range than" an IEEE 754 double provides. So <code>1e400</code> is valid JSON, and what your parser gives you for it is a decision your parser made, not one the format made. Python gives you infinity.</p>
 </div>
 
 <h3>Cost that lands before any check</h3>
@@ -94,7 +94,7 @@
 <li><strong>Limit the declared size, and the decoded size while decoding.</strong> Not after. A body that expands from kilobytes to megabytes has already cost you by the time you can measure the result.</li>
 <li><strong>Inspect the text before building an object.</strong> Nesting depth and repeated names are both visible in the bytes, and both are cheap to measure without a parser.</li>
 <li><strong>Reject repeated names outright.</strong> Not last-wins, not first-wins: rejected. Any resolution you choose is a resolution some other component will choose differently.</li>
-<li><strong>Configure the parser to refuse what the format forbids.</strong> <code>NaN</code> and <code>Infinity</code> are not JSON. Most libraries accept them and most offer a setting that does not.</li>
+<li><strong>Configure the parser to refuse what the format forbids.</strong> <code>NaN</code> and <code>Infinity</code> are not JSON. Python's <code>json</code> module accepts them by default and has a setting, <code>parse_constant</code>, that refuses them. Check what your library does.</li>
 <li><strong>Bound number range and literal length</strong> at the parser or immediately after, since the grammar bounds neither.</li>
 <li><strong>Then validate against the schema</strong>, on the object you now have, for types, required fields, ranges and formats.</li>
 <li><strong>Apply the same discipline to responses.</strong> A response you consume from another service is somebody else's request body arriving at your parser, which is <a href="../ssrf-and-unsafe-consumption/index.html">module 14</a>.</li>
@@ -107,10 +107,10 @@
 <tr><td>Maximum request body</td><td>A number, stated in the contract, enforced at the edge and in the service</td><td>Raise it per endpoint where the work genuinely needs it, never globally to accommodate one upload.</td></tr>
 <tr><td>Compressed bodies</td><td>A decoded-size limit enforced during decompression, and a maximum expansion ratio</td><td>If you accept compressed request bodies at all. Not accepting them is also an answer.</td></tr>
 <tr><td>Nesting depth</td><td>64, measured before parsing</td><td>Raise it only against a real document that needs more, and then only for that endpoint.</td></tr>
-<tr><td>Repeated names</td><td>Reject the request</td><td>Never resolve them silently. RFC 8259 documents three conformant behaviours, so silence means disagreement.</td></tr>
+<tr><td>Repeated names</td><td>Reject the request</td><td>Never resolve them silently. RFC 8259 documents three behaviours in use, so silence means disagreement.</td></tr>
 <tr><td><code>NaN</code> and <code>Infinity</code></td><td>Refuse them in the parser's configuration</td><td>They are not valid JSON. If a partner emits them, that is a conversation, not a parser setting.</td></tr>
 <tr><td>Number range</td><td>Bound each numeric field explicitly in the schema, and reject literals longer than the field needs</td><td>The grammar bounds neither magnitude nor digits, so every bound is yours.</td></tr>
-<tr><td>Array and string lengths</td><td>A maximum per field, from OWASP's guidance, not a global one</td><td>A global limit large enough for your biggest field is no limit for the others.</td></tr>
+<tr><td>Array and string lengths</td><td>A maximum per field, not a global one. OWASP asks for the maximums; per field is this project's choice</td><td>A global limit large enough for your biggest field is no limit for the others.</td></tr>
 <tr><td>Where limits run</td><td>Before the parser</td><td>Never only in the schema. A schema runs on an object, and the expensive inputs are the ones that prevent an object existing.</td></tr>
 <tr><td>Rejections</td><td>One status and a stable error shape, naming the rule not the value</td><td>Echoing the offending value back puts attacker-controlled bytes in your logs and responses.</td></tr>
 </tbody></table></div>
@@ -145,10 +145,10 @@
 <pre><code>Windows              macOS and Linux
 py -3 labs/contracts_lab.py    python3 labs/contracts_lab.py</code></pre>
 <div class="prose">
-<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. Everything in this lab is real behaviour of Python's own <code>json</code> module on the machine you run it on. Nothing is simulated, which also means the two crash checks describe CPython: the checks compare the kind of failure rather than its message, because messages change between versions, but a different Python or a different runtime could in principle fail differently. If a check does not match on your machine, that is the lab telling you something true about your parser.</p>
+<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. Every parser result in this lab is real behaviour of Python's own <code>json</code> module on the machine you run it on. The first-wins parser, the depth limit and the size limit are the lab's own code. The parser results are not simulated, which also means checks 9 and 11 describe CPython: the checks compare the kind of failure rather than its message, because messages change between versions, but a different Python or a different runtime could in principle fail differently. If a check does not match on your machine, that is the lab telling you something true about your parser.</p>
 </div>
 <pre><code>$ python3 labs/contracts_lab.py
-all behaviour below is Python's json module on this machine
+every parser result below is Python's json module on this machine
 
 Part A: one body, two answers.
  1. the handler's parser reads miles as                90000
@@ -187,20 +187,20 @@ all lab checks passed</code></pre>
 <p>Part D closes it. The nested body never reaches the schema at all, and the other two satisfy it completely. A schema was never going to be where this is caught.</p>
 <p><strong>Try next:</strong></p>
 <ul>
-<li>Change the depth in <code>nested</code> from 100000 to 200. Check 11 stops crashing and check 13 still refuses it, which is the difference between a limit and a cliff.</li>
+<li>Change the depth in <code>nested</code> from 100000 to 200, in both places on that line. Check 11 stops crashing and prints the parsed list, and check 13 still refuses it, which is the difference between a limit and a cliff. Checks 12 and 18 change too, and the lab exits 1 with three mismatches, because it compares every check with the result it expects.</li>
 <li>Pass <code>object_pairs_hook</code> to the handler's parse in Part A so that a repeated name raises <code>ValueError</code>. The run stops at that line with a traceback and exit code 1, before check 1, so no check prints. The body is refused, and that is the fix.</li>
-<li>Add a field to <code>accepts_schema</code> requiring <code>miles</code> to be below a million. Check 10 flips, and check 19 does not. Say why.</li>
+<li>Add a field to <code>accepts_schema</code> requiring <code>miles</code> to be below a million. Check 10 flips, and check 19 does not. The lab exits 1 for that one mismatch. Say why check 19 holds.</li>
 <li>Take the JSON parser of another language you use and run the Part A body through it. Write down which of RFC 8259's three behaviours it implements.</li>
 </ul>
 </div>
 
 <h2>8. Check your understanding</h2>
-<details><summary>Two services parse the same request body. Why is that a security problem rather than a duplication problem?</summary><p>Because a repeated name has no single meaning. RFC 8259 recommends unique names and documents three conformant behaviours when they are not: last wins, error, and all pairs kept. Two components can each behave correctly and reach different values, so a validator can approve one number while a handler acts on another. Either reject repeated names or make sure only one component parses the request.</p></details>
+<details><summary>Two services parse the same request body. Why is that a security problem rather than a duplication problem?</summary><p>Because a repeated name has no single meaning. RFC 8259 recommends unique names and documents three behaviours implementations show when they are not: last wins, error, and all pairs kept. Two components can each follow their library's default and reach different values, so a validator can approve one number while a handler acts on another. Either reject repeated names or make sure only one component parses the request.</p></details>
 <details><summary>Your schema says miles is a number greater than zero. Does infinity satisfy it?</summary><p>In most implementations, yes. <code>Infinity</code> is not valid JSON, and Python's parser produces it anyway unless told otherwise, at which point it is a number and it is greater than zero. The fix is in the parser's configuration, not in the schema, and it needs a bounded range on the field as well.</p></details>
 <details><summary>Why can a nesting limit not live in the schema?</summary><p>Because the schema runs on an object and a deeply nested body is an attack on the process of building one. The parser exhausts its stack first, so the validator that would have refused the input never executes. Depth is visible in the text, so it can be measured before parsing, which is the only place the check does any good.</p></details>
 <details><summary>You accept gzipped request bodies and limit bodies to 1 MiB. What is the limit on?</summary><p>Whichever number you measured. If it is the bytes that arrived, a 64 KiB body can decode to megabytes and you have no limit on the thing that costs you. The limit has to be enforced during decompression, on the bytes produced, with the decoder stopped when it passes the threshold.</p></details>
 
-<section class="course-quiz" data-quiz data-quiz-id="request-and-response-contracts-check" data-correct-feedback="Correct. RFC 8259 recommends unique names and records three conformant behaviours when they repeat, so two components can each be correct and disagree. Rejecting the body is the only resolution that cannot be disagreed with." data-incorrect-feedback="Not quite. Any rule you pick for resolving a repeated name is a rule some other parser resolves differently, and the attacker only has to send both values to find out which one takes effect. Reject the body.">
+<section class="course-quiz" data-quiz data-quiz-id="request-and-response-contracts-check" data-correct-feedback="Correct. RFC 8259 recommends unique names and records three behaviours implementations show when they repeat, so two components can each follow their library's default and disagree. Rejecting the body is the only resolution that cannot be disagreed with." data-incorrect-feedback="Not quite. Any rule you pick for resolving a repeated name is a rule some other parser resolves differently, and the attacker only has to send both values to find out which one takes effect. Reject the body.">
 <p class="kicker">Quick check</p>
 <h2>A repeated name</h2>
 <fieldset><legend>A request body contains <code>"miles"</code> twice, with different values. What should the API do?</legend>
@@ -291,7 +291,7 @@ all lab checks passed</code></pre>
 <article class="exercise" data-exercise data-exercise-id="ctr-x4" data-covers="ctr-03">
 <h3>4. The size limit is applied to the bytes that arrived</h3>
 <div class="prose">
-<p>In check 17, change <code>len(payload) &gt; 1_048_576</code> to <code>len(compressed) &gt; 1_048_576</code>, so the 1 MiB limit measures the body as it was received instead of as it decodes.</p>
+<p>In check 17, change <code>len(decoded) &gt; 1_048_576</code> to <code>len(compressed) &gt; 1_048_576</code>, so the 1 MiB limit measures the body as it was received instead of as it decodes.</p>
 </div>
 <fieldset><legend>What does the run print differently?</legend>
 <label><input type="radio" name="ctr-x4" value="a"> Nothing. The body is over 1 MiB whichever way it is measured.</label>
@@ -317,11 +317,11 @@ all lab checks passed</code></pre>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
 <p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
 <ul class="controls">
-<li><span class="label std">Standard</span>"The names within an object SHOULD be unique." When they are not, RFC 8259 section 4 records three conformant behaviours: "many implementations report the last name/value pair only. Other implementations report an error or fail to parse the object, and some implementations report all of the name/value pairs, including duplicates."</li>
+<li><span class="label std">Standard</span>RFC 8259 section 4 recommends, and does not require, unique names: "The names within an object SHOULD be unique." When they are not, it records three behaviours in use: "many implementations report the last name/value pair only. Other implementations report an error or fail to parse the object, and some implementations report all of the name/value pairs, including duplicates."</li>
 <li><span class="label std">Standard</span>"Numeric values that cannot be represented in the grammar below (such as Infinity and NaN) are not permitted." RFC 8259 section 6.</li>
 <li><span class="label std">Standard</span>RFC 8259 section 6 notes that "good interoperability can be achieved by implementations that expect no more precision or range than" IEEE 754 double precision provides, and that numbers implying more may indicate interoperability problems.</li>
 <li><span class="label std">Standard</span>"A JSON parser MUST accept all texts that conform to the JSON grammar", and an implementation "may set limits on the size of texts that it accepts", "may set limits on the maximum depth of nesting" and "may set limits on the range and precision of numbers". RFC 8259 section 9. The limits are yours to set.</li>
-<li><span class="label std">Standard</span>"Define and enforce a maximum size of data on all incoming parameters and payloads, such as maximum length for strings, maximum number of elements in arrays, and maximum upload file size." OWASP API4:2023, How To Prevent.</li>
+<li><span class="label std">Standard</span>"Define and enforce a maximum size of data on all incoming parameters and payloads, such as maximum length for strings, maximum number of elements in arrays, and maximum upload file size". OWASP API4:2023, How To Prevent.</li>
 <li><span class="label std">Standard</span>OWASP API4:2023 lists execution timeouts, maximum allocable memory, the number of operations in a single request and the number of records per page among the limits whose absence makes an API vulnerable.</li>
 <li><span class="label base">Baseline</span>Reject a body containing a repeated name. Do not resolve it.</li>
 <li><span class="label base">Baseline</span>Parse each request once, or prove that every component parsing it resolves the same bytes the same way.</li>
@@ -340,7 +340,7 @@ all lab checks passed</code></pre>
 <li data-check="ctr-01" data-severity="Critical"><strong>Repeated names are rejected, not resolved</strong> <span>Test a body with one name twice. Any silent resolution is a resolution another parser makes differently.</span></li>
 <li data-check="ctr-02" data-severity="Critical"><strong>Limits run before the parser</strong> <span>Size, decoded size and nesting depth. A schema runs on an object, and these inputs are the ones that stop an object existing.</span></li>
 <li data-check="ctr-03" data-severity="Critical"><strong>Decoded size is bounded during decompression</strong> <span>Measured on the bytes produced, with the decoder stopped at the limit. A limit on the bytes received is not this.</span></li>
-<li data-check="ctr-04" data-severity="High"><strong>The parser refuses NaN and Infinity</strong> <span>Neither is valid JSON. Most libraries accept them by default and offer a setting that does not.</span></li>
+<li data-check="ctr-04" data-severity="High"><strong>The parser refuses NaN and Infinity</strong> <span>Neither is valid JSON. Python's json module accepts them by default. Check your library's default and use its strict setting.</span></li>
 <li data-check="ctr-05" data-severity="High"><strong>Every numeric field has an explicit range</strong> <span>The grammar bounds neither magnitude nor digit count. Test a value that becomes infinity.</span></li>
 <li data-check="ctr-06" data-severity="High"><strong>Either one component parses the request, or they demonstrably agree</strong> <span>Gateway and service, validator and handler, or two languages. Test the same body through each.</span></li>
 <li data-check="ctr-07" data-severity="Medium"><strong>String and array fields have per-field maximum lengths</strong> <span>A single global limit sized for the largest field is no limit for the rest.</span></li>
