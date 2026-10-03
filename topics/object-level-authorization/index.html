@@ -12,7 +12,7 @@
 <main>
 <p class="kicker">Part 2: Deciding what they may do &middot; Module 9</p>
 <h1>Object-level authorization</h1>
-<p class="meta">Last reviewed 2026-09-30 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 
 <div class="prose">
 <p><strong>Objective.</strong> After this module you can write an ownership check that reads the owner from the stored object, recognise the four shapes in which the check exists in a codebase and not in effect, say what sequential identifiers add when it is missing, choose between 403 and 404 on purpose, and say what an ownership check does not decide.</p>
@@ -43,15 +43,15 @@
 <h2>2. Why it works</h2>
 <div class="prose">
 <p>OWASP's definition of <a href="../../glossary/index.html#object-level-authorization">object-level authorization</a> is worth quoting because the important word is where the check lives: "Object level authorization is an access control mechanism that is usually implemented at the code level to validate that a user can only access the objects that they should have permissions to access."</p>
-<p>At the code level. Not in a gateway, not in a policy file, not in a middleware that never sees the object. The check needs two values, and one of them can only be obtained by loading the object: who the caller is, and who the object belongs to. Anything upstream of the data access has the first and not the second.</p>
-<p>Which is why this defect survives good architecture. A team with a solid gateway, validated tokens, scopes and mutual TLS still has to write this comparison, per object, in every handler, and nothing above the handler can write it for them. It is repetitive, it is easy to omit once, and omitting it once is the whole vulnerability.</p>
+<p>At the code level. Not in a <a href="../../glossary/index.html#api-gateway">gateway</a>, not in a policy file, not in a middleware that never sees the object. The check needs two values, and one of them can only be obtained by loading the object: who the caller is, and who the object belongs to. Anything upstream of the data access has the first and not the second.</p>
+<p>Which is why this defect survives good architecture. A team with a solid gateway, validated tokens, <a href="../../glossary/index.html#scope">scopes</a> and <a href="../../glossary/index.html#mtls">mutual TLS</a> still has to write this comparison, per object, in every handler, and nothing above the handler can write it for them. It is repetitive, it is easy to omit once, and omitting it once is the whole vulnerability.</p>
 <p>The identifier being guessable is not the cause. Sequential integers make <a href="../../glossary/index.html#enumeration">enumeration</a> a loop instead of a search, so unguessable identifiers are worth using, and OWASP does recommend random values such as GUIDs. But an unguessable id is a delay, not a control: identifiers leak in referrals, logs, exports, support tickets and shared links, and the moment one leaks the missing check is exactly as missing as before.</p>
 </div>
 
 <h2>3. The control</h2>
 <h3>The check</h3>
 <div class="prose">
-<p>Load the object, read the owner from the object you loaded, compare it with the caller established by authentication, and refuse before returning anything. Four steps, and each one of them is a place this goes wrong:</p>
+<p>Load the object, read the owner from the object you loaded, compare it with the caller established by <a href="../../glossary/index.html#authentication">authentication</a>, and refuse before returning anything. Four steps, and each one of them is a place this goes wrong:</p>
 </div>
 <ol class="steps prose">
 <li><strong>Load the object first.</strong> You cannot check ownership of a record you have not read. A check that runs before the load is checking something else.</li>
@@ -88,7 +88,7 @@
 
 <h3>403 or 404</h3>
 <div class="prose">
-<p>A refusal has to say something, and what it says is information. RFC 9110 defines both codes and is explicit that the choice is available to you. Under 403 it notes that "if the server wishes to hide that the target resource exists, the server can respond with a 404 (Not Found) status code instead", and under 404 that "the server does not need to reveal whether the target resource exists or merely refuses access to it".</p>
+<p>A refusal has to say something, and what it says is information. RFC 9110 defines both codes and allows the choice. Section 15.5.4, on 403, says an origin server that wishes to hide the current existence of a forbidden target resource "MAY instead respond with a status code of 404 (Not Found)". Section 15.5.5 defines 404 to match: it indicates that the origin server "did not find a current representation for the target resource or is not willing to disclose that one exists".</p>
 <p>So: 403 tells the caller the object exists and they may not have it. 404 tells them nothing. The difference matters because 403 turns an id range into a map. An attacker walking identifiers learns which ones are real, which is useful on its own and more useful combined with anything else they find later.</p>
 <p>The project baseline is 404 for an object the caller may not see, and 403 only where the caller is known to be entitled to know the object exists, such as a shared resource they have been removed from. Whichever you choose, choose it once and apply it consistently, because a service that returns 404 from most handlers and 403 from one has disclosed exactly the same thing through the inconsistency.</p>
 </div>
@@ -135,7 +135,7 @@
 <pre><code>Windows              macOS and Linux
 py -3 labs/object_authorization_lab.py    python3 labs/object_authorization_lab.py</code></pre>
 <div class="prose">
-<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The caller is authenticated correctly in every request the 21 checks make. Checks 14 and 15 are a path that drops the caller before the handler sees it. Nothing in this lab is a credential problem.</p>
+<p>On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>. The caller is authenticated correctly in every request the 21 checks make. Checks 14 and 15 are a path that drops the caller before the handler sees it. Nothing in this lab is a credential problem.</p>
 </div>
 <pre><code>$ python3 labs/object_authorization_lab.py
 caller: acct-77, authenticated correctly in every request below
@@ -314,7 +314,7 @@ all lab checks passed</code></pre>
 <li><span class="label std">Standard</span>Validate the caller's permission against every object reached using an identifier from client input, in every handler that reaches it. OWASP API1:2023, How To Prevent.</li>
 <li><span class="label std">Standard</span>Write tests for the authorization mechanism and do not deploy a change that fails them. OWASP API1:2023, How To Prevent.</li>
 <li><span class="label std">Standard</span>Prefer random, unpredictable values for record identifiers, such as GUIDs. OWASP API1:2023, How To Prevent. This raises the cost of discovery; it is not the access control.</li>
-<li><span class="label std">Standard</span>Choose the refusal code deliberately. RFC 9110 section 15.5.4 notes that "if the server wishes to hide that the target resource exists, the server can respond with a 404 (Not Found) status code instead", and section 15.5.5 that "the server does not need to reveal whether the target resource exists or merely refuses access to it".</li>
+<li><span class="label std">Standard</span>A server may answer 404 in place of 403. RFC 9110 section 15.5.4 says an origin server that wishes to hide the current existence of a forbidden target resource "MAY instead respond with a status code of 404 (Not Found)", and section 15.5.5 says a 404 indicates that the origin server "did not find a current representation for the target resource or is not willing to disclose that one exists". The RFC allows either code, so choose the refusal code deliberately.</li>
 <li><span class="label base">Baseline</span>Load the object, read the owner from the loaded record, compare with the identity authentication produced, and refuse before any part of the response is built.</li>
 <li><span class="label base">Baseline</span>Never read the owner from a request parameter, header or body field.</li>
 <li><span class="label base">Baseline</span>Filter list endpoints in the query. Never after serialisation and never in the client.</li>
