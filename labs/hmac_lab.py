@@ -11,7 +11,7 @@ processes and diagnostics.
 """
 import argparse, hashlib, hmac, secrets, sys
 
-WINDOW_SECONDS = 300  # project baseline: accept requests up to 5 minutes old
+WINDOW_SECONDS = 300  # project baseline: accept timestamps within 5 minutes of server time, either side
 
 
 def canonical_string(method, host, path, query, ts, nonce, ctype, body):
@@ -34,7 +34,9 @@ class Verifier:
         if abs(now - request["ts"]) > WINDOW_SECONDS:
             return "reject: outside time window"
         expected = sign(self.key, request)
-        if not hmac.compare_digest(signature, expected):
+        # Compare bytes: compare_digest raises on non-ASCII text, and a
+        # malformed signature must be a reject, not an error.
+        if not isinstance(signature, str) or not hmac.compare_digest(signature.encode(), expected.encode()):
             return "reject: bad signature"
         # Record the nonce only after the signature checks out, so forged
         # requests cannot fill the cache.
@@ -50,7 +52,7 @@ def main():
     args = parser.parse_args()
     if args.key_file:
         with open(args.key_file, "rb") as f:
-            key = f.read().strip()
+            key = f.read()
         if len(key) < 32:
             sys.exit("key must be at least 32 bytes for HMAC-SHA256")
         print("key source: file")
@@ -86,9 +88,10 @@ def main():
     attempt("9. new nonce, old signature", forged, verifier=shared)
 
     # Printed because the check order is not visible in the verdicts above.
-    # Move the nonce check above the signature check and every verdict stays
-    # the same, but attempt 9's forged nonce gets recorded and this count
-    # becomes 2. That is the only observable difference.
+    # Move the nonce check above the signature check, below the time window
+    # check, and every verdict stays the same, but attempt 9's forged nonce
+    # gets recorded and this count becomes 2. That is the only observable
+    # difference.
     print()
     print(f"nonces recorded by the shared verifier: {len(shared.seen_nonces)}")
 

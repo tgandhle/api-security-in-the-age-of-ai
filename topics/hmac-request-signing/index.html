@@ -180,7 +180,7 @@ nonces recorded by the shared verifier: 1</code></pre>
 <div class="prose">
 <p><strong>Try next:</strong></p>
 <ul>
-<li>In <code>Verifier.verify</code>, move the nonce check and the line that records the nonce above the signature check, then run it again. Every verdict stays the same. The last line does not: attempt 9 is forged, and it is now recorded, so the count becomes 2. An attacker who cannot sign can still fill the cache.</li>
+<li>In <code>Verifier.verify</code>, move the nonce check and the line that records the nonce above the signature check but below the time window check, then run it again. Every verdict stays the same. The last line does not: attempt 9 is forged, and it is now recorded, so the count becomes 2. An attacker who cannot sign can still fill the cache.</li>
 <li>Remove <code>host</code> from the list <code>canonical_string</code> joins, and leave its parameters as they are. One verdict changes, and only one.</li>
 </ul>
 </div>
@@ -299,7 +299,7 @@ body_hash = hashlib.sha256(body).hexdigest()</code></pre>
 <h2>Review checklist items</h2>
 <p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
 <ul class="checks">
-<li data-check="hmac-01" data-severity="Critical"><strong>Signed M2M requests cover method, host, path, query, timestamp, nonce, and the raw body hash</strong> <span>The canonical format is documented, and both parties test against shared examples.</span></li>
+<li data-check="hmac-01" data-severity="Critical"><strong>Signed M2M requests cover method, host, path, query, timestamp, nonce, content type, and the raw body hash</strong> <span>The canonical format is documented, and both parties test against shared examples.</span></li>
 <li data-check="hmac-02" data-severity="Critical"><strong>The receiver hashes the raw body bytes it received</strong> <span>It never re-serializes parsed JSON, and never trusts a caller-supplied hash.</span></li>
 <li data-check="hmac-03" data-severity="High"><strong>Timestamps are bounded and nonces are rejected on reuse</strong> <span>The nonce is recorded only after the signature verifies. The cache TTL is at least the time window.</span></li>
 <li data-check="hmac-04" data-severity="High"><strong>Signatures are compared in constant time</strong> <span>Use a library function built for this, not string equality.</span></li>
@@ -311,7 +311,7 @@ body_hash = hashlib.sha256(body).hexdigest()</code></pre>
 <h2>Sources</h2>
 <ul class="prose">
 <li><a href="https://www.rfc-editor.org/rfc/rfc2104">RFC 2104: HMAC: Keyed-Hashing for Message Authentication</a></li>
-<li><a href="https://doi.org/10.6028/NIST.FIPS.198-1">NIST FIPS 198-1: The Keyed-Hash Message Authentication Code (HMAC)</a></li>
+<li><a href="https://doi.org/10.6028/NIST.FIPS.198-1">NIST FIPS 198-1: The Keyed-Hash Message Authentication Code (HMAC)</a>, July 2008.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc9421">RFC 9421: HTTP Message Signatures</a></li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc9530">RFC 9530: Digest Fields</a></li>
 <li><a href="https://docs.python.org/3/library/hmac.html">Python documentation: hmac module</a></li>
