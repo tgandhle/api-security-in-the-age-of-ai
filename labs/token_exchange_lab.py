@@ -11,14 +11,14 @@ token untouched, using the agent's own service credential, exchanging for an
 impersonation token, and exchanging for a delegation token. The only one that
 tells a resource server both who is calling and who it is for is the last.
 Part B is the parameter rules the specification actually states. Part C is
-"may_act", the subject's say in who may act for it. Part D is scope and
-audience, the only two things that bound what comes out. Part E is the
+"may_act", the subject's say in who may act for it. Part D is scope,
+audience and lifetime, the things that bound what comes out. Part E is the
 delegation chain and the one MUST that RFC 8693 places on whoever consumes
 the token. Part F is what an exchange does not do.
 
 The tokens here are real HS256 JWTs: minted with hmac, verified with
-hmac.compare_digest, decoded with json. The signing keys are generated at
-random for this run and are never printed.
+hmac.compare_digest, decoded with json. The one signing key is generated at
+random for this run and is never printed.
 
 Needs nothing beyond Python 3.
 
@@ -27,6 +27,7 @@ Exit codes: 0 all checks matched, 1 a check did not match.
 import base64
 import hashlib
 import hmac
+import itertools
 import json
 import secrets
 import sys
@@ -47,6 +48,8 @@ BOOKINGS = "https://bookings.exampleair.example"
 PAYMENTS = "https://payments.exampleair.example"
 
 ALL_SCOPES = "bookings:read bookings:write loyalty:write payments:write profile:read"
+
+JTI = itertools.count(1)  # one jti per issued token, the same every run
 
 
 class Refused(Exception):
@@ -214,7 +217,7 @@ class AuthorizationServer:
 
         payload = {"iss": ISSUER, "aud": target, "sub": subject["sub"],
                    "iat": now, "exp": now + ttl,
-                   "jti": "exchanged-%d" % (now % 100000),
+                   "jti": "exchanged-%d" % next(JTI),
                    "scope": " ".join(sorted(granted))}
         if actor is not None:
             # RFC 8693 section 4.1: the outermost act claim is the current
@@ -242,6 +245,8 @@ class AuthorizationServer:
 
 
 class ResourceServer:
+    """allowed_actors is a list of (iss, sub) pairs, matched together."""
+
     def __init__(self, name, key, allowed_actors, walk_chain=False):
         self.name = name
         self.key = key
@@ -261,14 +266,14 @@ class ResourceServer:
         if act is None:
             return "allowed, caller is %s" % payload["sub"]
         current = act["sub"]
-        if current in self.allowed_actors:
+        if (act.get("iss"), current) in self.allowed_actors:
             return "allowed, %s for %s" % (current, payload["sub"])
         if self.walk_chain:
             # The bug. Section 4.1 says the consumer MUST only consider the
             # top-level claims and the current actor.
             prior = act.get("act")
             while prior:
-                if prior["sub"] in self.allowed_actors:
+                if (prior.get("iss"), prior["sub"]) in self.allowed_actors:
                     return "allowed, %s for %s on a prior actor" \
                         % (current, payload["sub"])
                 prior = prior.get("act")
@@ -284,7 +289,7 @@ def check(label, expected, actual):
 
 
 def attempt(server, **kwargs):
-    """Run an exchange and return either the error code or a short summary."""
+    """Run an exchange and return the response, or the Refused exception it raised."""
     try:
         return server.exchange(**kwargs)
     except Refused as exc:
@@ -321,7 +326,8 @@ def main():
     server = AuthorizationServer(key, [BOOKINGS, PAYMENTS])
     bookings = ResourceServer(
         BOOKINGS, key,
-        allowed_actors=["https://assistant.exampleagent.example"])
+        allowed_actors=[(AGENT_ISSUER,
+                         "https://assistant.exampleagent.example")])
 
     print("Part A: four ways an agent can call a downstream service.")
 
@@ -330,7 +336,7 @@ def main():
     # 3. Impersonation: an exchange with no actor_token.
     # 4. Delegation: an exchange with an actor_token.
     service_credential = {"iss": ISSUER,
-                          "sub": "https://pricing.exampleair.example",
+                          "sub": "https://assistant.exampleagent.example",
                           "aud": BOOKINGS, "iat": NOW - 60, "exp": NOW + 3600,
                           "jti": "svc-standing", "scope": "bookings:write"}
     service_token = mint(service_credential, key)
@@ -351,8 +357,8 @@ def main():
     check("passthrough, the user's own token forwarded",
           "traveller-8812 / traveller-8812", pair(user_token, key))
     check("the agent's own service credential",
-          "https://pricing.exampleair.example / "
-          "https://pricing.exampleair.example", pair(service_token, key))
+          "https://assistant.exampleagent.example / "
+          "https://assistant.exampleagent.example", pair(service_token, key))
     check("impersonation, an exchange with no actor_token",
           "traveller-8812 / traveller-8812",
           pair(impersonation["access_token"], key))
@@ -458,7 +464,7 @@ def main():
                           scope="bookings:write")))
 
     print()
-    print("Part D: scope and audience, the only two bounds on what comes out.")
+    print("Part D: scope, audience and lifetime, the bounds on what comes out.")
 
     check("scopes the user's own token carries", "5",
           str(len(ALL_SCOPES.split())))
@@ -549,7 +555,8 @@ def main():
           bookings.call(hop3["access_token"], "bookings:write"))
     walker = ResourceServer(
         BOOKINGS, key,
-        allowed_actors=["https://assistant.exampleagent.example"],
+        allowed_actors=[(AGENT_ISSUER,
+                         "https://assistant.exampleagent.example")],
         walk_chain=True)
     check("the same service, walking the chain instead",
           "allowed, https://seats.exampleair.example for traveller-8812 "
@@ -571,7 +578,7 @@ def main():
           "allowed, https://assistant.exampleagent.example for traveller-8812",
           bookings.call(delegation["access_token"], "bookings:write"))
     # Nothing in the issued token ties it to the agent that fetched it. A
-    # confirmation claim is what would (module 8); the exchange adds none.
+    # confirmation claim is what would (module 7); the exchange adds none.
     check("a cnf claim binding the issued token to a holder", "absent",
           "present" if "cnf" in dele else "absent")
     check("seconds that token stays usable anyway", "300",
