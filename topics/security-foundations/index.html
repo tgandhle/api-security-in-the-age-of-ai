@@ -209,10 +209,10 @@ all lab checks passed</code></pre>
 <div class="prose">
 <p>Check 3 is the avalanche property, which is why a hash is useful for comparing things. Check 4 is why that usefulness evaporates when nothing protects the hash: the attacker recomputed it, and the pair is perfectly consistent.</p>
 <p>Check 12 is module 3's reason for existing, in one line. The message was never sent by the caller, the receiver produced the tag with the key it legitimately holds, and the verification succeeds because there is nothing in an HMAC that could tell the two apart.</p>
-<p>Checks 13 to 17 are the same five requests through two handlers. The first has authentication and no ownership check, and accepts a real caller reading an account that is not theirs. The second adds three lines and refuses it. Nothing about the credential changed between them.</p>
+<p>Checks 13 to 17 are five calls to one handler: three with the ownership check off and two with it on. With it off, the handler authenticates and then accepts a real caller reading an account that is not theirs. With it on, two more lines (compare the target to the caller's own account, return) refuse the same request. Nothing about the credential changed between checks 14 and 17.</p>
 <p><strong>Try next:</strong></p>
 <ul>
-<li>Change <code>ALTERED</code> so it differs from <code>MESSAGE</code> by one character somewhere else, and rerun. Watch how little check 3 moves.</li>
+<li>Change <code>ALTERED</code> so it differs from <code>MESSAGE</code> in one other digit instead, and rerun. Check 3 still prints <code>roughly half</code>. Only the <code>altered:</code> line and the bit count under check 3 can change.</li>
 <li>Replace <code>hmac.compare_digest</code> in <code>verify</code> with <code>==</code> and rerun. Every check still passes, which is the point: this one is not about correctness, it is about timing, and no functional test will ever catch it.</li>
 <li>In <code>handle</code>, move the <code>target</code> line and the ownership check together above the signature check, so the order becomes target, ownership, signature, and rerun. The output does not change: 45 of 45 lines identical, exit 0. Decide what an attacker learns from the difference between the two rejection messages.</li>
 </ul>
@@ -306,7 +306,7 @@ all lab checks passed</code></pre>
 <details class="exercise-answers"><summary>Every option, and why</summary>
 <ul>
 <li data-option="a">Forged with respect to what? That tag was made with <code>KEY_B</code>, and <code>KEY_B</code> is now the key the receiver verifies against.</li>
-<li data-option="b">Correct. Exit 1 and 7 failures. Check 15 is the one request in the lab signed with <code>KEY_B</code>, so it is now the only one accepted, and checks 8, 12, 13, 14, 16 and 17 all flip to a rejection because every genuine caller is now signing with a key the receiver does not use. Forged is not a property of a request. It is a statement about which key the receiver trusts, which is why check <code>fnd-06</code> in the <a href="#reference">Reference</a> layer asks you to write down who can produce each value and who can check it.</li>
+<li data-option="b">Correct. Exit 1 and 7 failures. Check 15 is the one request in the lab signed with <code>KEY_B</code>, so it is now the only one accepted, and checks 8, 12, 13, 14 and 16 all flip to a rejection because every genuine caller is now signing with a key the receiver does not use. Check 17 was already a rejection and changes its reason, from <code>reject: not your account</code> to <code>reject: bad signature</code>. Forged is not a property of a request. It is a statement about which key the receiver trusts, which is why check <code>fnd-06</code> in the <a href="#reference">Reference</a> layer asks you to write down who can produce each value and who can check it.</li>
 <li data-option="c">Both are 32 bytes, and they are different 32 bytes, which is the only thing that matters here.</li>
 <li data-option="d">It runs to the end. Nothing raises; the lab collects results and prints an 8-line failure summary: one header line and 7 failures.</li>
 </ul>
@@ -316,7 +316,7 @@ all lab checks passed</code></pre>
 <article class="exercise" data-exercise data-exercise-id="fnd-x4" data-covers="fnd-01">
 <h3>4. Part D authorizes before it authenticates</h3>
 <div class="prose">
-<p>In <code>handle</code>, move the ownership check above the signature check, so the order becomes target, ownership, signature.</p>
+<p>In <code>handle</code>, move the <code>target</code> line and the ownership check together above the signature check, so the order becomes target, ownership, signature.</p>
 </div>
 <fieldset><legend>What does the run print differently?</legend>
 <label><input type="radio" name="fnd-x4" value="a"> Check 15 becomes <code>reject: not your account</code>.</label>
@@ -344,7 +344,7 @@ all lab checks passed</code></pre>
 <ul class="controls">
 <li><span class="label std">Standard</span>TLS authenticates the server by default and the client only if you configure it. "The server side of the channel is always authenticated; the client side is optionally authenticated." RFC 8446 section 1.</li>
 <li><span class="label std">Standard</span>TLS protects the channel, not the stored data. Its guarantees are that data sent "after establishment is only visible to the endpoints" and "cannot be modified by attackers without detection". RFC 8446 section 1. Both end at the endpoints.</li>
-<li><span class="label std">Standard</span>An HMAC is computed with a key shared by both parties, so verification capability equals production capability. Use HMAC as specified in RFC 2104 and FIPS 198-1.</li>
+<li><span class="label std">Standard</span>An HMAC is computed with a key shared by both parties, so verification capability equals production capability. Use HMAC as specified in RFC 2104 and FIPS 198-1. That is this page's advice: RFC 2104 is Informational and requires nothing.</li>
 <li><span class="label base">Baseline</span>Never treat a hash sent alongside the data it describes as integrity protection. Carry it inside something a key protects.</li>
 <li><span class="label base">Baseline</span>For every value in a request, be able to name who can produce it and who can check it, and record the answer where the design is written down.</li>
 <li><span class="label base">Baseline</span>Name the last TLS termination before your code, and treat everything past it as a separate trust relationship.</li>
@@ -370,7 +370,7 @@ all lab checks passed</code></pre>
 <ul class="prose">
 <li><a href="https://www.rfc-editor.org/rfc/rfc8446">RFC 8446: The Transport Layer Security (TLS) Protocol Version 1.3</a>, August 2018. Section 1, on what TLS authenticates and protects.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc2104">RFC 2104: HMAC: Keyed-Hashing for Message Authentication</a>, February 1997.</li>
-<li><a href="https://doi.org/10.6028/NIST.FIPS.198-1">NIST FIPS 198-1: The Keyed-Hash Message Authentication Code (HMAC)</a>.</li>
+<li><a href="https://doi.org/10.6028/NIST.FIPS.198-1">NIST FIPS 198-1: The Keyed-Hash Message Authentication Code (HMAC)</a>, July 2008.</li>
 </ul>
 </main>
 <footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
