@@ -23,7 +23,7 @@
       "attrs": {
         "class": "meta"
       },
-      "html": "\n<p class=\"meta\">Last reviewed 2026-09-24 &middot; <a class=\"jump\" href=\"#reference\">Jump to reference</a></p>"
+      "html": "\n<p class=\"meta\">Last reviewed 2026-10-02 &middot; <a class=\"jump\" href=\"#reference\">Jump to reference</a></p>"
     },
     {
       "tag": "div",
@@ -106,7 +106,7 @@
       "attrs": {
         "class": "steps prose"
       },
-      "html": "\n<ol class=\"steps prose\">\n<li>Reject query credentials, even if a header credential is also present. Reject empty and duplicate credential inputs at the HTTP boundary.</li>\n<li>Read the single credential from the agreed header. Missing or unknown value: reject. Compare secret values with a <a href=\"../../glossary/index.html#constant-time-comparison\">constant-time comparison</a>.</li>\n<li>Check its server-side record is active and within its allowed lifetime. This is <a href=\"../../glossary/index.html#authentication\">authentication</a>, checking the claimed identity through its credential.</li>\n<li>Apply <a href=\"../../glossary/index.html#authorization\">authorization</a>: check this caller's permission for this action and resource. A matching key alone is not permission for every operation.</li>\n<li>Record a route label, decision, and non-secret record identifier. Exclude raw credentials from all logs and traces, including rejected requests. OWASP's logging guidance identifies tokens and primary secrets as data to exclude (<a href=\"#source-logging\">Logging</a>).</li>\n</ol>"
+      "html": "\n<ol class=\"steps prose\">\n<li>Reject query credentials, even if a header credential is also present. Reject empty and duplicate credential inputs at the HTTP boundary.</li>\n<li>Read the single credential from the agreed header. Missing or unknown value: reject. Compare secret values with a <a href=\"../../glossary/index.html#constant-time-comparison\">constant-time comparison</a>.</li>\n<li>Check its server-side record is active and within its allowed lifetime. This is <a href=\"../../glossary/index.html#authentication\">authentication</a>, checking the claimed identity through its credential.</li>\n<li>Apply <a href=\"../../glossary/index.html#authorization\">authorization</a>: check this caller's permission for this action and resource. A matching key alone is not permission for every operation.</li>\n<li>Record a route label, decision, and non-secret record identifier. Exclude raw credentials from all logs and traces, including rejected requests. OWASP's logging guidance identifies <a href=\"../../glossary/index.html#access-token\">access tokens</a> and primary secrets as data to exclude (<a href=\"#source-logging\">Logging</a>).</li>\n</ol>"
     },
     {
       "tag": "h3",
@@ -154,7 +154,7 @@
       "attrs": {
         "class": "prose"
       },
-      "html": "\n<div class=\"prose\">\n<p>Use generated test credentials, never production keys. Lab checks cover query leakage, reuse, missing and wrong keys, revocation, replacement, mixed header/query input, encoded parameter names, and blank values.</p>\n<p>Integration tests must also prove these properties; the in-memory lab does not:</p>\n<ul>\n<li>Expired keys and credentials for another environment fail at every receiver.</li>\n<li>Duplicate credential headers are rejected consistently by the proxy and application.</li>\n<li>A valid key cannot access another caller's resources or an unassigned operation.</li>\n<li>Gateway logs, application logs, traces, and error reports contain no test credential.</li>\n<li>Revocation takes effect within the documented bound, including cached records.</li>\n<li>HTTPS is enforced and clients validate the server certificate.</li>\n</ul>\n</div>"
+      "html": "\n<div class=\"prose\">\n<p>Use generated test credentials, never production keys. Lab checks cover query leakage, reuse, missing and wrong keys, <a href=\"../../glossary/index.html#revocation\">revocation</a>, replacement, mixed header/query input, encoded parameter names, and blank values.</p>\n<p>Integration tests must also prove these properties; the in-memory lab does not:</p>\n<ul>\n<li>Expired keys and credentials for another environment fail at every receiver.</li>\n<li>Duplicate credential headers are rejected consistently by the proxy and application.</li>\n<li>A valid key cannot access another caller's resources or an unassigned operation.</li>\n<li><a href=\"../../glossary/index.html#api-gateway\">Gateway</a> logs, application logs, traces, and error reports contain no test credential.</li>\n<li>Revocation takes effect within the documented bound, including cached records.</li>\n<li>HTTPS is enforced and clients validate the server certificate.</li>\n</ul>\n</div>"
     },
     {
       "tag": "h2",
@@ -286,7 +286,7 @@
       "attrs": {
         "class": "prose"
       },
-      "html": "\n<ul class=\"prose\">\n<li id=\"source-rest\"><a href=\"https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html\">OWASP REST Security Cheat Sheet</a>: HTTPS, API Keys, and Sensitive information in HTTP requests. Living guidance, reviewed 2026-09-24.</li>\n<li id=\"source-logging\"><a href=\"https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html\">OWASP Logging Cheat Sheet</a>: Data to exclude and Verification. Living guidance, reviewed 2026-09-24.</li>\n<li id=\"source-python\"><a href=\"https://docs.python.org/3.14/library/secrets.html\">Python 3.14 secrets documentation</a>: token generation and compare_digest, reviewed 2026-09-24. Library documentation, not an API-key specification.</li>\n</ul>"
+      "html": "\n<ul class=\"prose\">\n<li id=\"source-rest\"><a href=\"https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html\">OWASP REST Security Cheat Sheet</a>: HTTPS, API Keys, and Sensitive information in HTTP requests. Living guidance, reviewed 2026-10-02.</li>\n<li id=\"source-logging\"><a href=\"https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html\">OWASP Logging Cheat Sheet</a>: Data to exclude and Verification. Living guidance, reviewed 2026-10-02.</li>\n<li id=\"source-python\"><a href=\"https://docs.python.org/3.14/library/secrets.html\">Python 3.14 secrets documentation</a>: token generation and compare_digest, reviewed 2026-10-02. Library documentation, not an API-key specification.</li>\n</ul>"
     }
   ],
   "main_close": "\n</main>",
@@ -296,7 +296,7 @@
   "lesson_key": "api-keys",
   "title": "API keys",
   "kicker": "Part 1: Proving who is calling &middot; Module 1",
-  "reviewed": "2026-09-24",
+  "reviewed": "2026-10-02",
   "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 2 of 27</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
   "lesson_number": 2,
   "lesson_total": 27,
@@ -318,7 +318,7 @@
     {
       "heading": "3. The control",
       "heading_text": "3. The control",
-      "html": "<h3>What the caller sends</h3>\n<div class=\"prose\"><p>Use the API's documented credential header over HTTPS. No universal API-key header name is assumed here. The lab's <code>header_key</code> argument stands in for that header after parsing; it is not an HTTP field name.</p></div>\n<h3>How the receiver verifies</h3>\n<ol class=\"steps prose\">\n<li>Reject query credentials, even if a header credential is also present. Reject empty and duplicate credential inputs at the HTTP boundary.</li>\n<li>Read the single credential from the agreed header. Missing or unknown value: reject. Compare secret values with a <a href=\"../../glossary/index.html#constant-time-comparison\">constant-time comparison</a>.</li>\n<li>Check its server-side record is active and within its allowed lifetime. This is <a href=\"../../glossary/index.html#authentication\">authentication</a>, checking the claimed identity through its credential.</li>\n<li>Apply <a href=\"../../glossary/index.html#authorization\">authorization</a>: check this caller's permission for this action and resource. A matching key alone is not permission for every operation.</li>\n<li>Record a route label, decision, and non-secret record identifier. Exclude raw credentials from all logs and traces, including rejected requests. OWASP's logging guidance identifies tokens and primary secrets as data to exclude (<a href=\"#source-logging\">Logging</a>).</li>\n</ol>\n<h3>The whole system</h3>\n<div class=\"callout prose\">ExampleAir's server obtains its credential from a secrets manager, then calls ExampleHotels over HTTPS. The receiver checks the credential record and permissions. Logs record the decision without the key. On a leak, the operator disables the old record and provisions a replacement.</div>"
+      "html": "<h3>What the caller sends</h3>\n<div class=\"prose\"><p>Use the API's documented credential header over HTTPS. No universal API-key header name is assumed here. The lab's <code>header_key</code> argument stands in for that header after parsing; it is not an HTTP field name.</p></div>\n<h3>How the receiver verifies</h3>\n<ol class=\"steps prose\">\n<li>Reject query credentials, even if a header credential is also present. Reject empty and duplicate credential inputs at the HTTP boundary.</li>\n<li>Read the single credential from the agreed header. Missing or unknown value: reject. Compare secret values with a <a href=\"../../glossary/index.html#constant-time-comparison\">constant-time comparison</a>.</li>\n<li>Check its server-side record is active and within its allowed lifetime. This is <a href=\"../../glossary/index.html#authentication\">authentication</a>, checking the claimed identity through its credential.</li>\n<li>Apply <a href=\"../../glossary/index.html#authorization\">authorization</a>: check this caller's permission for this action and resource. A matching key alone is not permission for every operation.</li>\n<li>Record a route label, decision, and non-secret record identifier. Exclude raw credentials from all logs and traces, including rejected requests. OWASP's logging guidance identifies <a href=\"../../glossary/index.html#access-token\">access tokens</a> and primary secrets as data to exclude (<a href=\"#source-logging\">Logging</a>).</li>\n</ol>\n<h3>The whole system</h3>\n<div class=\"callout prose\">ExampleAir's server obtains its credential from a secrets manager, then calls ExampleHotels over HTTPS. The receiver checks the credential record and permissions. Logs record the decision without the key. On a leak, the operator disables the old record and provisions a replacement.</div>"
     },
     {
       "heading": "4. Defaults and when to change them",
@@ -333,7 +333,7 @@
     {
       "heading": "6. Prove it",
       "heading_text": "6. Prove it",
-      "html": "<div class=\"prose\">\n<p>Use generated test credentials, never production keys. Lab checks cover query leakage, reuse, missing and wrong keys, revocation, replacement, mixed header/query input, encoded parameter names, and blank values.</p>\n<p>Integration tests must also prove these properties; the in-memory lab does not:</p>\n<ul>\n<li>Expired keys and credentials for another environment fail at every receiver.</li>\n<li>Duplicate credential headers are rejected consistently by the proxy and application.</li>\n<li>A valid key cannot access another caller's resources or an unassigned operation.</li>\n<li>Gateway logs, application logs, traces, and error reports contain no test credential.</li>\n<li>Revocation takes effect within the documented bound, including cached records.</li>\n<li>HTTPS is enforced and clients validate the server certificate.</li>\n</ul>\n</div>"
+      "html": "<div class=\"prose\">\n<p>Use generated test credentials, never production keys. Lab checks cover query leakage, reuse, missing and wrong keys, <a href=\"../../glossary/index.html#revocation\">revocation</a>, replacement, mixed header/query input, encoded parameter names, and blank values.</p>\n<p>Integration tests must also prove these properties; the in-memory lab does not:</p>\n<ul>\n<li>Expired keys and credentials for another environment fail at every receiver.</li>\n<li>Duplicate credential headers are rejected consistently by the proxy and application.</li>\n<li>A valid key cannot access another caller's resources or an unassigned operation.</li>\n<li><a href=\"../../glossary/index.html#api-gateway\">Gateway</a> logs, application logs, traces, and error reports contain no test credential.</li>\n<li>Revocation takes effect within the documented bound, including cached records.</li>\n<li>HTTPS is enforced and clients validate the server certificate.</li>\n</ul>\n</div>"
     },
     {
       "heading": "7. Lab",
@@ -368,7 +368,7 @@
     {
       "heading": "Sources",
       "heading_text": "Sources",
-      "html": "<ul class=\"prose\">\n<li id=\"source-rest\"><a href=\"https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html\">OWASP REST Security Cheat Sheet</a>: HTTPS, API Keys, and Sensitive information in HTTP requests. Living guidance, reviewed 2026-09-24.</li>\n<li id=\"source-logging\"><a href=\"https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html\">OWASP Logging Cheat Sheet</a>: Data to exclude and Verification. Living guidance, reviewed 2026-09-24.</li>\n<li id=\"source-python\"><a href=\"https://docs.python.org/3.14/library/secrets.html\">Python 3.14 secrets documentation</a>: token generation and compare_digest, reviewed 2026-09-24. Library documentation, not an API-key specification.</li>\n</ul>\n</main>"
+      "html": "<ul class=\"prose\">\n<li id=\"source-rest\"><a href=\"https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html\">OWASP REST Security Cheat Sheet</a>: HTTPS, API Keys, and Sensitive information in HTTP requests. Living guidance, reviewed 2026-10-02.</li>\n<li id=\"source-logging\"><a href=\"https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html\">OWASP Logging Cheat Sheet</a>: Data to exclude and Verification. Living guidance, reviewed 2026-10-02.</li>\n<li id=\"source-python\"><a href=\"https://docs.python.org/3.14/library/secrets.html\">Python 3.14 secrets documentation</a>: token generation and compare_digest, reviewed 2026-10-02. Library documentation, not an API-key specification.</li>\n</ul>\n</main>"
     }
   ],
   "layers": [
@@ -422,8 +422,20 @@
       "text": "authorization"
     },
     {
+      "href": "../../glossary/index.html#access-token",
+      "text": "access tokens"
+    },
+    {
       "href": "../../glossary/index.html#key-rotation",
       "text": "key rotation"
+    },
+    {
+      "href": "../../glossary/index.html#revocation",
+      "text": "revocation"
+    },
+    {
+      "href": "../../glossary/index.html#api-gateway",
+      "text": "Gateway"
     }
   ],
   "checks": [
@@ -463,19 +475,19 @@
       "id": "source-rest",
       "href": "https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html",
       "title": "OWASP REST Security Cheat Sheet",
-      "html": "<a href=\"https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html\">OWASP REST Security Cheat Sheet</a>: HTTPS, API Keys, and Sensitive information in HTTP requests. Living guidance, reviewed 2026-09-24."
+      "html": "<a href=\"https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html\">OWASP REST Security Cheat Sheet</a>: HTTPS, API Keys, and Sensitive information in HTTP requests. Living guidance, reviewed 2026-10-02."
     },
     {
       "id": "source-logging",
       "href": "https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html",
       "title": "OWASP Logging Cheat Sheet",
-      "html": "<a href=\"https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html\">OWASP Logging Cheat Sheet</a>: Data to exclude and Verification. Living guidance, reviewed 2026-09-24."
+      "html": "<a href=\"https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html\">OWASP Logging Cheat Sheet</a>: Data to exclude and Verification. Living guidance, reviewed 2026-10-02."
     },
     {
       "id": "source-python",
       "href": "https://docs.python.org/3.14/library/secrets.html",
       "title": "Python 3.14 secrets documentation",
-      "html": "<a href=\"https://docs.python.org/3.14/library/secrets.html\">Python 3.14 secrets documentation</a>: token generation and compare_digest, reviewed 2026-09-24. Library documentation, not an API-key specification."
+      "html": "<a href=\"https://docs.python.org/3.14/library/secrets.html\">Python 3.14 secrets documentation</a>: token generation and compare_digest, reviewed 2026-10-02. Library documentation, not an API-key specification."
     }
   ],
   "source_anchors": [

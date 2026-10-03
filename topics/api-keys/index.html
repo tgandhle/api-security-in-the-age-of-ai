@@ -12,7 +12,7 @@
 <main>
 <p class="kicker">Part 1: Proving who is calling &middot; Module 1</p>
 <h1>API keys</h1>
-<p class="meta">Last reviewed 2026-09-24 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 <div class="prose">
 <p><strong>Objective.</strong> Find an API key leak in a request log, explain why someone can reuse the key, and test both prevention and recovery.</p>
 <p><strong>Before you start.</strong> You should be able to read a URL and a Python function. An <a href="../../glossary/index.html#api-key">API key</a> is a credential issued to an application. Here it is a <a href="../../glossary/index.html#bearer-credential">bearer credential</a>: whoever presents it can act within its assigned permissions.</p>
@@ -46,7 +46,7 @@
 <li>Read the single credential from the agreed header. Missing or unknown value: reject. Compare secret values with a <a href="../../glossary/index.html#constant-time-comparison">constant-time comparison</a>.</li>
 <li>Check its server-side record is active and within its allowed lifetime. This is <a href="../../glossary/index.html#authentication">authentication</a>, checking the claimed identity through its credential.</li>
 <li>Apply <a href="../../glossary/index.html#authorization">authorization</a>: check this caller's permission for this action and resource. A matching key alone is not permission for every operation.</li>
-<li>Record a route label, decision, and non-secret record identifier. Exclude raw credentials from all logs and traces, including rejected requests. OWASP's logging guidance identifies tokens and primary secrets as data to exclude (<a href="#source-logging">Logging</a>).</li>
+<li>Record a route label, decision, and non-secret record identifier. Exclude raw credentials from all logs and traces, including rejected requests. OWASP's logging guidance identifies <a href="../../glossary/index.html#access-token">access tokens</a> and primary secrets as data to exclude (<a href="#source-logging">Logging</a>).</li>
 </ol>
 <h3>The whole system</h3>
 <div class="callout prose">ExampleAir's server obtains its credential from a secrets manager, then calls ExampleHotels over HTTPS. The receiver checks the credential record and permissions. Logs record the decision without the key. On a leak, the operator disables the old record and provisions a replacement.</div>
@@ -69,13 +69,13 @@
 </div>
 <h2>6. Prove it</h2>
 <div class="prose">
-<p>Use generated test credentials, never production keys. Lab checks cover query leakage, reuse, missing and wrong keys, revocation, replacement, mixed header/query input, encoded parameter names, and blank values.</p>
+<p>Use generated test credentials, never production keys. Lab checks cover query leakage, reuse, missing and wrong keys, <a href="../../glossary/index.html#revocation">revocation</a>, replacement, mixed header/query input, encoded parameter names, and blank values.</p>
 <p>Integration tests must also prove these properties; the in-memory lab does not:</p>
 <ul>
 <li>Expired keys and credentials for another environment fail at every receiver.</li>
 <li>Duplicate credential headers are rejected consistently by the proxy and application.</li>
 <li>A valid key cannot access another caller's resources or an unassigned operation.</li>
-<li>Gateway logs, application logs, traces, and error reports contain no test credential.</li>
+<li><a href="../../glossary/index.html#api-gateway">Gateway</a> logs, application logs, traces, and error reports contain no test credential.</li>
 <li>Revocation takes effect within the documented bound, including cached records.</li>
 <li>HTTPS is enforced and clients validate the server certificate.</li>
 </ul>
@@ -247,9 +247,9 @@ all lab checks passed</code></pre>
 </ul>
 <h2>Sources</h2>
 <ul class="prose">
-<li id="source-rest"><a href="https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html">OWASP REST Security Cheat Sheet</a>: HTTPS, API Keys, and Sensitive information in HTTP requests. Living guidance, reviewed 2026-09-24.</li>
-<li id="source-logging"><a href="https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html">OWASP Logging Cheat Sheet</a>: Data to exclude and Verification. Living guidance, reviewed 2026-09-24.</li>
-<li id="source-python"><a href="https://docs.python.org/3.14/library/secrets.html">Python 3.14 secrets documentation</a>: token generation and compare_digest, reviewed 2026-09-24. Library documentation, not an API-key specification.</li>
+<li id="source-rest"><a href="https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html">OWASP REST Security Cheat Sheet</a>: HTTPS, API Keys, and Sensitive information in HTTP requests. Living guidance, reviewed 2026-10-02.</li>
+<li id="source-logging"><a href="https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html">OWASP Logging Cheat Sheet</a>: Data to exclude and Verification. Living guidance, reviewed 2026-10-02.</li>
+<li id="source-python"><a href="https://docs.python.org/3.14/library/secrets.html">Python 3.14 secrets documentation</a>: token generation and compare_digest, reviewed 2026-10-02. Library documentation, not an API-key specification.</li>
 </ul>
 </main>
 <footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
