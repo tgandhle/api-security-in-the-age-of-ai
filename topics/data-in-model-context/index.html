@@ -248,6 +248,107 @@ all lab checks passed</code></pre>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 </section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="data-in-model-context-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/context_data_lab.py"><code>labs/context_data_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant. Every variant here fails at least one check, and three of the answers add a measurement from an input the lab does not use, because the lab's own data shows only part of what the edit costs.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="ctx-x1" data-covers="ctx-02">
+<h3>1. The context is built by removing the sensitive fields</h3>
+<div class="prose">
+<p>In <code>context_allowlist</code>, change the condition <code>if k in allowed</code> to <code>if k not in SENSITIVE</code>, so the context is the record minus the four fields the lab lists as sensitive. Nothing else changes.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="ctx-x1" value="a"> Check 4, sensitive fields in the allowlisted context, lists at least one field.</label>
+<label><input type="radio" name="ctx-x1" value="b"> Nothing. All 44 checks pass.</label>
+<label><input type="radio" name="ctx-x1" value="c" data-correct="true"> Only check 6, the characters sent, changes. Check 4 still prints <code>[]</code>.</label>
+<label><input type="radio" name="ctx-x1" value="d"> Checks 2 and 6 both change.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 4 still prints <code>[]</code>. The denylist names exactly the four fields check 4 looks for, so it removes all of them. That is what makes this edit look safe in review.</li>
+<li data-option="b">Check 6 fails, so the run exits 1. The context is no longer the four fields the task needs.</li>
+<li data-option="c">Correct. Exit 1, one failure: check 6 goes from <code>89</code> to <code>115</code>, and every other line is identical. The context now holds five fields, the four the task needs plus <code>loyalty_tier</code>, which nobody chose to send. The only check that notices is a character count. Measured on a record the lab does not use, with a <code>phone</code> field added that nobody has listed in <code>SENSITIVE</code>: as published the context does not hold the phone number, and with the denylist it does. A denylist sends every field nobody thought to name. Check <code>ctx-02</code> in the <a href="#reference">Reference</a> layer asks for a per-task allowlist for that reason.</li>
+<li data-option="d">Check 2 counts <code>NEEDED</code>, which this edit does not touch, so it still prints <code>4</code>. The function simply stops using it.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="ctx-x2" data-covers="ctx-01">
+<h3>2. The redactor learns the key format</h3>
+<div class="prose">
+<p>In <code>redact_checked</code>, add one line before <code>return out</code>, so the redactor also removes the key:</p>
+</div>
+<pre><code>out = out.replace(API_KEY, "[redacted-key]")</code></pre>
+<fieldset><legend>What does the run print for the key?</legend>
+<label><input type="radio" name="ctx-x2" value="a"> Check 11 becomes <code>no</code>, check 12 becomes <code>1</code>, and check 33 becomes <code>0</code>.</label>
+<label><input type="radio" name="ctx-x2" value="b" data-correct="true"> Checks 11 and 34 become <code>no</code> and check 33 goes from <code>5</code> to <code>4</code>. Check 12 still prints <code>0</code>.</label>
+<label><input type="radio" name="ctx-x2" value="c"> Only check 11 changes, to <code>no</code>.</label>
+<label><input type="radio" name="ctx-x2" value="d"> Nothing. Checks 9 to 14 look at the request, and redaction runs on the log.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 33 prints <code>4</code>, not <code>0</code>. Only one sink of five has redaction applied before writing, so the other four still hold the key. Check 12 still prints <code>0</code>, because it counts matches among the four compiled patterns and the new line is not one of them.</li>
+<li data-option="b">Correct. Exit 1, three failures: check 11 goes from <code>yes</code> to <code>no</code>, check 33 from <code>5</code> to <code>4</code>, and check 34 from <code>yes</code> to <code>no</code>. Checks 9, 10, 12, 13 and 14 print what they printed before. The edit worked exactly where redaction runs, which is the application log, and nowhere else: the key is still in the request, the trace span, the prompt cache and at the provider. Check <code>ctx-01</code> in the <a href="#reference">Reference</a> layer is about the system prompt, not the redactor. Taking the key out of the system prompt takes it out of all five.</li>
+<li data-option="c">Part D calls the same redactor for the application log sink, so checks 33 and 34 move with check 11.</li>
+<li data-option="d">Check 11 is the log: it tests the request after <code>redact_checked</code> has run on it, and it changes to <code>no</code>. Checks 9, 10 and 14 are the ones that look at the request itself, and they do not change.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="ctx-x3" data-covers="ctx-05">
+<h3>3. The Luhn-checked redactor uses the simpler pattern</h3>
+<div class="prose">
+<p>In <code>redact_checked</code>, change <code>SEPARATED_PAN.sub(pan, text)</code> to <code>NAIVE_PAN.sub(pan, text)</code>. The Luhn test inside <code>pan</code> stays.</p>
+</div>
+<fieldset><legend>Which check changes?</legend>
+<label><input type="radio" name="ctx-x3" value="a"> Check 20, the Luhn-checked redactor keeps the order number.</label>
+<label><input type="radio" name="ctx-x3" value="b"> Check 21, the Luhn-checked redactor still removes the card.</label>
+<label><input type="radio" name="ctx-x3" value="c"> Check 25, whether the naive redactor removes the card written in groups of four.</label>
+<label><input type="radio" name="ctx-x3" value="d" data-correct="true"> Check 26, whether the Luhn-checked redactor removes the card written in groups of four.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 20 still prints <code>yes</code>. The Luhn test is untouched, and the order number still fails it, so the redactor still keeps it.</li>
+<li data-option="b">Check 21 still prints <code>yes</code>. The card in that line is sixteen digits in a row, which the simpler pattern matches, and it passes Luhn.</li>
+<li data-option="c">Check 25 calls <code>redact_naive</code>, which this edit does not touch. It printed <code>no</code> before and prints <code>no</code> now.</li>
+<li data-option="d">Correct. Exit 1, one failure: check 26 goes from <code>yes</code> to <code>no</code>, and every other check prints what it printed before. The Luhn test only runs on what the pattern finds, and the simpler pattern does not find <code>4000 0000 0000 0002</code>. Measured on a format the lab does not use, the same card written with dashes: as published the redactor returns <code>[redacted-pan]</code>, and with the simpler pattern it returns <code>4000-0000-0000-0002</code> unchanged. Check <code>ctx-05</code> in the <a href="#reference">Reference</a> layer asks for an alternative format per pattern, and checks 24 to 26 are the only place in this lab where one is tested.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="ctx-x4" data-covers="ctx-03">
+<h3>4. An unknown role is treated as support</h3>
+<div class="prose">
+<p>In <code>filter_response</code>, change <code>READABLE.get(role, set())</code> to <code>READABLE.get(role, READABLE["support"])</code>, on the reasoning that support is the least privileged role and a caller should get some answer.</p>
+</div>
+<fieldset><legend>What does check 41, what an unknown role may see, print?</legend>
+<label><input type="radio" name="ctx-x4" value="a" data-correct="true"> <code>['booking_id', 'flight', 'seat']</code></label>
+<label><input type="radio" name="ctx-x4" value="b"> <code>['booking_id', 'card_number', 'flight', 'seat']</code></label>
+<label><input type="radio" name="ctx-x4" value="c"> <code>[]</code>, as before.</label>
+<label><input type="radio" name="ctx-x4" value="d"> Nothing. The run raises a <code>KeyError</code> before it gets there.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Correct. Exit 1, one failure: check 41 goes from <code>[]</code> to <code>['booking_id', 'flight', 'seat']</code>, the same list check 39 prints for support. Checks 39, 40 and 42 do not change. Measured on a request the lab does not make, a caller whose role is an empty string: as published it gets <code>[]</code>, and with the fallback it gets the same three fields. No card number leaks here, and that is why the edit reads as harmless. A role nobody configured, or no role at all, now reads booking data. Check <code>ctx-03</code> in the <a href="#reference">Reference</a> layer says deny by default, and this edit replaces that with a default.</li>
+<li data-option="b">The fallback is support's allowlist, which does not contain <code>card_number</code>, so the card is still dropped. That list is what the run prints if an unknown role skips the filter altogether, which is a different edit.</li>
+<li data-option="c">The second argument to <code>get</code> is what an unconfigured role receives. It was an empty set and is now support's set, so <code>marketing</code> gets three fields.</li>
+<li data-option="d"><code>READABLE</code> has a <code>support</code> entry, so the lookup succeeds and nothing raises. The run finishes and exits 1 on the one failed check.</li>
+</ul>
+</details>
+</article>
+</section>
+
 <p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
 <span class="layer" id="reference" style="margin-top:3rem">Reference</span>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
