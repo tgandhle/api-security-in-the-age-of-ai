@@ -224,10 +224,10 @@ all lab checks passed</code></pre>
 <p>Checks 19 and 20 are the same request, with a genuinely valid ECDSA P-256 signature, against two verifiers. One allows that algorithm and accepts. One does not and rejects. A signature being cryptographically sound is not the same as it being acceptable, and the allowlist is where you say so.</p>
 <p><strong>Try next:</strong></p>
 <ul>
-<li>Remove <code>"content-digest"</code> from <code>COVERED</code> and rerun. Watch how many checks still pass, and then ask what check 4 is now proving.</li>
-<li>Move the <code>nonce</code> record above the signature verification in <code>Verifier.verify</code>. Then send a tampered request with a nonce the real caller is about to use. This is module 2's lesson, and it is still true here.</li>
-<li>Set <code>WINDOW_SECONDS</code> to 86400 and rerun. Check 14 goes green. State what someone holding one captured request can now do for a day.</li>
-<li>Change <code>allowed_algs</code> on <code>server</code> to include <code>"hmac-sha256"</code> and rerun. Check 18 tells you which line is now load bearing.</li>
+<li>Remove <code>"content-digest"</code> from <code>COVERED</code> and rerun. The lab exits 1 with 13 failures, and check 4 itself now prints <code>reject: required component not covered</code>. Ask what check 4 is now proving.</li>
+<li>In <code>Verifier.verify</code>, move the whole <code>nonce</code> block (the lookup, the reuse test and the record) to directly above the signature check, and rerun. The lab exits 1 with one failure: check 6 goes from <code>reject: signature check failed</code> to <code>reject: nonce already used</code>. Then send a tampered request with a nonce the real caller is about to use. This is module 2's lesson, and it is still true here.</li>
+<li>Set <code>WINDOW_SECONDS</code> to 86400 and rerun. Nothing changes: the lab exits 0 and check 14 still prints <code>reject: created outside the window</code>, because it verifies at <code>NOW + WINDOW_SECONDS + 60</code>, so the test moves with the window. State what someone holding one captured request can now do for a day.</li>
+<li>Change <code>allowed_algs</code> on <code>server</code> to include <code>"hmac-sha256"</code> and rerun. Nothing changes: the lab exits 0 with the same 22 check lines, because check 18 calls <code>permissive</code>, not <code>server</code>. <code>permissive</code> already allows <code>"hmac-sha256"</code>, so the reason check 18 prints, <code>reject: alg not valid for this key</code>, tells you which line is now load bearing on <code>server</code>.</li>
 </ul>
 </div>
 
@@ -294,7 +294,7 @@ all lab checks passed</code></pre>
 <details class="exercise-answers"><summary>Every option, and why</summary>
 <ul>
 <li data-option="a">Check 16 still rejects. It deliberately verifies the same message twice, so the nonce is recorded on the first pass under either order.</li>
-<li data-option="b">Correct. Exit 1, one failure, and not the one most people name: check 6 goes from <code>reject: signature check failed</code> to <code>reject: nonce already used</code>. Check 5 verified a message carrying nonce <code>n-001</code>, and check 6 is that same message with the path tampered, so it still carries <code>n-001</code>. Under the wrong order the nonce rejection fires first and the tampering is never reported. Two costs: the reason you get is misleading, and an unverified request can now put entries in the store. Check <code>sign-06</code> in the <a href="#reference">Reference</a> layer is where the order belongs.</li>
+<li data-option="b">Correct. Exit 1, one failure, and not the one most people name: check 6 goes from <code>reject: signature check failed</code> to <code>reject: nonce already used</code>. Check 4 verified a message carrying nonce <code>n-001</code>, and check 6 is that same message with the path tampered, so it still carries <code>n-001</code>. Under the wrong order the nonce rejection fires first and the tampering is never reported. Two costs: the reason you get is misleading, and an unverified request can now put entries in the store. Check <code>sign-06</code> in the <a href="#reference">Reference</a> layer is where the order belongs.</li>
 <li data-option="c">Check 7 carries a nonce the store has not seen, so it reaches the signature check either way and still fails there.</li>
 <li data-option="d">Both do happen, but the order decides which one answers first, and check 6 shows it.</li>
 </ul>
