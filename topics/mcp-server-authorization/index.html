@@ -259,6 +259,108 @@ all lab checks passed</code></pre>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 </section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="mcp-server-authorization-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/mcp_auth_lab.py"><code>labs/mcp_auth_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant. One variant changes nothing, and its answer carries the measurement from a request the lab does not make. One stops the run part way, and its answer says where.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="mcp-x1" data-covers="mcp-01">
+<h3>1. The audience is checked only when the token carries one</h3>
+<div class="prose">
+<p>In <code>McpServer.call</code>, change <code>if self.check_audience:</code> to the line below, on the reasoning that a token with no audience gives the server nothing to compare.</p>
+</div>
+<pre><code>if self.check_audience and "aud" in claims:</code></pre>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="mcp-x1" value="a"> Check 3, the token issued for the API, becomes <code>upstream says: 200 served https://mcp.exampletools.example/mcp for user-41</code>.</label>
+<label><input type="radio" name="mcp-x1" value="b"> Check 1, no token at all, raises, because there are no claims to look in.</label>
+<label><input type="radio" name="mcp-x1" value="c"> Check 9, the token from an unrelated authorization server, is accepted.</label>
+<label><input type="radio" name="mcp-x1" value="d" data-correct="true"> Nothing. All 47 checks pass.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 3 still prints <code>401 token audience is 'https://api.examplecrm.example', not this server</code>. That token has an <code>aud</code>, it names the CRM, and the comparison still runs for it.</li>
+<li data-option="b">Check 1 returns the 401 challenge on the first line of <code>call</code>, before any token is verified or any claim is read. The edited line is never reached.</li>
+<li data-option="c">Check 9 still prints <code>401 signature does not verify</code>. That token is refused by <code>verify</code>, which runs before the audience is looked at.</li>
+<li data-option="d">Correct. Exit 0, 63 of 63 lines identical. Every token the lab mints carries an <code>aud</code>, so the new condition is always true and the run cannot show the difference. Measured on a request the lab does not make, a token signed by the shared authorization server with no <code>aud</code> claim at all, calling <code>fetch_customer</code>: as published the server answers <code>401 token audience is None, not this server</code>, and with the edit it answers <code>upstream says: 200 served https://mcp.exampletools.example/mcp for user-41</code>. A token that names no audience has not named this server, and the edit treats it as if it had. Check <code>mcp-01</code> in the <a href="#reference">Reference</a> layer asks that each token's audience is this server, and a missing audience fails that as surely as a wrong one.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="mcp-x2" data-covers="mcp-02">
+<h3>2. The strict server forwards the client's token</h3>
+<div class="prose">
+<p>In <code>main</code>, add <code>pass_token_upstream=True</code> to the line that builds <code>strict</code>. Leave its audience check on.</p>
+</div>
+<fieldset><legend>What does check 2, a token issued for this MCP server, print?</legend>
+<label><input type="radio" name="mcp-x2" value="a"> <code>upstream says: 200 served https://mcp.exampletools.example/mcp for user-41</code>, as before.</label>
+<label><input type="radio" name="mcp-x2" value="b" data-correct="true"> <code>upstream says: 401 wrong audience</code></label>
+<label><input type="radio" name="mcp-x2" value="c"> <code>upstream says: 200 served user-41 for nobody named</code></label>
+<label><input type="radio" name="mcp-x2" value="d"> <code>401 token audience is 'https://mcp.exampletools.example/mcp', not this server</code></label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">That line comes from the token the server mints for itself, with the server as <code>sub</code> and the user under <code>act</code>. With the flag set, <code>fetch</code> returns before it mints anything.</li>
+<li data-option="b">Correct. Exit 1. Check 2 goes from <code>upstream says: 200 served https://mcp.exampletools.example/mcp for user-41</code> to <code>upstream says: 401 wrong audience</code>. The run then stops with an <code>IndexError</code> at check 8, which reads the caller's name out of the same reply and no longer finds one, so nothing after check 7 prints. Checks 1 and 3 to 7 print as before. The token is correct for the MCP server, and for exactly that reason it is wrong for the CRM. A server that validates its own audience cannot make passthrough work, which is why the passthrough server in check 6 also has its audience check off. The two failures arrive together. Check <code>mcp-02</code> in the <a href="#reference">Reference</a> layer asks for the server's own token for the upstream, and this is the run that shows nothing else will do.</li>
+<li data-option="c">That is check 6, where the forwarded token was issued for the CRM, so the CRM accepts it. Here the forwarded token was issued for the MCP server, and the CRM refuses it on its audience.</li>
+<li data-option="d">The MCP server accepts this token. Its audience is the MCP server. The refusal comes from the CRM, which is why the line starts with <code>upstream says:</code>.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="mcp-x3" data-covers="mcp-06">
+<h3>3. The iss comparison strips a trailing slash first</h3>
+<div class="prose">
+<p>In <code>check_iss</code>, change the comparison <code>iss_value == recorded</code> to the line below. Change nothing else.</p>
+</div>
+<pre><code>if iss_value.rstrip("/") == recorded.rstrip("/"):</code></pre>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="mcp-x3" value="a" data-correct="true"> Check 25 only.</label>
+<label><input type="radio" name="mcp-x3" value="b"> Checks 25, 26 and 27.</label>
+<label><input type="radio" name="mcp-x3" value="c"> Checks 17 and 25.</label>
+<label><input type="radio" name="mcp-x3" value="d"> Nothing. No issuer in the lab ends in a slash.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Correct. Exit 1, one failure: check 25 goes from <code>reject: iss does not match the recorded issuer</code> to <code>proceed</code>. The edit reads as tidiness, and it is how most URL comparisons in a codebase are written. Here it accepts an issuer that is not the string the client recorded before the redirect. Check <code>mcp-06</code> in the <a href="#reference">Reference</a> layer names trailing-slash normalisation as one of the things that must not be applied first.</li>
+<li data-option="b">Check 26 differs by a capital letter and check 27 by <code>:443</code>. Stripping a slash touches neither, and both still print <code>reject: iss does not match the recorded issuer</code>.</li>
+<li data-option="c">Check 17 runs <code>canonical_resource</code>, a different function, which already drops the trailing slash and prints <code>https://mcp.example.com</code> under either version. The resource URI has a preferred form. The issuer is compared exactly as received.</li>
+<li data-option="d">Check 25 builds one. It presents the recorded issuer with <code>/</code> added, which is the case this edit lets through.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="mcp-x4" data-covers="mcp-04">
+<h3>4. Handles come from a counter by default</h3>
+<div class="prose">
+<p>In <code>McpServer.__init__</code>, change the default <code>random_handles=True</code> to <code>random_handles=False</code>. Leave <code>bind_handles</code> as it is.</p>
+</div>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="mcp-x4" value="a"> Check 36. Another caller presenting the handle now gets <code>200 seat-14C</code>.</label>
+<label><input type="radio" name="mcp-x4" value="b"> Checks 36 and 40.</label>
+<label><input type="radio" name="mcp-x4" value="c" data-correct="true"> Check 40 only.</label>
+<label><input type="radio" name="mcp-x4" value="d"> Checks 37 and 39.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 36 still prints <code>404 no such cart for this caller</code>. The bound server stores the cart under the owner's user ID and the handle together, so a second caller who knows the handle still looks in an empty slot.</li>
+<li data-option="b">Only check 40 moves. Check 36 depends on <code>bind_handles</code>, which this edit leaves on.</li>
+<li data-option="c">Correct. Exit 1, one failure: check 40 goes from <code>21</code> to <code>6</code>, because the bound server's handle is now <code>cart-1</code>. Check 36 does not move. <code>user-99</code> presents a handle anyone could guess and still gets <code>404 no such cart for this caller</code>, because the user ID in the key comes from the verified token. The binding is what refuses the second caller, and that is why check <code>mcp-04</code> in the <a href="#reference">Reference</a> layer is written about binding. A random handle is still the default to keep, for the day the binding is the line someone removes.</li>
+<li data-option="d">The server in checks 37 to 39 already passes <code>random_handles=False</code> itself, so it prints <code>cart-1</code> and <code>cart-2</code> under either default.</li>
+</ul>
+</details>
+</article>
+</section>
+
 <p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
 <span class="layer" id="reference" style="margin-top:3rem">Reference</span>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
