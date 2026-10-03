@@ -9,8 +9,8 @@ implements the algorithms the Fetch Standard specifies and runs requests and
 responses through them as data, so every verdict is reproducible and the
 output is identical on every run and every platform.
 
-What is modelled, and from where (Fetch Standard, Living Standard, Last
-Updated 21 September 2026):
+What is modelled, and from where (Fetch Standard, Living Standard, commit
+snapshot 357bd98, Last Updated 21 September 2026):
 
   Part A  the CORS-safelisted request-header check and the CORS-unsafe
           request-header names algorithm, which together decide whether a
@@ -20,8 +20,9 @@ Updated 21 September 2026):
   Part C  the preflight response checks from CORS-preflight fetch,
           section 4.8.
   Part D  the CORS-preflight cache, section 4.9.
-  Part E  a server that reflects any Origin, which the standard calls the
-          confused deputy problem.
+  Part E  a server that reflects any Origin, next to one that checks an
+          allowlist. Section 3.3.5 warns that sharing responses with
+          credentials risks the confused deputy problem.
 
 Deliberate simplifications, so nothing here is mistaken for a conformant
 implementation:
@@ -33,6 +34,12 @@ implementation:
     rejects everything else, which is enough to show why a suffix range such
     as `bytes=-500` is not safelisted.
   * The network partition key is a plain string, not the real structure.
+  * Access-Control-Allow-Methods and Access-Control-Allow-Headers are split
+    on commas. The standard first checks each value against the header's
+    ABNF and treats a malformed one as a network error; that is not
+    modelled.
+  * The standard clamps max-age to "an imposed limit" and names no number.
+    The 600 seconds used here is this lab's stand-in.
   * Origins use the reserved `.example` domain. The combinations in Part B are
     the ones tabulated in section 3.3.5 with the origin changed from the
     standard's `rabbit.invalid` to `rabbit.example`; the outcomes are the
@@ -75,10 +82,9 @@ def get(headers, name):
 CORS_SAFELISTED_METHODS = ("GET", "HEAD", "POST")
 FORBIDDEN_METHODS = ("CONNECT", "TRACE", "TRACK")
 
-# "A CORS-unsafe request-header byte is a byte byte for which one of the
-# following is true: byte is less than 0x20 and is not 0x09 HT; byte is 0x22,
-# 0x28, 0x29, 0x3A, 0x3C, 0x3E, 0x3F, 0x40, 0x5B, 0x5C, 0x5D, 0x7B, 0x7D, or
-# 0x7F DEL."
+# Fetch Standard 2.2.2: a CORS-unsafe request-header byte is one that is less
+# than 0x20 and is not 0x09 HT, or is 0x22, 0x28, 0x29, 0x3A, 0x3C, 0x3E, 0x3F,
+# 0x40, 0x5B, 0x5C, 0x5D, 0x7B, 0x7D, or 0x7F DEL.
 UNSAFE_BYTES = {0x22, 0x28, 0x29, 0x3A, 0x3C, 0x3E, 0x3F, 0x40,
                 0x5B, 0x5C, 0x5D, 0x7B, 0x7D, 0x7F}
 
@@ -279,7 +285,7 @@ def cors_check(request_origin, credentials_mode, response_headers):
 
 OK_STATUSES = range(200, 300)
 MAX_AGE_DEFAULT = 5
-MAX_AGE_IMPOSED_LIMIT = 600
+MAX_AGE_IMPOSED_LIMIT = 600   # this lab's number; the standard gives none
 
 
 def split_values(raw):
@@ -509,7 +515,7 @@ def main():
 
 
     # ---------------- Part B -------------------------------------------
-    section("Part B: the CORS check, on the combinations the standard tabulates.")
+    section("Part B: the CORS check, on the combinations the standard tabulates, then three more.")
 
     caller = "https://rabbit.example"
 
