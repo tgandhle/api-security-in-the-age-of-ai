@@ -199,7 +199,7 @@ all lab checks passed</code></pre>
 <ul>
 <li>Run the boundary burst through all three limiters and compare. The token bucket allows 101, not 100. Work out where the extra one comes from before reading on: it is the 1.67 tokens that refilled between t=59 and t=60.</li>
 <li>Change <code>TokenBucket</code>'s capacity to 10 while leaving the rate alone. The sustained rate is unchanged and the burst is a tenth. That is the knob a fixed or sliding window does not give you.</li>
-<li>Give <code>SlidingWindow</code> a limit of 100 and send 50 requests of cost 2. Then send 100 of cost 1. Both are 100 units and only one of them is 100 requests.</li>
+<li>In <code>main()</code>, above the line that starts <code>failures =</code>, add <code>print(send(SlidingWindow(limit=100), [0] * 50, cost=2))</code> and then <code>print(send(SlidingWindow(limit=100), [0] * 100, cost=1))</code>. Each line gives a new <code>SlidingWindow</code> a limit of 100. The first sends 50 requests of cost 2 and prints 50. The second sends 100 of cost 1 and prints 100. Both are 100 units and only one of them is 100 requests.</li>
 <li>Write down the per-minute rate and the per-day quota for one endpoint you own. If only one of the two exists, you have found this module's point in your own system.</li>
 </ul>
 </div>
