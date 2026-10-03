@@ -12,11 +12,11 @@
 <main>
 <p class="kicker">Part 1: Proving who is calling &middot; Module 8</p>
 <h1>Workload and agent identity lifecycle</h1>
-<p class="meta">Last reviewed 2026-09-30 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 
 <div class="prose">
 <p><strong>Objective.</strong> After this module you can state the facts a credential record must carry, set and defend a rotation interval, reconcile a register against a deployment in both directions, and say precisely what an inventory cannot tell you.</p>
-<p><strong>Before you start.</strong> Modules 1 to 7 gave you the mechanisms: <a href="../../glossary/index.html#api-key">API keys</a>, shared secrets, signing keys, <a href="../../glossary/index.html#access-token">access tokens</a> and the keys they are bound to. This module is about what becomes of those credentials over the following four years, which is where most of them are still sitting.</p>
+<p><strong>Before you start.</strong> Modules 1 to 7 gave you the mechanisms: <a href="../../glossary/index.html#api-key">API keys</a>, <a href="../../glossary/index.html#shared-secret">shared secrets</a>, signing keys, <a href="../../glossary/index.html#access-token">access tokens</a> and the keys they are bound to. This module is about what becomes of those credentials over the following four years, which is where most of them are still sitting.</p>
 </div>
 <section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 9 of 27</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
 
@@ -46,7 +46,7 @@
 <p>Credentials outlive the things they were made for. A project ends, a team is reorganised, a service is replaced by its successor and left running beside it for a migration that never finishes. The credential does not notice any of that. It keeps working, because working is the only thing it knows how to do.</p>
 <p>Three structural reasons the pile grows:</p>
 <ul>
-<li><strong>The specifications do not set a lifetime for you.</strong> RFC 6749 defines the client credentials grant and requires that it be used only by confidential clients, and says nothing about how long a client secret should live. RFC 9700 recommends asymmetric client authentication over shared secrets and does not set a rotation interval either. NIST SP 800-57 Part 1 gives you the concept, a <a href="../../glossary/index.html#cryptoperiod">cryptoperiod</a>, defined as "the time span during which a specific key is authorized for use", and then treats its length as a judgment driven by consequence and cost. So the interval is yours to choose, write down and enforce. Nobody will choose it for you.</li>
+<li><strong>The specifications do not set a lifetime for you.</strong> RFC 6749 defines the <a href="../../glossary/index.html#client-credentials-grant">client credentials grant</a> and requires that it be used only by <a href="../../glossary/index.html#confidential-client">confidential clients</a>, and says nothing about how long a client secret should live. RFC 9700 recommends asymmetric client <a href="../../glossary/index.html#authentication">authentication</a> over shared secrets and does not set a rotation interval either. NIST SP 800-57 Part 1 gives you the concept, a <a href="../../glossary/index.html#cryptoperiod">cryptoperiod</a>, defined as "the time span during which a specific key is authorized for use", and then treats its length as a judgment driven by consequence and cost: section 5.3.6 suggests periods for each key type and calls them "only rough order-of-magnitude guidelines". So the interval is yours to choose, write down and enforce. Nobody will choose it for you.</li>
 <li><strong>Ownership gets recorded as a person.</strong> A person is a valid answer to "who made this" and a poor answer to "who owns this", because people move. A team or a role survives the individual, and reassignment is a normal operation rather than an archaeology exercise.</li>
 <li><strong>The register is written once.</strong> It is accurate on the day it is created and decays from then on, in both directions. Credentials appear in systems without being recorded, and records persist for credentials that were deleted. Neither drift announces itself.</li>
 </ul>
@@ -63,7 +63,7 @@
 <li><strong>Purpose and scope.</strong> Answers "what does this reach". A credential whose scope nobody recorded cannot be assessed, only guessed at.</li>
 <li><strong>Rotation interval, and the date it was last rotated.</strong> Answers "how long has this value been exposed". Both halves: an interval with no last-rotated date is an intention.</li>
 <li><strong>Retirement condition.</strong> Answers "when does this stop". Recorded at issue, when someone still knows, not at review time when nobody does.</li>
-<li><strong>Revocation route.</strong> Answers "how do we turn it off in the next ten minutes". Recorded and tested, because an untested route is a plan.</li>
+<li><strong><a href="../../glossary/index.html#revocation">Revocation</a> route.</strong> Answers "how do we turn it off in the next ten minutes". Recorded and tested, because an untested route is a plan.</li>
 <li><strong>Last used.</strong> Answers "is this still doing anything". This is the one fact the register cannot hold on its own; it has to come from the systems.</li>
 </ol>
 <p class="prose meta">The record holds none of these things as a secret value. An inventory that stores credentials is one place worth breaching instead of many, which inverts the reason you built it.</p>
@@ -101,9 +101,9 @@
 
 <h3>When the credential can be an identity instead</h3>
 <div class="prose">
-<p>Some of this pile exists because a static shared secret was the only option available. Where the platform can issue a workload identity, much of the lifecycle problem changes shape: there is nothing long-lived to rotate, and the question becomes whether the issuing infrastructure is sound.</p>
+<p>Some of this pile exists because a static shared secret was the only option available. Where the platform can issue a <a href="../../glossary/index.html#workload-identity">workload identity</a>, much of the lifecycle problem changes shape: there is nothing long-lived to rotate, and the question becomes whether the issuing infrastructure is sound.</p>
 <p>SPIFFE is one concrete form. A <a href="../../glossary/index.html#spiffe-id">SPIFFE ID</a> is "an RFC 3986 compliant URI comprising a 'trust domain name' and an associated path", written <code>spiffe://trust-domain/path</code>, and carried in an X.509 certificate as a URI entry in the Subject Alternative Name extension. The specification is careful that there is "no centralized authority for regulation or registration of trust domain names", so the trust domain means what your infrastructure makes it mean, and nothing more.</p>
-<p>The same move is available inside OAuth without changing platforms. RFC 9700 section 2.5 recommends asymmetric client authentication, mutual TLS or a signed JWT, over a client secret, and gives the reason plainly: with those methods "authorization servers do not need to store sensitive symmetric keys, making these methods more robust against leakage of keys". That is module 3's lesson applied to the credential your service uses to get a token, rather than to the requests it signs afterwards.</p>
+<p>The same move is available inside OAuth without changing platforms. RFC 9700 section 2.5 recommends asymmetric client authentication, <a href="../../glossary/index.html#mtls">mutual TLS</a> or a signed <a href="../../glossary/index.html#jwt">JWT</a>, over a client secret, and gives the reason plainly: with those methods "authorization servers do not need to store sensitive symmetric keys, making these methods more robust against leakage of keys". That is module 3's lesson applied to the credential your service uses to get a token, rather than to the requests it signs afterwards.</p>
 </div>
 
 <h2>4. Defaults and when to change them</h2>
@@ -151,7 +151,7 @@
 <pre><code>Windows              macOS and Linux
 py -3 labs/credential_inventory_lab.py    python3 labs/credential_inventory_lab.py</code></pre>
 <div class="prose">
-<p>There is no <code>python3</code> command on a default Windows install, so use <code>py -3</code> there. The register in the file is metadata for eight fictional credentials and holds no secret value, which is the first rule it is demonstrating.</p>
+<p>On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>. The register in the file is metadata for eight fictional credentials and holds no secret value, which is the first rule it is demonstrating.</p>
 </div>
 <pre><code>$ python3 labs/credential_inventory_lab.py
 register date: 2026-09-30; metadata only, no secret value is stored
@@ -348,12 +348,12 @@ all lab checks passed</code></pre>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
 <p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
 <ul class="controls">
-<li><span class="label std">Standard</span>Treat the active life of a credential as a cryptoperiod, "the time span during which a specific key is authorized for use or in which the keys for a given system or application may remain in effect". NIST SP 800-57 Part 1 Revision 5.</li>
-<li><span class="label std">Standard</span>Carry the lifecycle through to an end state. A key reaches the destroyed state when it is destroyed, and "although the key no longer exists, its previous existence may be recorded (e.g., in metadata or audit logs)". NIST SP 800-57 Part 1 Revision 5.</li>
+<li><span class="label std">Standard</span>NIST SP 800-57 Part 1 Revision 5 section 2.1 defines a cryptoperiod as "the time span during which a specific key is authorized for use or in which the keys for a given system or application may remain in effect", and section 5.3 says the risk and consequences of exposure "should be carefully considered when selecting the cryptoperiod". This module treats the active life of a credential as one.</li>
+<li><span class="label std">Standard</span>Carry the lifecycle through to an end state. NIST SP 800-57 Part 1 Revision 5 section 8.3.4 requires that all copies of a private or secret key "shall be destroyed as soon as they are no longer required". Section 2.1 says a key reaches the destroyed state when it is destroyed, and that although the key no longer exists, "its previous existence may be recorded (e.g., in metadata or audit logs)".</li>
 <li><span class="label std">Standard</span>The client credentials grant "MUST only be used by confidential clients", so a credential used with it belongs to a component that can keep a secret. RFC 6749 section 4.4, with section 2.1 on the confidential and public client distinction.</li>
 <li><span class="label std">Standard</span>Prefer asymmetric client authentication. RFC 9700 section 2.5 recommends mutual TLS or a signed JWT over a client secret, because then "authorization servers do not need to store sensitive symmetric keys, making these methods more robust against leakage of keys".</li>
-<li><span class="label std">Standard</span>Where workload identity is available, a SPIFFE ID is "an RFC 3986 compliant URI comprising a 'trust domain name' and an associated path", carried as a URI entry in the certificate's Subject Alternative Name extension, and an X.509 SVID "MUST contain exactly one URI SAN". SPIFFE-ID and X509-SVID specifications.</li>
-<li><span class="label std">Standard</span>Do not read more into a trust domain than it carries. The SPIFFE-ID specification states there is "no centralized authority for regulation or registration of trust domain names".</li>
+<li><span class="label std">Standard</span>Where workload identity is available, a SPIFFE ID is "an RFC 3986 compliant URI comprising a 'trust domain name' and an associated path", carried as a URI entry in the certificate's Subject Alternative Name extension, and an X.509 SVID "MUST contain exactly one URI SAN". SPIFFE-ID specification section 2 and X509-SVID specification section 2.</li>
+<li><span class="label std">Standard</span>Do not read more into a trust domain than it carries. The SPIFFE-ID specification, section 2.1.1, states there is "no centralized authority for regulation or registration of trust domain names".</li>
 <li><span class="label base">Baseline</span>Every credential record carries six facts: owner as a team, purpose and scope, rotation interval with last-rotated date, retirement condition, revocation route, and last used.</li>
 <li><span class="label base">Baseline</span>The register holds metadata only. Never the secret value.</li>
 <li><span class="label base">Baseline</span>Rotate shared secrets every 90 days and asymmetric signing keys every 365, with the successor published before the cutover, and record a reason for any interval you lengthen.</li>
@@ -381,10 +381,10 @@ all lab checks passed</code></pre>
 
 <h2>Sources</h2>
 <ul class="prose">
-<li><a href="https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-57pt1r5.pdf">NIST SP 800-57 Part 1 Revision 5: Recommendation for Key Management</a>, May 2020. Cryptoperiod definition and the destroyed state.</li>
-<li><a href="https://www.rfc-editor.org/rfc/rfc6749">RFC 6749: The OAuth 2.0 Authorization Framework</a>, October 2012. Sections 2.1 and 4.4.</li>
+<li><a href="https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-57pt1r5.pdf">NIST SP 800-57 Part 1 Revision 5: Recommendation for Key Management</a>, May 2020. Section 2.1 for the cryptoperiod and destroyed state definitions, sections 5.3 and 5.3.6 on choosing a cryptoperiod, and section 8.3.4 on key destruction.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc6749">RFC 6749: The OAuth 2.0 Authorization Framework</a>, October 2012. Sections 2.1 and 4.4. Updated by RFC 8252, RFC 8996 and RFC 9700.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc9700">RFC 9700: Best Current Practice for OAuth 2.0 Security</a>, January 2025. Section 2.5. It recommends asymmetric client authentication and does not set a rotation interval.</li>
-<li><a href="https://github.com/spiffe/spiffe/blob/main/standards/SPIFFE-ID.md">SPIFFE-ID specification</a> and <a href="https://github.com/spiffe/spiffe/blob/main/standards/X509-SVID.md">X509-SVID specification</a>. The X509-SVID specification defines where the SPIFFE ID appears and sets no certificate lifetime.</li>
+<li><a href="https://github.com/spiffe/spiffe/blob/665a28f3253ecdce59f26f3ef29c0d6408b37c3d/standards/SPIFFE-ID.md">SPIFFE-ID specification</a> and <a href="https://github.com/spiffe/spiffe/blob/21896acad5c6b3bcfb24480879151bc222f72596/standards/X509-SVID.md">X509-SVID specification</a>, each at its commit of 1 July 2026. The repository has no release tags, so both links are pinned by commit. The X509-SVID specification defines where the SPIFFE ID appears and sets no certificate lifetime.</li>
 <li><a href="https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/">OWASP Top 10 for Agentic Applications</a>, released 9 December 2025. ASI03, Identity &amp; Privilege Abuse, is one of its ten entries. The announcement linked here carries no year in its headline; the document's own title ends "for 2026".</li>
 </ul>
 </main>

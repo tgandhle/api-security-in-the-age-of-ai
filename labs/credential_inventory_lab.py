@@ -106,6 +106,8 @@ def findings(entry):
         out.append(("Critical", "no owner recorded"))
     elif entry["owner_kind"] == "person":
         out.append(("High", "owned by a person, not a team"))
+    # Only a date that has passed is flagged. A record with no retirement
+    # date at all is not: this lab has no rule for a missing one.
     if entry["retire_by"] and TODAY > entry["retire_by"]:
         out.append(("Critical", "past its retirement date and still live"))
     if entry["revocation"] is None:
