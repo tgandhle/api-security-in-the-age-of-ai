@@ -51,7 +51,10 @@ def looks_right(url):
 
 
 def as_address(host):
-    """Turn a host into an IP address if it is one, in any of its spellings."""
+    """Turn a host into an IP address if it is one.
+
+    Reads dotted, IPv6, or one integer in base 8, 10 or 16.
+    """
     if host is None:
         return None
     host = host.strip("[]")
@@ -93,8 +96,8 @@ def classify(address):
         address = mapped
     if any(address in net for net in DOCUMENTATION):
         return "global"                      # stands in for a public address
-    for name in ("is_loopback", "is_link_local", "is_private", "is_reserved",
-                 "is_multicast", "is_unspecified"):
+    for name in ("is_unspecified", "is_loopback", "is_link_local", "is_reserved",
+                 "is_private", "is_multicast"):
         if getattr(address, name):
             return name[3:].replace("_", "-")
     return "global"
@@ -218,7 +221,7 @@ def main():
           "the address exists and is internal" if "private" in detail else "nothing")
     # And a URL inside that response starts the whole thing again.
     next_url = "https://169.254.169.254/latest/meta-data/iam/"
-    check("a URL in that response, fetched without checks",
+    check("a URL in that response, given the same checks",
           "reject: address literal, link-local", validate(next_url))
 
     failures = [r for r in RESULTS if r[2] != r[1]]

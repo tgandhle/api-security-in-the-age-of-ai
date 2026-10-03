@@ -25,8 +25,8 @@
 <h2>1. The attack</h2>
 <div class="prose">
 <p>Running example: ExampleAir lets a partner supply a URL for their logo, and fetches it. Company names are fictional. <code>169.254.169.254</code> is a link-local address, the one instance metadata services conventionally answer on, and it is the address in most published SSRF write-ups for a reason: it is reachable from inside and it hands out credentials.</p>
-<p>OWASP states the class in one sentence, as <strong>API7:2023 Server Side Request Forgery</strong>: "SSRF flaws occur when an API is fetching a remote resource without validating the user-supplied URL."</p>
-<p>The interesting part is not that validation is missing. It is that the validation people write first does not work, and looks like it does. A check that the partner's hostname appears in the URL passes for all three of these:</p>
+<p>OWASP states the class in one sentence, as <strong>API7:2023 Server Side Request Forgery</strong>: "Server-Side Request Forgery (SSRF) flaws occur when an API is fetching a remote resource without validating the user-supplied URL."</p>
+<p>The interesting part is not that validation is missing. It is that the validation people write first does not work, and looks like it does. A check that the partner's hostname appears in the URL passes for the real one and for all three of the others:</p>
 </div>
 <pre><code>https://api.partner.example/v1/logo.png                       the real one
 http://api.partner.example@169.254.169.254/latest/meta-data/  userinfo, before an @
@@ -39,7 +39,7 @@ http://api.partner.example.attacker.example/v1/logo.png       a subdomain prefix
 <tr><td>The name as userinfo before an <code>@</code></td><td class="yes">Fetches the metadata service</td><td class="no">Refused</td></tr>
 <tr><td>The name inside a fragment</td><td class="yes">Fetches the metadata service</td><td class="no">Refused</td></tr>
 <tr><td>The name as a subdomain of their own domain</td><td class="yes">Fetches their host</td><td class="no">Refused</td></tr>
-<tr><td>The address in decimal, hex or octal</td><td class="yes">Fetched</td><td class="no">Refused</td></tr>
+<tr><td>The name as userinfo before the address in decimal, hex or octal</td><td class="yes">Fetched</td><td class="no">Refused</td></tr>
 <tr><td>A URL that redirects to an internal address</td><td class="yes">Fetched</td><td class="yes">Fetched, unless the target is checked too</td></tr>
 <tr><td>A name that resolves differently the second time</td><td class="yes">Fetched</td><td class="yes">Fetched, unless you connect to the address you checked</td></tr>
 </tbody></table></div>
@@ -56,13 +56,13 @@ http://api.partner.example.attacker.example/v1/logo.png       a subdomain prefix
 <h3>The redirect, and the second resolution</h3>
 <div class="prose">
 <p>Both remaining rows have the same shape: you validate one thing and connect to another.</p>
-<p>A redirect is the obvious version. The URL you checked returns 302 and the client follows it to an address nobody checked. OWASP's advice is blunt, "disable HTTP redirections", and API10:2023 adds the version for responses you consume: "maintain an allowlist of well-known locations integrated APIs may redirect to: do not blindly follow redirects". If you must follow one, the target is a new URL and gets the whole check again, including the resolution.</p>
+<p>A redirect is the obvious version. The URL you checked returns 302 and the client follows it to an address nobody checked. OWASP's advice is blunt, "disable HTTP redirections", and API10:2023 adds the version for responses you consume: "maintain an allowlist of well-known locations integrated APIs may redirect yours to: do not blindly follow redirects". If you must follow one, the target is a new URL and gets the whole check again, including the resolution.</p>
 <p>The subtler version is the name. You resolved <code>api.partner.example</code>, got a public address, approved it, and handed the name to your HTTP client, which resolved it again. Nothing says the two answers match. The fix is not a better check, it is connecting to the address the check returned rather than to the name it was given.</p>
 </div>
 
 <h3>And then the response</h3>
 <div class="prose">
-<p>OWASP's API10:2023 is about the half of this that happens after the fetch: developers "tend to trust data from third-party APIs more than user input", and apply weaker validation to it. Three of its vulnerability indicators are about exactly this flow: the API "blindly follows redirections", "does not limit the number of resources available to process third-party services responses", and "does not implement timeouts for interactions with third-party services".</p>
+<p>OWASP's API10:2023 is about the half of this that happens after the fetch: developers "tend to trust data received from third-party APIs more than user input", and apply weaker validation to it. Three of its vulnerability indicators are about exactly this flow: the API "blindly follows redirections", "does not limit the number of resources available to process third-party services responses", and "does not implement timeouts for interactions with third-party services".</p>
 <p>So a response you fetched is input. It goes through <a href="../request-and-response-contracts/index.html">module 13</a>'s limits, because it is somebody else's request body arriving at your parser, and any URL inside it is a URL a caller supplied. And the response does not go back to the caller unchanged: "do not send raw responses to clients", because what came back may be a page from a service the caller was never supposed to know exists. That includes your own error text. A rejection that says the address was private has told the caller that the address exists and is internal.</p>
 </div>
 
@@ -193,19 +193,19 @@ Part D: what URL validation does not settle.
 26. the two agree                                        False
 27. the rejection reason, returned to the caller verbatim reject: address literal, private
 28. what the caller learns from it                       the address exists and is internal
-29. a URL in that response, fetched without checks       reject: address literal, link-local
+29. a URL in that response, given the same checks        reject: address literal, link-local
 
 all lab checks passed</code></pre>
 <div class="prose">
-<p>Checks 1 to 7 are the whole argument against string checks, in seven lines. Three URLs contain the partner's hostname, one of them points at the partner, and the check cannot tell them apart because it is not looking at the host, it is looking at the line.</p>
-<p>Checks 12 to 15 are the same address four times. If your defence is a list of bad addresses written the way people write them, it stops the first of these. The normalisation that catches the other three is short, and the comment in it matters: the base is decided by the prefix, because <code>025177524776</code> read as decimal is somewhere else entirely.</p>
+<p>Checks 1 to 7 are the whole argument against string checks, in seven lines. Four URLs contain the partner's hostname, one of them points at the partner, and the check cannot tell them apart because it is not looking at the host, it is looking at the line.</p>
+<p>Checks 12 to 15 are the same address four times. If your defence is a list of bad addresses written the way people write them, it stops none of these. The normalisation that catches all four is short, and the comment in it matters: the base is decided by the prefix, because <code>025177524776</code> read as decimal is somewhere else entirely.</p>
 <p>Checks 19 to 22 are the redirect, and they are a sequence rather than four separate cases. Check 19 is a URL that passes every check in Part B, correctly. Check 20 follows its redirect and fetches the metadata service. Checks 21 and 22 are the two fixes, and the second is the one to use if you cannot use the first.</p>
 <p>Checks 24 to 26 are the case that survives everything above. Validation resolved the name and got a public address. The connection resolved it again and got the metadata service. Both lookups were correct, nothing was bypassed, and the request went somewhere you refused. The fix is in step 6 of the control: connect to the address, not the name.</p>
 <p>Checks 27 and 28 are the smallest finding here and the easiest to ship: a refusal that explains itself. "Address literal, private" is a true statement about the caller's input and a fact about your network they did not have before.</p>
 <p><strong>Try next:</strong></p>
 <ul>
 <li>Add <code>"attacker.example"</code> to <code>ALLOWED_HOSTS</code> and rerun. No check changes: the run exits 0 and prints the same 40 lines, because the allowlist is an exact match and check 11 still prints <code>reject: host not on the allowlist</code>. Which checks print <code>169.254.169.254</code> for a URL whose host is on the allowlist? Those are the reason host allowlisting is not the whole control.</li>
-<li>Change <code>as_address</code> to try bases 10, 16 and 8 in order rather than by prefix. The run exits 1 with one failure: check 14 still rejects, and its reason changes from <code>reject: address literal, link-local</code> to <code>reject: address literal, reserved</code>. It now rejects for the wrong reason: print what the octal form resolves to under that version.</li>
+<li>Change <code>as_address</code> to try bases 10, 16 and 8 in order rather than by prefix, returning the first one <code>ipaddress</code> accepts. The run exits 1 with one failure: check 14 still rejects, and its reason changes from <code>reject: address literal, link-local</code> to <code>reject: address literal, reserved</code>. It now rejects for the wrong reason: print what the octal form resolves to under that version.</li>
 <li>In Part C, change the line <code>resolve = lambda host: public</code> to <code>resolve = lambda host: ipaddress.ip_address("127.0.0.1")</code>. The run exits 1 with five failures: check 19 changes to <code>reject: resolves to loopback</code> and checks 20 to 23 print the same, which shows which step actually refused the request.</li>
 <li>Take a URL fetcher in your own codebase and write down which of the nine control steps it performs. Most perform two.</li>
 </ul>
@@ -337,9 +337,9 @@ all lab checks passed</code></pre>
 <ul class="controls">
 <li><span class="label std">Standard</span>"Server-Side Request Forgery (SSRF) flaws occur when an API is fetching a remote resource without validating the user-supplied URL." OWASP API7:2023.</li>
 <li><span class="label std">Standard</span>"Use a well-tested and maintained URL parser to avoid issues caused by URL parsing inconsistencies." OWASP API7:2023, How To Prevent.</li>
-<li><span class="label std">Standard</span>Maintain allow lists of the remote origins users are expected to download resources from, and of URL schemes and ports. OWASP API7:2023, How To Prevent.</li>
+<li><span class="label std">Standard</span>OWASP API7:2023 recommends, "whenever possible", allow lists of the remote origins users are expected to download resources from, and of URL schemes and ports. How To Prevent.</li>
 <li><span class="label std">Standard</span>"Disable HTTP redirections", and "do not send raw responses to clients". OWASP API7:2023, How To Prevent.</li>
-<li><span class="label std">Standard</span>"Always validate and properly sanitize data received from integrated APIs before using it", and "maintain an allowlist of well-known locations integrated APIs may redirect to: do not blindly follow redirects". OWASP API10:2023, How To Prevent.</li>
+<li><span class="label std">Standard</span>"Always validate and properly sanitize data received from integrated APIs before using it", and "maintain an allowlist of well-known locations integrated APIs may redirect yours to: do not blindly follow redirects". OWASP API10:2023, How To Prevent.</li>
 <li><span class="label std">Standard</span>OWASP API10:2023 lists blindly following redirections, not limiting the resources used to process third-party responses, and not implementing timeouts for third-party interactions among its vulnerability indicators.</li>
 <li><span class="label std">Standard</span>Classify resolved addresses against IANA's special-purpose address registries, restructured by RFC 6890: <code>169.254.0.0/16</code> Link Local (RFC 3927), <code>127.0.0.0/8</code> Loopback (RFC 1122), and <code>10.0.0.0/8</code>, <code>172.16.0.0/12</code> and <code>192.168.0.0/16</code> Private-Use (RFC 1918).</li>
 <li><span class="label base">Baseline</span>Prefer an identifier you resolve to a URL yourself over accepting a URL at all.</li>
