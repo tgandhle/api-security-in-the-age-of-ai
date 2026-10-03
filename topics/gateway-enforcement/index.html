@@ -219,7 +219,7 @@ all lab checks passed</code></pre>
 <ul>
 <li>Set <code>can_set_headers</code> to false on the batch job path and rerun. One Critical disappears. Now decide what would have to be true of your network for that to be a claim you could defend.</li>
 <li>Give <code>svc-booking</code> <code>own_authn=True</code> in <code>SERVICES</code> and rerun Part C. Count how many findings move, and notice which services you have to fix one at a time.</li>
-<li>Add a path from <code>internet</code> to <code>svc-loyalty</code> that skips the gateway. Compare the findings with the same path through it.</li>
+<li>Add a path from <code>internet</code> to <code>svc-loyalty</code> that skips the gateway: put <code>path("internet", "svc-loyalty", False, True, "public")</code> as the last entry of <code>DOCUMENTED</code> and rerun. Part A now prints <code>internet -&gt; svc-loyalty</code> twice, once as <code>gateway</code> and <code>clean</code>, once as <code>direct</code> with <code>1 finding</code>, the Medium. Checks 1, 2, 3 and 16 fail, and Part C never lists the new path. Compare the findings with the same path through it.</li>
 <li>Write the two lists for a system you work on: the services, and every source that can open a connection to each. Then find out which list you could not complete without asking someone.</li>
 </ul>
 </div>
