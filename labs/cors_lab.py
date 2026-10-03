@@ -50,7 +50,8 @@ def section(title):
 
 
 def record(label, expected, actual):
-    """Numbers are assigned here so adding a check cannot renumber the rest."""
+    """Numbers are assigned here in call order. Adding a check renumbers
+    every check after it, and the page cites checks by number."""
     global CHECKS
     CHECKS += 1
     RESULTS.append(("%2d. %s" % (CHECKS, label), expected, actual))
@@ -325,7 +326,7 @@ def preflight_fetch(request_origin, method, headers, credentials_mode,
                     "header %s is not allowed by the preflight" % unsafe)
 
     max_age = get(response_headers, "Access-Control-Max-Age")
-    if max_age is None or not max_age.lstrip("-").isdigit():
+    if max_age is None or not (max_age.isascii() and max_age.isdigit()):
         max_age = MAX_AGE_DEFAULT
     else:
         max_age = int(max_age)
@@ -430,11 +431,11 @@ def main():
            needs_preflight("DELETE", []))
     record("post is normalized, so the safelist sees", "POST",
            normalize_method("post"))
-    record("  and that normalized method skips the preflight", False,
+    record("  and for that normalized method a preflight is", False,
            needs_preflight(normalize_method("post"), form_post))
     record("patch is not in the normalize list, so it stays", "patch",
            normalize_method("patch"))
-    record("  which a server matching on PATCH would not recognise", False,
+    record("  which equals the PATCH a server matches on", False,
            normalize_method("patch") == "PATCH")
 
     # The attack the standard's own note describes.
@@ -446,7 +447,7 @@ def main():
            needs_preflight("POST", doubled))
     forgiving = forgiving_unsafe_names(doubled)
     record("the same request under a forgiving parser", [], forgiving)
-    record("  which would skip the preflight", False,
+    record("  under which a preflight is", False,
            needs_preflight("POST", doubled, unsafe_names=forgiving))
     record("  a server reading the first content type sees",
            "application/json", naive_content_type(doubled))
@@ -483,7 +484,7 @@ def main():
            sum(len(v) for _, v in eight))
     record("  exactly 1024 is not over 1024, so unsafe names", [],
            unsafe_request_header_names(eight))
-    record("  and a GET still skips the preflight", False,
+    record("  and for a GET a preflight is", False,
            needs_preflight("GET", eight))
 
     nine = eight + [("Accept", "k" * 128)]
@@ -582,11 +583,8 @@ def main():
     record("allow-methods is * and credentials are included",
            "network error", outcome)
     record("  the same response without credentials", "ok",
-           preflight_fetch(app, "PATCH", [("Content-Type", "application/json")],
-                           "omit", 204,
-                           [("Access-Control-Allow-Origin", "*"),
-                            ("Access-Control-Allow-Methods", "*"),
-                            ("Access-Control-Allow-Headers", "*")])[0])
+           preflight_fetch(app, "PATCH", bearer, "omit", 204,
+                           star_methods)[0])
 
     capped = named_headers + [("Access-Control-Max-Age", "86400")]
     record("a max age of 86400 is clamped to the imposed limit", 600,
