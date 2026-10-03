@@ -98,7 +98,7 @@ def main():
     check("the same traffic expressed as a rate", "6000 per minute",
           "%d per minute" % ((before + after) * 60 // 2))
     check("the 101st request inside one window", "refused",
-          "refused" if not FixedWindow().allow(0, cost=101) else "allowed")
+          "refused" if send(FixedWindow(), [0] * 101) == 100 else "allowed")
 
     print()
     print("Part B: a sliding window over the last 60 seconds.")
