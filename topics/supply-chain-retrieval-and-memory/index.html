@@ -26,7 +26,7 @@
 <div class="prose">
 <p>Running example: one vector index shared by three carriers, ExampleAir, ExampleRail and ExampleBus. Company names are fictional. All three have a refund policy document, and the documents are similar, because refund policies are similar.</p>
 <p>OWASP covers this as <strong>LLM08:2025 Vector and Embedding Weaknesses</strong>, and the sentence that describes the deployment is short: "In multi-tenant environments where multiple classes of users or applications share the same vector database, there's a risk of context leakage between users or queries."</p>
-<p>Three attacks, which are the three the lab runs.</p>
+<p>Four attacks, and the lab runs all four.</p>
 </div>
 <div class="wrap"><table>
 <thead><tr><th>Attack</th><th>What it needs</th><th>What it gets</th></tr></thead>
@@ -36,28 +36,28 @@
 <tr><td>Put a document in the index</td><td>Any route that writes to the corpus</td><td class="yes">First place in the ranking, inside the victim's own tenant</td></tr>
 <tr><td>Have a claim written to memory</td><td>One retrieval that the agent summarised</td><td class="yes">A fact with no source attached that survives the document's deletion</td></tr>
 </tbody></table></div>
-<p class="prose">The last row is the one that lasts. OWASP's agentic list puts it in six words: "Memory poisoning reshaped behaviour long after the initial interaction."</p>
+<p class="prose">The last row is the one that lasts. OWASP's announcement of its agentic list puts it in one sentence: "Memory poisoning reshaped behaviour long after the initial interaction."</p>
 
 <h2>2. Why it works</h2>
 <h3>Filtering after you rank is not filtering</h3>
 <div class="prose">
 <p>There are two places to apply a tenant filter and they are not equivalent. Rank the whole corpus and then drop what the caller may not see, or restrict the corpus and then rank what is left.</p>
-<p>Checks 3 to 11 of the lab run both. Unfiltered, the top three for ExampleAir's own query are their refund policy, ExampleBus's, and ExampleRail's. Post-filtering that result leaves one document. The caller asked for three and received one, and the two that were removed are gone from the response with no record of what they were.</p>
+<p>Checks 3 to 11 of the lab run both. Unfiltered, the top three for ExampleAir's own query are their refund policy, ExampleBus's refund policy, and ExampleRail's refund desk document. Post-filtering that result leaves one document. The caller asked for three and received one, and the two that were removed are gone from the response with no record of what they were.</p>
 <p>Pre-filtering returns three ExampleAir documents, two of which the post-filtered version never showed at all, because other tenants' documents had taken their places in the ranking. So post-filtering is worse in two directions at once: it leaks the existence of other tenants' content through the missing slots, and it withholds the caller's own documents by letting other tenants outrank them.</p>
 <p>OWASP's mitigation names the shape directly: "Implement fine-grained access controls and permission-aware vector and embedding stores". Permission-aware means the store knows, not the code that reads the store's output.</p>
 </div>
 
 <h3>A count is an answer</h3>
 <div class="prose">
-<p>Part B is the quieter version of the same bug. The caller runs a query built from terms that only appear in another tenant's documents. They get no results, which is correct. The interface also tells them there were three matches, which is not.</p>
+<p>Part B is the quieter version of the same bug. The caller runs a query built almost entirely from terms that appear only in other tenants' documents. No document they may read matches it, which is correct. The interface also tells them there were three matches, which is not.</p>
 <p>Checks 12 to 17 separate those two numbers. Three matches across the index, zero that this caller may read, and a query matching nothing anywhere also returns zero. If the caller can tell the first case from the third, they have a membership oracle: a way to confirm that a document containing given terms exists, without ever reading one.</p>
 <p>This generalises past counts. Anything computed before the filter and surfaced after it is the same bug: a total, a facet count, a "did you mean", a latency difference. The rule is that the filter goes first and everything downstream is computed from what survived it.</p>
 </div>
 
 <h3>Ranking hygiene is not a security control</h3>
 <div class="prose">
-<p>Part C puts a document in the index that was written to win, not to be read: the query's terms, repeated. It takes first place, above the real policy, with a raw cosine score of 0.62 against 0.53.</p>
-<p>The obvious fix is the information-retrieval one. Damp repeated terms, so a word appearing ten times counts for less than ten times once. Check 25 is the result: the scores move to 0.59 against 0.53, and check 24 says the stuffed document is still first. I expected it to drop and it does not, because that document is made entirely of query terms, so damping the repetition narrows the margin without changing the order.</p>
+<p>Part C puts a document in the index that was written to win, not to be read: terms from the query and from the real policy, repeated. It takes first place, above the real policy, with a raw cosine score of 0.62 against 0.53.</p>
+<p>The obvious fix is the information-retrieval one. Damp repeated terms, so a word appearing ten times counts for less than ten times once. Check 25 is the result: the scores move to 0.59 against 0.53, and check 24 says the stuffed document is still first. I expected it to drop and it does not, because that document has only eight distinct terms and four of them are query terms, so damping the repetition narrows the margin without changing the order.</p>
 <p>That is the useful finding in this module. Ranking adjustments are a quality measure, and an attacker who can write to your index will beat them, because they can see the ranking and iterate. Check 28 adds that tenant isolation did not help either: the stuffed document was uploaded into ExampleAir's own tenant, so pre-filtering keeps it.</p>
 <p>What works is checks 29 and 30: rank only documents of internal origin, and the real policy is first again. The control is about where a document came from, which is <strong>LLM04:2025 Data and Model Poisoning</strong>: "The risks are particularly high with external data sources, which may contain unverified or malicious content", with the mitigations starting at tracking data origins and verifying legitimacy.</p>
 </div>
@@ -224,15 +224,15 @@ all lab checks passed</code></pre>
 <div class="prose">
 <p>Checks 5 to 11 are the module's first point, and the thing to notice is that post-filtering fails in both directions at once. The caller receives one document instead of three, which tells them something was removed, and two of their own documents never appeared because other tenants' content outranked them. Pre-filtering fixes both, because the documents the caller may not read were never candidates.</p>
 <p>Checks 12 to 17 are worth running against your own search. Three matches in the index, zero readable, and a nonsense query also returning zero. If your interface shows a total, a facet count or a suggestion computed before the filter, those two cases look different to a caller who is allowed to ask.</p>
-<p>Checks 22 to 26 are where I was wrong and the lab corrected me. I expected damping repeated terms to drop the stuffed document below the real policy. It does not: the margin narrows from 0.08 to 0.06 and the order is unchanged, because that document is made entirely of query terms. Checks 29 and 30 show what does work, and it is not a ranking change: restrict the corpus to documents of internal origin and the real policy is first again.</p>
+<p>Checks 22 to 26 are where I was wrong and the lab corrected me. I expected damping repeated terms to drop the stuffed document below the real policy. It does not: the margin narrows from 0.08 to 0.06 (0.081 to 0.055 before rounding; the two-decimal scores above subtract to 0.09 and 0.06) and the order is unchanged, because that document has only eight distinct terms and four of them are query terms. Checks 29 and 30 show what does work, and it is not a ranking change: restrict the corpus to documents of internal origin and the real policy is first again.</p>
 <p>Check 28 is the one to take to a design discussion about tenant isolation. The stuffed document was uploaded into ExampleAir's own tenant, so pre-filtering keeps it. Isolation answers "whose documents can I see" and says nothing about "who wrote the ones I can".</p>
 <p>Checks 38 to 40 close it. The poisoned document is deleted and its claim is still in memory with no source attached. The store that kept provenance still holds the claim too, and still will not use it.</p>
 <p><strong>Try next:</strong></p>
 <ul>
 <li>Change <code>filter_then_search</code> to search the whole corpus and rerun. Four checks fail, and they are the ones that make the index multi-tenant.</li>
-<li>Add a second stuffed document and tune it against the damped ranking. Time how long it takes to beat.</li>
-<li>Give <code>Memory.usable</code> a <code>trusted_origins</code> that includes <code>vendor</code>. Decide whether your vendor's documents should inform a decision.</li>
-<li>Add an origin your organisation actually has, such as a scraped public page, and work out which of the five parts changes.</li>
+<li>Add a second stuffed document to <code>poisoned</code> and tune it against the damped ranking. The run exits 1 as soon as it is there, because the lab's counts and rankings no longer match: 14 checks fail when its text is the query itself. Checks 23 to 25 are the ones to watch. Time how long it takes to beat.</li>
+<li>Change the default <code>trusted_origins</code> in <code>Memory.usable</code> to include <code>vendor</code>. Nothing changes, because neither memory was written from a vendor document. Add a third write, from <code>A3</code>, and the run exits 1: five checks fail (31, 32, 33, 34, 36), and check 32 goes from <code>1</code> to <code>2</code>. Then decide whether your vendor's documents should inform a decision.</li>
+<li>Add a document with an origin your organisation actually has, such as a scraped public page, and work out which of the five parts changes. The run exits 1, and the checks it lists are the answer.</li>
 <li>For a retrieval system you run: find where the permission filter is applied. If it is applied to the result, you have this module's finding.</li>
 </ul>
 </div>
@@ -240,7 +240,7 @@ all lab checks passed</code></pre>
 <h2>8. Check your understanding</h2>
 <details><summary>Your retrieval fetches the top ten and then removes documents the caller may not read. What is wrong with that?</summary><p>Two things. The caller sees fewer results than they asked for, which tells them documents exist that were removed, and their own relevant documents never appear because other tenants' content occupied the ranking. Restricting the corpus before ranking fixes both, because documents the caller may not read were never candidates.</p></details>
 <details><summary>A caller runs a query and gets no results, but the interface says "3 matches". What have they learned?</summary><p>That three documents containing those terms exist somewhere in the index. That is a membership oracle, and it works from a query they were allowed to run. Every number in the response has to be computed after the filter, including totals, facet counts and suggestions.</p></details>
-<details><summary>Someone uploads a document stuffed with your query terms and it ranks first. Is better ranking the answer?</summary><p>No. The lab damps repeated terms and the stuffed document stays first, because it is made entirely of query terms, so the margin narrows and the order does not change. Ranking adjustments are a quality measure and an attacker who can write to your index will iterate against them. The control is origin: restrict decision-bearing retrieval to documents whose provenance you trust.</p></details>
+<details><summary>Someone uploads a document stuffed with your query terms and it ranks first. Is better ranking the answer?</summary><p>No. The lab damps repeated terms and the stuffed document stays first, because it has only eight distinct terms and four of them are query terms, so the margin narrows and the order does not change. Ranking adjustments are a quality measure and an attacker who can write to your index will iterate against them. The control is origin: restrict decision-bearing retrieval to documents whose provenance you trust.</p></details>
 <details><summary>You remove a poisoned document from the index. Is the problem over?</summary><p>Not if an agent read it first. A claim written to memory survives the document's deletion, and if the write recorded no origin there is nothing linking the two, so you cannot even find what to remove. Record source and origin on every memory write, and make document withdrawal trigger a memory sweep.</p></details>
 
 <section class="course-quiz" data-quiz data-quiz-id="supply-chain-retrieval-and-memory-check" data-correct-feedback="Correct. Documents the caller may not read were never candidates, so nothing is withheld and nothing is disclosed by what is missing." data-incorrect-feedback="Not quite. Ranking first and filtering after returns fewer results than requested, which discloses that documents were removed, and lets other tenants' documents push the caller's own out of the ranking.">
@@ -367,14 +367,14 @@ all lab checks passed</code></pre>
 <li><span class="label std">Standard</span>"In multi-tenant environments where multiple classes of users or applications share the same vector database, there's a risk of context leakage between users or queries." OWASP LLM08:2025 Vector and Embedding Weaknesses.</li>
 <li><span class="label std">Standard</span>"Implement fine-grained access controls and permission-aware vector and embedding stores." OWASP LLM08:2025.</li>
 <li><span class="label std">Standard</span>"Implement robust data validation pipelines for knowledge sources." OWASP LLM08:2025.</li>
-<li><span class="label std">Standard</span>"Tag and classify data within the knowledge base to control access levels." OWASP LLM08:2025.</li>
+<li><span class="label std">Standard</span>"Tag and classify data within the knowledge base to control access levels and prevent data mismatch errors." OWASP LLM08:2025.</li>
 <li><span class="label std">Standard</span>"Maintain detailed immutable logs of retrieval activities to detect and respond promptly to suspicious behavior." OWASP LLM08:2025.</li>
 <li><span class="label std">Standard</span>"Attackers can exploit vulnerabilities to invert embeddings and recover significant amounts of source information, compromising data confidentiality." OWASP LLM08:2025.</li>
 <li><span class="label std">Standard</span>"Data poisoning occurs when pre-training, fine-tuning, or embedding data is manipulated to introduce vulnerabilities, backdoors, or biases." OWASP LLM04:2025 Data and Model Poisoning.</li>
 <li><span class="label std">Standard</span>"The risks are particularly high with external data sources, which may contain unverified or malicious content." OWASP LLM04:2025.</li>
-<li><span class="label std">Standard</span>LLM04:2025's mitigations begin with tracking data origins and verifying legitimacy, vetting data vendors and validating outputs against trusted sources, sandboxing to limit exposure to unverified sources, and data version control to detect manipulation.</li>
-<li><span class="label std">Standard</span>"Memory poisoning reshaped behaviour long after the initial interaction." OWASP Top 10 for Agentic Applications, ASI06 Memory &amp; Context Poisoning.</li>
-<li><span class="label std">Standard</span>"Dynamic MCP and A2A ecosystems revealed how easily runtime components could be poisoned." OWASP Top 10 for Agentic Applications, ASI04 Agentic Supply Chain Vulnerabilities.</li>
+<li><span class="label std">Standard</span>LLM04:2025's mitigations include tracking data origins and verifying legitimacy, vetting data vendors and validating outputs against trusted sources, sandboxing to limit exposure to unverified sources, and data version control to detect manipulation.</li>
+<li><span class="label std">Standard</span>"Memory poisoning reshaped behaviour long after the initial interaction." OWASP's announcement of the Top 10 for Agentic Applications for 2026, describing ASI06 Memory &amp; Context Poisoning.</li>
+<li><span class="label std">Standard</span>"Dynamic MCP and A2A ecosystems revealed how easily runtime components could be poisoned." OWASP's announcement of the Top 10 for Agentic Applications for 2026, describing ASI04 Agentic Supply Chain Vulnerabilities.</li>
 <li><span class="label base">Baseline</span>Apply the permission filter to the corpus before ranking, never to the result afterwards.</li>
 <li><span class="label base">Baseline</span>Compute every number in a retrieval response after the filter, including totals, facets and suggestions.</li>
 <li><span class="label base">Baseline</span>Record an origin on every document at ingestion, and treat ingestion as the last point where it is knowable.</li>
@@ -404,9 +404,9 @@ all lab checks passed</code></pre>
 
 <h2>Sources</h2>
 <ul class="prose">
-<li><a href="https://genai.owasp.org/llmrisk/llm082025-vector-and-embedding-weaknesses/">OWASP LLM08:2025 Vector and Embedding Weaknesses</a>, from the OWASP Top 10 for LLM Applications 2025, released 12 March 2025. Multi-tenant context leakage, embedding inversion, and the four mitigations quoted above.</li>
-<li><a href="https://genai.owasp.org/llmrisk/llm042025-data-and-model-poisoning/">OWASP LLM04:2025 Data and Model Poisoning</a>. The definition, the warning about external data sources, and the mitigations beginning with tracking data origins.</li>
-<li><a href="https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/">OWASP Top 10 for Agentic Applications</a>, released 9 December 2025. ASI04 Agentic Supply Chain Vulnerabilities and ASI06 Memory &amp; Context Poisoning.</li>
+<li><a href="https://genai.owasp.org/llmrisk/llm082025-vector-and-embedding-weaknesses/">OWASP LLM08:2025 Vector and Embedding Weaknesses</a>, from the OWASP Top 10 for LLM Applications 2025, dated 17 November 2024 on the OWASP resource page. Multi-tenant context leakage, embedding inversion, and the four mitigations quoted above.</li>
+<li><a href="https://genai.owasp.org/llmrisk/llm042025-data-and-model-poisoning/">OWASP LLM04:2025 Data and Model Poisoning</a>, from the same 2025 list. The definition, the warning about external data sources, and the mitigations beginning with tracking data origins.</li>
+<li><a href="https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/">OWASP Top 10 for Agentic Applications for 2026</a>, released 9 December 2025. ASI04 Agentic Supply Chain Vulnerabilities and ASI06 Memory &amp; Context Poisoning. The two sentences quoted on this page are from <a href="https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/">OWASP's announcement of the list</a>, published the same day.</li>
 </ul>
 </main>
 <footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>

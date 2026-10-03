@@ -173,10 +173,11 @@ def main():
     check("  tenants those three belong to",
           "['exampleair', 'examplebus', 'examplerail']",
           str(sorted({by_id(DOCS, d)[1] for d in top})))
-    post = search_then_filter(QUERY, DOCS, "exampleair", k=3)
+    asked = 3
+    post = search_then_filter(QUERY, DOCS, "exampleair", k=asked)
     check("rank first, then drop what the caller may not see", "['A1']",
           str(post))
-    check("  results the caller asked for", "3", "3")
+    check("  results the caller asked for", "3", str(asked))
     check("  results they got", "1", str(len(post)))
     pre = filter_then_search(QUERY, DOCS, "exampleair", k=3)
     check("filter first, then rank", "['A1', 'A2', 'A3']", str(pre))
@@ -272,7 +273,7 @@ def main():
           str(len([i for i in without.items
                    if i["claim"] == "Refunds require a refund desk visit."])))
     check("  and with provenance, still unusable", "1",
-          str(len(with_prov.usable())))
+          str(len(with_prov.items) - len(with_prov.usable())))
 
     print()
     print("Part E: who can put a document in the index.")
