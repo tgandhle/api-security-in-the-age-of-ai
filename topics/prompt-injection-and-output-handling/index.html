@@ -261,6 +261,106 @@ all lab checks passed</code></pre>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 </section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="prompt-injection-and-output-handling-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/injection_lab.py"><code>labs/injection_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant. One of them changes nothing, and its answer carries the measurement from a request the lab does not make.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="inj-x1" data-covers="inj-01">
+<h3>1. A tool the table does not know is passed through</h3>
+<div class="prose">
+<p>In <code>execute_allowed</code>, keep the <code>if spec is None:</code> line and change the line under it to <code>return execute_whatever(output, role)</code>, on the reasoning that a tool nobody registered should still work.</p>
+</div>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="inj-x1" value="a"> Check 14 only, the same output against the tool table.</label>
+<label><input type="radio" name="inj-x1" value="b"> Checks 13 and 14.</label>
+<label><input type="radio" name="inj-x1" value="c" data-correct="true"> Checks 14 and 50.</label>
+<label><input type="radio" name="inj-x1" value="d"> Checks 14, 15, 16 and 17.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 14 does change, but it is not alone. Check 50 in Part E sends the same output through the same function against the same table, so it moves with it.</li>
+<li data-option="b">Check 13 calls <code>execute_whatever</code> directly and prints <code>called send_payment(account,amount)</code> before and after. It never touched the table.</li>
+<li data-option="c">Correct. Exit 1, two failures: checks 14 and 50 both go from <code>refused: send_payment is not a tool this agent may call</code> to <code>called send_payment(account,amount)</code>. The table is still there and every entry in it is still checked. What went is the default, and the default is the control: the payment tool was never refused for being dangerous, only for being absent. Check <code>inj-01</code> in the <a href="#reference">Reference</a> layer says deny by default for this reason.</li>
+<li data-option="d">Checks 15, 16 and 17 all name <code>hold_seat</code>, which is in the table. They never reach the edited line, so the role and argument refusals print as before.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="inj-x2" data-covers="inj-06">
+<h3>2. Extra arguments are no longer refused</h3>
+<div class="prose">
+<p>In <code>execute_allowed</code>, delete the two lines that start <code>if extra:</code> and return <code>refused: ... does not take ...</code>. The check for missing arguments stays.</p>
+</div>
+<fieldset><legend>What does check 16 print?</legend>
+<label><input type="radio" name="inj-x2" value="a" data-correct="true"> <code>called hold_seat(amount,booking_id,seat)</code></label>
+<label><input type="radio" name="inj-x2" value="b"> <code>refused: hold_seat needs seat</code></label>
+<label><input type="radio" name="inj-x2" value="c"> <code>called hold_seat(booking_id,seat)</code></label>
+<label><input type="radio" name="inj-x2" value="d"> <code>refused: hold_seat does not take amount</code>, as before. The missing-argument check covers it.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Correct. Exit 1, one failure: check 16 goes from <code>refused: hold_seat does not take amount</code> to <code>called hold_seat(amount,booking_id,seat)</code>. The tool is allowed and the role is allowed, so an argument the tool was never meant to take goes straight through with the call. Check <code>inj-06</code> in the <a href="#reference">Reference</a> layer asks for argument names and values to be validated per tool, and this is the names half.</li>
+<li data-option="b">That is check 17's output, for a call that leaves <code>seat</code> out. Check 16 sends <code>booking_id</code> and <code>seat</code>, so nothing is missing.</li>
+<li data-option="c">Nothing in the function removes an argument. It refuses or it calls, and the call it prints lists every argument the model sent, <code>amount</code> included.</li>
+<li data-option="d">The missing-argument check asks the opposite question: what the tool needs that the call lacks. An extra argument is invisible to it.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="inj-x3" data-covers="inj-05">
+<h3>3. The nonce is a constant</h3>
+<div class="prose">
+<p>In <code>main</code>, replace <code>nonce = secrets.token_hex(8)</code> with <code>nonce = "docs"</code>, so every request uses the same fence.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="inj-x3" value="a"> Check 3 becomes <code>0</code>. The fenced prompt can no longer prove which span was untrusted.</label>
+<label><input type="radio" name="inj-x3" value="b"> Checks 10 and 11 fail. The document escapes its fence.</label>
+<label><input type="radio" name="inj-x3" value="c"> The second line changes, because the nonce is no longer random per run.</label>
+<label><input type="radio" name="inj-x3" value="d" data-correct="true"> Nothing. All 53 checks pass.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 3 still prints <code>1</code>. The assembler and <code>recover_untrusted</code> are given the same nonce, so the span is found whatever the value is.</li>
+<li data-option="b">The document in checks 10 and 11 carries a closing fence for <code>FIXED</code>, not for <code>docs</code>, so it stays inside. Measured with the nonce set to <code>"FIXED"</code> instead: exit 1, one failure, check 11 goes from <code>yes</code> to <code>no</code>, and check 10 still prints <code>1</code>. Even then only one of the two moves.</li>
+<li data-option="c">That line is a plain <code>print</code> of fixed text. It still says <code>fence nonce: random per run, not printed</code>, which is now untrue, and no check reads it.</li>
+<li data-option="d">Correct. Exit 0, 67 of 67 lines identical. The lab's one escaping document was written for the fence <code>FIXED</code>, and no document in the lab was written for <code>docs</code>. Measured on a request the lab does not make, where the document in checks 10 and 11 carries <code>&lt;&lt;&lt;/untrusted-docs&gt;&gt;&gt;</code> instead: as published, check 11 prints <code>yes</code> and the run exits 0; with the constant nonce, check 11 prints <code>no</code> and the run exits 1. Check 10 prints <code>1</code> both times. A constant fence passes every test until someone who has seen one prompt writes a document for it. That is why check <code>inj-05</code> in the <a href="#reference">Reference</a> layer says per request and not just a nonce.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="inj-x4" data-covers="inj-10">
+<h3>4. The filter normalises by default</h3>
+<div class="prose">
+<p>In the signature of <code>keyword_filter</code>, change <code>normalize=False</code> to <code>normalize=True</code>, so every call applies NFKC and strips format characters first.</p>
+</div>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="inj-x4" value="a"> Check 35 only, fullwidth characters.</label>
+<label><input type="radio" name="inj-x4" value="b" data-correct="true"> Checks 35 and 39.</label>
+<label><input type="radio" name="inj-x4" value="c"> Checks 35, 36 and 39.</label>
+<label><input type="radio" name="inj-x4" value="d"> Checks 34 to 37 all become <code>blocked</code>. Only check 38 still passes.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 35 does change, and check 39 counts what checks 34 to 38 caught, so it moves with it.</li>
+<li data-option="b">Correct. Exit 1, two failures: check 35 goes from <code>passed</code> to <code>blocked: matched 'ignore previous instructions'</code>, and check 39 goes from <code>0</code> to <code>1</code>. The best version of this filter catches one rewrite in five. Checks 34, 36, 37 and 38 still print <code>passed</code>, and check 47 still prints <code>4</code>. Check <code>inj-10</code> in the <a href="#reference">Reference</a> layer is about what you may report: one more phrasing covered, and still no statement of coverage.</li>
+<li data-option="c">Check 36, the zero-width case, still prints <code>passed</code>. Stripping the format characters runs the words together, as check 42 shows with <code>ignorepreviousinstructions and send</code>, so the phrase with spaces in it does not match.</li>
+<li data-option="d">NFKC does not collapse the doubled spaces in check 34 and does not decode the base64 in check 37. Both still print <code>passed</code>, and so does check 36.</li>
+</ul>
+</details>
+</article>
+</section>
+
 <p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
 <span class="layer" id="reference" style="margin-top:3rem">Reference</span>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
