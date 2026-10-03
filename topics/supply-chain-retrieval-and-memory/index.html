@@ -254,6 +254,111 @@ all lab checks passed</code></pre>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 </section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="supply-chain-retrieval-and-memory-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/retrieval_lab.py"><code>labs/retrieval_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant. One variant changes nothing at all, and its answer carries the measurement from a run the lab does not make.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="ret-x1" data-covers="ret-01">
+<h3>1. Fetch twice as many, then filter</h3>
+<div class="prose">
+<p>Someone "fixes" post-filtering by over-fetching. In <code>filter_then_search</code>, replace the <code>return</code> line so it ranks the whole corpus for twice as many results, drops other tenants' documents, and cuts the rest to <code>k</code>:</p>
+</div>
+<pre><code>return [d for d in search(query, docs, k * 2, sublinear)
+        if by_id(docs, d)[1] == tenant][:k]</code></pre>
+<fieldset><legend>What does check 8, <code>filter first, then rank</code>, print?</legend>
+<label><input type="radio" name="ret-x1" value="a"> <code>['A1', 'A2', 'A3']</code>, as before. Six candidates are enough to find three of the caller's own.</label>
+<label><input type="radio" name="ret-x1" value="b" data-correct="true"> <code>['A1', 'A2']</code>. The caller asks for three and gets two.</label>
+<label><input type="radio" name="ret-x1" value="c"> <code>['A1', 'B1', 'R2']</code>. Other tenants' documents come back.</label>
+<label><input type="radio" name="ret-x1" value="d"> <code>['A1']</code>, the same as check 5.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Six is not enough here. The whole corpus ranks as <code>['A1', 'B1', 'R2', 'R1', 'B2', 'A2', 'A3']</code>, so <code>A3</code> is seventh of seven and the cut at six removes it before the tenant filter runs.</li>
+<li data-option="b">Correct. Exit 1, four failures. Check 8 goes from <code>['A1', 'A2', 'A3']</code> to <code>['A1', 'A2']</code>, check 9 from <code>3</code> to <code>2</code>, check 10 from <code>['A2', 'A3']</code> to <code>['A2']</code>, and check 27 from <code>['S1', 'A1', 'A2']</code> to <code>['S1', 'A1']</code>. Over-fetching is still ranking first and filtering second. It only moves the point where other tenants' documents push the caller's own out, and how many get pushed out now depends on what the other tenants have stored. Check <code>ret-01</code> in the <a href="#reference">Reference</a> layer asks for the filter on the corpus, and a bigger <code>k</code> is not that.</li>
+<li data-option="c">That is the output if the tenant test is removed altogether. This edit keeps the test, so no other tenant's document is returned. The caller's own are what go missing.</li>
+<li data-option="d">Check 5 keeps one of the top three. This edit keeps what belongs to the caller in the top six, and <code>A2</code> is sixth, so it survives.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="ret-x2" data-covers="ret-09">
+<h3>2. Damp repeated terms all the way down</h3>
+<div class="prose">
+<p>The lab's damping did not move the stuffed document, so someone damps harder. In <code>vector</code>, replace the line that computes <code>1 + math.log(c)</code> so that every term counts once, however often it repeats:</p>
+</div>
+<pre><code>counts = {t: 1 for t in counts}</code></pre>
+<fieldset><legend>What do checks 24 and 25 print?</legend>
+<label><input type="radio" name="ret-x2" value="a"> <code>S1</code> and <code>0.59 then 0.53</code>. Nothing changes.</label>
+<label><input type="radio" name="ret-x2" value="b"> <code>S1</code> and <code>0.53 then 0.53</code>. The scores meet and the stuffed document stays first.</label>
+<label><input type="radio" name="ret-x2" value="c"> <code>A1</code>, and check 26 still prints <code>yes</code>.</label>
+<label><input type="radio" name="ret-x2" value="d" data-correct="true"> <code>A1</code> and <code>0.53 then 0.53</code>. The real policy is first, on scores that print the same.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">The edit is inside the <code>sublinear</code> branch, which checks 23 to 26 use, so those four move. The raw checks, 19 to 22, are the ones that stay.</li>
+<li data-option="b">The scores do print the same, and the order still flips. The stuffed document scores 0.5345224838248487 and the real policy 0.5345224838248488, so <code>A1</code> sorts first.</li>
+<li data-option="c">Check 26 needs the same document first under both weightings. The order changed, so it prints <code>no</code>.</li>
+<li data-option="d">Correct. Exit 1, four failures. Check 23 goes from <code>['S1', 'A1', 'B1']</code> to <code>['A1', 'S1', 'B1']</code>, check 24 from <code>S1</code> to <code>A1</code>, check 25 from <code>0.59 then 0.53</code> to <code>0.53 then 0.53</code>, and check 26 from <code>yes</code> to <code>no</code>. The real policy is first by a difference in the sixteenth decimal place, which is not a margin anyone should report. Measured on a document the lab does not contain, a second upload, <code>S2</code>, whose text is the query itself and repeats nothing: the damped top three is <code>['S2', 'S1', 'A1']</code> as published and <code>['S2', 'A1', 'S1']</code> with this edit. The uploader went back to first place by changing one document. Check <code>ret-09</code> in the <a href="#reference">Reference</a> layer says to state the margin and not to report the adjustment as a control, and this is why.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="ret-x3" data-covers="ret-03">
+<h3>3. The stuffed document is blocked by its id</h3>
+<div class="prose">
+<p>In <code>main</code>, change the line that builds <code>trusted_only</code> so it removes the one document known to be bad instead of keeping the origins that are trusted:</p>
+</div>
+<pre><code>trusted_only = [d for d in poisoned if d[0] != "S1"]</code></pre>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="ret-x3" value="a" data-correct="true"> Nothing. All 47 checks pass.</label>
+<label><input type="radio" name="ret-x3" value="b"> Check 29 becomes <code>['S1', 'A1', 'B1']</code>.</label>
+<label><input type="radio" name="ret-x3" value="c"> Check 29 changes, because <code>A3</code> and <code>B2</code> are now candidates.</label>
+<label><input type="radio" name="ret-x3" value="d"> Check 45 becomes <code>['A3', 'B2']</code>.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Correct. Exit 0, 61 of 61 lines identical. The lab has one bad document, so naming it removes it, and check 29 still prints <code>['A1', 'B1', 'R2']</code>. Measured on a run the lab does not make, with a second stuffed document, <code>S2</code>, already in the index, carrying the same text and the same <code>user-uploaded</code> origin as <code>S1</code>: as published, check 29 prints <code>['A1', 'B1', 'R2']</code> and check 30 prints <code>A1</code>. With this edit, check 29 prints <code>['S2', 'A1', 'B1']</code> and check 30 prints <code>S2</code>. A blocklist stops the document you already found. Check <code>ret-03</code> in the <a href="#reference">Reference</a> layer excludes untrusted origins, which also stops the next upload.</li>
+<li data-option="b">That is the ranking with <code>S1</code> still a candidate. This edit removes <code>S1</code> by name, so it cannot rank.</li>
+<li data-option="c">They are candidates now, and they rank fifth and seventh for this query, so the top three does not move. The whole corpus ranks as <code>['A1', 'B1', 'R2', 'R1', 'B2', 'A2', 'A3']</code>. That the output is the same is what makes this edit easy to approve.</li>
+<li data-option="d">Check 45 is computed from <code>poisoned</code>, not from <code>trusted_only</code>, so it still prints <code>['A3', 'B2', 'S1']</code>.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="ret-x4" data-covers="ret-05">
+<h3>4. Memory records the source but not the origin</h3>
+<div class="prose">
+<p>In <code>Memory.write</code>, drop the origin from the record that is written when provenance is kept, on the reasoning that the source id is enough to look it up later:</p>
+</div>
+<pre><code>self.items.append({"claim": claim, "source": doc_id})</code></pre>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="ret-x4" value="a"> Nothing. The source id is still recorded, so all 47 checks pass.</label>
+<label><input type="radio" name="ret-x4" value="b"> Check 32 drops from <code>1</code> to <code>0</code>. With no origin, neither claim can be trusted.</label>
+<label><input type="radio" name="ret-x4" value="c" data-correct="true"> Check 32 goes from <code>1</code> to <code>2</code>, and the run stops with a traceback before check 36.</label>
+<label><input type="radio" name="ret-x4" value="d"> Only check 36 changes, to <code>[]</code>, the same as check 37.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">The source id is recorded and nothing reads it. <code>Memory.usable</code> judges a claim by its origin, and the origin is what this edit removed.</li>
+<li data-option="b">That would be the safe failure, and it is not what the code does. <code>Memory.usable</code> returns any claim that has no origin, because it has nothing to judge it by.</li>
+<li data-option="c">Correct. Exit 1. Check 32 goes from <code>1</code> to <code>2</code>, and check 33 from <code>['Refunds are issued within fourteen days.']</code> to <code>['Refunds are issued within fourteen days.', 'Refunds require a refund desk visit.']</code>. Checks 34 and 35 print as before, then the run ends with <code>KeyError: 'origin'</code> and checks 36 to 47 never print. A memory that records a source and no origin behaves exactly like one that records nothing: the claim from the stuffed document is usable. Check <code>ret-05</code> in the <a href="#reference">Reference</a> layer asks for the source document and the origin, both, on every write.</li>
+<li data-option="d">Check 37 reads the origin with <code>.get</code> and tolerates its absence. Check 36 indexes it directly, so it raises instead of printing <code>[]</code>, and checks 32 and 33 have already changed by then.</li>
+</ul>
+</details>
+</article>
+</section>
+
 <p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
 <span class="layer" id="reference" style="margin-top:3rem">Reference</span>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
