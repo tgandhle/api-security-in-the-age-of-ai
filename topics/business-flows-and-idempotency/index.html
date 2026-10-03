@@ -35,7 +35,7 @@
 <tr><td>A lost response and an honest retry</td><td class="yes">Two credits</td><td class="no">One credit</td><td class="yes">Two credits</td></tr>
 <tr><td>A retry arriving before the first finishes</td><td class="yes">Two credits</td><td class="no">409, then one credit</td><td class="yes">Two credits</td></tr>
 <tr><td>The same key reused with a different amount</td><td class="yes">Both applied</td><td class="no">422</td><td class="yes">Both applied</td></tr>
-<tr><td>One caller replaying another caller's key</td><td class="yes">Applied</td><td class="no">Blocked, if keys are scoped per caller</td><td class="yes">Applied</td></tr>
+<tr><td>One caller replaying another caller's key</td><td class="yes">Applied</td><td class="no">Treated as unrelated, if keys are scoped per caller</td><td class="yes">Applied</td></tr>
 <tr><td>The same request after the key is purged</td><td class="yes">Two credits</td><td class="yes">Two credits</td><td class="yes">Two credits</td></tr>
 <tr><td>Five hundred distinct, permitted requests</td><td class="yes">Five hundred credits</td><td class="yes">Five hundred credits</td><td class="no">Refused past the limit</td></tr>
 <tr><td>The same flow through a different endpoint</td><td class="yes">Works</td><td class="yes">Works</td><td class="yes">Works, unless the limit is on the flow</td></tr>
@@ -199,7 +199,8 @@ Part D: the problem idempotency does not address.
 all lab checks passed</code></pre>
 <div class="prose">
 <p>Checks 1 to 4 are the honest failure. Nobody attacked anything: a response was lost, a client retried the way clients are supposed to, and a customer has ten thousand miles that were never earned.</p>
-<p>Checks 9 to 13 are the same two requests through two implementations, and the difference is one line. With the key reserved before the work, the second request is refused with 409 and one credit is applied. With the key recorded on completion, both requests look up the key, both find nothing, and both apply. That is the window, and it is narrow enough that it will not show up in testing and wide enough that it will show up in production.</p>
+<p>The lab marks a replay with <code>replayed:</code> so you can see it in the output. A real API returns the stored response unchanged, which is what the first test in section 6 asks for.</p>
+<p>Checks 9 to 13 are the same two requests through two implementations, and the difference is one statement. With the key reserved before the work, the second request is refused with 409 and one credit is applied. With the key recorded on completion, both requests look up the key, both find nothing, and both apply. That is the window, and it is narrow enough that it will not show up in testing and wide enough that it will show up in production.</p>
 <p>Checks 16 to 20 are the scoping question with the damage made explicit. Under a global key namespace, <code>acct-91</code> presents a key <code>acct-77</code> already used, receives a response describing a credit that was applied to somebody else's account, and its own credit never happens at all. The API returned 200 and the money went nowhere.</p>
 <p>Checks 21 to 23 are the retention boundary. The same key replays inside the window and is a brand new operation one second outside it, so the retention period is the real answer to "for how long is a retry safe".</p>
 <p>Part D is the whole reason this module has two halves. Five hundred requests, five hundred distinct keys, not one duplicate execution, and five million miles issued. Every control in Parts B and C worked exactly as designed.</p>

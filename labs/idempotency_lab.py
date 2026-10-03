@@ -137,7 +137,7 @@ def main():
     print("Part C: the four details that decide whether the key works.")
 
     # 1. When the key is recorded. Two requests, interleaved explicitly:
-    #    A begins, B begins before A commits, then both try to commit.
+    #    A begins, B begins before A commits, then each one told to carry on commits.
     ledger = Ledger()
     a_early = ledger.begin("acct-77", 10000, "key-b")
     b_early = ledger.begin("acct-77", 10000, "key-b")
@@ -204,8 +204,12 @@ def main():
     check("500 distinct requests, each one idempotent", "500 credits",
           "%d credits" % len(ledger.credits))
     check("balance", "5004200", str(ledger.balances["acct-77"]))
+    # Credits applied, less the keys that hold a credit. Anything left over
+    # is a key whose operation ran more than once.
+    credited_keys = [e for e in ledger.keys.values()
+                     if str(e["response"]).startswith("credited")]
     check("how many of those were duplicate executions", "0",
-          str(500 - len(set(k for k in ledger.keys))))
+          str(len(ledger.credits) - len(credited_keys)))
 
     failures = [r for r in RESULTS if r[2] != r[1]]
     print()
