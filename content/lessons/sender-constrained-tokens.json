@@ -248,11 +248,20 @@
       "html": "\n\n<section class=\"course-quiz\" data-quiz data-quiz-id=\"sender-constrained-tokens-check\" data-correct-feedback=\"Correct. Binding converts token theft into key theft. That is a real improvement, because a key can stay in a keystore while a token is sent on every request, but the attacker who has both is unaffected.\" data-incorrect-feedback=\"Not quite. Binding stops a stolen token being used on its own, and the proof's htu and jti checks stop endpoint reuse and replay. The case it does not address is the attacker who holds the key as well.\">\n<p class=\"kicker\">Quick check</p>\n<h2>What does binding not stop?</h2>\n<fieldset><legend>Your access tokens are sender-constrained with DPoP. Which attack still succeeds?</legend>\n<label><input type=\"radio\" name=\"bind\" value=\"replay\"> An attacker replays a proof captured from an earlier request.</label>\n<label><input type=\"radio\" name=\"bind\" value=\"key\" data-correct=\"true\"> An attacker who extracted the client's private key along with the token.</label>\n<label><input type=\"radio\" name=\"bind\" value=\"endpoint\"> An attacker uses a proof from a read endpoint on a transfer endpoint.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button><p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n</section>"
     },
     {
+      "tag": "section",
+      "attrs": {
+        "class": "course-quiz course-exercises",
+        "data-exercises": null,
+        "data-exercises-id": "sender-constrained-tokens-exercises"
+      },
+      "html": "\n<section class=\"course-quiz course-exercises\" data-exercises data-exercises-id=\"sender-constrained-tokens-exercises\">\n<p class=\"kicker\">Exercises</p>\n<h2>Change one thing and predict the output</h2>\n<div class=\"prose\">\n<p>Each exercise edits one place in <a href=\"../../labs/bound_tokens_lab.py\"><code>labs/bound_tokens_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant, and where a variant changes nothing the answer carries the measurement from a request the lab does not make.</p>\n</div>\n\n<article class=\"exercise\" data-exercise data-exercise-id=\"bind-x1\" data-covers=\"bind-02\">\n<h3>1. The proof key is never compared with the token</h3>\n<div class=\"prose\">\n<p>In <code>_check_dpop</code>, delete the two lines that compare the proof key's thumbprint with the <code>jkt</code> in the token's <code>cnf</code> claim. Everything else, including the proof signature check, stays.</p>\n</div>\n<fieldset><legend>Which check changes?</legend>\n<label><input type=\"radio\" name=\"bind-x1\" value=\"a\"> Check 4, the stolen token with no proof at all.</label>\n<label><input type=\"radio\" name=\"bind-x1\" value=\"b\" data-correct=\"true\"> Check 5, the stolen token with the attacker's own key.</label>\n<label><input type=\"radio\" name=\"bind-x1\" value=\"c\"> Check 6, the stolen token with the captured proof.</label>\n<label><input type=\"radio\" name=\"bind-x1\" value=\"d\"> Nothing. The proof signature check already covers it.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 4 sends no proof, so it is refused by the first line of the function, which this edit leaves alone.</li>\n<li data-option=\"b\">Correct. Exit 1, one failure: check 5 goes from <code>reject: proof key not bound to token</code> to <code>accept</code>. This is the whole of DPoP collapsing into theatre. The attacker generates a key, signs a perfectly valid proof with it, and the server accepts, because nothing ever asked whether that key is the one the token was issued against. Check <code>bind-02</code> in the <a href=\"#reference\">Reference</a> layer is this one comparison.</li>\n<li data-option=\"c\">Check 6 replays a captured proof, and the <code>jti</code> record catches it before the thumbprint would have.</li>\n<li data-option=\"d\">It does not. The signature check proves the proof was signed by the key in its own header, which the attacker chose. The two checks answer different questions, and only one of them is about the token.</li>\n</ul>\n</details>\n</article>\n\n<article class=\"exercise\" data-exercise data-exercise-id=\"bind-x2\" data-covers=\"bind-04\">\n<h3>2. The ath claim is not checked</h3>\n<div class=\"prose\">\n<p>In <code>_check_dpop</code>, delete the two lines that compare the proof's <code>ath</code> claim with the hash of the access token being presented.</p>\n</div>\n<fieldset><legend>Which check changes?</legend>\n<label><input type=\"radio\" name=\"bind-x2\" value=\"a\"> Check 7, the proof made for a different method.</label>\n<label><input type=\"radio\" name=\"bind-x2\" value=\"b\"> Check 11, the real client's next request.</label>\n<label><input type=\"radio\" name=\"bind-x2\" value=\"c\" data-correct=\"true\"> Check 10, the proof not bound to this access token.</label>\n<label><input type=\"radio\" name=\"bind-x2\" value=\"d\"> Nothing. The thumbprint comparison already ties the proof to the token.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 7 is caught by the <code>htm</code> comparison, which is a separate line.</li>\n<li data-option=\"b\">Check 11 is a correct request and accepts either way. Removing a check never breaks the happy path, which is the reason this class of change gets merged.</li>\n<li data-option=\"c\">Correct. Exit 1, one failure: check 10 goes from <code>reject: ath mismatch</code> to <code>accept</code>. A proof with no <code>ath</code> is valid for any token bound to the same key, so one leaked proof can be paired with a different access token held by the same client. Check <code>bind-04</code> in the <a href=\"#reference\">Reference</a> layer asks for proofs bound to the request and the token, and <code>ath</code> is the second half of that.</li>\n<li data-option=\"d\">It ties the proof to a key, not to a token. One key can hold several tokens, and <code>ath</code> is what says which one this proof is for.</li>\n</ul>\n</details>\n</article>\n\n<article class=\"exercise\" data-exercise data-exercise-id=\"bind-x3\" data-covers=\"bind-03\">\n<h3>3. The proof jti is recorded before the proof is verified</h3>\n<div class=\"prose\">\n<p>In <code>_check_dpop</code>, move the <code>jti</code> lookup and the line that records it above the proof signature check, so a <code>jti</code> is recorded before anything about the proof is known to be valid.</p>\n</div>\n<fieldset><legend>What does the run print differently?</legend>\n<label><input type=\"radio\" name=\"bind-x3\" value=\"a\"> Check 6, the captured proof, becomes <code>accept</code>.</label>\n<label><input type=\"radio\" name=\"bind-x3\" value=\"b\"> Check 3 becomes <code>reject: proof jti already used</code>.</label>\n<label><input type=\"radio\" name=\"bind-x3\" value=\"c\" data-correct=\"true\"> Nothing. All 16 checks pass.</label>\n<label><input type=\"radio\" name=\"bind-x3\" value=\"d\"> Checks 3, 11 and 15 all fail.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 6 still rejects on the <code>jti</code>. That record was made by check 3, which succeeded, so it exists under either order.</li>\n<li data-option=\"b\">Only if the record is added without the lookup that precedes it. Moving the pair together keeps check 3 working, and getting that distinction right is the exercise.</li>\n<li data-option=\"c\">Correct. Exit 0, 27 of 27 lines identical. Every proof in the lab is either valid or fails on something the <code>jti</code> record does not depend on, so the order never shows. Measured on a request the lab does not make, where an attacker sends an invalid proof carrying a <code>jti</code> the real client is about to use: as published the attacker's proof is refused and the client's next request is accepted; with the record moved first, the attacker's proof is still refused and the client's request then answers <code>reject: proof jti already used</code>. Anyone who can send one invalid proof can lock out a legitimate request, which is why check <code>bind-03</code> in the <a href=\"#reference\">Reference</a> layer is about where the record is written as well as that it exists.</li>\n<li data-option=\"d\">That is what happens if the record is added on every call without the lookup in front of it, which is a different edit and a self-inflicted collision.</li>\n</ul>\n</details>\n</article>\n\n<article class=\"exercise\" data-exercise data-exercise-id=\"bind-x4\" data-covers=\"bind-01\">\n<h3>4. A missing client certificate means nothing to enforce</h3>\n<div class=\"prose\">\n<p>In <code>_check_mtls</code>, return <code>accept</code> when no client certificate was presented, on the reasoning that there is nothing to compare against.</p>\n</div>\n<fieldset><legend>Which check changes?</legend>\n<label><input type=\"radio\" name=\"bind-x4\" value=\"a\"> Check 12, the real client with its certificate.</label>\n<label><input type=\"radio\" name=\"bind-x4\" value=\"b\" data-correct=\"true\"> Check 13, the stolen token with no client certificate.</label>\n<label><input type=\"radio\" name=\"bind-x4\" value=\"c\"> Check 14, the stolen token with the attacker's certificate.</label>\n<label><input type=\"radio\" name=\"bind-x4\" value=\"d\"> Checks 13 and 14 both.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 12 presents the right certificate and accepts either way.</li>\n<li data-option=\"b\">Correct. Exit 1, one failure: check 13 goes from <code>reject: no client certificate</code> to <code>accept</code>, and the bound token is now a bearer token again for anyone who omits the certificate. This is the downgrade named in check <code>bind-01</code> in the <a href=\"#reference\">Reference</a> layer, and it is worth noticing how reasonable the code reads: there genuinely is nothing to compare. The absence is the finding.</li>\n<li data-option=\"c\">Check 14 presents a certificate, so it reaches the comparison and still fails it.</li>\n<li data-option=\"d\">Only check 13 moves. Check 14 never gets to the early return.</li>\n</ul>\n</details>\n</article>\n</section>"
+    },
+    {
       "tag": "p",
       "attrs": {
         "class": "course-next"
       },
-      "html": "\n<p class=\"course-next\"><strong>Course progress:</strong> return to the <a href=\"../../index.html#course\">course dashboard</a> to see your published-module progress.</p>"
+      "html": "\n\n<p class=\"course-next\"><strong>Course progress:</strong> return to the <a href=\"../../index.html#course\">course dashboard</a> to see your published-module progress.</p>"
     },
     {
       "tag": "span",
@@ -375,7 +384,12 @@
     {
       "heading": "What does binding not stop?",
       "heading_text": "What does binding not stop?",
-      "html": "<fieldset><legend>Your access tokens are sender-constrained with DPoP. Which attack still succeeds?</legend>\n<label><input type=\"radio\" name=\"bind\" value=\"replay\"> An attacker replays a proof captured from an earlier request.</label>\n<label><input type=\"radio\" name=\"bind\" value=\"key\" data-correct=\"true\"> An attacker who extracted the client's private key along with the token.</label>\n<label><input type=\"radio\" name=\"bind\" value=\"endpoint\"> An attacker uses a proof from a read endpoint on a transfer endpoint.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button><p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n</section>\n<p class=\"course-next\"><strong>Course progress:</strong> return to the <a href=\"../../index.html#course\">course dashboard</a> to see your published-module progress.</p>"
+      "html": "<fieldset><legend>Your access tokens are sender-constrained with DPoP. Which attack still succeeds?</legend>\n<label><input type=\"radio\" name=\"bind\" value=\"replay\"> An attacker replays a proof captured from an earlier request.</label>\n<label><input type=\"radio\" name=\"bind\" value=\"key\" data-correct=\"true\"> An attacker who extracted the client's private key along with the token.</label>\n<label><input type=\"radio\" name=\"bind\" value=\"endpoint\"> An attacker uses a proof from a read endpoint on a transfer endpoint.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button><p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n</section>\n<section class=\"course-quiz course-exercises\" data-exercises data-exercises-id=\"sender-constrained-tokens-exercises\">\n<p class=\"kicker\">Exercises</p>"
+    },
+    {
+      "heading": "Change one thing and predict the output",
+      "heading_text": "Change one thing and predict the output",
+      "html": "<div class=\"prose\">\n<p>Each exercise edits one place in <a href=\"../../labs/bound_tokens_lab.py\"><code>labs/bound_tokens_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant, and where a variant changes nothing the answer carries the measurement from a request the lab does not make.</p>\n</div>\n\n<article class=\"exercise\" data-exercise data-exercise-id=\"bind-x1\" data-covers=\"bind-02\">\n<h3>1. The proof key is never compared with the token</h3>\n<div class=\"prose\">\n<p>In <code>_check_dpop</code>, delete the two lines that compare the proof key's thumbprint with the <code>jkt</code> in the token's <code>cnf</code> claim. Everything else, including the proof signature check, stays.</p>\n</div>\n<fieldset><legend>Which check changes?</legend>\n<label><input type=\"radio\" name=\"bind-x1\" value=\"a\"> Check 4, the stolen token with no proof at all.</label>\n<label><input type=\"radio\" name=\"bind-x1\" value=\"b\" data-correct=\"true\"> Check 5, the stolen token with the attacker's own key.</label>\n<label><input type=\"radio\" name=\"bind-x1\" value=\"c\"> Check 6, the stolen token with the captured proof.</label>\n<label><input type=\"radio\" name=\"bind-x1\" value=\"d\"> Nothing. The proof signature check already covers it.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 4 sends no proof, so it is refused by the first line of the function, which this edit leaves alone.</li>\n<li data-option=\"b\">Correct. Exit 1, one failure: check 5 goes from <code>reject: proof key not bound to token</code> to <code>accept</code>. This is the whole of DPoP collapsing into theatre. The attacker generates a key, signs a perfectly valid proof with it, and the server accepts, because nothing ever asked whether that key is the one the token was issued against. Check <code>bind-02</code> in the <a href=\"#reference\">Reference</a> layer is this one comparison.</li>\n<li data-option=\"c\">Check 6 replays a captured proof, and the <code>jti</code> record catches it before the thumbprint would have.</li>\n<li data-option=\"d\">It does not. The signature check proves the proof was signed by the key in its own header, which the attacker chose. The two checks answer different questions, and only one of them is about the token.</li>\n</ul>\n</details>\n</article>\n\n<article class=\"exercise\" data-exercise data-exercise-id=\"bind-x2\" data-covers=\"bind-04\">\n<h3>2. The ath claim is not checked</h3>\n<div class=\"prose\">\n<p>In <code>_check_dpop</code>, delete the two lines that compare the proof's <code>ath</code> claim with the hash of the access token being presented.</p>\n</div>\n<fieldset><legend>Which check changes?</legend>\n<label><input type=\"radio\" name=\"bind-x2\" value=\"a\"> Check 7, the proof made for a different method.</label>\n<label><input type=\"radio\" name=\"bind-x2\" value=\"b\"> Check 11, the real client's next request.</label>\n<label><input type=\"radio\" name=\"bind-x2\" value=\"c\" data-correct=\"true\"> Check 10, the proof not bound to this access token.</label>\n<label><input type=\"radio\" name=\"bind-x2\" value=\"d\"> Nothing. The thumbprint comparison already ties the proof to the token.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 7 is caught by the <code>htm</code> comparison, which is a separate line.</li>\n<li data-option=\"b\">Check 11 is a correct request and accepts either way. Removing a check never breaks the happy path, which is the reason this class of change gets merged.</li>\n<li data-option=\"c\">Correct. Exit 1, one failure: check 10 goes from <code>reject: ath mismatch</code> to <code>accept</code>. A proof with no <code>ath</code> is valid for any token bound to the same key, so one leaked proof can be paired with a different access token held by the same client. Check <code>bind-04</code> in the <a href=\"#reference\">Reference</a> layer asks for proofs bound to the request and the token, and <code>ath</code> is the second half of that.</li>\n<li data-option=\"d\">It ties the proof to a key, not to a token. One key can hold several tokens, and <code>ath</code> is what says which one this proof is for.</li>\n</ul>\n</details>\n</article>\n\n<article class=\"exercise\" data-exercise data-exercise-id=\"bind-x3\" data-covers=\"bind-03\">\n<h3>3. The proof jti is recorded before the proof is verified</h3>\n<div class=\"prose\">\n<p>In <code>_check_dpop</code>, move the <code>jti</code> lookup and the line that records it above the proof signature check, so a <code>jti</code> is recorded before anything about the proof is known to be valid.</p>\n</div>\n<fieldset><legend>What does the run print differently?</legend>\n<label><input type=\"radio\" name=\"bind-x3\" value=\"a\"> Check 6, the captured proof, becomes <code>accept</code>.</label>\n<label><input type=\"radio\" name=\"bind-x3\" value=\"b\"> Check 3 becomes <code>reject: proof jti already used</code>.</label>\n<label><input type=\"radio\" name=\"bind-x3\" value=\"c\" data-correct=\"true\"> Nothing. All 16 checks pass.</label>\n<label><input type=\"radio\" name=\"bind-x3\" value=\"d\"> Checks 3, 11 and 15 all fail.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 6 still rejects on the <code>jti</code>. That record was made by check 3, which succeeded, so it exists under either order.</li>\n<li data-option=\"b\">Only if the record is added without the lookup that precedes it. Moving the pair together keeps check 3 working, and getting that distinction right is the exercise.</li>\n<li data-option=\"c\">Correct. Exit 0, 27 of 27 lines identical. Every proof in the lab is either valid or fails on something the <code>jti</code> record does not depend on, so the order never shows. Measured on a request the lab does not make, where an attacker sends an invalid proof carrying a <code>jti</code> the real client is about to use: as published the attacker's proof is refused and the client's next request is accepted; with the record moved first, the attacker's proof is still refused and the client's request then answers <code>reject: proof jti already used</code>. Anyone who can send one invalid proof can lock out a legitimate request, which is why check <code>bind-03</code> in the <a href=\"#reference\">Reference</a> layer is about where the record is written as well as that it exists.</li>\n<li data-option=\"d\">That is what happens if the record is added on every call without the lookup in front of it, which is a different edit and a self-inflicted collision.</li>\n</ul>\n</details>\n</article>\n\n<article class=\"exercise\" data-exercise data-exercise-id=\"bind-x4\" data-covers=\"bind-01\">\n<h3>4. A missing client certificate means nothing to enforce</h3>\n<div class=\"prose\">\n<p>In <code>_check_mtls</code>, return <code>accept</code> when no client certificate was presented, on the reasoning that there is nothing to compare against.</p>\n</div>\n<fieldset><legend>Which check changes?</legend>\n<label><input type=\"radio\" name=\"bind-x4\" value=\"a\"> Check 12, the real client with its certificate.</label>\n<label><input type=\"radio\" name=\"bind-x4\" value=\"b\" data-correct=\"true\"> Check 13, the stolen token with no client certificate.</label>\n<label><input type=\"radio\" name=\"bind-x4\" value=\"c\"> Check 14, the stolen token with the attacker's certificate.</label>\n<label><input type=\"radio\" name=\"bind-x4\" value=\"d\"> Checks 13 and 14 both.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 12 presents the right certificate and accepts either way.</li>\n<li data-option=\"b\">Correct. Exit 1, one failure: check 13 goes from <code>reject: no client certificate</code> to <code>accept</code>, and the bound token is now a bearer token again for anyone who omits the certificate. This is the downgrade named in check <code>bind-01</code> in the <a href=\"#reference\">Reference</a> layer, and it is worth noticing how reasonable the code reads: there genuinely is nothing to compare. The absence is the finding.</li>\n<li data-option=\"c\">Check 14 presents a certificate, so it reaches the comparison and still fails it.</li>\n<li data-option=\"d\">Only check 13 moves. Check 14 never gets to the early return.</li>\n</ul>\n</details>\n</article>\n</section>\n\n<p class=\"course-next\"><strong>Course progress:</strong> return to the <a href=\"../../index.html#course\">course dashboard</a> to see your published-module progress.</p>"
     },
     {
       "heading": "Controls",
@@ -528,6 +542,26 @@
       "summary": "Why does the proof carry a hash of the access token rather than just being signed?",
       "html": "<summary>Why does the proof carry a hash of the access token rather than just being signed?</summary><p>Because a signature only proves the proof came from the key. Without <code>ath</code>, that proof is not attached to any particular token, so an attacker who captures one proof and steals a different token for the same key can pair them. <code>ath</code> is what makes the proof and the token one unit.</p>",
       "class": ""
+    },
+    {
+      "summary": "Every option, and why",
+      "html": "<summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 4 sends no proof, so it is refused by the first line of the function, which this edit leaves alone.</li>\n<li data-option=\"b\">Correct. Exit 1, one failure: check 5 goes from <code>reject: proof key not bound to token</code> to <code>accept</code>. This is the whole of DPoP collapsing into theatre. The attacker generates a key, signs a perfectly valid proof with it, and the server accepts, because nothing ever asked whether that key is the one the token was issued against. Check <code>bind-02</code> in the <a href=\"#reference\">Reference</a> layer is this one comparison.</li>\n<li data-option=\"c\">Check 6 replays a captured proof, and the <code>jti</code> record catches it before the thumbprint would have.</li>\n<li data-option=\"d\">It does not. The signature check proves the proof was signed by the key in its own header, which the attacker chose. The two checks answer different questions, and only one of them is about the token.</li>\n</ul>\n",
+      "class": "exercise-answers"
+    },
+    {
+      "summary": "Every option, and why",
+      "html": "<summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 7 is caught by the <code>htm</code> comparison, which is a separate line.</li>\n<li data-option=\"b\">Check 11 is a correct request and accepts either way. Removing a check never breaks the happy path, which is the reason this class of change gets merged.</li>\n<li data-option=\"c\">Correct. Exit 1, one failure: check 10 goes from <code>reject: ath mismatch</code> to <code>accept</code>. A proof with no <code>ath</code> is valid for any token bound to the same key, so one leaked proof can be paired with a different access token held by the same client. Check <code>bind-04</code> in the <a href=\"#reference\">Reference</a> layer asks for proofs bound to the request and the token, and <code>ath</code> is the second half of that.</li>\n<li data-option=\"d\">It ties the proof to a key, not to a token. One key can hold several tokens, and <code>ath</code> is what says which one this proof is for.</li>\n</ul>\n",
+      "class": "exercise-answers"
+    },
+    {
+      "summary": "Every option, and why",
+      "html": "<summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 6 still rejects on the <code>jti</code>. That record was made by check 3, which succeeded, so it exists under either order.</li>\n<li data-option=\"b\">Only if the record is added without the lookup that precedes it. Moving the pair together keeps check 3 working, and getting that distinction right is the exercise.</li>\n<li data-option=\"c\">Correct. Exit 0, 27 of 27 lines identical. Every proof in the lab is either valid or fails on something the <code>jti</code> record does not depend on, so the order never shows. Measured on a request the lab does not make, where an attacker sends an invalid proof carrying a <code>jti</code> the real client is about to use: as published the attacker's proof is refused and the client's next request is accepted; with the record moved first, the attacker's proof is still refused and the client's request then answers <code>reject: proof jti already used</code>. Anyone who can send one invalid proof can lock out a legitimate request, which is why check <code>bind-03</code> in the <a href=\"#reference\">Reference</a> layer is about where the record is written as well as that it exists.</li>\n<li data-option=\"d\">That is what happens if the record is added on every call without the lookup in front of it, which is a different edit and a self-inflicted collision.</li>\n</ul>\n",
+      "class": "exercise-answers"
+    },
+    {
+      "summary": "Every option, and why",
+      "html": "<summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 12 presents the right certificate and accepts either way.</li>\n<li data-option=\"b\">Correct. Exit 1, one failure: check 13 goes from <code>reject: no client certificate</code> to <code>accept</code>, and the bound token is now a bearer token again for anyone who omits the certificate. This is the downgrade named in check <code>bind-01</code> in the <a href=\"#reference\">Reference</a> layer, and it is worth noticing how reasonable the code reads: there genuinely is nothing to compare. The absence is the finding.</li>\n<li data-option=\"c\">Check 14 presents a certificate, so it reaches the comparison and still fails it.</li>\n<li data-option=\"d\">Only check 13 moves. Check 14 never gets to the early return.</li>\n</ul>\n",
+      "class": "exercise-answers"
     }
   ],
   "quiz": [
@@ -548,5 +582,198 @@
       "html": "<summary>Why does the proof carry a hash of the access token rather than just being signed?</summary><p>Because a signature only proves the proof came from the key. Without <code>ath</code>, that proof is not attached to any particular token, so an attacker who captures one proof and steals a different token for the same key can pair them. <code>ath</code> is what makes the proof and the token one unit.</p>"
     }
   ],
-  "exercises": []
+  "exercises": [
+    {
+      "id": "bind-x1",
+      "covers": "bind-02",
+      "heading": "1. The proof key is never compared with the token",
+      "heading_text": "1. The proof key is never compared with the token",
+      "legend": "Which check changes?",
+      "options": [
+        {
+          "value": "a",
+          "label": "Check 4, the stolen token with no proof at all.",
+          "correct": false
+        },
+        {
+          "value": "b",
+          "label": "Check 5, the stolen token with the attacker's own key.",
+          "correct": true
+        },
+        {
+          "value": "c",
+          "label": "Check 6, the stolen token with the captured proof.",
+          "correct": false
+        },
+        {
+          "value": "d",
+          "label": "Nothing. The proof signature check already covers it.",
+          "correct": false
+        }
+      ],
+      "answers": [
+        {
+          "option": "a",
+          "html": "Check 4 sends no proof, so it is refused by the first line of the function, which this edit leaves alone."
+        },
+        {
+          "option": "b",
+          "html": "Correct. Exit 1, one failure: check 5 goes from <code>reject: proof key not bound to token</code> to <code>accept</code>. This is the whole of DPoP collapsing into theatre. The attacker generates a key, signs a perfectly valid proof with it, and the server accepts, because nothing ever asked whether that key is the one the token was issued against. Check <code>bind-02</code> in the <a href=\"#reference\">Reference</a> layer is this one comparison."
+        },
+        {
+          "option": "c",
+          "html": "Check 6 replays a captured proof, and the <code>jti</code> record catches it before the thumbprint would have."
+        },
+        {
+          "option": "d",
+          "html": "It does not. The signature check proves the proof was signed by the key in its own header, which the attacker chose. The two checks answer different questions, and only one of them is about the token."
+        }
+      ],
+      "html": "\n<h3>1. The proof key is never compared with the token</h3>\n<div class=\"prose\">\n<p>In <code>_check_dpop</code>, delete the two lines that compare the proof key's thumbprint with the <code>jkt</code> in the token's <code>cnf</code> claim. Everything else, including the proof signature check, stays.</p>\n</div>\n<fieldset><legend>Which check changes?</legend>\n<label><input type=\"radio\" name=\"bind-x1\" value=\"a\"> Check 4, the stolen token with no proof at all.</label>\n<label><input type=\"radio\" name=\"bind-x1\" value=\"b\" data-correct=\"true\"> Check 5, the stolen token with the attacker's own key.</label>\n<label><input type=\"radio\" name=\"bind-x1\" value=\"c\"> Check 6, the stolen token with the captured proof.</label>\n<label><input type=\"radio\" name=\"bind-x1\" value=\"d\"> Nothing. The proof signature check already covers it.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 4 sends no proof, so it is refused by the first line of the function, which this edit leaves alone.</li>\n<li data-option=\"b\">Correct. Exit 1, one failure: check 5 goes from <code>reject: proof key not bound to token</code> to <code>accept</code>. This is the whole of DPoP collapsing into theatre. The attacker generates a key, signs a perfectly valid proof with it, and the server accepts, because nothing ever asked whether that key is the one the token was issued against. Check <code>bind-02</code> in the <a href=\"#reference\">Reference</a> layer is this one comparison.</li>\n<li data-option=\"c\">Check 6 replays a captured proof, and the <code>jti</code> record catches it before the thumbprint would have.</li>\n<li data-option=\"d\">It does not. The signature check proves the proof was signed by the key in its own header, which the attacker chose. The two checks answer different questions, and only one of them is about the token.</li>\n</ul>\n</details>\n"
+    },
+    {
+      "id": "bind-x2",
+      "covers": "bind-04",
+      "heading": "2. The ath claim is not checked",
+      "heading_text": "2. The ath claim is not checked",
+      "legend": "Which check changes?",
+      "options": [
+        {
+          "value": "a",
+          "label": "Check 7, the proof made for a different method.",
+          "correct": false
+        },
+        {
+          "value": "b",
+          "label": "Check 11, the real client's next request.",
+          "correct": false
+        },
+        {
+          "value": "c",
+          "label": "Check 10, the proof not bound to this access token.",
+          "correct": true
+        },
+        {
+          "value": "d",
+          "label": "Nothing. The thumbprint comparison already ties the proof to the token.",
+          "correct": false
+        }
+      ],
+      "answers": [
+        {
+          "option": "a",
+          "html": "Check 7 is caught by the <code>htm</code> comparison, which is a separate line."
+        },
+        {
+          "option": "b",
+          "html": "Check 11 is a correct request and accepts either way. Removing a check never breaks the happy path, which is the reason this class of change gets merged."
+        },
+        {
+          "option": "c",
+          "html": "Correct. Exit 1, one failure: check 10 goes from <code>reject: ath mismatch</code> to <code>accept</code>. A proof with no <code>ath</code> is valid for any token bound to the same key, so one leaked proof can be paired with a different access token held by the same client. Check <code>bind-04</code> in the <a href=\"#reference\">Reference</a> layer asks for proofs bound to the request and the token, and <code>ath</code> is the second half of that."
+        },
+        {
+          "option": "d",
+          "html": "It ties the proof to a key, not to a token. One key can hold several tokens, and <code>ath</code> is what says which one this proof is for."
+        }
+      ],
+      "html": "\n<h3>2. The ath claim is not checked</h3>\n<div class=\"prose\">\n<p>In <code>_check_dpop</code>, delete the two lines that compare the proof's <code>ath</code> claim with the hash of the access token being presented.</p>\n</div>\n<fieldset><legend>Which check changes?</legend>\n<label><input type=\"radio\" name=\"bind-x2\" value=\"a\"> Check 7, the proof made for a different method.</label>\n<label><input type=\"radio\" name=\"bind-x2\" value=\"b\"> Check 11, the real client's next request.</label>\n<label><input type=\"radio\" name=\"bind-x2\" value=\"c\" data-correct=\"true\"> Check 10, the proof not bound to this access token.</label>\n<label><input type=\"radio\" name=\"bind-x2\" value=\"d\"> Nothing. The thumbprint comparison already ties the proof to the token.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 7 is caught by the <code>htm</code> comparison, which is a separate line.</li>\n<li data-option=\"b\">Check 11 is a correct request and accepts either way. Removing a check never breaks the happy path, which is the reason this class of change gets merged.</li>\n<li data-option=\"c\">Correct. Exit 1, one failure: check 10 goes from <code>reject: ath mismatch</code> to <code>accept</code>. A proof with no <code>ath</code> is valid for any token bound to the same key, so one leaked proof can be paired with a different access token held by the same client. Check <code>bind-04</code> in the <a href=\"#reference\">Reference</a> layer asks for proofs bound to the request and the token, and <code>ath</code> is the second half of that.</li>\n<li data-option=\"d\">It ties the proof to a key, not to a token. One key can hold several tokens, and <code>ath</code> is what says which one this proof is for.</li>\n</ul>\n</details>\n"
+    },
+    {
+      "id": "bind-x3",
+      "covers": "bind-03",
+      "heading": "3. The proof jti is recorded before the proof is verified",
+      "heading_text": "3. The proof jti is recorded before the proof is verified",
+      "legend": "What does the run print differently?",
+      "options": [
+        {
+          "value": "a",
+          "label": "Check 6, the captured proof, becomes accept.",
+          "correct": false
+        },
+        {
+          "value": "b",
+          "label": "Check 3 becomes reject: proof jti already used.",
+          "correct": false
+        },
+        {
+          "value": "c",
+          "label": "Nothing. All 16 checks pass.",
+          "correct": true
+        },
+        {
+          "value": "d",
+          "label": "Checks 3, 11 and 15 all fail.",
+          "correct": false
+        }
+      ],
+      "answers": [
+        {
+          "option": "a",
+          "html": "Check 6 still rejects on the <code>jti</code>. That record was made by check 3, which succeeded, so it exists under either order."
+        },
+        {
+          "option": "b",
+          "html": "Only if the record is added without the lookup that precedes it. Moving the pair together keeps check 3 working, and getting that distinction right is the exercise."
+        },
+        {
+          "option": "c",
+          "html": "Correct. Exit 0, 27 of 27 lines identical. Every proof in the lab is either valid or fails on something the <code>jti</code> record does not depend on, so the order never shows. Measured on a request the lab does not make, where an attacker sends an invalid proof carrying a <code>jti</code> the real client is about to use: as published the attacker's proof is refused and the client's next request is accepted; with the record moved first, the attacker's proof is still refused and the client's request then answers <code>reject: proof jti already used</code>. Anyone who can send one invalid proof can lock out a legitimate request, which is why check <code>bind-03</code> in the <a href=\"#reference\">Reference</a> layer is about where the record is written as well as that it exists."
+        },
+        {
+          "option": "d",
+          "html": "That is what happens if the record is added on every call without the lookup in front of it, which is a different edit and a self-inflicted collision."
+        }
+      ],
+      "html": "\n<h3>3. The proof jti is recorded before the proof is verified</h3>\n<div class=\"prose\">\n<p>In <code>_check_dpop</code>, move the <code>jti</code> lookup and the line that records it above the proof signature check, so a <code>jti</code> is recorded before anything about the proof is known to be valid.</p>\n</div>\n<fieldset><legend>What does the run print differently?</legend>\n<label><input type=\"radio\" name=\"bind-x3\" value=\"a\"> Check 6, the captured proof, becomes <code>accept</code>.</label>\n<label><input type=\"radio\" name=\"bind-x3\" value=\"b\"> Check 3 becomes <code>reject: proof jti already used</code>.</label>\n<label><input type=\"radio\" name=\"bind-x3\" value=\"c\" data-correct=\"true\"> Nothing. All 16 checks pass.</label>\n<label><input type=\"radio\" name=\"bind-x3\" value=\"d\"> Checks 3, 11 and 15 all fail.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 6 still rejects on the <code>jti</code>. That record was made by check 3, which succeeded, so it exists under either order.</li>\n<li data-option=\"b\">Only if the record is added without the lookup that precedes it. Moving the pair together keeps check 3 working, and getting that distinction right is the exercise.</li>\n<li data-option=\"c\">Correct. Exit 0, 27 of 27 lines identical. Every proof in the lab is either valid or fails on something the <code>jti</code> record does not depend on, so the order never shows. Measured on a request the lab does not make, where an attacker sends an invalid proof carrying a <code>jti</code> the real client is about to use: as published the attacker's proof is refused and the client's next request is accepted; with the record moved first, the attacker's proof is still refused and the client's request then answers <code>reject: proof jti already used</code>. Anyone who can send one invalid proof can lock out a legitimate request, which is why check <code>bind-03</code> in the <a href=\"#reference\">Reference</a> layer is about where the record is written as well as that it exists.</li>\n<li data-option=\"d\">That is what happens if the record is added on every call without the lookup in front of it, which is a different edit and a self-inflicted collision.</li>\n</ul>\n</details>\n"
+    },
+    {
+      "id": "bind-x4",
+      "covers": "bind-01",
+      "heading": "4. A missing client certificate means nothing to enforce",
+      "heading_text": "4. A missing client certificate means nothing to enforce",
+      "legend": "Which check changes?",
+      "options": [
+        {
+          "value": "a",
+          "label": "Check 12, the real client with its certificate.",
+          "correct": false
+        },
+        {
+          "value": "b",
+          "label": "Check 13, the stolen token with no client certificate.",
+          "correct": true
+        },
+        {
+          "value": "c",
+          "label": "Check 14, the stolen token with the attacker's certificate.",
+          "correct": false
+        },
+        {
+          "value": "d",
+          "label": "Checks 13 and 14 both.",
+          "correct": false
+        }
+      ],
+      "answers": [
+        {
+          "option": "a",
+          "html": "Check 12 presents the right certificate and accepts either way."
+        },
+        {
+          "option": "b",
+          "html": "Correct. Exit 1, one failure: check 13 goes from <code>reject: no client certificate</code> to <code>accept</code>, and the bound token is now a bearer token again for anyone who omits the certificate. This is the downgrade named in check <code>bind-01</code> in the <a href=\"#reference\">Reference</a> layer, and it is worth noticing how reasonable the code reads: there genuinely is nothing to compare. The absence is the finding."
+        },
+        {
+          "option": "c",
+          "html": "Check 14 presents a certificate, so it reaches the comparison and still fails it."
+        },
+        {
+          "option": "d",
+          "html": "Only check 13 moves. Check 14 never gets to the early return."
+        }
+      ],
+      "html": "\n<h3>4. A missing client certificate means nothing to enforce</h3>\n<div class=\"prose\">\n<p>In <code>_check_mtls</code>, return <code>accept</code> when no client certificate was presented, on the reasoning that there is nothing to compare against.</p>\n</div>\n<fieldset><legend>Which check changes?</legend>\n<label><input type=\"radio\" name=\"bind-x4\" value=\"a\"> Check 12, the real client with its certificate.</label>\n<label><input type=\"radio\" name=\"bind-x4\" value=\"b\" data-correct=\"true\"> Check 13, the stolen token with no client certificate.</label>\n<label><input type=\"radio\" name=\"bind-x4\" value=\"c\"> Check 14, the stolen token with the attacker's certificate.</label>\n<label><input type=\"radio\" name=\"bind-x4\" value=\"d\"> Checks 13 and 14 both.</label>\n</fieldset>\n<button class=\"button secondary\" type=\"button\" data-check-answer>Check answer</button>\n<p class=\"quiz-feedback\" data-quiz-feedback aria-live=\"polite\"></p>\n<details class=\"exercise-answers\"><summary>Every option, and why</summary>\n<ul>\n<li data-option=\"a\">Check 12 presents the right certificate and accepts either way.</li>\n<li data-option=\"b\">Correct. Exit 1, one failure: check 13 goes from <code>reject: no client certificate</code> to <code>accept</code>, and the bound token is now a bearer token again for anyone who omits the certificate. This is the downgrade named in check <code>bind-01</code> in the <a href=\"#reference\">Reference</a> layer, and it is worth noticing how reasonable the code reads: there genuinely is nothing to compare. The absence is the finding.</li>\n<li data-option=\"c\">Check 14 presents a certificate, so it reaches the comparison and still fails it.</li>\n<li data-option=\"d\">Only check 13 moves. Check 14 never gets to the early return.</li>\n</ul>\n</details>\n"
+    }
+  ]
 }
