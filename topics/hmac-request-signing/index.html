@@ -12,11 +12,11 @@
 <main>
 <p class="kicker">Part 1: Proving who is calling &middot; Module 2</p>
 <h1>HMAC request signing</h1>
-<p class="meta">Last reviewed 2026-09-24 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 
 <div class="prose">
-<p><strong>Objective.</strong> After this module you can explain what an HMAC signature proves and what it doesn't, build a correct canonical string, verify a request in the right order, and say when to use asymmetric signatures instead.</p>
-<p><strong>Before you start.</strong> You should know what a <a href="../../glossary/index.html#hash">hash</a> is and why a <a href="../../glossary/index.html#bearer-credential">bearer credential</a> like an API key is risky. Module 1 covers API keys.</p>
+<p><strong>Objective.</strong> After this module you can explain what an HMAC signature proves and what it doesn't, build a correct canonical string, verify a request in the right order, and say when to use <a href="../../glossary/index.html#asymmetric-signature">asymmetric signatures</a> instead.</p>
+<p><strong>Before you start.</strong> You should know what a <a href="../../glossary/index.html#hash">hash</a> is and why a <a href="../../glossary/index.html#bearer-credential">bearer credential</a> like an <a href="../../glossary/index.html#api-key">API key</a> is risky. Module 1 covers API keys.</p>
 </div>
 <section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 3 of 27</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
 
@@ -36,7 +36,7 @@
 <tr><td>Resend it unchanged 10 seconds later</td><td class="yes">Works</td><td class="yes">Works</td><td class="yes">Works</td><td class="no">Blocked</td></tr>
 <tr><td>Steal the key from the receiver and sign new requests</td><td class="yes">Works</td><td class="yes">Works</td><td class="yes">Works</td><td class="yes">Works</td></tr>
 </tbody></table></div>
-<p class="prose">The last row never turns green. That's the built-in limit of a shared secret, covered in section 5.</p>
+<p class="prose">The last row never turns green. That's the built-in limit of a <a href="../../glossary/index.html#shared-secret">shared secret</a>, covered in section 5.</p>
 
 <h2>2. Why it works</h2>
 <div class="prose">
@@ -69,7 +69,7 @@ bb4cc23e...b7a85c78        SHA-256 of the raw body bytes</code></pre>
 <li>Hash the raw body bytes <em>as received</em>. Never re-serialize parsed JSON, and never trust a hash the caller sent.</li>
 <li>Rebuild the canonical string from the received request, compute the HMAC, and compare with a <a href="../../glossary/index.html#constant-time-comparison">constant-time comparison</a>.</li>
 <li>Only then record the nonce, using an atomic "set if absent". Already present: reject. Recording it after the signature check stops forged requests from filling the cache.</li>
-<li>Pass the request to authorization and business logic. A valid signature says who sent it, not whether they're allowed to do it.</li>
+<li>Pass the request to <a href="../../glossary/index.html#authorization">authorization</a> and business logic. A valid signature says who sent it, not whether they're allowed to do it.</li>
 </ol>
 
 <h3>The whole system</h3>
@@ -129,10 +129,10 @@ bb4cc23e...b7a85c78        SHA-256 of the raw body bytes</code></pre>
 <thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>
 <tbody>
 <tr><td>Algorithm</td><td>HMAC-SHA256</td><td>Your platform or a partner standard mandates another approved hash.</td></tr>
-<tr><td>Key</td><td>32 random bytes per partner, from a secrets manager</td><td>Never shorter. RFC 2104 strongly discourages keys shorter than the hash output.</td></tr>
+<tr><td>Key</td><td>32 random bytes per partner, from a secrets manager</td><td>Never shorter. RFC 2104 section 3 strongly discourages keys shorter than the hash output.</td></tr>
 <tr><td>Time window</td><td>5 minutes either side of server time</td><td>Tighten if clocks are well synchronized and replay is costly. Widen only with a matching nonce TTL.</td></tr>
 <tr><td>Nonce storage</td><td>Shared store, entries expire after the window</td><td>Skip only if every operation is idempotent by design.</td></tr>
-<tr><td>Format</td><td>A documented format both sides test against</td><td>Prefer RFC 9421 over a custom header when starting fresh. It defines an HMAC-SHA256 option and the canonicalization rules for you.</td></tr>
+<tr><td>Format</td><td>A documented format both sides test against</td><td>Prefer RFC 9421 over a custom header when starting fresh. It defines an HMAC-SHA256 option (section 3.3.3) and the canonicalization rules for you.</td></tr>
 <tr><td>Symmetric or asymmetric</td><td>HMAC between two parties who both run their systems well</td><td>Switch to asymmetric signatures if the receiver must not be able to forge, there are many receivers, or you need proof of origin in a dispute.</td></tr>
 </tbody></table></div>
 
@@ -140,7 +140,7 @@ bb4cc23e...b7a85c78        SHA-256 of the raw body bytes</code></pre>
 <div class="prose">
 <p><strong>Proves:</strong> the request came from a holder of the key, the signed fields weren't changed, and, with timestamp and nonce checks, it is recent and new.</p>
 <p><strong>Doesn't prove:</strong> which of the two key holders created it. It doesn't prove the sender is allowed to perform the action. And it proves nothing once the key leaks from either side.</p>
-<div class="callout warn"><strong>Replay protection is not idempotency.</strong> The nonce cache blocks the <em>same</em> request twice. If the caller times out and legitimately retries with a new nonce, the receiver sees a new, valid request. Operations that move money or points also need an idempotency key, such as the caller's transaction ID, stored durably. That's covered in module 11.</div>
+<div class="callout warn"><strong>Replay protection is not idempotency.</strong> The nonce cache blocks the <em>same</em> request twice. If the caller times out and legitimately retries with a new nonce, the receiver sees a new, valid request. Operations that move money or points also need an <a href="../../glossary/index.html#idempotency-key">idempotency key</a>, such as the caller's transaction ID, stored durably. That's covered in module 11.</div>
 </div>
 
 <h2>6. Prove it</h2>
@@ -180,8 +180,8 @@ nonces recorded by the shared verifier: 1</code></pre>
 <div class="prose">
 <p><strong>Try next:</strong></p>
 <ul>
-<li>In <code>Verifier.verify</code>, move the nonce check and the line that records the nonce above the signature check but below the time window check, then run it again. Every verdict stays the same. The last line does not: attempt 9 is forged, and it is now recorded, so the count becomes 2. An attacker who cannot sign can still fill the cache.</li>
-<li>Remove <code>host</code> from the list <code>canonical_string</code> joins, and leave its parameters as they are. One verdict changes, and only one.</li>
+<li>In <code>Verifier.verify</code>, move the nonce check and the line that records the nonce above the signature check but below the time window check, then run it again. Every verdict stays the same. The count does not: attempt 9 is forged, and it is now recorded, so the count becomes 2. The lab reports that one mismatch and exits 1. An attacker who cannot sign can still fill the cache.</li>
+<li>Remove <code>host</code> from the list <code>canonical_string</code> joins, and leave its parameters as they are. One verdict changes, and only one. The lab reports it and exits 1.</li>
 </ul>
 </div>
 
@@ -204,7 +204,7 @@ nonces recorded by the shared verifier: 1</code></pre>
 <p class="kicker">Exercises</p>
 <h2>Change one thing and predict the output</h2>
 <div class="prose">
-<p>Each exercise edits one place in <a href="../../labs/hmac_lab.py"><code>labs/hmac_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant, not a reading of the code, so you can settle any disagreement by running it. None of them needs a package.</p>
+<p>Each exercise edits one place in <a href="../../labs/hmac_lab.py"><code>labs/hmac_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant, not a reading of the code, so you can settle any disagreement by running it. The lab compares every result with the one it expects, so each of these edits also makes it exit 1 and list what differed below the count. None of them needs a package.</p>
 </div>
 
 <article class="exercise" data-exercise data-exercise-id="hmac-x1" data-covers="hmac-02">
@@ -263,7 +263,7 @@ body_hash = hashlib.sha256(body).hexdigest()</code></pre>
 <fieldset><legend>What does the run print differently?</legend>
 <label><input type="radio" name="hmac-x3" value="a"> Line 7, the exact replay, becomes <code>accept</code>.</label>
 <label><input type="radio" name="hmac-x3" value="b"> Line 9, the forged nonce, becomes <code>accept</code>.</label>
-<label><input type="radio" name="hmac-x3" value="c" data-correct="true"> No verdict changes. The count on the last line becomes 2.</label>
+<label><input type="radio" name="hmac-x3" value="c" data-correct="true"> No verdict changes. The count of recorded nonces becomes 2.</label>
 <label><input type="radio" name="hmac-x3" value="d"> Line 8 changes from the time window to a replayed nonce.</label>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button>
@@ -272,7 +272,7 @@ body_hash = hashlib.sha256(body).hexdigest()</code></pre>
 <ul>
 <li data-option="a">Line 7 still rejects as a replayed nonce. Attempt 6 records that nonce under either order, so the exact replay is caught either way.</li>
 <li data-option="b">Line 9 still rejects with a bad signature. Checking the nonce earlier does not make a forged signature verify.</li>
-<li data-option="c">Correct, and it is the uncomfortable answer: all nine verdicts are identical, so the output gives no sign that anything is wrong. The only difference is that attempt 9 is recorded before its signature is rejected, so the count goes from 1 to 2. An attacker who cannot sign can still fill the cache. Check <code>hmac-03</code> in the <a href="#reference">Reference</a> layer is written in that order for this reason.</li>
+<li data-option="c">Correct, and it is the uncomfortable answer: all nine verdicts are identical, so the verdicts give no sign that anything is wrong. The only difference is that attempt 9 is recorded before its signature is rejected, so the count goes from 1 to 2. That count is the one mismatch the lab reports. An attacker who cannot sign can still fill the cache. Check <code>hmac-03</code> in the <a href="#reference">Reference</a> layer is written in that order for this reason.</li>
 <li data-option="d">Line 8 still rejects on the time window, which is tested before either the nonce or the signature and is not moved by this edit.</li>
 </ul>
 </details>
@@ -284,9 +284,9 @@ body_hash = hashlib.sha256(body).hexdigest()</code></pre>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
 <p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
 <ul class="controls">
-<li><span class="label std">Standard</span>Use HMAC as specified in RFC 2104 and FIPS 198-1, with an approved hash function such as SHA-256.</li>
-<li><span class="label std">Standard</span>Don't use keys shorter than the hash output length L, which is 32 bytes for SHA-256. RFC 2104 strongly discourages keys shorter than L.</li>
-<li><span class="label std">Standard</span>Compare signatures with a constant-time function, such as Python's <code>hmac.compare_digest</code>.</li>
+<li><span class="label std">Standard</span>Use HMAC as RFC 2104 section 2 and FIPS 198-1 section 4 define it. FIPS 198-1 section 1 requires an approved hash function: "HMAC shall use an Approved cryptographic hash function". RFC 9421 section 3.3.3 defines HMAC with SHA-256.</li>
+<li><span class="label std">Standard</span>Use a key at least as long as the hash output length L, which is 32 bytes for SHA-256. This is a recommendation, not a requirement: RFC 2104, an Informational RFC, says in section 2 that "the minimal recommended length for K is L bytes", and in section 3 it strongly discourages shorter keys.</li>
+<li><span class="label std">Standard</span>Compare signatures with a constant-time function. The Python 3.14 documentation for the <code>hmac</code> module recommends <code>hmac.compare_digest</code> instead of <code>==</code> when verifying a digest, "to reduce the vulnerability to timing attacks". RFC 2104, FIPS 198-1 and RFC 9421 say nothing about comparison timing.</li>
 <li><span class="label base">Baseline</span>Sign method, host, path, query, timestamp, nonce, content type, and the SHA-256 of the raw body, in a documented fixed order.</li>
 <li><span class="label base">Baseline</span>Verify in this order: key lookup, time window, body hash, signature, nonce record. Record the nonce only after the signature verifies.</li>
 <li><span class="label base">Baseline</span>Accept timestamps within 5 minutes of server time. Keep nonces for at least the same period. Keep clocks synchronized.</li>
@@ -310,11 +310,11 @@ body_hash = hashlib.sha256(body).hexdigest()</code></pre>
 
 <h2>Sources</h2>
 <ul class="prose">
-<li><a href="https://www.rfc-editor.org/rfc/rfc2104">RFC 2104: HMAC: Keyed-Hashing for Message Authentication</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc2104">RFC 2104: HMAC: Keyed-Hashing for Message Authentication</a>, February 1997. Informational. Updated by RFC 6151.</li>
 <li><a href="https://doi.org/10.6028/NIST.FIPS.198-1">NIST FIPS 198-1: The Keyed-Hash Message Authentication Code (HMAC)</a>, July 2008.</li>
-<li><a href="https://www.rfc-editor.org/rfc/rfc9421">RFC 9421: HTTP Message Signatures</a></li>
-<li><a href="https://www.rfc-editor.org/rfc/rfc9530">RFC 9530: Digest Fields</a></li>
-<li><a href="https://docs.python.org/3/library/hmac.html">Python documentation: hmac module</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9421">RFC 9421: HTTP Message Signatures</a>, February 2024.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9530">RFC 9530: Digest Fields</a>, February 2024.</li>
+<li><a href="https://docs.python.org/3.14/library/hmac.html">Python 3.14 documentation: hmac module</a>, reviewed 2026-10-02.</li>
 </ul>
 </main>
 <footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>

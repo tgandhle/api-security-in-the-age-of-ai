@@ -8,6 +8,9 @@ for this run only. In production, services read keys from a mounted file or a
 credential broker provided by the platform, not from code or config files.
 Environment variables are a weaker option because they can leak to child
 processes and diagnostics.
+
+The lab compares each verdict, and the final nonce count, with the result it
+expects. It exits 1 and lists the mismatches if any differs.
 """
 import argparse, hashlib, hmac, secrets, sys
 
@@ -66,35 +69,53 @@ def main():
                    body=b'{"linkId":"lnk_7Q2x9","partnerTxnId":"EXA-000042","miles":10000}')
     sig = sign(key, request)
 
-    def attempt(label, req, signature=sig, at=now, verifier=None):
+    results = []  # (label, expected, actual), compared at the end
+
+    def attempt(label, req, expected, signature=sig, at=now, verifier=None):
         v = verifier or Verifier(key)
-        print(f"{label:<32} {v.verify(req, signature, at)}")
+        actual = v.verify(req, signature, at)
+        results.append((label, expected, actual))
+        print(f"{label:<32} {actual}")
 
     print()
     print("Part A: integrity. Each attempt uses a fresh verifier.")
-    attempt("1. original request", request)
-    attempt("2. one digit changed", {**request, "body": request["body"].replace(b"10000", b"90000")})
-    attempt("3. spaces added to JSON", {**request, "body": b'{"linkId": "lnk_7Q2x9", "partnerTxnId": "EXA-000042", "miles": 10000}'})
-    attempt("4. sent to another host", {**request, "host": "staging.hotel.example"})
-    attempt("5. signed with the wrong key", request, signature=sign(secrets.token_bytes(32), request))
+    attempt("1. original request", request, "accept")
+    attempt("2. one digit changed", {**request, "body": request["body"].replace(b"10000", b"90000")},
+            "reject: bad signature")
+    attempt("3. spaces added to JSON", {**request, "body": b'{"linkId": "lnk_7Q2x9", "partnerTxnId": "EXA-000042", "miles": 10000}'},
+            "reject: bad signature")
+    attempt("4. sent to another host", {**request, "host": "staging.hotel.example"}, "reject: bad signature")
+    attempt("5. signed with the wrong key", request, "reject: bad signature",
+            signature=sign(secrets.token_bytes(32), request))
 
     print()
     print("Part B: freshness and replay. One verifier sees every attempt.")
     shared = Verifier(key)
-    attempt("6. first delivery", request, verifier=shared)
-    attempt("7. exact replay 10s later", request, at=now + 10, verifier=shared)
-    attempt("8. replay 10 minutes later", request, at=now + 600, verifier=shared)
+    attempt("6. first delivery", request, "accept", verifier=shared)
+    attempt("7. exact replay 10s later", request, "reject: replayed nonce", at=now + 10, verifier=shared)
+    attempt("8. replay 10 minutes later", request, "reject: outside time window", at=now + 600, verifier=shared)
     forged = {**request, "nonce": "attacker-nonce"}
-    attempt("9. new nonce, old signature", forged, verifier=shared)
+    attempt("9. new nonce, old signature", forged, "reject: bad signature", verifier=shared)
 
     # Printed because the check order is not visible in the verdicts above.
     # Move the nonce check above the signature check, below the time window
     # check, and every verdict stays the same, but attempt 9's forged nonce
-    # gets recorded and this count becomes 2. That is the only observable
-    # difference.
+    # gets recorded and this count becomes 2. That is the only difference in
+    # the nine verdicts and the count, so the count is checked as well.
     print()
     print(f"nonces recorded by the shared verifier: {len(shared.seen_nonces)}")
+    results.append(("nonces recorded by the shared verifier", "1", str(len(shared.seen_nonces))))
+
+    # Nothing more is printed when every result is the expected one.
+    failures = [r for r in results if r[2] != r[1]]
+    if failures:
+        print()
+        print(f"{len(failures)} check(s) did not match the expected outcome:")
+        for label, expected, actual in failures:
+            print(f"  {label}: expected {expected}, got {actual}")
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
