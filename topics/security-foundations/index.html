@@ -214,7 +214,7 @@ all lab checks passed</code></pre>
 <ul>
 <li>Change <code>ALTERED</code> so it differs from <code>MESSAGE</code> by one character somewhere else, and rerun. Watch how little check 3 moves.</li>
 <li>Replace <code>hmac.compare_digest</code> in <code>verify</code> with <code>==</code> and rerun. Every check still passes, which is the point: this one is not about correctness, it is about timing, and no functional test will ever catch it.</li>
-<li>In <code>handle</code>, move the ownership check above the signature check. Decide what an attacker learns from the difference between the two rejection messages.</li>
+<li>In <code>handle</code>, move the <code>target</code> line and the ownership check together above the signature check, so the order becomes target, ownership, signature, and rerun. The output does not change: 45 of 45 lines identical, exit 0. Decide what an attacker learns from the difference between the two rejection messages.</li>
 </ul>
 </div>
 
@@ -308,7 +308,7 @@ all lab checks passed</code></pre>
 <li data-option="a">Forged with respect to what? That tag was made with <code>KEY_B</code>, and <code>KEY_B</code> is now the key the receiver verifies against.</li>
 <li data-option="b">Correct. Exit 1 and 7 failures. Check 15 is the one request in the lab signed with <code>KEY_B</code>, so it is now the only one accepted, and checks 8, 12, 13, 14, 16 and 17 all flip to a rejection because every genuine caller is now signing with a key the receiver does not use. Forged is not a property of a request. It is a statement about which key the receiver trusts, which is why check <code>fnd-06</code> in the <a href="#reference">Reference</a> layer asks you to write down who can produce each value and who can check it.</li>
 <li data-option="c">Both are 32 bytes, and they are different 32 bytes, which is the only thing that matters here.</li>
-<li data-option="d">It runs to the end. Nothing raises; the lab collects results and prints a 7-line failure summary.</li>
+<li data-option="d">It runs to the end. Nothing raises; the lab collects results and prints an 8-line failure summary: one header line and 7 failures.</li>
 </ul>
 </details>
 </article>
@@ -330,7 +330,7 @@ all lab checks passed</code></pre>
 <ul>
 <li data-option="a">Check 15 asks for <code>acct-91</code> with authorization off, so the ownership branch is skipped and the order never reaches it.</li>
 <li data-option="b">Check 17 carries a genuine signature, so it gets to the ownership check under either order.</li>
-<li data-option="c">Correct. 45 of 45 lines identical, exit 0. No request in this lab has both a bad signature and the wrong account, and that combination is the only one the order affects. What getting it wrong costs you is not a failed check: it is that an unauthenticated caller learns from the error message whether an account exists. Checks <code>fnd-01</code> and <code>fnd-05</code> in the <a href="#reference">Reference</a> layer are where that is caught, because the output never will be.</li>
+<li data-option="c">Correct. 45 of 45 lines identical, exit 0. No request in this lab has both a bad signature and the wrong account while the ownership check is on, and that combination is the only one the order affects. What getting it wrong costs you is not a failed check: it is that an unauthenticated caller learns from the error message which account belongs to the caller it names. Checks <code>fnd-01</code> and <code>fnd-05</code> in the <a href="#reference">Reference</a> layer are where that is caught, because the output never will be.</li>
 <li data-option="d">Nothing stops. Exit 0, and the lab prints <code>all lab checks passed</code>.</li>
 </ul>
 </details>
