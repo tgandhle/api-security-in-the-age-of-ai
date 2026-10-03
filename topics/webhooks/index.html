@@ -218,6 +218,108 @@ all lab checks passed</code></pre>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 </section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="webhooks-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/webhook_lab.py"><code>labs/webhook_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant. One edit changes nothing the lab prints, and its answer carries the measurement from a request the lab does not make.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="hook-x1" data-covers="hook-01">
+<h3>1. The replay in check 10 carries a fresh timestamp</h3>
+<div class="prose">
+<p>Check 10 replays a year-old event with its original timestamp. In <code>main</code>, make the attacker send a fresh timestamp with the old signature instead, as check 9 does. The receiver stays as it is:</p>
+</div>
+<pre><code>covered.post(body, sign(secret, body, NOW),
+             timestamp=NOW + 31536000, now=NOW + 31536000)</code></pre>
+<fieldset><legend>What does check 10 print?</legend>
+<label><input type="radio" name="hook-x1" value="a"> <code>400 event too old</code>, as before.</label>
+<label><input type="radio" name="hook-x1" value="b"> <code>202 accepted</code>, as check 9 does.</label>
+<label><input type="radio" name="hook-x1" value="c" data-correct="true"> <code>400 signature check failed</code>.</label>
+<label><input type="radio" name="hook-x1" value="d"> A traceback, because the timestamp and the signature no longer agree.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">The window test compares the timestamp that was sent with the clock, and both are now <code>NOW + 31536000</code>, so by that test the event is fresh. The request never gets that far, because the signature is compared first.</li>
+<li data-option="b">Check 9 prints <code>202 accepted</code> because its receiver is built with <code>cover_timestamp=False</code> and verifies the body alone. This receiver recomputes the signature over the timestamp it was sent and the body.</li>
+<li data-option="c">Correct. Exit 1, one failure: check 10 goes from <code>400 event too old</code> to <code>400 signature check failed</code>. The signature was made over the original timestamp, the receiver recomputes it over the fresh one, and the two values differ. Section 2 says this second move "falls out of the same change", and this is it, measured. The exit code only means the lab expected the other refusal. Check <code>hook-01</code> in the <a href="#reference">Reference</a> layer asks for both replays as tests, refused for different reasons, and the published lab runs only the first.</li>
+<li data-option="d">Nothing raises. A disagreement between the timestamp and the signature is exactly what the comparison is there to find, and it answers with a response, not an exception.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="hook-x2" data-covers="hook-02">
+<h3>2. The timestamp is never compared with the clock</h3>
+<div class="prose">
+<p>In <code>Receiver.reserve</code>, delete the two lines that return <code>400 event too old</code>. The signature still covers the timestamp.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="hook-x2" value="a" data-correct="true"> Check 10 becomes <code>202 accepted</code>.</label>
+<label><input type="radio" name="hook-x2" value="b"> Check 10 becomes <code>400 signature check failed</code>.</label>
+<label><input type="radio" name="hook-x2" value="c"> Checks 10 and 11 both change.</label>
+<label><input type="radio" name="hook-x2" value="d"> Nothing. The signature covers the timestamp, so a year-old event cannot verify.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Correct. Exit 1, one failure: check 10 goes from <code>400 event too old</code> to <code>202 accepted</code>, which is what check 11 already prints for a receiver built with <code>check_window=False</code>. Covering the timestamp stops the attacker changing it. It does not make anybody read it. With the comparison gone, a captured event stays valid for as long as the secret does. Check <code>hook-02</code> in the <a href="#reference">Reference</a> layer is this one comparison, and its test is an event outside the window.</li>
+<li data-option="b">That is the answer when the attacker changes the timestamp. Here the replay carries the original timestamp and the original signature, and those still match.</li>
+<li data-option="c">Check 11 prints <code>202 accepted</code> before and after. Its receiver never compared the timestamp, and this edit makes every receiver behave like it.</li>
+<li data-option="d">The year-old event verifies perfectly. The signature was made over that timestamp and that body, and the replay sends both unchanged. A covered timestamp shows the value was not altered, not that it is recent.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="hook-x3" data-covers="hook-03">
+<h3>3. The identifier is recorded after the work by default</h3>
+<div class="prose">
+<p>In <code>Receiver.__init__</code>, change the default <code>record_before=True</code> to <code>record_before=False</code>. A receiver built without that argument now records the identifier in <code>apply</code>, after it has processed the event.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="hook-x3" value="a"> Check 14 becomes <code>2 applied</code>.</label>
+<label><input type="radio" name="hook-x3" value="b"> Check 17 becomes <code>2 applied</code>.</label>
+<label><input type="radio" name="hook-x3" value="c"> Checks 18 to 20 change, because the retry is applied a second time.</label>
+<label><input type="radio" name="hook-x3" value="d" data-correct="true"> Nothing. All 22 checks pass.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 14 posts the two copies one after the other. The first post finishes, and records the identifier, before the second begins, so the second is still answered without being applied.</li>
+<li data-option="b">The receiver behind checks 16 and 17 is built with <code>record_before=True</code> passed explicitly, so the default never reaches it.</li>
+<li data-option="c">The retry in Part D is also two posts in sequence. The first has recorded the identifier by the time the retry arrives, so check 20 still prints <code>1 applied</code>.</li>
+<li data-option="d">Correct. Exit 0, 33 of 33 lines identical. Every receiver that relies on the default handles its copies one at a time, and the two receivers that interleave pass <code>record_before</code> explicitly. Measured with a request the lab does not make, the interleaving of checks 15 to 17 against a receiver built with the defaults: as published the second copy is answered <code>202 accepted</code> and the count is <code>1 applied</code>, and with the edit both copies are processed and the count is <code>2 applied</code>. A test suite that only sends duplicates in sequence passes on both versions. Check <code>hook-03</code> in the <a href="#reference">Reference</a> layer asks for two concurrent copies, not two sequential requests, for this reason.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="hook-x4" data-covers="hook-04">
+<h3>4. The identifier is looked up before the signature is verified</h3>
+<div class="prose">
+<p>In <code>Receiver.reserve</code>, move the whole <code>if self.record_ids:</code> block above the <code>if self.verify:</code> block, so an event the receiver has already seen is answered without any signature work. Nothing else changes.</p>
+</div>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="hook-x4" value="a"> Only check 22, the prober, which becomes <code>202 accepted</code>.</label>
+<label><input type="radio" name="hook-x4" value="b" data-correct="true"> Checks 7 and 22, which both become <code>202 accepted</code>.</label>
+<label><input type="radio" name="hook-x4" value="c"> Checks 7 and 22 become <code>202 accepted</code>, and check 8 counts 2 events applied.</label>
+<label><input type="radio" name="hook-x4" value="d"> None. The same tests run either way, only in a different order.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 7 changes too. The altered body keeps the identifier <code>evt-1001</code>, which check 4 already recorded, so the receiver answers before it reads the signature.</li>
+<li data-option="b">Correct. Exit 1, two failures: check 7 goes from <code>400 signature check failed</code> to <code>202 accepted</code>, and check 22 from <code>400 no signature</code> to <code>202 accepted</code>. Neither event is applied, and check 8 still prints 1. The damage is in the responses. An unsigned post now gets <code>202 accepted</code> for an identifier the receiver has seen and <code>400 no signature</code> for one it has not, so anybody can sort identifiers into the two groups without the secret. Measured with a request the lab does not make, an unsigned post naming <code>evt-2001</code>, which the receiver has not seen, followed by the real, correctly signed event with that identifier: as published the answers are <code>400 no signature</code> then <code>202 accepted</code>, and the count is 1 applied. With the edit the answers are the same and the count is 0 applied, because the unsigned post claimed the identifier before it was refused. Check <code>hook-04</code> in the <a href="#reference">Reference</a> layer says a different response reveals which identifiers exist, and this edit hands that difference to callers who never verified.</li>
+<li data-option="c">Check 8 still prints 1. The duplicate branch returns before <code>apply</code> runs, so the altered amount is acknowledged and never applied.</li>
+<li data-option="d">The order decides which answer an unverified caller gets. As published, a caller without a valid signature never reaches the identifier store, so it can neither read from it nor write to it.</li>
+</ul>
+</details>
+</article>
+</section>
+
 <p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
 <span class="layer" id="reference" style="margin-top:3rem">Reference</span>
 <h2 style="border-top:none;margin-top:.5rem">Controls</h2>
