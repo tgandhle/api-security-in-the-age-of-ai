@@ -92,7 +92,12 @@ def header_of(token):
 def rs256_ok(token, public_key):
     head, body, signature = split(token)
     try:
-        public_key.verify(unb64(signature), (head + "." + body).encode("ascii"),
+        raw = unb64(signature)
+        # One signature has one spelling. The decoder ignores stray characters
+        # and spare trailing bits, so compare against the canonical encoding.
+        if b64(raw) != signature:
+            return False
+        public_key.verify(raw, (head + "." + body).encode("ascii"),
                           padding.PKCS1v15(), hashes.SHA256())
         return True
     except Exception:
@@ -176,7 +181,11 @@ class ProfileVerifier:
         audience = audience if isinstance(audience, list) else [audience]
         if self.audience not in audience:
             return "reject: audience mismatch"
-        if now > claims["exp"] + self.leeway:
+        # RFC 7519 sections 4.1.4 to 4.1.6: each time claim MUST be a number.
+        for name in ("exp", "nbf", "iat"):
+            if name in claims and type(claims[name]) not in (int, float):
+                return "reject: malformed claim " + name
+        if now >= claims["exp"] + self.leeway:
             return "reject: expired"
         if "nbf" in claims and now + self.leeway < claims["nbf"]:
             return "reject: not yet valid"
