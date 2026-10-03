@@ -12,7 +12,7 @@ Work through the published modules in order. Each lesson includes an attack exam
 | 3 | [Asymmetric request signing](topics/asymmetric-request-signing/index.html) | [`asymmetric_signing_lab.py`](labs/asymmetric_signing_lab.py) |
 | 4 | [OAuth basics](topics/oauth-basics/index.html) | [`oauth_lab.py`](labs/oauth_lab.py) |
 | 5 | [JWT validation](topics/jwt-validation/index.html) | [`jwt_lab.py`](labs/jwt_lab.py) |
-| 6 | [JWKS, revocation, and introspection](topics/jwks-and-revocation/index.html) | [`jwks_lab.py`](labs/jwks_lab.py) |
+| 6 | [JWKS, revocation and introspection](topics/jwks-and-revocation/index.html) | [`jwks_lab.py`](labs/jwks_lab.py) |
 | 7 | [Sender-constrained tokens: mTLS and DPoP](topics/sender-constrained-tokens/index.html) | [`bound_tokens_lab.py`](labs/bound_tokens_lab.py) |
 | 8 | [Workload and agent identity lifecycle](topics/credential-lifecycle/index.html) | [`credential_inventory_lab.py`](labs/credential_inventory_lab.py) |
 | 9 | [Object-level authorization](topics/object-level-authorization/index.html) | [`object_authorization_lab.py`](labs/object_authorization_lab.py) |
@@ -55,7 +55,7 @@ python labs/jwks_lab.py
 
 Inside an activated environment use `python`, not `py -3`. The launcher ignores an active environment when given an explicit version: "To run the global interpreter, either deactivate the virtual environment, or explicitly specify the global Python version" (Python documentation, Using Python on Windows, Virtual environments). On macOS and Linux the equivalent is `python3 -m venv .venv` then `source .venv/bin/activate`.
 
-The labs are pure in-process Python with no shell, subprocess or path handling, so their output does not vary by platform. Checked, not assumed: `tools/check_transcripts.py` runs every lab whose output is published and compares it to the page byte for byte. All 27 match on Windows (Python 3.14.6, `python` in an activated environment) and on Linux (Python 3.13.16 and 3.14.6, `python3`), all with `cryptography==50.0.1`. Where that package is absent, the four labs that need it are reported as skipped rather than as passing. `tools/check_site.py` also produces identical output on both.
+The labs are pure in-process Python with no shell or subprocess, and the only file access is the optional `--key-file` in `hmac_lab.py`, so their output does not vary by platform. Checked, not assumed: `tools/check_transcripts.py` runs every lab whose output is published and compares it to the page byte for byte. All 27 match on Windows (Python 3.14.6, `python` in an activated environment) and on Linux (Python 3.13.16 and 3.14.6, `python3`), all with `cryptography==50.0.1`. Where that package is absent, the four labs that need it are reported as skipped rather than as passing. `tools/check_site.py` also produces identical output on both.
 
 ## Licence
 
@@ -65,7 +65,7 @@ Copyright (c) 2026 tgandhle. All rights reserved. This repository is readable, n
 
 Plain HTML. Open `index.html` in any browser, or publish the folder with GitHub Pages. No build step is needed to view the site.
 
-- Labs: `python3 labs/<lab>.py`. Modules 1, 2 and 4 need Python 3 and nothing else. Modules 3, 5, 6 and 7 additionally need `python3 -m pip install cryptography==50.0.1`, because Python has no built-in asymmetric cryptography. Those labs say so and exit cleanly if it is missing.
+- Labs: `python3 labs/<lab>.py`. Every module except 3, 5, 6 and 7 needs Python 3 and nothing else. Modules 3, 5, 6 and 7 additionally need `python3 -m pip install cryptography==50.0.1`, because Python has no built-in asymmetric cryptography. Those labs say so and exit cleanly if it is missing.
 - After editing any checklist item on a topic page: `python3 tools/build_checklist.py`.
 - To confirm the checklist is current: `python3 tools/build_checklist.py --check` (exits 1 if stale).
 - After editing any lesson page: `python3 tools/extract_lessons.py`, which regenerates `content/lessons/`.

@@ -3,7 +3,7 @@
 ## Audience
 New security engineers. Assume they can read Python and HTTP, not that they know the vocabulary.
 
-## Page template (topics and protocols)
+## Page template
 Each page has two layers, in this order.
 
 **Learn**
@@ -46,4 +46,4 @@ Each page has two layers, in this order.
 
 ## Review cadence
 - Topic pages: quarterly.
-- Protocol pages (MCP, A2A): on each spec release, or monthly, whichever comes first.
+- The MCP and A2A topic pages: on each spec release, or monthly, whichever comes first.

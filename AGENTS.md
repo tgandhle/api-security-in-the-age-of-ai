@@ -35,7 +35,7 @@ These do not change:
 | `tools/render_site.py` | Renders the lesson pages from `content/` through `tools/page_template.tmpl`. Compares by default; `--write` overwrites the pages. |
 | `tools/check_transcripts.py` | Runs every lab whose output is published and compares it to the page byte for byte. Reports a lab that needs a missing package as skipped, not failed. Also flags a lab command written in any form other than `python3 labs/<lab>.py`. |
 | `tools/build_lab_bundles.py` | Wraps each lab's source in `labs/<name>.lab.js` so a page opened from `file://` can read it, which it cannot do for a `.py`. `--check` exits 1 if a bundle is stale, missing or orphaned. |
-| `tools/extract_pages.py` | Extracts the four pages that are not lessons into `content/pages.json`: the home prose, the glossary terms, the roadmap. `--check` exits 1 if it is stale. The checklist is deliberately not captured; `tools/build_checklist.py` already owns it. |
+| `tools/extract_pages.py` | Extracts three of the four pages that are not lessons into `content/pages.json`: the home prose, the glossary terms, the roadmap. `--check` exits 1 if it is stale. The checklist is deliberately not captured; `tools/build_checklist.py` already owns it. |
 | `tools/build_search_index.py` | Builds `assets/search-index.js` from `content/`. Six kinds of document: lesson, section, check, term, control, code. `--check` exits 1 if it is stale. |
 | `assets/search-index.js` | Generated. Never edit by hand. A `.js` file, not `.json`, because a page opened from `file://` cannot fetch a sibling file. Loaded on the first search, never on page load. |
 | `app/` | The React app that will replace the static site. See Decisions. `npm install` then `npm run build` in that directory; the output is `app/dist/`, which is not tracked. It reads `content/` and renders it; it is not a second copy of any lesson. |
@@ -54,11 +54,11 @@ These apply to every change. If a task seems to require breaking one, stop and a
 4. **No secrets anywhere.** Not in code, examples, comments, or screenshots. Use placeholders such as `<secret from vault>` or `<api-key>`. Labs generate keys at runtime or read them from a file passed on the command line. Do not read secrets from environment variables in labs, and do not present environment variables as the production pattern.
 5. **Fictional names only.** Use companies such as ExampleAir and ExampleHotels, and the reserved `.example` domain. Do not name real companies, real products as examples of victims, or real people. Do not reference any employer.
 6. **Run everything you publish.** Every lab and every code sample that shows output must be executed, and the page must show the real output, pasted from the run. Never type expected output by hand.
-7. **Dependencies are decided, not assumed.** Two are approved, both as of 2026-09-29:
-   - `cryptography==50.0.1` for labs that need asymmetric keys, which is modules 3, 5, 6 and 7. It requires Python 3.9 or later.
+7. **Dependencies are decided, not assumed.** Three are approved: the two below as of 2026-09-29, and Pyodide 314.0.7 as of 2026-10-02 (see Decisions). `app/` has its own pinned packages in `app/package.json`.
+   - `cryptography==50.0.1` for labs that need asymmetric keys, which is modules 3, 5, 6 and 7. It requires Python 3.9.2 or later.
    - `playwright==1.56.0` and `axe-core@4.13.0` for `tools/check_a11y.py`.
 
-   The distinction that matters: a dependency in `labs/` is a **learner** dependency and breaks the promise that the course runs with Python 3 alone, so it needs a reason, a graceful skip, and a note on the page. A dependency in `tools/` is an **author** dependency and costs the learner nothing. Anything beyond the two above, in either place, including CDN scripts and fonts: stop and ask, and propose a specific package and version.
+   The distinction that matters: a dependency in `labs/` is a **learner** dependency and breaks the promise that the course runs with Python 3 alone, so it needs a reason, a graceful skip, and a note on the page. A dependency in `tools/` is an **author** dependency and costs the learner nothing. Anything beyond those, in either place, including CDN scripts and fonts: stop and ask, and propose a specific package and version.
 8. **Never edit `checklist/index.html` by hand.** Edit checklist items on topic pages, then run `python3 tools/build_checklist.py`.
 9. **Smallest change that does the job.** Do not refactor, rename, or restyle existing pages while adding a module. If the shared CSS needs a change, make it minimal and check the HMAC page still renders correctly.
 10. **Writing style:**
@@ -69,7 +69,7 @@ These apply to every change. If a task seems to require breaking one, stop and a
 
 ## Stop and ask before
 
-- Adding any dependency beyond the two approved in rule 7.
+- Adding any dependency beyond those approved in rule 7 and under Decisions.
 - Adding anything to `react-poc/`, or moving published content into it.
 - Reopening any entry under Decisions below.
 - Deleting or renaming any file.
@@ -214,7 +214,7 @@ Do not claim a check passed unless you ran it and saw it pass.
 
 Build in this order. Each line gives the core attack and the lab idea. Details and extra sources come from your research. Do not treat this list as a source.
 
-**Primer** (`topics/primer/`)
+**Primer** (`topics/security-foundations/`)
 - Hash vs HMAC vs signature, symmetric vs asymmetric keys, what TLS and mTLS prove, authentication vs authorization, bearer vs sender-constrained credentials, trust boundaries.
 - Lab: hash vs HMAC vs signature. Signature parts use `cryptography` per rule 7.
 - The primer does not need the full eight-section attack structure. Keep the Reference layer, and include checklist items only if they are real review items.
@@ -264,5 +264,5 @@ These are starting points to open and verify, not citations to copy. Confirm eac
 - JWT: RFC 7519. JWT best current practices: RFC 8725. JWT access token profile: RFC 9068. JWK: RFC 7517.
 - Revocation: RFC 7009. Introspection: RFC 7662. mTLS-bound tokens: RFC 8705. DPoP: RFC 9449. Token exchange: RFC 8693. Rich authorization requests: RFC 9396. Resource indicators: RFC 8707. Protected resource metadata: RFC 9728.
 - HTTP message signatures: RFC 9421. Digest fields: RFC 9530. HMAC: RFC 2104 and NIST FIPS 198-1.
-- OWASP API Security Top 10 2023, OWASP Top 10 for LLM Applications 2025, OWASP Top 10 for Agentic Applications, released December 2025 (the title carries no year).
+- OWASP API Security Top 10 2023, OWASP Top 10 for LLM Applications 2025, OWASP Top 10 for Agentic Applications for 2026, released 9 December 2025 (the announcement post omits the year; the document's own title carries it).
 - MCP specification, revision 2026-07-28. A2A specification: version to be confirmed.

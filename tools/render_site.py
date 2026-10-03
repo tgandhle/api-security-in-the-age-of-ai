@@ -3,16 +3,16 @@
 
 Standard library only.
 
-Today the per-page skeleton is copied into all 26 lesson pages. Measured
+Today the per-page skeleton is copied into all 27 lesson pages. Measured
 with tools/extract_lessons.py, the copies are identical: the nav, the
 <main> open and close, the footer and the closing tags have exactly one
-distinct value across 26 pages, and the <head> varies only in <title> and
+distinct value across 27 pages, and the <head> varies only in <title> and
 the body's data-course-lesson. The lesson-status line varies only in the
 lesson number and the denominator.
 
 So the skeleton is one file, tools/page_template.tmpl, and the numbering is
 another, tools/lesson_status_template.tmpl. Changing the denominator, which
-every module so far has needed, becomes one edit instead of 26.
+every module so far has needed, becomes one edit instead of 27.
 
 Placeholders are substituted with str.replace, not str.format, because
 lesson content contains braces.
