@@ -185,12 +185,12 @@ def main():
     check("the same route in the correct table", "403 forbidden",
           dispatch_by_table("GET", "/api/admin/reports", "customer"))
 
-    failures = [r for r in RESULTS if r[2] != r[1]]
+    failures = [(n, r) for n, r in enumerate(RESULTS, 1) if r[2] != r[1]]
     print()
     if failures:
         print("%d check(s) did not match the expected outcome:" % len(failures))
-        for label, expected, actual in failures:
-            print("  %s: expected %s, got %s" % (label, expected, actual))
+        for n, (label, expected, actual) in failures:
+            print("  check %d, %s: expected %s, got %s" % (n, label, expected, actual))
         return 1
     print("all lab checks passed")
     return 0
