@@ -467,7 +467,7 @@ def main():
     print("Part D: scope, audience and lifetime, the bounds on what comes out.")
 
     check("scopes the user's own token carries", "5",
-          str(len(ALL_SCOPES.split())))
+          str(len(read(user_token, key)["scope"].split())))
     check("scopes in the token issued for bookings:write", "1",
           str(len(read(delegation["access_token"], key)["scope"].split())))
     wide = server.exchange(grant_type=GRANT, subject_token=user_token,
@@ -503,7 +503,8 @@ def main():
                                 actor_token_type=T_JWT, scope="bookings:write")
     check("aud on a token issued with no target named", "None",
           str(read(untargeted["access_token"], key)["aud"]))
-    check("seconds left on the user's token", "300", str(user["exp"] - NOW))
+    check("seconds left on the user's token", "300",
+          str(read(user_token, key)["exp"] - NOW))
     check("expires_in on the exchanged token", "300",
           str(delegation["expires_in"]))
     uncapped = AuthorizationServer(key, [BOOKINGS], cap_lifetime=False)
