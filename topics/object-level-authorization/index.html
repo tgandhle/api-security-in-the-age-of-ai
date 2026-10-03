@@ -179,8 +179,8 @@ all lab checks passed</code></pre>
 <ul>
 <li>Change <code>bkg-1002</code>'s owner to <code>acct-77</code> and rerun. Watch which checks move and satisfy yourself that the verdict follows the stored record rather than the identifier.</li>
 <li>Delete the <code>caller and</code> guard from <code>get_guarded_check</code>. Check 14 flips, and that is the entire fix for a defect that returns another customer's booking.</li>
-<li>Add a sixth booking owned by <code>acct-77</code> and rerun. Check 17 changes and check 16 does not, which tells you which number is about your data and which is about your code.</li>
-<li>Make <code>probe</code> return 403 for unknown identifiers as well as forbidden ones. Check 20 flips. Decide whether you would rather leak existence or leak nothing.</li>
+<li>Change <code>bkg-1004</code>'s owner to <code>acct-77</code> in <code>BOOKINGS</code> and rerun. Two checks fail: check 11 prints <code>3 bookings returned</code> and check 17 prints <code>3 of 5 reachable</code>. Check 16 still prints <code>5 of 5 reachable</code>, which tells you which number is about your data and which is about your code.</li>
+<li>Make <code>probe</code> return 403 for unknown identifiers as well as forbidden ones: under <code>if booking is None</code>, change <code>return "404 not found"</code> to <code>return "403 forbidden"</code>. Checks 20 and 21 both flip: check 20 prints <code>indistinguishable</code> and check 21 prints <code>existence disclosed</code>. Decide whether you would rather leak existence or leak nothing.</li>
 </ul>
 </div>
 
