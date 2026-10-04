@@ -33,8 +33,13 @@ Work through the published modules in order. Each lesson includes an attack exam
 | 24 | [Data in model context](topics/data-in-model-context/index.html) | [`context_data_lab.py`](labs/context_data_lab.py) |
 | 25 | [Supply chain, retrieval, and memory](topics/supply-chain-retrieval-and-memory/index.html) | [`retrieval_lab.py`](labs/retrieval_lab.py) |
 | 26 | [Design review of a sample architecture using the checklist](topics/design-review/index.html) | [`design_review_lab.py`](labs/design_review_lab.py) |
+| 27 | [Attacks on authentication endpoints](topics/authentication-endpoints/index.html) | [`auth_endpoints_lab.py`](labs/auth_endpoints_lab.py) |
+| 28 | [Browser sessions, cookies and CSRF](topics/browser-sessions-and-csrf/index.html) | [`csrf_lab.py`](labs/csrf_lab.py) |
+| 29 | [Security misconfiguration](topics/security-misconfiguration/index.html) | [`misconfiguration_lab.py`](labs/misconfiguration_lab.py) |
+| 30 | [Logging, detection and response](topics/logging-and-detection/index.html) | [`detection_lab.py`](labs/detection_lab.py) |
+| 31 | [Agent code execution and containment](topics/agent-containment/index.html) | [`containment_lab.py`](labs/containment_lab.py) |
 
-[Full module plan](index.html#path) · [Glossary](glossary/index.html) · [Review checklist](checklist/index.html)
+[Full module plan](index.html#path) · [Glossary](glossary/index.html) · [Review checklist](checklist/index.html) · [OWASP coverage](coverage/index.html)
 
 **Reading the lessons:** Open the [hosted learning site](https://tgandhle.github.io/api-security-in-the-age-of-ai/) in a browser. You can also choose **Code > Download ZIP**, extract the archive, and open `index.html` locally. Reading the lessons needs no installation or build.
 
@@ -55,7 +60,7 @@ python labs/jwks_lab.py
 
 Inside an activated environment use `python`, not `py -3`. The `py` command uses an active environment only when no version is requested: "If you are running in an active virtual environment, have not requested a particular version, and there is no shebang line, the default runtime will be that virtual environment" (Python 3.14 documentation, Using Python on Windows, Python install manager, Basic use). On macOS and Linux the equivalent is `python3 -m venv .venv` then `source .venv/bin/activate`.
 
-The labs are pure in-process Python with no shell or subprocess, and the only file access is the optional `--key-file` in `hmac_lab.py`, so their output does not vary by platform. Checked, not assumed: `tools/check_transcripts.py` runs every lab whose output is published and compares it to the page byte for byte. All 27 match on Windows (Python 3.14.6, `python` in an activated environment) and on Linux (Python 3.13.16 and 3.14.6, `python3`), all with `cryptography==50.0.1`. Where that package is absent, the four labs that need it are reported as skipped rather than as passing. `tools/check_site.py` also produces identical output on both.
+The labs are pure in-process Python with no shell or subprocess, and the only file access is the optional `--key-file` in `hmac_lab.py`, so their output does not vary by platform. Checked, not assumed: `tools/check_transcripts.py` runs every lab whose output is published and compares it to the page byte for byte. All 32 match on Linux (Python 3.13.16 and 3.14.6, `python3`) with `cryptography==50.0.1`. The 27 labs published before 4 October 2026 also matched on Windows (Python 3.14.6, `python` in an activated environment), and `tools/check_site.py` produced identical output on both. The five labs added on 4 October 2026 and the four changed that day (`jwks_lab.py`, `credential_inventory_lab.py`, `a2a_lab.py`, `approvals_lab.py`) have not been run on Windows yet. Where the package is absent, the four labs that need it are reported as skipped rather than as passing.
 
 ## Licence
 

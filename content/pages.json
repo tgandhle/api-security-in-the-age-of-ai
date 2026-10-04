@@ -8,7 +8,7 @@
           "id": "course",
           "data-course-dashboard": null
         },
-        "html": "<section class=\"course-hero\" id=\"course\" data-course-dashboard>\n<p class=\"kicker\">Interactive learning course</p>\n<h1>API Security in the Age of AI</h1>\n<div class=\"prose\">\n<p>For new security engineers. Each module starts with a real attack, shows why it works, teaches the control that stops it, and ends with a test you can run. The second half of each page is a reference you can use in design reviews.</p>\n<p class=\"meta\">Self-paced. Work through the modules in order. Each one assumes the ones before it. Labs need Python 3. The labs for modules 3, 5, 6 and 7 also need one package, <code>cryptography</code>. Progress is stored only in this browser.</p>\n</div>\n<div class=\"course-progress\" aria-label=\"Course progress\"><p data-course-progress>0 of 27 published lessons complete</p><div class=\"progress-track\" role=\"progressbar\" aria-label=\"Published lesson progress\" aria-valuemin=\"0\" aria-valuemax=\"100\"><span data-course-progress-bar></span></div><p class=\"meta\" data-course-assessment-progress>0 of 27 published quick checks passed</p></div>\n<div class=\"course-actions\"><a class=\"button\" href=\"topics/security-foundations/index.html\">Start with the primer</a><button class=\"button secondary\" type=\"button\" data-reset-progress>Reset progress</button></div>\n</section>"
+        "html": "<section class=\"course-hero\" id=\"course\" data-course-dashboard>\n<p class=\"kicker\">Interactive learning course</p>\n<h1>API Security in the Age of AI</h1>\n<div class=\"prose\">\n<p>For new security engineers. Each module starts with a real attack, shows why it works, teaches the control that stops it, and ends with a test you can run. The second half of each page is a reference you can use in design reviews.</p>\n<p class=\"meta\">Self-paced. Work through the modules in order. Each one assumes the ones before it. Labs need Python 3. The labs for modules 3, 5, 6 and 7 also need one package, <code>cryptography</code>. Progress is stored only in this browser.</p>\n</div>\n<div class=\"course-progress\" aria-label=\"Course progress\"><p data-course-progress>0 of 32 published lessons complete</p><div class=\"progress-track\" role=\"progressbar\" aria-label=\"Published lesson progress\" aria-valuemin=\"0\" aria-valuemax=\"100\"><span data-course-progress-bar></span></div><p class=\"meta\" data-course-assessment-progress>0 of 32 published quick checks passed</p></div>\n<div class=\"course-actions\"><a class=\"button\" href=\"topics/security-foundations/index.html\">Start with the primer</a><button class=\"button secondary\" type=\"button\" data-reset-progress>Reset progress</button></div>\n</section>"
       },
       {
         "tag": "section",
@@ -31,7 +31,7 @@
         "attrs": {
           "class": "meta"
         },
-        "html": "<p class=\"meta\">Every module is published: the primer, all of Parts 1 and 2, all seven modules of Part 3, all seven of Part 4, and the capstone. Each one carries its lesson, a runnable lab with its real output, primary sources, and review checklist items.</p>"
+        "html": "<p class=\"meta\">Every module is published: the primer, all of Parts 1 and 2, all seven modules of Part 3, all seven of Part 4, the capstone, and all five of Part 5. Each one carries its lesson, a runnable lab with its real output, primary sources, and review checklist items. The <a href=\"coverage/index.html\">coverage page</a> lists each entry of three OWASP lists with the lessons that cite it, and says what the course leaves out.</p>"
       }
     ]
   },
@@ -806,7 +806,7 @@
         "attrs": {
           "class": "meta"
         },
-        "html": "<p class=\"meta\">All 32 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written.</p>"
+        "html": "<p class=\"meta\">All 32 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written. What the course does not cover is listed on the <a href=\"../coverage/index.html\">coverage page</a>.</p>"
       },
       {
         "tag": "section",
@@ -855,7 +855,7 @@
         "attrs": {
           "aria-labelledby": "part-5"
         },
-        "html": "<section aria-labelledby=\"part-5\">\n<h2 id=\"part-5\">Part 5: Hardening and operations</h2>\n<p class=\"prose\">The published modules of Part 5 are listed on the <a href=\"../index.html#path\">modules page</a>.</p>\n</section>"
+        "html": "<section aria-labelledby=\"part-5\">\n<h2 id=\"part-5\">Part 5: Hardening and operations</h2>\n<p class=\"prose\">All five modules of Part 5 are published. They are listed on the <a href=\"../index.html#path\">modules page</a>. Part 5 was added after the capstone so that the numbers of the earlier modules did not change.</p>\n</section>"
       }
     ]
   }

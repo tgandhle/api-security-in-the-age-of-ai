@@ -9,10 +9,10 @@ tested in Chromium. A <script src> tag is not refused, so the index assigns
 itself to a global and is injected on the first search rather than on load.
 
 What is indexed:
-  lesson   title and kicker, 27
-  section  every h2 heading, 351
-  check    the 215 review checklist items, by id, title and detail
-  term     the 111 glossary terms and their definitions
+  lesson   title and kicker, 32
+  section  every h2 heading, 416
+  check    the 264 review checklist items, by id, title and detail
+  term     the 148 glossary terms and their definitions
   control  the Standard, Baseline and Option items in each reference layer
   code     every distinct identifier in a <code> span, per lesson
 
