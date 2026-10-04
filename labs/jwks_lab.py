@@ -119,9 +119,17 @@ class KeyCache:
     The set is refreshed on a schedule once it passes max_age, and on demand
     when a kid is missing, with a cooldown so an unknown kid cannot drive a
     fetch storm. Without the scheduled refresh, a key removed by the issuer
-    keeps verifying for as long as its kid stays in the cache. The cooldown
-    covers on-demand refreshes only: while the set is stale and the endpoint
-    is failing, every request retries the scheduled refresh.
+    keeps verifying for as long as its kid stays in the cache.
+
+    A refresh attempt that fails, scheduled or on demand, starts a back-off.
+    No fetch is made until it has passed, so a failing endpoint is asked once
+    per back-off, not once per request. failed_at is the time of the last
+    failed attempt and loaded_at is the time of the last successful one. A
+    healthy endpoint never sets failed_at, so its schedule is not delayed.
+
+    While the endpoint is down the stale set stays in use. A key the issuer
+    removed keeps verifying for the whole outage, and for up to one back-off
+    after the endpoint is back.
 
     Project baseline, stated because no specification settles it:
       - A successful, well-formed set is authoritative. It replaces what we
@@ -134,6 +142,7 @@ class KeyCache:
 
     max_age = 600
     cooldown = 300
+    backoff = 60
 
     def __init__(self, endpoint, clock):
         self.endpoint = endpoint
@@ -141,6 +150,7 @@ class KeyCache:
         self.keys = {}
         self.loaded_at = None
         self.last_attempt = None
+        self.failed_at = None
 
     @property
     def loaded(self):
@@ -167,17 +177,22 @@ class KeyCache:
     def _refresh(self, scheduled=False):
         """scheduled refreshes are ours; on-demand ones are triggered by input."""
         now = self.clock[0]
+        if self.failed_at is not None and now - self.failed_at < self.backoff:
+            return "backoff"
         if not scheduled and self.last_attempt is not None and now - self.last_attempt < self.cooldown:
             return "cooldown"
         self.last_attempt = now
         try:
             document = self.endpoint.fetch()
         except Exception:
+            self.failed_at = now
             return "retrieval failed"
         if (not isinstance(document, dict) or not isinstance(document.get("keys"), list)
                 or not all(isinstance(jwk, dict) for jwk in document["keys"])):
+            self.failed_at = now
             return "malformed"
         self._absorb(document)
+        self.failed_at = None
         return "ok"
 
     def resolve(self, kid):
@@ -378,6 +393,33 @@ def main():
           down_verifier.verify(token_b, clock))
     check("transport failure kept the last good set", "accept",
           down_verifier.verify(token_a, clock))
+
+    # The shared clock has moved 3300 seconds by now, so this scenario signs
+    # its own tokens. The first two would be past exp before it ends.
+    late = {"iat": clock[0] - 30, "exp": clock[0] + 3600}
+    late_a = make_token(key_a, "hotel-a", **late)
+    late_b = make_token(key_b, "hotel-b", **late)
+    out = KeyEndpoint()
+    out.serve({"keys": [jwk_a]})
+    out_cache = KeyCache(out, clock)
+    out_verifier = Verifier(out_cache)
+    out_verifier.verify(late_a, clock)
+    # The issuer removes key a, and its endpoint goes down before we learn it.
+    out.script = [TimeoutError("connect timed out")]
+    clock[0] += 700
+    before = out.fetches
+    check("outage, stale set, kid still in the set", "accept", out_verifier.verify(late_a, clock))
+    for kid in ("hotel-a", "hotel-x1", "hotel-a", "hotel-x2"):
+        clock[0] += 10
+        out_verifier.verify(make_token(key_a, kid, **late), clock)
+    check("5 requests inside the back-off", "fetches: 1", "fetches: %d" % (out.fetches - before))
+    clock[0] += 20
+    out_verifier.verify(late_a, clock)
+    check("back-off over, the next request retries", "fetches: 2", "fetches: %d" % (out.fetches - before))
+    out.script = [{"keys": [jwk_b]}]
+    clock[0] += 60
+    check("endpoint back, the removed key", "reject: unknown kid", out_verifier.verify(late_a, clock))
+    check("endpoint back, the new key", "accept", out_verifier.verify(late_b, clock))
 
     print()
     print("Part C: revocation.")

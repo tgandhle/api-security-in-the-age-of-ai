@@ -12,7 +12,7 @@
 <main>
 <p class="kicker">Part 1: Proving who is calling &middot; Module 6</p>
 <h1>JWKS, revocation and introspection</h1>
-<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<p class="meta">Last reviewed 2026-10-04 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 
 <div class="prose">
 <p><strong>Objective.</strong> After this module you can say which key a verifier will use and why, write down which refresh outcomes are allowed to change what it holds, measure how long a withdrawn grant keeps working, and test the failure states rather than the happy path.</p>
@@ -61,11 +61,12 @@
 non-2xx status                   no, keep         this request fails
 transport failure or timeout     no, keep         this request fails
 unknown kid after a refresh      n/a              reject, unknown kid</code></pre>
-<p class="meta">Rows two and three are the pair that matters. Getting them the same way round is the defect.</p>
+<p class="meta">Rows two and three are the pair that matters. Getting them the same way round is the defect. "This request fails" means a request whose <code>kid</code> is not in the set you kept. A request whose <code>kid</code> is in the kept set is still served.</p>
 
 <h3>How the verifier resolves a key</h3>
 <ol class="steps prose">
 <li>If the set is older than its maximum age, refresh on your own schedule. Without this, a key the issuer removed keeps verifying for as long as its <code>kid</code> stays in the cache.</li>
+<li>If a refresh attempt fails, keep the last known good set and start a back-off. Make no other attempt until it has passed, so a failing endpoint is asked once per back-off, not once per request. Time the back-off from the failed attempt, and keep that time separate from the time of the last successful load, so a healthy endpoint is still refreshed on schedule. While the endpoint is down, a <code>kid</code> in the stale set still verifies. That is a choice: a key the issuer removed lasts for the whole outage, and for up to one back-off after it.</li>
 <li>Look up the <code>kid</code> from the token header. Use it only to select from keys you already trust; never to fetch anything.</li>
 <li>If the <code>kid</code> is missing from the set, allow one bounded refresh, with request coalescing so concurrent misses cause one fetch, and a cooldown so a stream of unknown <code>kid</code> values cannot drive a fetch storm against your issuer.</li>
 <li>If two eligible keys share that <code>kid</code>, reject as ambiguous. Do not select by array order.</li>
@@ -115,8 +116,9 @@ unknown kid after a refresh      n/a              reject, unknown kid</code></pr
 <tbody>
 <tr><td>Scheduled refresh</td><td>Refresh the key set when it passes 10 minutes old</td><td>Your issuer documents a different rotation cadence. Removing the schedule entirely is what makes a withdrawn key keep working.</td></tr>
 <tr><td>Refresh on unknown <code>kid</code></td><td>One bounded attempt, coalesced across concurrent requests, with a 5 minute cooldown</td><td>Never remove the cooldown. Without it, a stream of invented <code>kid</code> values is a denial of service aimed at your issuer.</td></tr>
+<tr><td>Back-off after a failed refresh</td><td>Wait 60 seconds after any failed attempt before the next one, timed from the failure and not from the last successful load</td><td>Project baseline, not a specification requirement. A longer back-off spares the issuer and lets a removed key verify for longer once the endpoint is back. Do not reuse the 5 minute cooldown here. Measured in the lab, one failed attempt then keeps a removed key verifying for 899 seconds, against 659 with this default.</td></tr>
 <tr><td>Successful set with zero keys</td><td>Authoritative. Replace what you hold, and reject everything after it</td><td>Project baseline, not a specification requirement. If you invert it, write down that a deliberately emptied key set will not take effect.</td></tr>
-<tr><td>Malformed or failed refresh</td><td>Not authoritative. Keep the last known good set, and fail the request that needed the refresh</td><td>Project baseline. Inverting it means one bad gateway response logs out every caller.</td></tr>
+<tr><td>Malformed or failed refresh</td><td>Not authoritative. Keep the last known good set, and fail the request that needed the refresh. A request whose <code>kid</code> is in the kept set is still served, even when the set is past its maximum age</td><td>Project baseline. Inverting it means one bad gateway response logs out every caller. The cost is that a removed key keeps verifying for as long as the endpoint is down, so alert on the outage.</td></tr>
 <tr><td>Duplicate <code>kid</code></td><td>Reject as ambiguous</td><td>Never select by array order. RFC 7517 and FAPI 2.0 both recommend against publishing duplicates, so treat a set containing them as a fault to report.</td></tr>
 <tr><td>Revocation bound</td><td>A documented number, tested, not an aspiration</td><td>Choose it from the impact of a compromised token. The number you can defend is the token lifetime plus every cache TTL on the path.</td></tr>
 <tr><td>Introspection caching</td><td>Cache only if you can state the resulting blind window</td><td>RFC 7662 allows caching "at the cost of liveness", and requires that a response carrying <code>exp</code> is not cached beyond it.</td></tr>
@@ -126,7 +128,7 @@ unknown kid after a refresh      n/a              reject, unknown kid</code></pr
 <div class="prose">
 <p><strong>Proves:</strong> that the signature was made by a key the issuer publishes now, or published recently enough that your cache still holds it, and, if you consult active state, that the grant was live at the moment you asked.</p>
 <p><strong>Doesn't prove:</strong> that the grant is live now. Every answer you have is as old as the cache it came from.</p>
-<div class="callout warn"><strong>Your revocation bound is a sum, not a setting.</strong> It is an upper limit: the <a href="../../glossary/index.html#access-token">access token</a> lifetime, plus the key cache maximum age where key removal is the mechanism, plus the introspection cache TTL, plus any gateway or CDN cache in front. Teams quote the token lifetime and forget the rest. Measure it end to end by disabling an account and timing how long a request keeps succeeding, at every layer that answers.</div>
+<div class="callout warn"><strong>Your revocation bound is a sum, not a setting.</strong> It is an upper limit: the <a href="../../glossary/index.html#access-token">access token</a> lifetime, plus the key cache maximum age where key removal is the mechanism (and, while the key endpoint is failing, the length of the outage and one back-off), plus the introspection cache TTL, plus any gateway or CDN cache in front. Teams quote the token lifetime and forget the rest. Measure it end to end by disabling an account and timing how long a request keeps succeeding, at every layer that answers.</div>
 </div>
 
 <h2>6. Prove it</h2>
@@ -140,6 +142,9 @@ unknown kid after a refresh      n/a              reject, unknown kid</code></pr
 <li>A key rotated out after the overlap, which must stop verifying without anyone restarting the service.</li>
 <li>A successful response containing an empty key list.</li>
 <li>A refresh returning a 502 error page, a truncated body, or a timeout, where the last known good set must survive and the triggering request must still fail.</li>
+<li>A key endpoint that stays down after the set has passed its maximum age, where any number of requests inside the back-off cause one fetch, for cached and invented <code>kid</code> values alike.</li>
+<li>The first request after the back-off, which must cause one more attempt.</li>
+<li>The endpoint coming back with a different key set, where the removed key stops verifying and the new key verifies, without anyone restarting the service.</li>
 <li>A set containing two keys with the same <code>kid</code>.</li>
 <li>A <code>kid</code> naming a key published with <code>use</code> of <code>enc</code>.</li>
 <li>A token header carrying <code>jku</code> or <code>x5u</code>, which must change nothing.</li>
@@ -182,24 +187,32 @@ Part B: the cache as a state machine.
 13. malformed refresh kept the last good set    accept
 14. transport failure, the request needing it   reject: key set refresh failed
 15. transport failure kept the last good set    accept
+16. outage, stale set, kid still in the set     accept
+17. 5 requests inside the back-off              fetches: 1
+18. back-off over, the next request retries     fetches: 2
+19. endpoint back, the removed key              reject: unknown kid
+20. endpoint back, the new key                  accept
 
 Part C: revocation.
-16. before revocation                           accept
-17. after revocation, local validation only     accept
-18. after revocation, active state consulted    reject: token not active
-19. first call fills the active-state cache     accept
-20. revoked, but inside the cache window        accept
-21. the same token once the cache expires       reject: token not active
+21. before revocation                           accept
+22. after revocation, local validation only     accept
+23. after revocation, active state consulted    reject: token not active
+24. first call fills the active-state cache     accept
+25. revoked, but inside the cache window        accept
+26. the same token once the cache expires       reject: token not active
 
 all lab checks passed</code></pre>
 <div class="prose">
 <p>Check 11 is the one worth sitting with. The issuer emptied its key set, which is what you would do if a signing key leaked, and the cache honoured it. A verifier that treats an empty set as "nothing to learn here" keeps accepting the compromised key indefinitely, and nothing in its logs looks wrong. Compare it with checks 12 and 14, where the refresh genuinely failed and keeping the old set is the right answer.</p>
-<p>Checks 17, 20 and 21 are the revocation bound made visible: local validation never notices, the introspection cache extends the window by its TTL, and only after that does the token stop working.</p>
+<p>Checks 16 to 20 are one outage. The issuer removed a key, and its endpoint went down before the cache learned of it. Check 16 is the cost of keeping the last known good set: the removed key still verifies from a stale set. Check 17 is the back-off: five requests, two of them with invented <code>kid</code> values, cause one fetch. Check 18 is the retry once the 60 second back-off has passed. Checks 19 and 20 are the recovery: the new set replaces the old one, the removed key stops and the new key verifies.</p>
+<p>How long can a removed key keep verifying? Measured against this cache with one request a second: 599 seconds after the last successful load when the endpoint is healthy, 659 seconds when one refresh attempt fails, and 1619 seconds through a 1000 second outage that starts as the set goes stale. Those 1000 requests cause 17 fetches. Without the back-off they cause 1000. So the bound is the maximum age, plus the outage, plus one back-off, and the outage is the part you do not control.</p>
+<p>Checks 22, 25 and 26 are the revocation bound made visible: local validation never notices, the introspection cache extends the window by its TTL, and only after that does the token stop working.</p>
 <p><strong>Try next:</strong></p>
 <ul>
 <li>In <code>KeyCache._absorb</code>, keep the old keys when the new set is empty. Check 11 flips to accept. You have just built the defect this module exists for.</li>
-<li>In <code>resolve</code>, change <code>if not self.loaded or stale:</code> to <code>if not self.loaded:</code>. Exit 1, two failures: checks 10 and 11 go from <code>reject: unknown kid</code> to <code>accept</code>. Which key can now never be withdrawn?</li>
-<li>In Part C, on the line that builds the <code>cached</code> <a href="../../glossary/index.html#resource-server">resource server</a>, change <code>cache_ttl=300</code> to <code>cache_ttl=3600</code> and rerun. Exit 1, one failure: check 21 goes from <code>reject: token not active</code> to <code>accept</code>. State the new revocation bound in seconds, then add the token lifetime to it for the upper limit. This lab's resource server reaches 3599 seconds, not the sum of 7230.</li>
+<li>In <code>resolve</code>, change <code>if not self.loaded or stale:</code> to <code>if not self.loaded:</code>. Exit 1, five failures: checks 10, 11 and 19 go from <code>reject: unknown kid</code> to <code>accept</code>, check 18 prints <code>fetches: 1</code> and check 20 prints <code>reject: unknown kid</code>. Which key can now never be withdrawn?</li>
+<li>In Part C, on the line that builds the <code>cached</code> <a href="../../glossary/index.html#resource-server">resource server</a>, change <code>cache_ttl=300</code> to <code>cache_ttl=3600</code> and rerun. Exit 1, one failure: check 26 goes from <code>reject: token not active</code> to <code>accept</code>. State the new revocation bound in seconds, then add the token lifetime to it for the upper limit. This lab's resource server reaches 3599 seconds, not the sum of 7230.</li>
+<li>In <code>KeyCache</code>, change <code>backoff = 60</code> to <code>backoff = 0</code>. Exit 1, two failures: check 17 prints <code>fetches: 5</code> and check 18 prints <code>fetches: 6</code>. Every request during the outage now reaches the failing endpoint.</li>
 </ul>
 </div>
 
@@ -233,7 +246,7 @@ all lab checks passed</code></pre>
 </div>
 <fieldset><legend>Which checks change?</legend>
 <label><input type="radio" name="jwks-x1" value="a"> Check 9, the rotation overlap, stops working.</label>
-<label><input type="radio" name="jwks-x1" value="b" data-correct="true"> Checks 10 and 11 become <code>accept</code>.</label>
+<label><input type="radio" name="jwks-x1" value="b" data-correct="true"> Checks 10, 11 and 19 become <code>accept</code>, and checks 18 and 20 fail with them.</label>
 <label><input type="radio" name="jwks-x1" value="c"> Checks 12 and 14 change, because refreshes stop happening.</label>
 <label><input type="radio" name="jwks-x1" value="d"> Nothing. The on-demand refresh covers it.</label>
 </fieldset>
@@ -242,7 +255,7 @@ all lab checks passed</code></pre>
 <details class="exercise-answers"><summary>Every option, and why</summary>
 <ul>
 <li data-option="a">Check 9 is a token signed by a key that is still in the set, so it accepts either way. Rotation overlap is not what breaks.</li>
-<li data-option="b">Correct. Exit 1, two failures: check 10, the old key removed after the overlap, and check 11, a successful empty set evicting the old key, both go from <code>reject: unknown kid</code> to <code>accept</code>. The key the issuer took away keeps verifying tokens for as long as its <code>kid</code> stays in the cache, which is until some other request happens to bring an unknown <code>kid</code> and trigger a refresh. This is the whole reason for a scheduled refresh, and check <code>jwks-02</code> in the <a href="#reference">Reference</a> layer states it as a requirement rather than an optimisation.</li>
+<li data-option="b">Correct. Exit 1, five failures. Check 10, the old key removed after the overlap, and check 11, a successful empty set evicting the old key, both go from <code>reject: unknown kid</code> to <code>accept</code>. The outage fails with them: check 18 prints <code>fetches: 1</code> because nothing retries after the back-off, check 19 accepts the removed key after the endpoint is back, and check 20 prints <code>reject: unknown kid</code> because the only refresh left is the on-demand one and it is inside its cooldown. The key the issuer took away keeps verifying tokens for as long as its <code>kid</code> stays in the cache, which is until some other request happens to bring an unknown <code>kid</code> and trigger a refresh. This is the whole reason for a scheduled refresh, and check <code>jwks-02</code> in the <a href="#reference">Reference</a> layer states it as a requirement rather than an optimisation.</li>
 <li data-option="c">Checks 12 and 14 are on-demand refreshes driven by a missing <code>kid</code>, which this edit leaves in place.</li>
 <li data-option="d">The on-demand refresh only fires when a <code>kid</code> is missing from the cache. A revoked key's <code>kid</code> is still in the cache, so nothing ever asks.</li>
 </ul>
@@ -257,18 +270,18 @@ all lab checks passed</code></pre>
 <pre><code>if cached:
     active = cached[0]</code></pre>
 <fieldset><legend>Which checks change?</legend>
-<label><input type="radio" name="jwks-x2" value="a"> Check 21 only. The cache stops expiring.</label>
-<label><input type="radio" name="jwks-x2" value="b"> Checks 19 and 20, where the cache is filled and used.</label>
-<label><input type="radio" name="jwks-x2" value="c" data-correct="true"> Checks 18 and 21 both become <code>accept</code>.</label>
-<label><input type="radio" name="jwks-x2" value="d"> Nothing. Check 18 uses a server whose TTL is zero.</label>
+<label><input type="radio" name="jwks-x2" value="a"> Check 26 only. The cache stops expiring.</label>
+<label><input type="radio" name="jwks-x2" value="b"> Checks 24 and 25, where the cache is filled and used.</label>
+<label><input type="radio" name="jwks-x2" value="c" data-correct="true"> Checks 23 and 26 both become <code>accept</code>.</label>
+<label><input type="radio" name="jwks-x2" value="d"> Nothing. Check 23 uses a server whose TTL is zero.</label>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button>
 <p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 <details class="exercise-answers"><summary>Every option, and why</summary>
 <ul>
-<li data-option="a">Check 21 does change, and so does check 18, which is the more interesting of the two.</li>
-<li data-option="b">Checks 19 and 20 accept in the published run as well. A cache that is working looks the same as a cache that never expires, right up to the moment something is revoked.</li>
-<li data-option="c">Correct. Exit 1, two failures: both go from <code>reject: token not active</code> to <code>accept</code>. Check 18 is the one worth looking at. Its server has a TTL of zero, which should mean no caching at all, and the published code gets that right because <code>now - stored &lt; 0</code> is never true. Remove the comparison and a zero TTL becomes an unbounded one, so the <code>active: true</code> recorded before the revocation is reused forever. Check <code>jwks-07</code> in the <a href="#reference">Reference</a> layer asks you to state the blind window, and the point of stating it is that it has to be a number.</li>
+<li data-option="a">Check 26 does change, and so does check 23, which is the more interesting of the two.</li>
+<li data-option="b">Checks 24 and 25 accept in the published run as well. A cache that is working looks the same as a cache that never expires, right up to the moment something is revoked.</li>
+<li data-option="c">Correct. Exit 1, two failures: both go from <code>reject: token not active</code> to <code>accept</code>. Check 23 is the one worth looking at. Its server has a TTL of zero, which should mean no caching at all, and the published code gets that right because <code>now - stored &lt; 0</code> is never true. Remove the comparison and a zero TTL becomes an unbounded one, so the <code>active: true</code> recorded before the revocation is reused forever. Check <code>jwks-07</code> in the <a href="#reference">Reference</a> layer asks you to state the blind window, and the point of stating it is that it has to be a number.</li>
 <li data-option="d">It does, which is why the published run rejects there. A TTL of zero only means no caching while something still compares against it.</li>
 </ul>
 </details>
@@ -337,8 +350,9 @@ all lab checks passed</code></pre>
 <li><span class="label std">Standard</span>An introspection response may be cached "at the cost of liveness of the information used by the protected resource to make authorization decisions" (RFC 7662 section 2.2), and a response carrying <code>exp</code> must not be cached beyond it (section 4).</li>
 <li><span class="label base">Baseline</span>Refresh the key set on a schedule once it passes a maximum age, independently of whether any <code>kid</code> is missing.</li>
 <li><span class="label base">Baseline</span>On an unknown <code>kid</code>, allow one bounded refresh, coalesce concurrent misses into a single fetch, and apply a cooldown so caller-supplied identifiers cannot drive a fetch storm.</li>
+<li><span class="label base">Baseline</span>After a failed refresh attempt, make no other attempt until a back-off has passed. Time it from the failure and track it separately from the last successful load, so a failing endpoint is not fetched on every request and a healthy one is still refreshed on schedule.</li>
 <li><span class="label base">Baseline</span>A successful, well formed key set is authoritative even when it contains zero usable signing keys. It replaces what you hold.</li>
-<li><span class="label base">Baseline</span>A malformed, truncated, non-success or transport-failed refresh is not authoritative. Keep the last known good set, and fail the request that required the refresh.</li>
+<li><span class="label base">Baseline</span>A malformed, truncated, non-success or transport-failed refresh is not authoritative. Keep the last known good set, and fail the request that required the refresh. Keep serving the kept set while the endpoint is down, and count the outage and one back-off in the revocation bound.</li>
 <li><span class="label base">Baseline</span>Reject a <code>kid</code> that matches more than one eligible key rather than selecting by array order, and report it as an issuer fault.</li>
 <li><span class="label base">Baseline</span>State the revocation bound as a sum of the token lifetime and every cache TTL on the path, and test it by disabling an account and timing the result.</li>
 <li><span class="label opt">Option</span>Use introspection or a denylist at the resource server when the revocation bound must be shorter than the token lifetime. The cost is a live dependency on the authorization server.</li>
