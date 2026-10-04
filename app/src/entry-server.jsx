@@ -7,6 +7,7 @@ import Home from "./Home.jsx";
 import Glossary from "./Glossary.jsx";
 import Checklist from "./Checklist.jsx";
 import Roadmap from "./Roadmap.jsx";
+import Coverage from "./Coverage.jsx";
 import { course, lessons } from "./content.js";
 import { home, glossary, roadmap } from "./pages.js";
 
@@ -23,7 +24,10 @@ export function sitePages() {
       render: (up) => <Checklist lessons={lessons} up={up} /> },
     { path: "roadmap/index.html", up: "../", title:
         "Course roadmap | API Security in the Age of AI",
-      render: () => <Roadmap blocks={roadmap.blocks} /> }
+      render: () => <Roadmap blocks={roadmap.blocks} /> },
+    { path: "coverage/index.html", up: "../", title:
+        "OWASP coverage | API Security in the Age of AI",
+      render: () => <Coverage /> }
   ];
 }
 

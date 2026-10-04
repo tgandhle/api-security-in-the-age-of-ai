@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract three of the four non-lesson pages into content/pages.json.
+"""Extract three of the five non-lesson pages into content/pages.json.
 
 Standard library only.
 
@@ -19,6 +19,8 @@ What this captures, and what it deliberately does not:
   checklist nothing. All 215 items already live in content/lessons/*.json and
             the app builds the page from them, the same source
             tools/build_checklist.py uses.
+  coverage  nothing. tools/build_coverage.py generates that page and writes
+            content/coverage.json for the app.
 
 Usage:
     python3 tools/extract_pages.py            # write content/pages.json
