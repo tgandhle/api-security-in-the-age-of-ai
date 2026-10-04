@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent code execution and containment | API Security in the Age of AI</title>
+<link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/course.js" defer></script>
+</head>
+<body data-course-lesson="agent-containment">
+<nav class="site-nav" aria-label="Site"><div><a class="home" href="../../index.html">API Security in the Age of AI</a><a href="../../index.html#course">Course</a><a href="../../index.html#path">Modules</a><a href="../../roadmap/index.html">Roadmap</a><a href="../../checklist/index.html">Checklist</a><a href="../../glossary/index.html">Glossary</a></div></nav>
+<main>
+<p class="kicker">Part 5: Hardening and operations &middot; Module 31</p>
+<h1>Agent code execution and containment</h1>
+<p class="meta">Last reviewed 2026-10-04 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+
+<div class="prose">
+<p><strong>Objective.</strong> After this module you can say what an agent's code execution tool is able to reach, write a <a href="../../glossary/index.html#deny-by-default">deny-by-default</a> policy for it, put enforced budgets on a run, stop one agent's bad output before the next agent acts on it, and disable an agent that has left its declared behaviour, including the credential it holds.</p>
+<p><strong>Before you start.</strong> Part 4 covered what an agent is allowed to do. <a href="../prompt-injection-and-output-handling/index.html">Module 22</a> showed that <a href="../../glossary/index.html#prompt-injection">prompt injection</a> cannot be reliably prevented, and <a href="../agent-authority-and-approvals/index.html">module 23</a> showed what a human approval does and does not cover. This module assumes both controls are in place and the agent does the wrong thing anyway. It is about what limits the damage then.</p>
+</div>
+<section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 32 of 32</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
+
+<span class="layer" id="learn">Learn</span>
+
+<h2>1. The attack</h2>
+<div class="prose">
+<p>Running example: ExampleAir runs an agent that counts bookings in a file and writes a summary. Company names are fictional. To do the work, the agent has a code execution tool: it can read and write files, fetch a URL and run a program. The task folder also holds a vendor's notes, and somebody has added one line to them addressed to the assistant.</p>
+<p>The model reads the notes and its plan grows from four steps to ten. The six new steps read a credential file, dump the environment, send both to <code>attacker.example</code>, write a scheduled job outside the working directory, and try to evaluate a line of code. Nothing was exploited in the usual sense. The tool did what the plan said, and the plan came from text. This is an illustration, not a command.</p>
+<p>OWASP's Top 10 for Agentic Applications for 2026 has three entries for what happens next, and this module takes one thread from each:</p>
+<ul>
+<li><strong>ASI05: Unexpected Code Execution (RCE).</strong> "Prompt injection, tool misuse, or unsafe serialization can convert text into unintended executable behavior."</li>
+<li><strong>ASI08: Cascading Failures.</strong> "Agentic cascading failures occur when a single fault (hallucination, malicious input, corrupted tool, or poisoned memory) propagates across autonomous agents, compounding into system-wide harm." This is a <a href="../../glossary/index.html#cascading-failure">cascading failure</a>.</li>
+<li><strong>ASI10: Rogue Agents.</strong> A <a href="../../glossary/index.html#rogue-agent">rogue agent</a> is one of the "malicious or compromised AI Agents that deviate from their intended function or authorized scope".</li>
+</ul>
+<p>The table shows which attempts succeed as each control from section 3 is added. The lab in section 7 measures each row: Parts A and B for the first two, Part C for the loop, and Part D for the last two.</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>The agent, after reading the poisoned notes, tries to</th><th>No containment</th><th>Sandbox</th><th>Sandbox and budgets</th><th>Everything in section 3</th></tr></thead>
+<tbody>
+<tr><td>Read the credential file and send it to <code>attacker.example</code></td><td class="yes">Works</td><td class="no">Blocked</td><td class="no">Blocked</td><td class="no">Blocked</td></tr>
+<tr><td>Write a file outside the working directory</td><td class="yes">Works</td><td class="no">Blocked</td><td class="no">Blocked</td><td class="no">Blocked</td></tr>
+<tr><td>Call an allowed host in a loop that never ends</td><td class="yes">Works</td><td class="yes">Works</td><td class="no">Blocked</td><td class="no">Blocked</td></tr>
+<tr><td>Pass a poisoned instruction to the next agent, which acts on it</td><td class="yes">Works</td><td class="yes">Works</td><td class="yes">Works</td><td class="no">Blocked</td></tr>
+<tr><td>Send one instruction that is wrong but inside every limit</td><td class="yes">Works</td><td class="yes">Works</td><td class="yes">Works</td><td class="yes">Works</td></tr>
+</tbody></table></div>
+<p class="prose">The last row never turns green. Containment bounds the damage. It does not decide whether an allowed action is the right one. Section 5 covers that limit.</p>
+
+<h2>2. Why it works</h2>
+<div class="prose">
+<p>Four broken assumptions sit behind the three entries.</p>
+<ul>
+<li><strong>"The tool only runs what we meant it to run."</strong> A code execution tool runs what the model asks for, and the model can be steered by anything it reads. ASI05 lists the routes: prompt injection that leads to attacker-defined code, shell commands taken from reflected prompts, unsafe function calls, object deserialization or code evaluation, exposed <code>eval()</code> functions in agent memory, and package installs where "hostile code executes during installation or import". It adds that because this code is "often generated in real-time by the agent it can bypass traditional security controls". Nobody reviewed it, scanned it or deployed it.</li>
+<li><strong>"The tool can only reach the task."</strong> By default the tool runs with whatever the agent process has: its files, its network and its environment variables. In the lab's Part A the credential is in a file and in the environment, and both leave. OWASP says ASI05 leads to "host or container compromise, persistence, or sandbox escape", which it calls "outcomes that require host and runtime-specific mitigations beyond ordinary tool-use controls". The tool table from module 22 decides which tool may be called and with which arguments. It does not decide what the tool can touch once it runs.</li>
+<li><strong>"A mistake stays where it was made."</strong> In a pipeline of agents, each one treats the previous one's output as its input. ASI08 "focuses on the propagation and amplification of faults rather than their origin", and lists among the observable symptoms "rapid fan-out where one faulty decision triggers many downstream agents or tasks in a short time". In the lab one message becomes five published fares.</li>
+<li><strong>"If every call is allowed, the agent is behaving."</strong> ASI10 says the agent's "actions may individually appear legitimate, but its emergent behavior becomes harmful, creating a containment gap for traditional rule-based systems". Each call can pass its check while the sequence does something nobody intended.</li>
+</ul>
+<p>OWASP's LLM list files the root condition as LLM03:2026 <a href="../../glossary/index.html#excessive-agency">Excessive Agency</a>, and says that in agentic systems it "can manifest as ASI02: Tool Misuse &amp; Exploitation, ASI03: Identity &amp; Privilege Abuse and ASI08: Cascading Failures". The runaway loop in the table is LLM06:2026 Unbounded Consumption, which lists tools that force an application "into recursive or infinite tool-calling loops". The agentic document is older than the 2026 LLM list and cites the 2025 numbering: where it says LLM06:2025 it means Excessive Agency, which is LLM03 in the 2026 edition this course pins.</p>
+<p>How the three entries relate, in OWASP's words: tool misuse is ASI02, but "if the misuse results in arbitrary or injected code execution, it is classified under ASI05 (Unexpected Code Execution)". ASI08 is about the spread and not the first fault. And "ASI10 focuses on the loss of behavioral integrity and governance once the drift begins, not the initial intrusion itself."</p>
+</div>
+
+<h2>3. The control</h2>
+<div class="prose">
+<p>None of the OWASP documents cited in this section sets requirements. Each OWASP entry is a list of guidelines, and the steps below report them in their own words. The order is the order a wrong step meets them.</p>
+</div>
+<h3>Contain the execution (ASI05)</h3>
+<ol class="steps prose">
+<li><strong>Give the tool a fixed vocabulary, not an evaluator.</strong> ASI05: "Ban eval in production agents: Require safe interpreters, taint-tracking on generated code." LLM03:2026 says the same from the other side: "Avoid the use of open-ended tools where possible (e.g., run a shell command, fetch a URL, etc.) and use tools with more granular functionality."</li>
+<li><strong>Run it in a <a href="../../glossary/index.html#sandbox">sandbox</a>.</strong> ASI05: "Never run as root. Run code in sandboxed containers with strict limits including network access". A sandbox is enforced from outside the thing it restricts.</li>
+<li><strong>Limit files to a working directory.</strong> ASI05: "Where possible, restrict filesystem access to a dedicated working directory and log file diffs for critical paths." Check the normalized path, so <code>/work/out/../../etc</code> is judged as <code>/etc</code>.</li>
+<li><strong>Limit the network with an <a href="../../glossary/index.html#egress-allowlist">egress allowlist</a>.</strong> LLM06:2026: "Restrict the LLM's access to network resources, internal services, and APIs." Parse the URL and compare the host exactly against an <a href="../../glossary/index.html#allowlist">allowlist</a>. The lab compares the host and nothing else. It does not check the scheme or the port and has no redirects. <a href="../ssrf-and-unsafe-consumption/index.html">Module 14</a> covers those, and the other ways a URL check goes wrong.</li>
+<li><strong>Keep credentials out of the execution environment.</strong> No token in an environment variable, no credential file in reach. A call that needs a credential goes through a component outside the sandbox that holds it, which is module 22's rule that the application holds the credential and the model does not.</li>
+<li><strong>Separate generating a plan from executing it.</strong> ASI05: "Isolate per-session environments with permission boundaries; apply least privilege; fail secure by default; separate code generation from execution with validation gates." A gate reads the whole plan before any step runs.</li>
+<li><strong>Review before elevated runs.</strong> ASI05: "Require human approval for elevated runs; keep an allowlist for auto-execution under version control; enforce role and action-based controls." Module 23 is about making that approval mean something. ASI05 also lists static scans before execution, runtime monitoring, and logging of all generation and runs.</li>
+</ol>
+<h3>Bound the run (LLM06:2026)</h3>
+<ol class="steps prose" start="8">
+<li><strong>Enforce a step budget and a spend ceiling on every run.</strong> LLM06:2026: "Enforce step limits, recursion depth limits, time limits, and per-run cost ceilings on all agent executions. Use state hashing to detect recursive loops." On spending caps it says: "These must be enforcement mechanisms that halt inference when exceeded, rather than alerting thresholds that fast-accumulating workloads can outpace." <a href="../rate-limiting-and-cost/index.html">Module 15</a> covers limits per caller. These are limits per run.</li>
+</ol>
+<h3>Stop the spread (ASI08)</h3>
+<ol class="steps prose" start="9">
+<li><strong>Put a <a href="../../glossary/index.html#trust-boundary">trust boundary</a> between agents.</strong> ASI08: "Isolation and trust boundaries: Sandbox agents, least privilege, network segmentation, scoped APIs, and mutual auth. to contain failure propagation."</li>
+<li><strong>Validate output at a checkpoint before the next agent acts on it.</strong> ASI08: "Checkpoints, governance agents, or human review for high risk before agent outputs are propagated downstream."</li>
+<li><strong>Cap the <a href="../../glossary/index.html#blast-radius">blast radius</a> and add a <a href="../../glossary/index.html#circuit-breaker">circuit breaker</a>.</strong> ASI08: "Implement blast-radius guardrails such as quotas, progress caps, circuit breakers between planner and executor." And: "Detect fast-spreading commands and throttle or pause on anomalies." The OWASP AI Agent Security Cheat Sheet also says: "Apply circuit breakers to prevent cascading failures."</li>
+</ol>
+<h3>Disable a rogue agent (ASI10)</h3>
+<ol class="steps prose" start="12">
+<li><strong>Declare what the agent is for, and sign the declaration.</strong> ASI10: "Attach signed behavioral manifests declaring expected capabilities, tools, and goals that are validated by orchestration services before each action." The lab signs the profile with an <a href="../../glossary/index.html#hmac">HMAC</a> key the agent never sees.</li>
+<li><strong>Monitor behaviour against that declaration.</strong> ASI10: "Monitor for anomalies such as excessive or abnormal actions executions."</li>
+<li><strong>Have a <a href="../../glossary/index.html#kill-switch">kill switch</a>, and make it revoke the credential.</strong> ASI10: "Implement rapid mechanisms like kill-switches and credential revocation to instantly disable rogue agents. Quarantine suspicious agents in sandboxed environments for forensic review." <a href="../../glossary/index.html#quarantine">Quarantine</a> stops the orchestrator dispatching calls. <a href="../../glossary/index.html#revocation">Revocation</a> stops the credential working in the system that accepts it, which is where <a href="../credential-lifecycle/index.html">module 8</a> says revocation happens.</li>
+<li><strong>Bring it back deliberately.</strong> ASI10: "Require fresh attestation, dependency verification, and human approval before reintegration into production networks."</li>
+</ol>
+
+<div class="prose">
+<p>ASI08 and ASI10 both also ask for a record: ASI10 for "comprehensive, immutable and signed audit logs of all agent actions, tool calls, and inter-agent communication". Module 30, Logging, detection and response, covers what to record and how to act on it. The lab keeps refused calls in the orchestrator's log for that reason.</p>
+</div>
+
+<h3>Where each control sits</h3>
+<div class="diagram">
+<svg viewBox="0 0 1100 430" width="100%" style="min-width:900px" role="img">
+<title>Where the containment controls sit around an agent's code execution tool</title>
+<desc>Top row, left to right: a poisoned document feeds a model, which produces a plan. The plan passes a review gate, then a sandbox that judges each step. Allowed steps reach the working directory and one allowed host. Refused steps go to a box marked refused and logged, and never reach attacker.example. Bottom band, around the run: budgets that stop a loop, a checkpoint and circuit breaker between agents, a monitor with a kill switch, and a credential broker that sits outside the sandbox and is where revocation takes effect.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+<text class="lab" x="20" y="24">One run. The model cannot be made safe, so every control is in the code around it.</text>
+
+<g class="r"><rect x="20" y="50" width="170" height="56" rx="8"/><text class="th" x="105" y="72" text-anchor="middle">Poisoned notes</text><text class="ts" x="105" y="92" text-anchor="middle">Text the agent reads</text></g>
+<g class="p"><rect x="225" y="50" width="170" height="56" rx="8"/><text class="th" x="310" y="72" text-anchor="middle">Model</text><text class="ts" x="310" y="92" text-anchor="middle">Plans ten steps</text></g>
+<g class="h"><rect x="430" y="50" width="170" height="56" rx="8"/><text class="th" x="515" y="72" text-anchor="middle">Review gate</text><text class="ts" x="515" y="92" text-anchor="middle">Reads the whole plan</text></g>
+<g class="h"><rect x="635" y="50" width="190" height="56" rx="8"/><text class="th" x="730" y="72" text-anchor="middle">Sandbox</text><text class="ts" x="730" y="92" text-anchor="middle">Judges each step</text></g>
+<g class="s"><rect x="880" y="20" width="200" height="50" rx="8"/><text class="th" x="980" y="41" text-anchor="middle">Working directory</text><text class="ts" x="980" y="59" text-anchor="middle">/work, write to /work/out</text></g>
+<g class="s"><rect x="880" y="86" width="200" height="50" rx="8"/><text class="th" x="980" y="107" text-anchor="middle">One allowed host</text><text class="ts" x="980" y="125" text-anchor="middle">fares.exampleair.example</text></g>
+<g class="r"><rect x="635" y="150" width="190" height="50" rx="8"/><text class="th" x="730" y="171" text-anchor="middle">Refused and logged</text><text class="ts" x="730" y="189" text-anchor="middle">Nothing reaches the attacker</text></g>
+
+<line class="arr" x1="190" y1="78" x2="221" y2="78" marker-end="url(#a)"/>
+<line class="arr" x1="395" y1="78" x2="426" y2="78" marker-end="url(#a)"/>
+<line class="arr" x1="600" y1="78" x2="631" y2="78" marker-end="url(#a)"/>
+<line class="arr" x1="825" y1="66" x2="876" y2="48" marker-end="url(#a)"/>
+<line class="arr" x1="825" y1="90" x2="876" y2="108" marker-end="url(#a)"/>
+<line class="rej" x1="730" y1="106" x2="730" y2="146" marker-end="url(#a)"/>
+
+<rect class="zone" x="20" y="230" width="1060" height="180" rx="12"/>
+<text class="lab" x="36" y="254">Around the run</text>
+<g class="h"><rect x="40" y="272" width="230" height="56" rx="8"/><text class="th" x="155" y="294" text-anchor="middle">Budgets</text><text class="ts" x="155" y="314" text-anchor="middle">Steps, spend, loop detector</text></g>
+<g class="h"><rect x="300" y="272" width="230" height="56" rx="8"/><text class="th" x="415" y="294" text-anchor="middle">Checkpoint and breaker</text><text class="ts" x="415" y="314" text-anchor="middle">Between one agent and the next</text></g>
+<g class="h"><rect x="560" y="272" width="230" height="56" rx="8"/><text class="th" x="675" y="294" text-anchor="middle">Monitor and kill switch</text><text class="ts" x="675" y="314" text-anchor="middle">Signed profile, quarantine</text></g>
+<g class="s"><rect x="820" y="272" width="240" height="56" rx="8"/><text class="th" x="940" y="294" text-anchor="middle">Credential broker</text><text class="ts" x="940" y="314" text-anchor="middle">Outside the sandbox</text></g>
+<line class="arr" x1="790" y1="300" x2="816" y2="300" marker-end="url(#a)"/>
+<text class="ts" fill="var(--muted)" x="40" y="356">Budgets end a run that will not end itself. The checkpoint and breaker stop output before another agent acts on it.</text>
+<text class="ts" fill="var(--muted)" x="40" y="378">The kill switch has to reach the broker. Quarantine alone leaves the credential working.</text>
+</svg>
+<div class="legend"><span class="lg-r">Untrusted input and refusals</span><span class="lg-p">Model</span><span class="lg-h">Controls</span><span class="lg-s">Resources and credentials</span></div>
+</div>
+
+<h2>4. Defaults and when to change them</h2>
+<div class="wrap"><table>
+<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>
+<tbody>
+<tr><td>What the tool can run</td><td>A fixed list of commands and programs. No evaluator.</td><td>A task needs a new one. Add it with its own policy check, not as a general shell.</td></tr>
+<tr><td>Files</td><td>Read one working directory per session. Write to one subdirectory of it.</td><td>Never widen to a home directory or a system path. Mount a copy of what the task needs.</td></tr>
+<tr><td>Network</td><td>No egress. Add hosts by exact name.</td><td>The task needs a host. A wildcard domain is a decision to trust everything hosted under it.</td></tr>
+<tr><td>Environment</td><td>No credential in it</td><td>Do not change this. Route the call through a broker outside the sandbox.</td></tr>
+<tr><td>Step budget</td><td>Set from the longest legitimate run you have measured, plus a margin. The lab uses 20 for a 4-step task.</td><td>Legitimate runs hit it. Raise it for that task, not for all tasks.</td></tr>
+<tr><td>Spend ceiling</td><td>Enforced per run. The run halts.</td><td>Never turn it into an alert. Lab checks 33 and 34 show what an alert stops: nothing.</td></tr>
+<tr><td>Checkpoint limits</td><td>The business limits, written down: the largest discount, the most items one message may change</td><td>The business limit changes. The lab's values are 30 percent and 2 routes.</td></tr>
+<tr><td>Breaker</td><td>Opens after 3 consecutive failures. A person resets it.</td><td>Reset it automatically only where a wrong output is cheap to undo.</td></tr>
+<tr><td>Agent profile</td><td>Declared tools and a call limit, signed by the orchestrator</td><td>The agent's job changes. Re-sign it. The agent never edits its own.</td></tr>
+<tr><td>Credential</td><td>One per agent, short-lived</td><td>ASI08 suggests going further: "Issue short-lived, task-scoped credentials for each agent run".</td></tr>
+</tbody></table></div>
+<div class="prose">
+<p>One default comes before all of these. The agentic document's opening letter calls it "Least-Agency": "This captures our advice to organizations to avoid unnecessary autonomy; deploying agentic behavior where it is not needed expands the attack surface without adding value." If the task does not need a code execution tool, the best sandbox is not having one.</p>
+</div>
+
+<h2>5. What it proves, and what it doesn't</h2>
+<div class="prose">
+<p><strong>Proves:</strong> that a step outside the policy did not run, that a run ended at its budget, that an output outside the checkpoint's limits did not reach the next agent, and that a revoked credential is refused.</p>
+<p><strong>Doesn't prove:</strong> that what ran was right. Lab check 53 sends a poisoned instruction that is inside every limit, a 30 percent cut on one route, with the checkpoint on and the breaker closed. It is published. A checkpoint validates shape and range. It cannot tell a legitimate 30 percent from an attacker's.</p>
+<p><strong>Doesn't detect the injection.</strong> Nothing in this module notices that the model was steered. The sandbox refuses the steps whatever their cause.</p>
+<p><strong>Doesn't make a sandbox out of a policy object.</strong> The lab's policy is consulted by the interpreter it restricts. A real sandbox is enforced by the operating system or a hypervisor, and sandboxes have had escapes. The lab also judges a path as text, and it uses one URL parser for both the check and the request. A real file system has symbolic links, which a check on the text does not see, and a real HTTP client may read a URL differently from the code that checked it. ASI05 names sandbox escape as an outcome, which is why the credential stays outside as well.</p>
+<p><strong>Doesn't keep up without automation.</strong> ASI08 describes "a potential discrepancy in the speed and scale of fault propagation in a multi-agent system and the ability of humans to keep up with them", and says this "leaves some unmitigated risks that the enterprise must evaluate carefully". A breaker that needs a person to open it is not a breaker.</p>
+<div class="callout warn"><strong>Quarantine is not revocation.</strong> Check 59 of the lab takes a quarantined agent and has it call the fares API directly with the credential it already holds. The call succeeds. Quarantine is enforced by the orchestrator, and the agent did not go through the orchestrator. Check 60 revokes the credential and the same call is refused. A kill switch that only stops dispatching is a request to the agent to stop.</div>
+</div>
+
+<h2>6. Prove it</h2>
+<div class="prose">
+<p>A working deployment must refuse every one of these. If any is accepted, the control is broken:</p>
+<ul>
+<li>A read of a file outside the working directory, including a credential file in the agent's home directory.</li>
+<li>A write whose path leaves the write directory through <code>..</code> segments.</li>
+<li>A request to a host that is not listed, to a lookalike that ends in another domain, and to a URL that puts the allowed host in the userinfo position before <code>@</code>.</li>
+<li>A program that is not on the list, and an allowed program pointed at a path outside the read directory.</li>
+<li>A dump of the environment that contains any credential. Run it inside the sandbox and read the output.</li>
+<li>A step the tool has no command for. It must be refused, not passed to an evaluator.</li>
+<li>Step number <em>budget plus one</em> of a loop, and the step that would take spend over the ceiling.</li>
+<li>An output from one agent with a field out of range, an unknown field, or more items than the cap, before the next agent is called.</li>
+<li>A valid message while the breaker is open.</li>
+<li>A tool call that is not in the agent's signed profile, and a profile the agent edited.</li>
+<li>A call with a revoked credential, made directly to the resource and not through the orchestrator.</li>
+</ul>
+<p>The OWASP AI Agent Security Cheat Sheet lists two of these as abuse cases to keep as repeatable tests: for recursive tool abuse, "Chain depth, retry, token, and cost limits stop runaway loops", and for multi-agent chaining, "One compromised agent cannot cause another agent to exceed its trust boundary".</p>
+</div>
+
+<h2>7. Lab</h2>
+<div class="prose">
+<p>Download <a href="../../labs/containment_lab.py"><code>labs/containment_lab.py</code></a> and run it with Python 3. It needs no packages beyond the standard library. On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>.</p>
+<p>Nothing in the lab executes code. There is no model, no shell and no network, and it never calls <code>eval</code> or <code>exec</code>. The execution tool is an interpreter over four commands that act on a dictionary standing in for a file system. The model is a stub that returns a fixed plan. Secrets are random for each run and never printed, so the output is the same every time.</p>
+</div>
+<pre><code>$ python3 labs/containment_lab.py
+nothing is executed: no model, no shell, no network, no eval
+
+Part A: no containment. The tool does whatever the plan says.
+ 1. steps the model plans from the task alone                       4
+ 2. steps it plans after also reading the vendor notes              10
+ 3. steps that ran, of 10                                           9
+ 4. requests attacker.example received                              2
+ 5.   the credential file's secret is in them                       True
+ 6.   the environment's token is in them                            True
+ 7. files created outside /work                                     ['/etc/cron.d/sync']
+ 8. step 10, eval: the tool has no such command                     refused: unknown command
+ 9. the real task's summary file                                    bookings: 3
+
+Part B: the same plan in a deny-by-default sandbox.
+10. steps 1 to 4, the real task                                     ['ok', 'ok', 'ok', 'ok']
+11. step 5, read the credential file                                refused: path is outside the read roots
+12. step 6, send it to attacker.example                             refused: host is not on the egress allowlist
+13. step 7, run env                                                 refused: program is not on the allowlist
+14. step 8, send that to attacker.example                           refused: host is not on the egress allowlist
+15. step 9, write through ../.. to /etc/cron.d                      refused: path is outside the write roots
+16. step 10, eval                                                   refused: unknown command
+17. requests attacker.example received                              0
+18. hosts a request was sent to                                     ['fares.exampleair.example']
+19. files created outside /work                                     []
+20. the real task's summary file                                    bookings: 3
+21. an allowed program pointed at the credential file               refused: path is outside the read roots
+22. a lookalike host that ends in attacker.example                  refused: host is not on the egress allowlist
+23. the allowed host as userinfo in front of attacker.example       refused: host is not on the egress allowlist
+24. if env were allowed by mistake, it prints                       ok: HOME=/work
+25. review gate: steps of the 10 it flags before running any        [5, 6, 7, 8, 9, 10]
+26.   so the plan is                                                held for approval
+27.   steps that ran while it was held                              0
+28. review gate on the 4-step plan                                  auto-executed
+
+Part C: budgets on a loop that never finishes by itself.
+29. no budget: stopped by, steps, spend                             ("the lab's own cap", 1000, 5000)
+30. step budget of 20: stopped by, steps, spend                     ('step budget exhausted', 20, 100)
+31. spend ceiling of 62: stopped by, steps, spend                   ('spend ceiling reached', 12, 60)
+32.   spend went over the ceiling                                   False
+33. the same ceiling as an alert only: stopped by, steps, spend     ("the lab's own cap", 1000, 5000)
+34.   alerts it raised while the loop carried on                    988
+35. loop detector, third identical state: stopped by, steps, spend  ('loop detected', 3, 15)
+36. the real 4-step task under a 20 step, 62 unit budget            ('finished', 4, 20)
+
+Part D: one poisoned message and three agents.
+37. no checkpoint, poisoned message                                 published
+38.   fares published from that one message                         5
+39.   the lowest of them                                            ('DFW-CDG', 20)
+40. checkpoint, poisoned message                                    refused: discount_pct 95 is outside 0 to 30
+41.   times the pricing agent was called                            0
+42. checkpoint, a 30 percent cut on all five routes                 refused: 5 routes is over the cap of 2
+43. checkpoint, clean message                                       published
+44.   fares published                                               [('DFW-LHR', 378)]
+45. three poisoned, then one inside the limits: the fourth is       published
+46.   fares published, checkpoint only                              [('DFW-LHR', 294)]
+47. breaker state after each of the three failures                  ['closed', 'closed', 'open']
+48.   the fourth message, with the breaker                          refused: circuit open
+49.   fares published, checkpoint and breaker                       []
+50.   a clean message while it is open                              refused: circuit open
+51.   the clean message after a person resets it                    published
+52. two failures, a success, one failure: breaker state             closed
+53. one message inside the limits, with a closed breaker            published
+
+Part E: an agent that leaves its declared profile.
+54. declared tools, in order                                        ['ok', 'ok']
+55. an undeclared tool, http_get                                    refused: http_get is not in the profile, agent quarantined
+56.   a declared tool after that                                    refused: agent is quarantined
+57.   the other agent, same tool                                    ok
+58. the agent edits its own profile and reuses the signature        refused: profile signature does not verify
+59. quarantined agent calls the fares API directly                  200 fares
+60.   the same call after the kill switch revokes its credential    401 credential not accepted
+61.   the other agent's credential                                  200 fares
+62. declared tool only, calls 2 to 5 of a declared 4                ['ok', 'ok', 'ok', 'refused: over the declared 4 calls, agent quarantined']
+63. agents in quarantine                                            ['fare-summariser', 'fare-reporter']
+64. calls kept in the log for review, refused ones included         10
+
+all 64 lab checks passed</code></pre>
+<div class="prose">
+<p>Four results are worth a second look. Check 24 allows the <code>env</code> program by mistake and it prints <code>HOME=/work</code> and nothing else. The program allowlist failed and the empty environment still held. That is the reason to have both.</p>
+<p>Checks 33 and 34 give the spend ceiling to an alert and not to an enforcement point. The alert fires 988 times and the loop runs to the lab's own cap of 1000 steps.</p>
+<p>Checks 45 to 49 are the case for the circuit breaker. After three refused messages, the fourth is inside the limits and the checkpoint alone publishes it. With the breaker open, it is refused. A source that has just failed three times is not one whose next output you want to take on its merits.</p>
+<p>Checks 59 to 61 separate quarantine from revocation, and check 61 shows why each agent has its own credential: revoking one leaves the other working.</p>
+<p><strong>Try next:</strong></p>
+<ul>
+<li>In <code>Policy</code>, change <code>programs</code> to <code>("count_rows", "env")</code>. Check 13 becomes <code>ok</code> and check 25 becomes <code>[5, 6, 8, 9, 10]</code>, so the lab exits 1. Check 17 still prints <code>0</code>: the dump ran, held no credential, and had nowhere to go.</li>
+<li>In <code>decide</code>, replace the test <code>urlsplit(args[0]).hostname not in policy.egress_hosts</code> with <code>FARES_HOST not in args[0]</code>. Checks 22 and 23 both become <code>ok</code> and the lab exits 1. A substring test passes any URL that mentions the allowed host anywhere.</li>
+</ul>
+</div>
+
+<h2>8. Check your understanding</h2>
+<details><summary>The agent's tool table from module 22 allows only <code>run_code</code>. Why is that not containment?</summary><p>The table decides which tool may be called and with which arguments. It says nothing about what the tool can reach once it runs. A code execution tool with the agent's files, network and environment can do anything the agent's process can. OWASP describes the outcomes of ASI05 as needing "host and runtime-specific mitigations beyond ordinary tool-use controls".</p></details>
+<details><summary>The spend ceiling sends an alert when it is crossed. Is the run bounded?</summary><p>No. LLM06:2026 says caps "must be enforcement mechanisms that halt inference when exceeded, rather than alerting thresholds that fast-accumulating workloads can outpace". In the lab the alert-only ceiling raises 988 alerts while the loop runs to 1000 steps.</p></details>
+<details><summary>The checkpoint refused three messages from the intake agent. The fourth is valid. Should it go through?</summary><p>Not automatically. The checkpoint only sees shape and range, and the fourth message in the lab is a poisoned instruction that happens to be inside the limits. The breaker opens after three consecutive failures and holds everything from that source until a person has looked.</p></details>
+<details><summary>You quarantined an agent ten minutes ago. What have you not done yet?</summary><p>Revoked its credential. Quarantine stops the orchestrator dispatching its calls. If the agent, or whoever controls it, holds a credential and can reach the resource directly, the credential still works until it is revoked where it is accepted. Then confirm that it is refused, as module 8 teaches.</p></details>
+
+<section class="course-quiz" data-quiz data-quiz-id="agent-containment-check" data-correct-feedback="Correct. Quarantine is enforced by the orchestrator. A call that does not pass through the orchestrator is stopped only when the resource refuses the credential." data-incorrect-feedback="Not quite. The sandbox, the breaker and the profile all sit in front of calls the orchestrator dispatches. A direct call with a credential the agent already holds reaches the resource, and only revocation makes the resource refuse it.">
+<p class="kicker">Quick check</p>
+<h2>Stop a quarantined agent</h2>
+<fieldset><legend>An agent is quarantined after calling a tool outside its profile. It then calls an API directly with the credential it was issued. What makes that call fail?</legend>
+<label><input type="radio" name="agt" value="quarantine"> The quarantine, which refuses every call from that agent.</label>
+<label><input type="radio" name="agt" value="revoke" data-correct="true"> Revoking the credential, so the API refuses it.</label>
+<label><input type="radio" name="agt" value="breaker"> The circuit breaker, which opens after the failure.</label>
+<label><input type="radio" name="agt" value="profile"> The signed profile, which does not list that API.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+</section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="agent-containment-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/containment_lab.py"><code>labs/containment_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant, not a reading of the code. The lab compares every result with the one it expects, so each of these edits also makes it exit 1 and list what differed. None of them needs a package.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="agt-x1" data-covers="agt-02">
+<h3>1. The path check stops normalizing</h3>
+<div class="prose">
+<p>In <code>inside</code>, delete the line <code>path = posixpath.normpath(path)</code>. The function now tests the path as written.</p>
+</div>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="agt-x1" value="a"> None. The path in step 9 still does not start with <code>/work/out/</code>.</label>
+<label><input type="radio" name="agt-x1" value="b"> Check 15 only. Step 9 becomes <code>ok</code>.</label>
+<label><input type="radio" name="agt-x1" value="c" data-correct="true"> Checks 15, 19 and 25.</label>
+<label><input type="radio" name="agt-x1" value="d"> Checks 11 and 15. The credential file becomes readable too.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">The path is <code>/work/out/../../etc/cron.d/sync</code>, and as written it does start with <code>/work/out/</code>. That is the whole trick. The run exits 1.</li>
+<li data-option="b">Check 15 does become <code>ok</code>, but the write then happens, and two other checks see its effect.</li>
+<li data-option="c">Correct. Exit 1, three failures. Check 15 goes from <code>refused: path is outside the write roots</code> to <code>ok</code>. Check 19 goes from <code>[]</code> to <code>['/etc/cron.d/sync']</code>, because the file system resolves the path even though the check did not. Check 25 goes from <code>[5, 6, 7, 8, 9, 10]</code> to <code>[5, 6, 7, 8, 10]</code>: the review gate uses the same function, so it stops flagging step 9 as well. Check <code>agt-02</code> in the <a href="#reference">Reference</a> layer says to check the normalized path for this reason.</li>
+<li data-option="d">Check 11 still refuses. <code>/home/agent/.credentials</code> does not begin with <code>/work</code> with or without normalizing.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="agt-x2" data-covers="agt-05">
+<h3>2. The spend ceiling is tested after the money is spent</h3>
+<div class="prose">
+<p>In <code>Budget.charge</code>, change <code>self.spent + cost &gt; self.max_spend</code> to <code>self.spent &gt; self.max_spend</code>. The ceiling now stops a run that is already over it, and no longer refuses the step that would take it over.</p>
+</div>
+<fieldset><legend>What does check 31 print for the ceiling of 62?</legend>
+<label><input type="radio" name="agt-x2" value="a"> The same: <code>('spend ceiling reached', 12, 60)</code>.</label>
+<label><input type="radio" name="agt-x2" value="b" data-correct="true"> <code>('spend ceiling reached', 13, 65)</code>, and check 32 becomes <code>True</code>.</label>
+<label><input type="radio" name="agt-x2" value="c"> <code>("the lab's own cap", 1000, 5000)</code>. The ceiling no longer stops anything.</label>
+<label><input type="radio" name="agt-x2" value="d"> <code>('spend ceiling reached', 12, 60)</code>, but check 32 becomes <code>True</code>.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">After 12 steps the spend is 60, which is not over 62, so the edited test lets step 13 run.</li>
+<li data-option="b">Correct. Exit 1, three failures. Check 31 goes from <code>('spend ceiling reached', 12, 60)</code> to <code>('spend ceiling reached', 13, 65)</code>, check 32 goes from <code>False</code> to <code>True</code>, and check 34 goes from <code>988</code> to <code>987</code> because the alert-only run uses the same test. The overshoot here is one step of 5 units. With a step that costs 500 it would be 500. Check <code>agt-05</code> in the <a href="#reference">Reference</a> layer asks for a ceiling that is never exceeded, which means charging before the step.</li>
+<li data-option="c">The ceiling still stops the loop. It stops it one step late.</li>
+<li data-option="d">Check 32 compares the spend with 62. It can only become <code>True</code> if the spend in check 31 changed.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="agt-x3" data-covers="agt-07">
+<h3>3. The breaker never forgets a failure</h3>
+<div class="prose">
+<p>In <code>CircuitBreaker.success</code>, replace <code>self.failures = 0</code> with <code>pass</code>. The breaker now counts failures in total, not consecutive ones.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="agt-x3" value="a"> Check 47. The breaker opens after two failures.</label>
+<label><input type="radio" name="agt-x3" value="b" data-correct="true"> Check 52 becomes <code>open</code>. Nothing else changes.</label>
+<label><input type="radio" name="agt-x3" value="c"> Checks 51 and 52. The reset stops working as well.</label>
+<label><input type="radio" name="agt-x3" value="d"> Nothing. All 64 checks pass.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 47 sends three failures with no success between them, so the count reaches 3 on the third either way. It still prints <code>['closed', 'closed', 'open']</code>.</li>
+<li data-option="b">Correct. Exit 1, one failure. Check 52 goes from <code>closed</code> to <code>open</code>: two failures, a success and one more failure now add up to three. A breaker that counts every failure it has ever seen will open on any source that runs for long enough, and a breaker that opens on healthy sources gets switched off. Check <code>agt-07</code> in the <a href="#reference">Reference</a> layer says consecutive.</li>
+<li data-option="c">Check 51 still prints <code>published</code>. <code>reset</code> sets the count to zero itself and does not call <code>success</code>.</li>
+<li data-option="d">The lab carries the mixed sequence in check 52 for this edit, so the run does not stay clean.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="agt-x4" data-covers="agt-09">
+<h3>4. The kill switch stops dispatching and nothing else</h3>
+<div class="prose">
+<p>In <code>Orchestrator.kill</code>, delete the last line, <code>self.broker.revoke(agent)</code>. The agent is still added to the quarantine list.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="agt-x4" value="a"> Check 56 becomes <code>ok</code>. The agent is no longer quarantined.</label>
+<label><input type="radio" name="agt-x4" value="b" data-correct="true"> Check 60 becomes <code>200 fares</code>. Nothing else changes.</label>
+<label><input type="radio" name="agt-x4" value="c"> Checks 60 and 61 both change.</label>
+<label><input type="radio" name="agt-x4" value="d"> Nothing. A quarantined agent's calls are all refused.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 56 still prints <code>refused: agent is quarantined</code>. The monitor quarantined the agent in check 55, before <code>kill</code> was called, and the edit leaves the quarantine list alone.</li>
+<li data-option="b">Correct. Exit 1, one failure. Check 60 goes from <code>401 credential not accepted</code> to <code>200 fares</code>. Checks 55, 56 and 63 all still say the agent is quarantined, and its credential still works. Check <code>agt-09</code> in the <a href="#reference">Reference</a> layer asks for evidence that the credential is refused, not that the switch was pressed.</li>
+<li data-option="c">Check 61 is the other agent's credential. It printed <code>200 fares</code> before and still does.</li>
+<li data-option="d">Quarantine refuses calls the orchestrator dispatches. Check 60 is a call made directly to the API, which only asks the broker whether the credential is live.</li>
+</ul>
+</details>
+</article>
+</section>
+
+<p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
+<span class="layer" id="reference" style="margin-top:3rem">Reference</span>
+<h2 style="border-top:none;margin-top:.5rem">Controls</h2>
+<p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
+<ul class="controls">
+<li><span class="label std">Standard</span>"Prompt injection, tool misuse, or unsafe serialization can convert text into unintended executable behavior." OWASP ASI05: Unexpected Code Execution (RCE), Description. The entry is a list of guidelines and sets no requirements, as is true of every OWASP row below.</li>
+<li><span class="label std">Standard</span>"Ban eval in production agents: Require safe interpreters, taint-tracking on generated code." OWASP ASI05, guideline 3.</li>
+<li><span class="label std">Standard</span>"Never run as root. Run code in sandboxed containers with strict limits including network access", and "Where possible, restrict filesystem access to a dedicated working directory and log file diffs for critical paths." OWASP ASI05, guideline 4.</li>
+<li><span class="label std">Standard</span>"Isolate per-session environments with permission boundaries; apply least privilege; fail secure by default; separate code generation from execution with validation gates." OWASP ASI05, guideline 5.</li>
+<li><span class="label std">Standard</span>"Require human approval for elevated runs; keep an allowlist for auto-execution under version control; enforce role and action-based controls." OWASP ASI05, guideline 6.</li>
+<li><span class="label std">Standard</span>"Do static scans before execution; enable runtime monitoring; watch for prompt-injection patterns; log and audit all generation and runs." OWASP ASI05, guideline 7.</li>
+<li><span class="label std">Standard</span>"Avoid the use of open-ended tools where possible (e.g., run a shell command, fetch a URL, etc.) and use tools with more granular functionality." OWASP LLM03:2026 Excessive Agency, prevention measure 3.</li>
+<li><span class="label std">Standard</span>OWASP LLM03:2026 lists rate limiting among the options that "will not prevent Excessive Agency but can limit the level of damage caused": "Establish thresholds around the invocation of tools and implement circuit breakers that halt, rate-limit or escalate for human review if those thresholds are exceeded." Measure 9.</li>
+<li><span class="label std">Standard</span>"Enforce step limits, recursion depth limits, time limits, and per-run cost ceilings on all agent executions. Use state hashing to detect recursive loops." OWASP LLM06:2026 Unbounded Consumption, strategy 9, Agentic Circuit Breakers.</li>
+<li><span class="label std">Standard</span>"Set non-overridable budget ceilings per API key, user, team, and cloud account. These must be enforcement mechanisms that halt inference when exceeded, rather than alerting thresholds that fast-accumulating workloads can outpace." OWASP LLM06:2026, strategy 2, Hard Spending Caps. The word "must" is OWASP's, in a document that sets no requirements.</li>
+<li><span class="label std">Standard</span>"Restrict the LLM's access to network resources, internal services, and APIs." OWASP LLM06:2026, strategy 4, Sandbox Techniques.</li>
+<li><span class="label std">Standard</span>"Isolation and trust boundaries: Sandbox agents, least privilege, network segmentation, scoped APIs, and mutual auth. to contain failure propagation." OWASP ASI08: Cascading Failures, guideline 2.</li>
+<li><span class="label std">Standard</span>"Checkpoints, governance agents, or human review for high risk before agent outputs are propagated downstream." OWASP ASI08, guideline 5.</li>
+<li><span class="label std">Standard</span>"Detect fast-spreading commands and throttle or pause on anomalies", and "Implement blast-radius guardrails such as quotas, progress caps, circuit breakers between planner and executor." OWASP ASI08, guidelines 6 and 7.</li>
+<li><span class="label std">Standard</span>"Issue short-lived, task-scoped credentials for each agent run and validate every high-impact tool invocation against a policy-as-code rule before executing it." OWASP ASI08, guideline 3.</li>
+<li><span class="label std">Standard</span>"Implement rapid mechanisms like kill-switches and credential revocation to instantly disable rogue agents. Quarantine suspicious agents in sandboxed environments for forensic review." OWASP ASI10: Rogue Agents, guideline 4.</li>
+<li><span class="label std">Standard</span>"Implement per-agent cryptographic identity attestation and enforce behavioral integrity baselines throughout the agent lifecycle. Attach signed behavioral manifests declaring expected capabilities, tools, and goals that are validated by orchestration services before each action." OWASP ASI10, guideline 5.</li>
+<li><span class="label std">Standard</span>OWASP ASI10, guideline 6, says keys "must never be directly available to agents", and that orchestrators should mediate signing so a compromised agent cannot exfiltrate or misuse long-lived keys. Guideline 7: "Require fresh attestation, dependency verification, and human approval before reintegration into production networks."</li>
+<li><span class="label std">Standard</span>The OWASP AI Agent Security Cheat Sheet recommends, under Multi-Agent Security, "Isolate agent execution environments" and "Apply circuit breakers to prevent cascading failures", and under its list of things to do, "Enforce token, cost, retry, and tool-chain limits." Its list of things not to do includes "Allow agents to execute arbitrary code without sandboxing."</li>
+<li><span class="label std">Standard</span>For a local MCP server set up by one-click configuration, the MCP Security Best Practices page requires consent first: the client "<strong>MUST</strong> implement proper consent mechanisms prior to executing commands". It recommends that the client "<strong>SHOULD</strong>" also "Execute MCP server commands in a sandboxed environment with minimal default privileges" and "Launch MCP servers with restricted access to the file system, network, and other system resources". MCP 2026-07-28, Security Best Practices, Local MCP Server Compromise.</li>
+<li><span class="label base">Baseline</span>The execution tool has a fixed vocabulary. A step it has no command for is refused, never evaluated.</li>
+<li><span class="label base">Baseline</span>File access is judged on the normalized path against one read directory and one write directory per session.</li>
+<li><span class="label base">Baseline</span>Egress is denied by default. Allowed hosts are compared exactly, after parsing the URL.</li>
+<li><span class="label base">Baseline</span>No credential is present in the execution environment. Calls that need one go through a broker outside the sandbox.</li>
+<li><span class="label base">Baseline</span>The plan is checked as a whole before any step runs. A plan with a step outside the auto-execution policy is held for a person.</li>
+<li><span class="label base">Baseline</span>Budgets are charged before the step, so a ceiling is never exceeded.</li>
+<li><span class="label base">Baseline</span>A breaker between agents opens after consecutive failures and is reset by a person.</li>
+<li><span class="label base">Baseline</span>Each agent has its own credential. The kill switch revokes it, and the revocation is confirmed by a refused call.</li>
+<li><span class="label opt">Option</span>Issue a new credential for every run, bound to that run's task, where the issuing system supports it.</li>
+<li><span class="label opt">Option</span>Replay recorded agent actions in an isolated copy of production before widening a policy, which OWASP ASI08 guideline 9 describes.</li>
+<li><span class="label opt">Option</span>Run a second agent as a watchdog over peer behaviour, which OWASP ASI10 guideline 3 suggests. It is another agent, with the same weaknesses, so it adds to the deterministic monitor and does not replace it.</li>
+</ul>
+
+<h2>Review checklist items</h2>
+<p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
+<ul class="checks">
+<li data-check="agt-01" data-severity="Critical"><strong>Agent-generated code and commands run only inside a sandbox</strong> <span>Not as root, not in the agent's own process, and with no evaluator that takes model output as code.</span></li>
+<li data-check="agt-02" data-severity="Critical"><strong>File access is limited to a working directory, judged on the normalized path</strong> <span>Test a read of a credential file and a write that leaves the directory through dot-dot segments. Both must be refused.</span></li>
+<li data-check="agt-03" data-severity="Critical"><strong>Egress from the execution environment is denied by default</strong> <span>Allowed hosts are listed by exact name and compared after parsing the URL. Test a lookalike host and the userinfo form.</span></li>
+<li data-check="agt-04" data-severity="Critical"><strong>No credential is present in the execution environment</strong> <span>Dump the environment and list the readable files from inside the sandbox. Neither contains a token or a key.</span></li>
+<li data-check="agt-05" data-severity="High"><strong>Every run has an enforced step budget and spend ceiling</strong> <span>The run halts. The ceiling is charged before the step, so it is never exceeded, and it is not an alert.</span></li>
+<li data-check="agt-06" data-severity="High"><strong>A plan is checked before it executes</strong> <span>Steps outside the auto-execution policy hold the plan for human approval, and nothing runs while it is held.</span></li>
+<li data-check="agt-07" data-severity="High"><strong>Output is validated between agents, behind a circuit breaker</strong> <span>The checkpoint refuses unknown fields, out-of-range values and more items than the cap. The breaker opens on consecutive failures.</span></li>
+<li data-check="agt-08" data-severity="High"><strong>Each agent has a declared profile that it cannot edit</strong> <span>Tools and call limits are checked before each action. A call outside the profile quarantines the agent.</span></li>
+<li data-check="agt-09" data-severity="Critical"><strong>The kill switch revokes the agent's credential where it is accepted</strong> <span>Evidence is a refused call made directly to the resource after the switch, not a record that the switch was used.</span></li>
+<li data-check="agt-10" data-severity="Medium"><strong>Agents do not share credentials, and a quarantined agent returns only after review</strong> <span>Revoking one agent leaves the others working. Its call log is kept, and reintegration needs human approval.</span></li>
+</ul>
+
+<h2>Sources</h2>
+<ul class="prose">
+<li><a href="https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/">OWASP Top 10 for Agentic Applications for 2026</a>, version 2026, released 9 December 2025. The title page of the document reads "OWASP Top 10 For Agentic Applications 2026". ASI05: Unexpected Code Execution (RCE), ASI08: Cascading Failures and ASI10: Rogue Agents: the descriptions, the common examples, and the prevention and mitigation guidelines quoted above. ASI02: Tool Misuse and Exploitation for the sentence that classifies injected code execution under ASI05. The opening letter for least agency.</li>
+<li><a href="https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/">OWASP GenAI LLM Top 10 2026</a>, version 2026, August 2026. The title page of the document reads "OWASP Top 10 for LLM Applications 2026". LLM03:2026 Excessive Agency: prevention measures 3 and 9, and the sentence on how it manifests in agentic systems. LLM06:2026 Unbounded Consumption: risk 8 and strategies 2, 4 and 9.</li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html">OWASP Cheat Sheet Series, AI Agent Security Cheat Sheet</a>, read 4 October 2026. Multi-Agent Security, the abuse-case test matrix, and the Do's and Don'ts list. Unversioned guidance.</li>
+<li><a href="https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices">MCP Security Best Practices, revision 2026-07-28</a>. Local MCP Server Compromise.</li>
+</ul>
+</main>
+<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
+</body>
+</html>

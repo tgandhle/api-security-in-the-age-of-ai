@@ -17,7 +17,7 @@
           "id": "overview",
           "aria-labelledby": "course-overview"
         },
-        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>New security engineers who can read Python and HTTP requests.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. Four labs also need the <code>cryptography</code> package. No account or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 31 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Examples of learning outcomes</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
+        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>New security engineers who can read Python and HTTP requests.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. Four labs also need the <code>cryptography</code> package. No account or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 32 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Examples of learning outcomes</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
       },
       {
         "tag": "h2",
@@ -129,6 +129,11 @@
         "definition": "One approval covering a whole session or class of actions. Its worth is the number of an operation's fields it constrains, which is often zero, and then it records that somebody was present rather than controlling what happened."
       },
       {
+        "id": "blast-radius",
+        "term": "Blast radius",
+        "definition": "How much one failure, one compromised agent or one stolen credential can reach. Quotas, narrow scope and one credential per agent make it smaller. None of them prevents the failure."
+      },
+      {
         "id": "blocklist",
         "term": "Blocklist",
         "definition": "A list of values a check refuses. For passwords, NIST SP 800-63B-4 section 3.1.1.2 describes \"a blocklist that contains known commonly used, expected, or compromised passwords\". The whole candidate password is compared with it when a password is set."
@@ -149,9 +154,19 @@
         "definition": "Reducing a document to one agreed byte representation before signing, so that reserialising it does not break the signature. For JSON, RFC 8785 sorts object properties recursively and compares names as UTF-16 code units."
       },
       {
+        "id": "cascading-failure",
+        "term": "Cascading failure",
+        "definition": "OWASP ASI08: a single fault that \"propagates across autonomous agents, compounding into system-wide harm\". The entry is about the spread, not about the first fault."
+      },
+      {
         "id": "certificate-binding",
         "term": "Certificate binding",
         "definition": "Tying an access token to the client certificate used on the TLS connection, so the token only works from a connection presenting that certificate. RFC 8705."
+      },
+      {
+        "id": "circuit-breaker",
+        "term": "Circuit breaker",
+        "definition": "A component between two stages that stops passing work after a set number of consecutive failures and stays open until it is reset. It pauses a source that keeps failing, including its next output that happens to pass validation."
       },
       {
         "id": "claim",
@@ -277,6 +292,11 @@
         "id": "dpop",
         "term": "DPoP",
         "definition": "Demonstrating Proof of Possession. The client signs a small JWT per request with a key it holds, and the access token names that key, so a stolen token alone is not enough. RFC 9449."
+      },
+      {
+        "id": "egress-allowlist",
+        "term": "Egress allowlist",
+        "definition": "The list of hosts a sandbox may send requests to, with every other destination refused. The host is parsed out of the URL and compared exactly, because a substring test passes a lookalike."
       },
       {
         "id": "enumeration",
@@ -419,6 +439,11 @@
         "definition": "An identifier sent with a signed request telling the receiver which key to verify with. It must never be the key itself."
       },
       {
+        "id": "kill-switch",
+        "term": "Kill switch",
+        "definition": "A control that disables an agent at once: no further calls are dispatched for it and its credential is revoked. Without the revocation it only stops the calls that pass through the orchestrator."
+      },
+      {
         "id": "log-injection",
         "term": "Log injection",
         "definition": "Writing a value an attacker controls into a log so that a reader takes it for something else, such as a line break that starts a forged second entry. OWASP Top 10:2025 A09 lists CWE-117, Improper Output Neutralization for Logs, among its mapped weaknesses."
@@ -539,6 +564,11 @@
         "definition": "In A2A v1.0.1, the webhook a client gives a server for task updates: an HTTPS URL, an optional token unique to the task or session, and optional authentication details. The URL is supplied by the client, so the server should not POST to it blindly."
       },
       {
+        "id": "quarantine",
+        "term": "Quarantine",
+        "definition": "Stopping a suspect agent from acting while keeping it and its records for review. Whatever dispatches the agent's calls enforces it, so it does not withdraw a credential the agent already holds."
+      },
+      {
         "id": "query-string",
         "term": "Query string",
         "definition": "The part of a URL after the question mark and before any fragment. It often contains named parameters and may be recorded in request logs."
@@ -589,6 +619,11 @@
         "definition": "Withdrawing a credential, or the grant behind a token, before it expires. A self-contained token does not change when this happens, so a resource server only notices if it consults current state."
       },
       {
+        "id": "rogue-agent",
+        "term": "Rogue agent",
+        "definition": "OWASP ASI10: an agent that has come to \"deviate from their intended function or authorized scope\". The entry is about the behaviour once the drift begins, not about how it began."
+      },
+      {
         "id": "safe-method",
         "term": "Safe method",
         "definition": "A request method whose defined semantics are essentially read-only. RFC 9110 section 9.2.1 names GET, HEAD, OPTIONS and TRACE. A browser sends GET for a link or an image tag, so a safe method that changes state can be triggered from another site."
@@ -602,6 +637,11 @@
         "id": "samesite",
         "term": "SameSite",
         "definition": "A cookie attribute that tells the browser when to attach the cookie to a request another <a href=\"#site\">site</a> caused. <code>Strict</code> never does, <code>Lax</code> does only for a top-level navigation that uses a <a href=\"#safe-method\">safe method</a>, and <code>None</code> always does. It is defined in the rfc6265bis Internet-Draft, not in RFC 6265."
+      },
+      {
+        "id": "sandbox",
+        "term": "Sandbox",
+        "definition": "A restricted environment for running code or commands, enforced from outside the thing it restricts: which files it can read and write, which hosts it can reach, and what is in its environment. It limits what a wrong step can do, not whether the step is wrong."
       },
       {
         "id": "schema",
@@ -766,7 +806,7 @@
         "attrs": {
           "class": "meta"
         },
-        "html": "<p class=\"meta\">All 31 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written.</p>"
+        "html": "<p class=\"meta\">All 32 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written.</p>"
       },
       {
         "tag": "section",

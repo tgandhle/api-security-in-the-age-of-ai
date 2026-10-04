@@ -1,5 +1,5 @@
 {
-  "total": 31,
+  "total": 32,
   "lessons": [
     {
       "slug": "security-foundations",
@@ -186,6 +186,12 @@
       "lesson_number": 31,
       "module": 30,
       "title": "Logging, detection and response"
+    },
+    {
+      "slug": "agent-containment",
+      "lesson_number": 32,
+      "module": 31,
+      "title": "Agent code execution and containment"
     }
   ]
 }
