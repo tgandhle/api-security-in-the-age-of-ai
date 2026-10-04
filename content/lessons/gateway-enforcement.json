@@ -38,7 +38,7 @@
         "class": "lesson-status",
         "aria-label": "Lesson progress"
       },
-      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 13 of 30</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
+      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 13 of 31</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
     },
     {
       "tag": "span",
@@ -335,9 +335,9 @@
   "title": "Gateway enforcement",
   "kicker": "Part 3: Edges and boundaries &middot; Module 12",
   "reviewed": "2026-10-02",
-  "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 13 of 30</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
+  "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 13 of 31</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
   "lesson_number": 13,
-  "lesson_total": 30,
+  "lesson_total": 31,
   "module": 12,
   "intro_prose": [
     "<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can list every path that reaches a service, tell the controls a gateway can carry from the ones it cannot, explain why a header the gateway sets is a credential, and reconcile an architecture diagram against the connections that actually exist.</p>\n<p><strong>Before you start.</strong> Parts 1 and 2 put checks in handlers. This module is about the network those handlers sit on, and it reuses the reconciliation habit from <a href=\"../credential-lifecycle/index.html\">module 8</a>: a document is a claim until it has been compared with the thing it describes.</p>\n</div>"

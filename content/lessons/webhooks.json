@@ -38,7 +38,7 @@
         "class": "lesson-status",
         "aria-label": "Lesson progress"
       },
-      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 17 of 30</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
+      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 17 of 31</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
     },
     {
       "tag": "span",
@@ -333,9 +333,9 @@
   "title": "Webhooks",
   "kicker": "Part 3: Edges and boundaries &middot; Module 16",
   "reviewed": "2026-10-02",
-  "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 17 of 30</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
+  "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 17 of 31</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
   "lesson_number": 17,
-  "lesson_total": 30,
+  "lesson_total": 31,
   "module": 16,
   "intro_prose": [
     "<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can build a receiver that rejects forged and <a href=\"../../glossary/index.html#replay-attack\">replayed</a> events, say exactly what a <a href=\"../../glossary/index.html#signature\">signature</a> must cover and why, and tell a duplicate that is an attack from a duplicate that is the sender doing its job.</p>\n<p><strong>Before you start.</strong> This module is <a href=\"../hmac-request-signing/index.html\">module 2</a>'s signature, <a href=\"../business-flows-and-idempotency/index.html\">module 11</a>'s duplicate handling and <a href=\"../request-and-response-contracts/index.html\">module 13</a>'s limits, applied to an endpoint whose whole job is to be posted to by somebody else.</p>\n</div>"

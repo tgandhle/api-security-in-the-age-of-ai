@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logging, detection and response | API Security in the Age of AI</title>
+<link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/course.js" defer></script>
+</head>
+<body data-course-lesson="logging-and-detection">
+<nav class="site-nav" aria-label="Site"><div><a class="home" href="../../index.html">API Security in the Age of AI</a><a href="../../index.html#course">Course</a><a href="../../index.html#path">Modules</a><a href="../../roadmap/index.html">Roadmap</a><a href="../../checklist/index.html">Checklist</a><a href="../../glossary/index.html">Glossary</a></div></nav>
+<main>
+<p class="kicker">Part 5: Hardening and operations &middot; Module 30</p>
+<h1>Logging, detection and response</h1>
+<p class="meta">Last reviewed 2026-10-04 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+
+<div class="prose">
+<p><strong>Objective.</strong> After this module you can say which API events to record and which fields each one needs, keep credentials and attacker-supplied line breaks out of a log, write a detection rule over the events and state what it misses, and describe what happens after an alert in the terms NIST SP 800-61r3 uses.</p>
+<p><strong>Before you start.</strong> You should know the difference between <a href="../../glossary/index.html#authentication">authentication</a> and <a href="../../glossary/index.html#authorization">authorization</a>. The running example is the booking API from <a href="../object-level-authorization/index.html">module 9, Object-level authorization</a>, with its ownership check in place. Every other module in this course prevents an attack. This one is about noticing the attacks that prevention did not stop, and about being able to say afterwards what happened.</p>
+</div>
+<section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 31 of 31</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
+
+<span class="layer" id="learn">Learn</span>
+
+<h2>1. The attack</h2>
+<div class="prose">
+<p>Running example: ExampleAir's booking API. A customer may read and cancel their own bookings. The ownership check from module 9 works: a request for someone else's booking gets <code>404 not found</code>. Company names are fictional.</p>
+<p>The account <code>acct-77</code> asks for <code>bkg-1001</code>, then <code>bkg-1002</code>, and so on up to <code>bkg-1040</code>, one request a second. This is <a href="../../glossary/index.html#enumeration">enumeration</a>. Two of the forty bookings are its own. The other 38 requests are refused. The API logs successful reads only, so the log holds two lines for <code>acct-77</code>, and both look like a customer reading their own bookings. Nobody is told. The same account comes back tomorrow and tries the older API version, the export route and the invoice route, because module 9 showed that the check is often missing from one of them. The control did its job on every request, and the attack is still running.</p>
+<p>The attack in this module is not a request that gets through. It is a refusal that nobody sees. The same thing happens at sign-in. An attacker makes one attempt on each of many accounts, using passwords leaked from another site (credential stuffing) or one common password (password spraying). Every attempt is refused, and a log that records only successful sign-ins shows nothing. Module 27, Attacks on authentication endpoints, is about the sign-in endpoint itself.</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>What the attacker does</th><th>Log records successes only</th><th>Failures are logged, no rule reads them</th><th>Failures are logged, rules read them</th></tr></thead>
+<tbody>
+<tr><td>Walks 40 booking ids in 40 seconds from one account</td><td class="yes">Unseen: 2 lines, both ordinary</td><td class="yes">Recorded, 38 refusals. Unseen until someone looks</td><td class="no">Alert after the fifth refusal</td></tr>
+<tr><td>Tries one wrong password on each of six accounts from one address</td><td class="yes">Unseen</td><td class="yes">Recorded. Unseen until someone looks</td><td class="no">Alert on five different accounts from one address</td></tr>
+<tr><td>Cancels twelve bookings in 24 seconds, every one allowed</td><td class="yes">Recorded as twelve successes. Unseen</td><td class="yes">Recorded as twelve successes. Unseen</td><td class="no">Alert on ten cancellations by one account</td></tr>
+<tr><td>Walks 30 ids, one every 20 minutes</td><td class="yes">Unseen</td><td class="yes">Recorded. Unseen until someone looks</td><td class="no">Missed by the 60-second rule. Alert from the 24-hour rule</td></tr>
+<tr><td>Splits the same slow walk across ten accounts and ten addresses</td><td class="yes">Unseen</td><td class="yes">Recorded. Unseen until someone looks</td><td class="yes">No alert from any rule here</td></tr>
+</tbody></table></div>
+<p class="prose">The last row never turns green. Section 5 says why, and what that means for how much you can claim.</p>
+
+<h2>2. Why it works</h2>
+<div class="prose">
+<p>Four broken assumptions:</p>
+<ul>
+<li><strong>"A refused request needs no record."</strong> A control that refuses a request answers the attacker and tells nobody else. OWASP Top 10:2025 A09 lists this exact case among its failures: auditable events "are not logged or logged inconsistently (for instance, only logging successful logins, but not failed attempts)". It states the result plainly: "Without logging and monitoring, attacks and breaches cannot be detected, and without alerting it is very difficult to respond quickly and effectively during a security incident."</li>
+<li><strong>"If something were wrong, someone would see it in the logs."</strong> A log is a file. It alerts nobody. NIST SP 800-92, written in September 2006 and still the final version, already described log analysis as work that is treated as low priority, and concluded: "Without sound processes for analyzing logs, the value of the logs is significantly reduced." A <a href="../../glossary/index.html#detection-rule">detection rule</a> is the process that reads the log when no person does.</li>
+<li><strong>"We wrote the log, so we can trust what it says."</strong> Much of a log entry is copied from the request: the user name typed at sign-in, the identifier in the path, a header. If a value containing a line break is pasted into a line of text, the text after the break starts a new line, and a reader takes it for a second entry. That is <a href="../../glossary/index.html#log-injection">log injection</a>. The OWASP Logging Cheat Sheet says of event data that comes from another trust zone that "it must always be treated as untrusted data".</li>
+<li><strong>"More detail in the log is safer."</strong> A log is a copy of whatever you put in it, usually readable by more people and systems than the database it came from. A password or a token written to a log has been disclosed. <a href="../api-keys/index.html">Module 1, API keys</a>, follows a key from a URL into a log and out to an attacker, and <a href="../data-in-model-context/index.html">module 24, Data in model context</a>, counts the places a prompt is copied to. This module does not repeat them. It adds the rule that makes both less likely: a logger that writes only the fields it was told to write.</li>
+</ul>
+<p>A note on where this sits in the OWASP lists. The OWASP API Security Top 10 2023 has no entry for logging. The 2019 edition had one, titled API10:2019 Insufficient Logging &amp; Monitoring, and the 2023 list of ten does not carry it. Among the ten 2023 entries, only API6:2023 Unrestricted Access to Sensitive Business Flows mentions it, in its list of references. The current OWASP entry on the subject is in the general web list: A09:2025 Security Logging &amp; Alerting Failures. Do not cite the API Top 10 2023 for a logging finding.</p>
+</div>
+
+<h2>3. The control</h2>
+<h3>What to record</h3>
+<div class="prose">
+<p>The OWASP Logging Cheat Sheet has a list headed "Where possible, always log". For an API, these entries on it matter most:</p>
+<ul>
+<li>Authentication successes and failures.</li>
+<li>Authorization (access control) failures.</li>
+<li>Input validation failures, which <a href="../request-and-response-contracts/index.html">module 13, Request and response contracts</a>, produces.</li>
+<li>Session management failures, such as a token that fails validation.</li>
+<li>Use of higher-risk functionality: user administration, use of administrative privileges, access to sensitive data, data import and export.</li>
+<li>Suspicious business logic activity, such as an attempt to exceed a limit or to perform steps out of order. <a href="../business-flows-and-idempotency/index.html">Module 11, Business flows and idempotency</a>, names the flows.</li>
+</ul>
+<p>The same cheat sheet warns against logging everything: "There is no one size fits all solution, and a blind checklist approach can lead to unnecessary "alarm fog" that means real problems go undetected."</p>
+<p>The cheat sheet's summary of what each event needs is "when, where, who and what". It adds an interaction identifier, which links every event caused by one request. This course calls it a <a href="../../glossary/index.html#correlation-id">correlation ID</a>. This is one event exactly as the lab writes it, a customer who mistyped one booking id:</p>
+</div>
+<pre><code>{"appid": "exampleair.bookings", "datetime": "2026-10-04T09:00:05+00:00", "event": "authz_fail", "host": "api-1", "level": "CRITICAL", "reason": "not_owner", "request_id": "api-1-req-0002", "resource": "bkg-1003", "result": "fail", "route": "GET /bookings/{id}", "source_ip": "198.51.100.7", "userid": "acct-91"}</code></pre>
+<div class="wrap"><table>
+<thead><tr><th>Question</th><th>Fields</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>When</td><td><code>datetime</code></td><td>The clock of the host that wrote the event, in ISO 8601 with a UTC offset. The OWASP Logging Vocabulary Cheat Sheet asks for that format.</td></tr>
+<tr><td>Where</td><td><code>appid</code>, <code>host</code>, <code>route</code></td><td>The route is a fixed label, not the raw request target. Module 1 gives the reason.</td></tr>
+<tr><td>Who</td><td><code>userid</code>, <code>source_ip</code></td><td>The authenticated account where there is one. At sign-in the user name is whatever the caller typed.</td></tr>
+<tr><td>What</td><td><code>event</code>, <code>level</code>, <code>resource</code>, <code>result</code>, <code>reason</code></td><td>The response to the caller was a plain 404. The reason stays in the log.</td></tr>
+<tr><td>Which request</td><td><code>request_id</code></td><td>The same value goes in every event one request causes, and in the error response, so a support ticket can be matched to a log entry.</td></tr>
+</tbody></table></div>
+<div class="prose">
+<p><strong>For agents,</strong> record three more things: which agent acted, on whose behalf, and which tool it called with which outcome. The OWASP AI Agent Security Cheat Sheet recommends: "Log all agent decisions, tool calls, and outcomes." The OWASP Top 10 for Agentic Applications for 2026 says under ASI02 Tool Misuse and Exploitation: "Maintain immutable logs of all tool invocations and parameter changes." Recording the person an agent acted for is this project's reasoning, not a quotation: <a href="../delegation-and-token-exchange/index.html">module 19, Delegation and token exchange</a>, puts both identities in the token, and an event that keeps only one of them cannot answer who asked. <a href="../agent-authority-and-approvals/index.html">Module 23, Agent authority and approvals</a>, adds the approval that covered the call.</p>
+</div>
+
+<h3>What never to write</h3>
+<div class="prose">
+<p>The Logging Cheat Sheet lists data that "should usually not be recorded directly in the logs, but instead should be removed, masked, sanitized, hashed, or encrypted". The list includes session identification values, access tokens, authentication passwords, database connection strings, encryption keys and other primary secrets, bank account or payment card holder data, and sensitive personal data. An <a href="../../glossary/index.html#access-token">access token</a> or an <a href="../../glossary/index.html#api-key">API key</a> in a log is a working credential for anyone who can read the log.</p>
+<p>The control is an <a href="../../glossary/index.html#allowlist">allowlist</a> of field names inside the logger. The application can pass anything. The logger writes the fields on its list and drops the rest. A pattern that hunts for secrets in text has to recognise every secret. A list of permitted fields does not.</p>
+<p>The allowlist has a limit, and the lab measures it. It checks the name of a field, not what the field holds. If a client pastes a credential where the booking id goes, <code>resource</code> is an allowed field and the credential is written. So validate a value before logging it, and when validation fails, log the name of the field that failed and not the value.</p>
+</div>
+
+<h3>How to write it</h3>
+<div class="prose">
+<ol>
+<li><strong>One event, one machine-readable record.</strong> Write each event as one JSON object on one line. This is <a href="../../glossary/index.html#structured-logging">structured logging</a>. The JSON encoder turns a line break inside a value into the two characters <code>\n</code>, so a value cannot end the line it is written on. The Logging Cheat Sheet recommends both halves: "Perform sanitization on all event data to prevent log injection attacks e.g. carriage return (CR), line feed (LF) and delimiter characters", and "Encode data correctly for the output (logged) format".</li>
+<li><strong>Use the encoder. Do not strip characters by hand.</strong> Removing line feeds from a text line leaves the delimiters. Exercise 2 shows a stripped line that no longer forges an entry and now blames the wrong user.</li>
+<li><strong>Use one vocabulary.</strong> The OWASP Logging Vocabulary Cheat Sheet "proposes a standard vocabulary for logging security events", so that a rule can key on the same event name in every service. The lab uses four of its names: <code>authn_login_success</code>, <code>authn_login_fail</code>, <code>authz_fail</code> and <code>input_validation_fail</code>. The vocabulary writes the event and its parameters as one string, for example <code>authz_fail:joebob1,resource</code>. The lab keeps the name alone in <code>event</code> and puts the parameters in their own fields, so a comma or a colon inside a value cannot change what the event says. That split is this project's choice.</li>
+<li><strong>A level is not an alert.</strong> The vocabulary gives <code>authz_fail</code> the level CRITICAL. A customer who mistypes one booking id produces one. Nobody should be paged for it. The level says how the event ranks. A rule decides whether anyone is told.</li>
+<li><strong>Log names, not payloads.</strong> For an input that matched a SQL injection signature, the vocabulary warns: "Logging the payload is dangerous and may result in log injection." Record which rule matched and which parameter.</li>
+</ol>
+</div>
+
+<h3>Rules that read the events</h3>
+<div class="prose">
+<p>A detection rule is a condition over events, evaluated by a program. The lab has four. Each one is a count inside a time window:</p>
+<ol>
+<li><strong>R1.</strong> Five <code>authz_fail</code> events for one <code>userid</code> inside 60 seconds. This catches the fast walk.</li>
+<li><strong>R2.</strong> <code>authn_login_fail</code> events for five different <code>userid</code> values from one <code>source_ip</code> inside 300 seconds. A rule that counts failures per account never fires here, because each account fails once.</li>
+<li><strong>R3.</strong> Ten <code>booking_cancel</code> events by one <code>userid</code> inside 300 seconds. Every one of those requests is allowed. This rule reads successes, because abuse of a business flow produces no refusal.</li>
+<li><strong>R4.</strong> Ten <code>authz_fail</code> events for one <code>userid</code> inside 24 hours. This is R1 with a long window, for the walk that goes slowly.</li>
+</ol>
+<p>The numbers are this lab's, chosen to make the output easy to read. Yours come from your own traffic. Section 4 says how to change them.</p>
+</div>
+
+<h3>Protect the log</h3>
+<div class="prose">
+<ol>
+<li><strong>Integrity.</strong> An attacker who gets onto the host can edit the log. The Logging Cheat Sheet recommends, for logs at rest: "Build in tamper detection so you know if a record has been modified or deleted" and "Store or copy log data to read-only media as soon as possible". NIST SP 800-92 section 5.1.3 says protecting archived log files "could include creating and securing message digests for the files". A message digest is a <a href="../../glossary/index.html#hash">hash</a>.</li>
+<li><strong>Access.</strong> NIST SP 800-92 section 5.1.3: "Users should not have any access to most log files unless some level of access is necessary for creating log entries. If so, users should have append-only privileges and no read access if possible." The cheat sheet adds that "All access to the logs must be recorded and monitored".</li>
+<li><strong>Retention.</strong> The cheat sheet says log data "must not be destroyed before the duration of the required data retention period, and must not be kept beyond this time". It gives no number. NIST SP 800-92 gives examples only: Table 4-1 shows 1 to 2 weeks for low impact systems, 1 to 3 months for moderate impact systems and 3 to 12 months for high impact systems, and the text beside it says "Organizations should not adopt these values as-is". The period comes from your legal and contractual duties and from how late you expect to find out about an attack.</li>
+<li><strong>Time.</strong> A rule that counts events in a window depends on timestamps from different hosts meaning the same thing. The executive summary of NIST SP 800-92 lists among administrators' responsibilities "Ensuring that each logging host's clock is synched to a common time source". Checks 44 and 45 of the lab show a rule going blind when one clock is two minutes out.</li>
+</ol>
+</div>
+
+<h3>After the alert</h3>
+<div class="prose">
+<p>An alert is the start of work, not the end. NIST SP 800-61r3 (April 2025) is the current NIST publication on incident response, and it changed the model. Its predecessor drew a cycle of four phases: preparation; detection and analysis; containment, eradication and recovery; and post-incident activity. Revision 3 calls that the previous model and organises its recommendations around the six Functions of the NIST Cybersecurity Framework 2.0 instead: Govern, Identify, Protect, Detect, Respond and Recover. In its words, "Govern, Identify, and Protect help organizations prevent some incidents, prepare to handle incidents that do occur, reduce the impact of those incidents", and "Detect, Respond, and Recover help organizations discover, manage, prioritize, contain, eradicate, and recover from cybersecurity incidents". Lessons learned are no longer a last phase. They belong to the Improvement Category of Identify and feed every Function at any time.</p>
+<p>The document does not make its model mandatory. It says: "Organizations should use the incident response life cycle framework or model that suits them best." Each row of its Table 3 is a CSF 2.0 outcome with recommendations, considerations or notes beside it. For the enumeration alert in this module, the rows read like this:</p>
+<ol>
+<li><strong>Detect.</strong> Events are monitored, analysed and correlated. The outcome DE.AE-08 is that an <a href="../../glossary/index.html#incident">incident</a> is declared "when adverse events meet the defined incident criteria". An alert is not yet an incident: someone, or some rule with written criteria, decides.</li>
+<li><strong>Respond: triage.</strong> "Perform a preliminary review of a new incident report to verify that a cybersecurity incident has occurred, then estimate the severity of the incident and the level of urgency needed to respond to it" (RS.MA-02).</li>
+<li><strong>Respond: analyse.</strong> "Determine the sequence of events that have occurred during the incident and which assets and resources were involved in each of those events" (RS.AN-03). This is the step the log exists for. Checks 16 and 17 of the lab do it: 38 identifiers refused, and three of them real bookings of other customers.</li>
+<li><strong>Respond: contain.</strong> Stop it spreading (the outcome RS.MI-01, incidents are contained). Here that means suspending the account or its credential, and checking every other route that reaches a booking for the same account.</li>
+<li><strong>Recover and improve.</strong> Restore what was affected. Feed back what you learn as soon as you learn it, not only at the end: a missing check found, a rule added, a threshold changed.</li>
+</ol>
+</div>
+
+<h3>The whole path</h3>
+<div class="diagram">
+<svg viewBox="0 0 1100 400" width="100%" style="min-width:900px" role="img">
+<title>From a refused request to a person who can act on it</title>
+<desc>Top row, left to right: the caller acct-77 walks booking ids; the API applies the ownership check and answers 404; the logger writes one JSON object per line from an allowlist of fields; the log store is append only and copied off the host; the rules R1 to R4 read the events back. A dashed line from the log store leads down to a box for the chain head, a digest kept somewhere the writer of the log cannot reach. An arrow from the rules leads down to an alert. Bottom row, right to left: the alert goes to Detect, where the event is analysed and an incident declared; then Respond, where the incident is triaged, analysed from the log, and contained; then Recover and improve, which feeds back into the checks and the rules.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+<text class="lab" x="20" y="24">A refusal answers the caller. Only an event that something reads tells anyone else.</text>
+
+<g class="r"><rect x="20" y="44" width="180" height="56" rx="8"/><text class="th" x="110" y="66" text-anchor="middle">Caller acct-77</text><text class="ts" x="110" y="86" text-anchor="middle">Walks booking ids</text></g>
+<g class="h"><rect x="240" y="44" width="180" height="56" rx="8"/><text class="th" x="330" y="66" text-anchor="middle">Booking API</text><text class="ts" x="330" y="86" text-anchor="middle">Ownership check, 404</text></g>
+<g class="h"><rect x="460" y="44" width="180" height="56" rx="8"/><text class="th" x="550" y="66" text-anchor="middle">Logger</text><text class="ts" x="550" y="86" text-anchor="middle">Allowlist, one JSON line</text></g>
+<g class="s"><rect x="680" y="44" width="180" height="56" rx="8"/><text class="th" x="770" y="66" text-anchor="middle">Log store</text><text class="ts" x="770" y="86" text-anchor="middle">Append only, off the host</text></g>
+<g class="p"><rect x="900" y="44" width="180" height="56" rx="8"/><text class="th" x="990" y="66" text-anchor="middle">Rules R1 to R4</text><text class="ts" x="990" y="86" text-anchor="middle">Read events back</text></g>
+<line class="arr" x1="200" y1="72" x2="236" y2="72" marker-end="url(#a)"/>
+<line class="arr" x1="420" y1="72" x2="456" y2="72" marker-end="url(#a)"/>
+<line class="arr" x1="640" y1="72" x2="676" y2="72" marker-end="url(#a)"/>
+<line class="arr" x1="860" y1="72" x2="896" y2="72" marker-end="url(#a)"/>
+
+<g class="s"><rect x="680" y="150" width="180" height="56" rx="8"/><text class="th" x="770" y="172" text-anchor="middle">Chain head</text><text class="ts" x="770" y="192" text-anchor="middle">Digest kept elsewhere</text></g>
+<line class="leader" x1="770" y1="100" x2="770" y2="150"/>
+
+<g class="p"><rect x="900" y="150" width="180" height="56" rx="8"/><text class="th" x="990" y="172" text-anchor="middle">Alert</text><text class="ts" x="990" y="192" text-anchor="middle">Who, when, how many</text></g>
+<line class="arr" x1="990" y1="100" x2="990" y2="146" marker-end="url(#a)"/>
+
+<rect class="zone" x="20" y="250" width="1060" height="130" rx="12"/>
+<text class="lab" x="36" y="272">After the alert: Detect, Respond and Recover, with Improvement from Identify, as NIST SP 800-61r3 uses them</text>
+<g class="g"><rect x="760" y="296" width="300" height="60" rx="8"/><text class="th" x="910" y="320" text-anchor="middle">Detect</text><text class="ts" x="910" y="340" text-anchor="middle">Analyse the events, declare an incident</text></g>
+<g class="g"><rect x="400" y="296" width="300" height="60" rx="8"/><text class="th" x="550" y="320" text-anchor="middle">Respond</text><text class="ts" x="550" y="340" text-anchor="middle">Triage, reconstruct from the log, contain</text></g>
+<g class="g"><rect x="40" y="296" width="300" height="60" rx="8"/><text class="th" x="190" y="320" text-anchor="middle">Recover and improve</text><text class="ts" x="190" y="340" text-anchor="middle">Restore. Fix the check and the rule</text></g>
+<line class="arr" x1="990" y1="206" x2="990" y2="292" marker-end="url(#a)"/>
+<line class="arr" x1="760" y1="326" x2="704" y2="326" marker-end="url(#a)"/>
+<line class="arr" x1="400" y1="326" x2="344" y2="326" marker-end="url(#a)"/>
+</svg>
+<div class="legend"><span class="lg-r">Caller</span><span class="lg-h">API and logger</span><span class="lg-s">Stored state</span><span class="lg-p">Detection</span></div>
+</div>
+
+<h2>4. Defaults and when to change them</h2>
+<div class="wrap"><table>
+<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>
+<tbody>
+<tr><td>Format</td><td>One JSON object per line, written by an encoder</td><td>Your log platform needs another structured format. Never go back to free text.</td></tr>
+<tr><td>Fields</td><td>An allowlist in the logger. In the lab: <code>userid</code>, <code>source_ip</code>, <code>route</code>, <code>resource</code>, <code>result</code>, <code>reason</code>, <code>request_id</code>, <code>host</code>, plus the four every event carries: <code>datetime</code>, <code>appid</code>, <code>event</code> and <code>level</code></td><td>A rule or an investigation needs a field you do not have. Add it by name, after asking whether it can hold a secret or personal data.</td></tr>
+<tr><td>Timestamps</td><td>ISO 8601 with a UTC offset, from a clock synchronised to a common source</td><td>Never drop the offset. A host that cannot be synchronised should say so in its events.</td></tr>
+<tr><td>Event names and levels</td><td>The OWASP Logging Vocabulary names and levels for security events</td><td>You need an event it lacks. Add your own name and document it, as the lab does for <code>booking_read</code> and <code>booking_cancel</code>.</td></tr>
+<tr><td>Fast threshold (R1)</td><td>5 refusals for one account in 60 seconds</td><td>Measure your own traffic first. Check 43 shows an honest batch client tripping this rule. Raise the threshold and exercise 3 shows what you lose.</td></tr>
+<tr><td>Slow threshold (R4)</td><td>10 refusals for one account in 24 hours</td><td>Your accounts routinely hit stale links. Raise the count and lengthen the window in the same proportion, so the rate below which the rule is silent does not rise.</td></tr>
+<tr><td>What an alert does</td><td>Tells a person, with the account, the time and the count</td><td>Automatic blocking is an Option. The Logging Cheat Sheet says that if log data drives an action such as lock-out, the review should "ensure this cannot be used to cause denial of service (DoS) of other users".</td></tr>
+<tr><td>Retention</td><td>A written period per log type</td><td>Law, contract or your own detection delay requires longer. The only numbers in this module's sources are the examples in NIST SP 800-92 Table 4-1, which it says not to adopt as they are.</td></tr>
+</tbody></table></div>
+
+<h2>5. What it proves, and what it doesn't</h2>
+<div class="prose">
+<p><strong>Proves:</strong> an event in the log shows that the application made that decision, for that account, at the time on that host's clock. An alert shows that the condition in one rule was met.</p>
+<p><strong>Doesn't prove nothing happened.</strong> No alert means no rule fired. In check 42 a walk split across ten accounts and ten addresses produces 30 logged refusals and no alert from R1 or R4. Every count-in-a-window rule has a rate below which it is silent. Lengthen the window and the attacker slows down again. Say "no rule fired", never "no attack".</p>
+<p><strong>Doesn't prove who.</strong> <code>userid</code> is the account that authenticated. If its credential was stolen, the log names the victim. Before authentication, as at sign-in, the user name is whatever the caller typed.</p>
+<p><strong>Doesn't prove the log is complete.</strong> Whoever can write the log can remove lines from it. A <a href="../../glossary/index.html#hash-chain">hash chain</a> makes an edit visible only to someone holding a digest the attacker could not rewrite (checks 49 and 50). The Logging Cheat Sheet is frank about the general case: <a href="../../glossary/index.html#non-repudiation">non-repudiation</a> "is hard to achieve for logs because their trustworthiness is often just based on the logging party being audited properly".</p>
+<p><strong>Doesn't mean every alert is an attack.</strong> A <a href="../../glossary/index.html#false-positive">false positive</a> is an alert for activity that was not an attack. A09:2025 names the cost: "Too many false positive alerts make it impossible to distinguish important alerts from unimportant ones". NIST SP 800-61r3 recommends: "Tune the continuous monitoring technologies to reduce false positives and false negatives to acceptable levels."</p>
+<div class="callout warn"><strong>Detection is not prevention.</strong> The 40 requests in the lab all reach the API. Logging them refuses nothing and slows nothing down. A <a href="../../glossary/index.html#rate-limit">rate limit</a> does that, in <a href="../rate-limiting-and-cost/index.html">module 15, Rate limiting and cost controls</a>. And an alert about a refused walk is a reason to go and look for the route where the check is missing, not evidence that there is none.</div>
+</div>
+
+<h2>6. Prove it</h2>
+<div class="prose">
+<p>A working implementation must pass every one of these. If any fails, the control is broken:</p>
+<ul>
+<li>A request refused by an authorization check leaves an event with the account, the object, the route and a request id. Test the refusal, not the success.</li>
+<li>A failed sign-in leaves an event. So does a request that fails input validation.</li>
+<li>A user name containing a line feed, a carriage return or the log's own delimiter produces exactly one log entry, and the entry parses back to the value that was sent.</li>
+<li>A generated test password, sent to the sign-in endpoint and refused, appears nowhere in the application log, the gateway log or the error tracker.</li>
+<li>A generated test token pasted into an identifier field appears nowhere in the log.</li>
+<li>Replaying the fast walk in a test environment raises exactly one alert, for the right account.</li>
+<li>Replaying one mistyped identifier raises none.</li>
+<li>Replaying the walk slowly, below the fast rule, raises the slow rule's alert. Write down the rate below which nothing fires.</li>
+<li>Deleting or editing one line of a stored log is detected by a check that runs somewhere the application cannot write.</li>
+<li>Two hosts that log the same burst produce timestamps that agree to within the rule's window.</li>
+</ul>
+</div>
+
+<h2>7. Lab</h2>
+<div class="prose">
+<p>Download <a href="../../labs/detection_lab.py"><code>labs/detection_lab.py</code></a> and run it with Python 3. It needs no packages beyond the standard library. On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>. The API, the two loggers and the rules are plain Python objects. Nothing opens a socket or writes a file, and time is a counter the lab advances by hand, so the output is the same on every run. The passwords and tokens in Parts B, C and D are generated at runtime and never printed.</p>
+</div>
+<pre><code>$ python3 labs/detection_lab.py
+ExampleAir bookings. The module 9 ownership check is in place in every part.
+
+Part A: the log records successes only.
+ 1. booking ids the attacker asked for                                    40
+ 2.   refused with 404                                                    38
+ 3. lines in the log afterwards                                           4
+ 4.   lines that record a refusal                                         0
+ 5. alerts from R1, 5 refusals for one user in 60 s                       []
+ 6. bookings the log can show acct-77 asked for                           ['bkg-1001', 'bkg-1003']
+
+Part B: one structured event per decision, and rules that read them.
+ 7. events in the log after the same traffic                              43
+ 8.   of which authz_fail                                                 39
+ 9.   fields in each authz_fail event                                     ['appid', 'datetime', 'event', 'host', 'level', 'reason', 'request_id', 'resource', 'result', 'route', 'source_ip', 'userid']
+10.   the level the vocabulary gives authz_fail                           CRITICAL
+11. R1 alerts, 5 refusals for one user in 60 s                            ['acct-77']
+12.   the alert fired at                                                  2026-10-04T09:00:17+00:00
+13.   ids the attacker had asked for by then, of 40                       7
+14.   refusals in the log for the customer who mistyped one id            1
+15.   alerts naming that customer                                         0
+16. ids the log shows acct-77 was refused                                 38
+17.   of those, real bookings of other customers                          ['bkg-1002', 'bkg-1004', 'bkg-1005']
+18.   request ids are unique, one per request                             True
+19. one wrong password each for six accounts: most failures per account   1
+20.   alerts from a rule of 5 login failures for one account              []
+21.   R2 alerts, 5 different accounts failing from one address            ['203.0.113.50']
+22. twelve cancellations by one account in 24 s: refusals logged          0
+23.   R3 alerts, 10 cancellations by one user in 300 s                    ['acct-agency']
+
+Part C: a user name with a line break in it.
+24. plain log: the one login attempt is answered                          401 unauthorized
+25.   lines in the log                                                    2
+26.   the last line reads as                                              authn_login_success for admin
+27.   successful sign-ins a reader counts for admin                       1
+28. JSON log, the same attempt: lines in the log                          1
+29.   events it parses into                                               ['authn_login_fail']
+30.   the user name read back equals the one sent                         True
+31.   successful sign-ins a reader counts for admin                       0
+
+Part D: what never to write.
+32. the password a user typed is in the plain log                         True
+33.   and in the JSON log, which writes allowlisted fields only           False
+34.   field names the allowlist dropped                                   ['password']
+35. a credential pasted into the booking id reaches the JSON log          True
+36.   with the id validated before anything is logged                     False
+37.   the event written instead                                           ['input_validation_fail, reason booking_id']
+
+Part E: what the rules miss, and what they get wrong.
+38. 30 ids, one every 20 minutes: refusals logged                         28
+39.   R1 alerts, 5 refusals for one user in 60 s                          []
+40.   R4 alerts, 10 refusals for one user in 24 hours                     ['acct-77']
+41.   R4 fired at                                                         2026-10-04T13:00:00+00:00
+42. 30 refusals split across 10 accounts and addresses: R1 and R4 alerts  []
+43. an honest batch client asks for 6 stale ids in 6 s: R1 alerts         ['acct-agency']
+44. 6 refusals in 6 s through two hosts, one clock 120 s fast: R1 alerts  []
+45.   the same requests with both clocks in step                          ['acct-77']
+
+Part F (Option): a hash chain over the log lines.
+46. the untouched log of Part B                                           ok
+47. line 10 deleted, with its digest                                      broken at line 10
+48. line 20 edited to name another user                                   broken at line 20
+49. every acct-77 line removed, digests recomputed beside the log         ok
+50.   the same rewrite against the head digest kept elsewhere             head mismatch
+
+all 50 lab checks passed</code></pre>
+<div class="prose">
+<p>Eight results are worth reading closely. Checks 3 to 6 are the attack: 38 refusals, four lines in the log, none of them a refusal, and an investigator who asks what <code>acct-77</code> did is shown two of its own bookings. Checks 11 to 15 are the same traffic with events: one alert, for the right account, seven requests into the walk, and none for the customer whose one mistake is in the same log at the same level. Check 17 is something only the log knows. The API answered 404 for all 38, and the events still separate the three identifiers that belong to other customers from the 35 that do not exist, which is the list an incident responder needs first.</p>
+<p>Checks 19 to 21 show why the choice of key matters. Each of the six accounts fails once, so a rule counting failures per account sees nothing, and the rule counting different accounts per address fires. Checks 22 and 23 are the rule over successes: twelve cancellations, no refusal anywhere, one alert.</p>
+<p>Checks 35 to 37 are the limit of the allowlist from section 3, and checks 42 and 43 are the limit of the rules: a split walk that nothing catches, next to an honest batch client that R1 does catch. Checks 44 and 45 are the same six requests with and without a two-minute clock error.</p>
+<p><strong>Try next:</strong></p>
+<ul>
+<li>Change <code>SLOW_INTERVAL</code> from <code>1200</code> to <code>9600</code>, one request every 160 minutes. Check 40 becomes <code>[]</code>, check 41 becomes <code>no alert</code>, and the lab exits 1. Ten refusals now take exactly 24 hours, so there are never ten inside the window. At <code>9000</code> the rule still fires, at <code>2026-10-05T17:30:00+00:00</code>, more than a day after the walk began. There is always a slower attacker.</li>
+<li>In Part A, change <code>successes_only=True</code> to <code>False</code>. Checks 3 to 6 change: 43 lines, 39 of them refusals, R1 alerts on <code>acct-77</code>, and the log lists all 40 identifiers. A plain text log that records failures is enough for R1. Parts C and D are why you still want structure.</li>
+</ul>
+</div>
+
+<h2>8. Check your understanding</h2>
+<details><summary>The API already refuses every request for another customer's booking. Why log the refusals?</summary><p>Because a refusal tells only the attacker. The walk in the lab is refused 38 times and leaves nothing in a log of successes, so it can continue against every other route until it finds one where the check is missing. The refusals are also the record an investigation starts from: which account, which identifiers, from when to when.</p></details>
+<details><summary>The vocabulary gives <code>authz_fail</code> the level CRITICAL. Should each one page the on-call engineer?</summary><p>No. The level ranks the event. A customer who mistypes one booking id produces a CRITICAL event, and check 15 shows no alert for them. A rule over the events decides whether a person is told: here, five for one account inside 60 seconds.</p></details>
+<details><summary>A colleague fixes log injection by deleting line feeds from user names before logging. What is left?</summary><p>The delimiters, and every other character a reader treats as a line break. Exercise 2 measures both: the forged entry disappears, the real entry now names the wrong user, and a carriage return forges the entry again. The fix is an encoder for the output format, such as one JSON object per line, not a list of characters to remove.</p></details>
+<details><summary>No alert fired last month. What can you report?</summary><p>That none of your rules fired, along with which rules they are and the rate below which each is silent. Check 42 logs 30 refusals and raises no alert. "No alerts" is a statement about the rules. It is not a statement about attackers.</p></details>
+
+<section class="course-quiz" data-quiz data-quiz-id="logging-and-detection-check" data-correct-feedback="Correct. The refusals were never written, so the log holds only the account's two successful reads of its own bookings, and no rule has anything to count." data-incorrect-feedback="Not quite. The ownership check refused 38 requests and answered the caller each time. Nothing wrote those refusals down, so the log holds two ordinary successful reads and no rule can fire.">
+<p class="kicker">Quick check</p>
+<h2>A walk that leaves no trace</h2>
+<fieldset><legend>An API returns 404 for any booking the caller does not own, and logs successful reads only. One account requests 40 booking ids in 40 seconds, and 38 are refused. What does the log show for that account?</legend>
+<label><input type="radio" name="logging-detection" value="errors"> 38 error lines, one per refusal.</label>
+<label><input type="radio" name="logging-detection" value="two" data-correct="true"> Two successful reads of its own bookings, and nothing else.</label>
+<label><input type="radio" name="logging-detection" value="alert"> One alert, raised by the ownership check.</label>
+<label><input type="radio" name="logging-detection" value="none"> Nothing at all, because every request was refused.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+</section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="logging-and-detection-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/detection_lab.py"><code>labs/detection_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant, not a reading of the code. The lab compares every result with the one it expects, so each of these edits also makes it exit 1 and list what differed. Two answers carry a measurement from a request the lab does not make.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="logging-x1" data-covers="log-03">
+<h3>1. Someone adds password to the allowlist</h3>
+<div class="prose">
+<p>A developer wants to see what users type when sign-in fails. In <code>ALLOWED_FIELDS</code>, add <code>"password"</code> after <code>"host"</code>. Nothing else changes.</p>
+</div>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="logging-x1" value="a"> None. The JSON logger encodes every value, so the password is not readable.</label>
+<label><input type="radio" name="logging-x1" value="b"> Check 32, the plain log.</label>
+<label><input type="radio" name="logging-x1" value="c" data-correct="true"> Checks 33 and 34.</label>
+<label><input type="radio" name="logging-x1" value="d"> Checks 9, 33 and 34. Every event gains a password field.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Encoding is not hiding. JSON escapes quotes and line breaks so the value cannot break the line. The value itself is written in full, and check 33 finds it.</li>
+<li data-option="b">Check 32 already prints <code>True</code>. The plain logger has no allowlist and wrote the password before this edit.</li>
+<li data-option="c">Correct. Exit 1, two failures. Check 33 goes from <code>False</code> to <code>True</code>: the password a user typed is now in the JSON log. Check 34 goes from <code>['password']</code> to <code>[]</code>: the allowlist drops nothing, because the one thing it was dropping has been allowed. One word in one tuple undoes the control, which is why check <code>log-03</code> in the <a href="#reference">Reference</a> layer asks for a test with a generated value and not a review of the list.</li>
+<li data-option="d">Check 9 still prints the same twelve field names. The API passes <code>password</code> only from the failed sign-in path, so an <code>authz_fail</code> event never had one to write.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="logging-x2" data-covers="log-04">
+<h3>2. The plain logger strips line feeds</h3>
+<div class="prose">
+<p>Someone fixes Part C without changing the format. In <code>PlainLogger.emit</code>, replace <code>fields[name]</code> with a version that turns each line feed into a space:</p>
+</div>
+<pre><code>pairs = " ".join("%s=%s" % (name, str(fields[name]).replace("\n", " "))
+                 for name in sorted(fields))</code></pre>
+<fieldset><legend>What do checks 25 to 27 print?</legend>
+<label><input type="radio" name="logging-x2" value="a"> The same as before. The forged line is still there.</label>
+<label><input type="radio" name="logging-x2" value="b"> One line, read as a failed sign-in for <code>nobody</code>. The fix works.</label>
+<label><input type="radio" name="logging-x2" value="c" data-correct="true"> One line, read as a failed sign-in for <code>admin</code>.</label>
+<label><input type="radio" name="logging-x2" value="d"> No lines. The logger drops the event.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">The line feed is gone, so the text can no longer start a second line. Check 25 goes from <code>2</code> to <code>1</code> and check 27, the forged sign-in for <code>admin</code>, goes from <code>1</code> to <code>0</code>.</li>
+<li data-option="b">That is the result the edit was meant to produce. The forged text is still inside the line, after the real user name, and it is made of <code>name=value</code> pairs. A reader that splits on spaces takes the last value it sees for each name.</li>
+<li data-option="c">Correct. Exit 1, three failures. Check 25 goes from <code>2</code> to <code>1</code>, check 26 from <code>authn_login_success for admin</code> to <code>authn_login_fail for admin</code>, and check 27 from <code>1</code> to <code>0</code>. The forged success is gone. The one real entry now says the failed sign-in was for <code>admin</code>. Measured on the parsed event: its <code>userid</code> is <code>admin</code>, its <code>result</code> is <code>success</code> and its <code>source_ip</code> is <code>198.51.100.7</code>, the customer's address, where the request came from <code>203.0.113.50</code>. The Logging Cheat Sheet lists this among attacks on logs: "An attacker causes the wrong identity to be logged in order to conceal the responsible party." Also measured, on a user name the lab does not send: with a carriage return where the line feed was, the edited logger writes two lines again and the reader counts one successful sign-in for <code>admin</code>, because the reader splits on more than line feeds. The JSON logger writes one line for either user name and reads the same value back. Check <code>log-04</code> in the <a href="#reference">Reference</a> layer asks for an encoder for this reason.</li>
+<li data-option="d">The plain logger never drops an event unless <code>successes_only</code> is set, and Part C does not set it.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="logging-x3" data-covers="log-06">
+<h3>3. The threshold is raised to quiet a false positive</h3>
+<div class="prose">
+<p>Check 43 is a false positive: an honest batch client trips R1. To stop it, change <code>threshold=5</code> to <code>threshold=7</code> in the line that defines <code>R1</code>.</p>
+</div>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="logging-x3" value="a"> Check 43 only. The false positive is gone and nothing else moves.</label>
+<label><input type="radio" name="logging-x3" value="b" data-correct="true"> Checks 12, 13, 43 and 45.</label>
+<label><input type="radio" name="logging-x3" value="c"> Checks 11 and 43. The attacker's walk is no longer caught.</label>
+<label><input type="radio" name="logging-x3" value="d"> Checks 15 and 43. The customer who mistyped one id is now named.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 43 does go from <code>['acct-agency']</code> to <code>[]</code>. Three other checks use R1 with traffic close to the old threshold, and they move too.</li>
+<li data-option="b">Correct. Exit 1, four failures. Check 43 goes from <code>['acct-agency']</code> to <code>[]</code>, which was the aim. Check 12 goes from <code>2026-10-04T09:00:17+00:00</code> to <code>2026-10-04T09:00:19+00:00</code> and check 13 from <code>7</code> to <code>9</code>: the fast walk is still caught, two requests later. Check 45 goes from <code>['acct-77']</code> to <code>[]</code>: the burst of six refusals through two hosts is now under the threshold, so a real attack is missed with both clocks correct. One number moved a false positive and a true positive together. Check <code>log-06</code> in the <a href="#reference">Reference</a> layer asks for the attack to be replayed after every threshold change for this reason.</li>
+<li data-option="c">Check 11 still prints <code>['acct-77']</code>. The walk produces 38 refusals at one a second, far more than seven in a minute.</li>
+<li data-option="d">Check 15 still prints <code>0</code>. One refusal is below a threshold of five and below a threshold of seven.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="logging-x4" data-covers="log-09">
+<h3>4. The clock error is 30 seconds, not 120</h3>
+<div class="prose">
+<p>In Part E, check 44 runs six refusals through two hosts with the second host's clock 120 seconds fast. Change <code>two_hosts(120)</code> to <code>two_hosts(30)</code> in that check.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="logging-x4" value="a"> Nothing. Any clock error breaks a rule that counts inside a window.</label>
+<label><input type="radio" name="logging-x4" value="b" data-correct="true"> Check 44 prints <code>['acct-77']</code>.</label>
+<label><input type="radio" name="logging-x4" value="c"> Check 45 prints <code>[]</code>.</label>
+<label><input type="radio" name="logging-x4" value="d"> Checks 44 and 45 swap.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">The rule does not need the clocks to agree exactly. It needs the error to be small next to the window.</li>
+<li data-option="b">Correct. Exit 1, one failure: check 44 goes from <code>[]</code> to <code>['acct-77']</code>. With a 30 second error all six timestamps still fall inside one 60 second window, so R1 fires. Measured on values the lab does not use: an error of 56 seconds still raises the alert and 57 seconds does not. The lab's own label still says 120 s, which is why the run fails. Check <code>log-09</code> in the <a href="#reference">Reference</a> layer ties the allowed clock error to the shortest window any rule uses.</li>
+<li data-option="c">Check 45 calls <code>two_hosts(0)</code> and this edit does not touch it. It still prints <code>['acct-77']</code>.</li>
+<li data-option="d">Only check 44 was edited, and check 45 has no clock error to change.</li>
+</ul>
+</details>
+</article>
+</section>
+
+<p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
+<span class="layer" id="reference" style="margin-top:3rem">Reference</span>
+<h2 style="border-top:none;margin-top:.5rem">Controls</h2>
+<p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
+<ul class="controls">
+<li><span class="label std">Standard</span>The <a href="#source-logging">OWASP Logging Cheat Sheet</a>, under Which events to log, recommends always logging, where possible, input validation failures, authentication successes and failures, authorization (access control) failures, session management failures, application errors and system events, use of higher-risk functionality, and suspicious business logic activities. It is guidance and sets no requirement.</li>
+<li><span class="label std">Standard</span>The <a href="#source-logging">OWASP Logging Cheat Sheet</a>, under Event attributes, says each event records "when, where, who and what", and describes an interaction identifier as "a method of linking all (relevant) events for a single user interaction".</li>
+<li><span class="label std">Standard</span>The <a href="#source-logging">OWASP Logging Cheat Sheet</a>, under Data to exclude, says session identification values, access tokens, authentication passwords, database connection strings, encryption keys and other primary secrets, payment card holder data and sensitive personal data "should usually not be recorded directly in the logs, but instead should be removed, masked, sanitized, hashed, or encrypted".</li>
+<li><span class="label std">Standard</span>The <a href="#source-logging">OWASP Logging Cheat Sheet</a>, under Event collection, recommends sanitizing all event data "to prevent log injection attacks e.g. carriage return (CR), line feed (LF) and delimiter characters", encoding data correctly for the logged format, and synchronizing time "across all servers and devices".</li>
+<li><span class="label std">Standard</span>The <a href="#source-logging">OWASP Logging Cheat Sheet</a>, under Protection, recommends tamper detection, copying log data to read-only media as soon as possible, recording and monitoring all access to the logs, and restricting the privileges to read them. Under Disposal of logs it says log data must not be destroyed before the required retention period ends, "and must not be kept beyond this time".</li>
+<li><span class="label std">Standard</span>The <a href="#source-vocabulary">OWASP Logging Vocabulary Cheat Sheet</a> "proposes a standard vocabulary for logging security events". It gives <code>authn_login_success</code> the level INFO, <code>authn_login_fail</code> and <code>input_validation_fail</code> the level WARN, and <code>authz_fail</code> the level CRITICAL, and says all dates "should be logged in ISO 8601 format WITH UTC offset". It is a proposal, not a standard.</li>
+<li><span class="label std">Standard</span><a href="#source-a09">OWASP Top 10:2025 A09</a> lists among its failures auditable events that "are not logged or logged inconsistently", log integrity that is not protected from tampering, logs that are not monitored, and too many false positive alerts. Among its preventions: log all login, access control and server-side input validation failures "with sufficient user context to identify suspicious or malicious accounts", and encode log data correctly. It is an awareness document and sets no requirement.</li>
+<li><span class="label std">Standard</span><a href="#source-80092">NIST SP 800-92</a> (September 2006) section 5.1.3 says users should not have access to most log files beyond append-only privileges where they must create entries, that logging should be configured not to record unneeded sensitive data such as passwords, and that protecting archived logs "could include creating and securing message digests for the files". Section 5.5 lists ensuring "that each system's clock is synched to a common time source" among operational duties.</li>
+<li><span class="label std">Standard</span><a href="#source-80061">NIST SP 800-61r3</a> (April 2025) section 2.1 replaces the four-phase life cycle of the previous revision with a model based on the six CSF 2.0 Functions, in which Detect, Respond and Recover are the incident response itself and Govern, Identify and Protect are preparation. It recommends that organizations use the model that suits them best. In Table 3 it recommends tuning monitoring to reduce false positives and false negatives (DE.CM), declaring incidents against defined criteria (DE.AE-08), triaging and validating each report (RS.MA-02) and determining the sequence of events (RS.AN-03).</li>
+<li><span class="label std">Standard</span><a href="#source-5424">RFC 5424</a> section 6.2.1 requires a syslog Severity value to be in the range 0 to 7 and lists the names, from Emergency (0) to Debug (7), in a table. It says the Facility and Severity values "are not normative but often used" and that the tables are there "for purely informational purposes". The Logging Cheat Sheet's example of a severity scale uses the same numbers. Section 8.2 warns that an attacker may include control characters in a message.</li>
+<li><span class="label std">Standard</span>For agents, the <a href="#source-agent">OWASP AI Agent Security Cheat Sheet</a>, section 6, recommends: "Log all agent decisions, tool calls, and outcomes." The <a href="#source-agentic">OWASP Top 10 for Agentic Applications for 2026</a>, ASI02, says: "Maintain immutable logs of all tool invocations and parameter changes."</li>
+<li><span class="label base">Baseline</span>Log every refusal an authentication, authorization or validation control makes, with the account, the object, the route and a request id. A success-only log hides the attacks your controls stopped.</li>
+<li><span class="label base">Baseline</span>Write each event as one JSON object per line through an encoder. Do not build log lines by joining strings, and do not strip characters by hand.</li>
+<li><span class="label base">Baseline</span>Put an allowlist of field names in the logger. Validate identifiers before logging them, and log the name of a field that failed validation, not its value.</li>
+<li><span class="label base">Baseline</span>Keep the event name in a field of its own and its parameters in separate fields. Treat the level as a ranking, and let rules decide who is told.</li>
+<li><span class="label base">Baseline</span>Run at least these rules: refusals per account in a short window, the same in a long window, different accounts failing sign-in from one address, and a count on each sensitive business flow. Replay the attack after every threshold change.</li>
+<li><span class="label base">Baseline</span>For an agent, record which agent acted, on whose behalf, which tool it called and the outcome.</li>
+<li><span class="label base">Baseline</span>Report "no rule fired", with the rules and the rate below which each is silent. Never report "no attack".</li>
+<li><span class="label opt">Option</span>A hash chain over log entries, with the latest digest stored where the log's writer cannot reach. It shows an edit or a deletion. It does not prevent one.</li>
+<li><span class="label opt">Option</span>Automatic blocking when a rule fires. The Logging Cheat Sheet warns that such an action must not become a way to deny service to other users.</li>
+<li><span class="label opt">Option</span>Honeytokens: records or identities that no real user touches, so that any access to them is an alert with almost no false positives. <a href="#source-a09">OWASP Top 10:2025 A09</a> suggests them.</li>
+</ul>
+
+<h2>Review checklist items</h2>
+<p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
+<ul class="checks">
+<li data-check="log-01" data-severity="Critical"><strong>Refusals are logged, not only successes</strong> <span>Every failed sign-in, authorization failure and input validation failure leaves an event. Test by sending a request that is refused and reading the log.</span></li>
+<li data-check="log-02" data-severity="High"><strong>Each event says when, where, who and what, and carries a request id</strong> <span>Timestamp, application, host, route, account, source address, event name, object, result and reason. The request id also appears in the error response.</span></li>
+<li data-check="log-03" data-severity="Critical"><strong>No credential, token or session identifier is written to any log</strong> <span>The logger has an allowlist of field names. Test with a generated password and a generated token on the failure paths, then search every log for them.</span></li>
+<li data-check="log-04" data-severity="High"><strong>A logged value cannot forge or alter an entry</strong> <span>Events are written by an encoder for a structured format. Test a value containing a line feed, a carriage return and the delimiter, and parse the log back.</span></li>
+<li data-check="log-05" data-severity="Medium"><strong>Event names and levels come from one documented vocabulary</strong> <span>Every service uses the same name for the same event, so one rule covers all of them.</span></li>
+<li data-check="log-06" data-severity="High"><strong>Detection rules read the events, and each is tested by replaying the attack</strong> <span>At least refusals per account, different accounts failing from one source, and a count on each sensitive business flow. Replay after every threshold change.</span></li>
+<li data-check="log-07" data-severity="High"><strong>The slow and the distributed variants have been considered</strong> <span>A long-window rule exists, and the rate below which no rule fires is written down.</span></li>
+<li data-check="log-08" data-severity="High"><strong>Logs are protected from the systems that write them</strong> <span>Append-only or copied off the host promptly, read access restricted and itself logged, and a retention period defined for each log type.</span></li>
+<li data-check="log-09" data-severity="Medium"><strong>Clocks are synchronised to a common source</strong> <span>The allowed clock error is smaller than the shortest window any rule uses. Timestamps carry a UTC offset.</span></li>
+<li data-check="log-10" data-severity="High"><strong>An alert reaches a person who has a written procedure</strong> <span>The procedure covers triage, the criteria for declaring an incident, reconstruction from the log, containment and what to record. It has been exercised.</span></li>
+</ul>
+
+<h2>Sources</h2>
+<ul class="prose">
+<li id="source-logging"><a href="https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html">OWASP Cheat Sheet Series, Logging Cheat Sheet</a>, read 2 October 2026. Sections Purpose, Event data sources, Which events to log, Event attributes, Data to exclude, Event collection, Verification, Protection, Disposal of logs and Attacks on Logs. Unversioned guidance.</li>
+<li id="source-vocabulary"><a href="https://cheatsheetseries.owasp.org/cheatsheets/Logging_Vocabulary_Cheat_Sheet.html">OWASP Cheat Sheet Series, Logging Vocabulary Cheat Sheet</a>, read 4 October 2026. The page titles itself Application Logging Vocabulary Cheat Sheet. Sections Format, Authentication, Authorization, Input Validation and Malicious Behavior.</li>
+<li id="source-a09"><a href="https://top10.owasp.org/2025/A09_2025-Security_Logging_and_Alerting_Failures/">OWASP Top 10:2025, A09:2025 Security Logging &amp; Alerting Failures</a>. Description and How to prevent. An awareness document.</li>
+<li id="source-80092"><a href="https://doi.org/10.6028/NIST.SP.800-92">NIST SP 800-92: Guide to Computer Security Log Management</a>, September 2006. Executive Summary, sections 2.3.3, 5.1.3 and 5.5, and Table 4-1 in section 4.2. Old, and still the final version: NIST SP 800-61r3 points readers to a 2023 draft revision, which this module does not cite.</li>
+<li id="source-80061"><a href="https://doi.org/10.6028/NIST.SP.800-61r3">NIST SP 800-61r3: Incident Response Recommendations and Considerations for Cybersecurity Risk Management: A CSF 2.0 Community Profile</a>, April 2025. Section 2.1 and Table 1 for the life cycle model, Table 3 in section 3.2 for the Detect, Respond and Recover recommendations. It supersedes SP 800-61r2.</li>
+<li id="source-5424"><a href="https://www.rfc-editor.org/rfc/rfc5424">RFC 5424: The Syslog Protocol</a>, March 2009. Sections 6.2.1 and 8.2.</li>
+<li id="source-agent"><a href="https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html">OWASP Cheat Sheet Series, AI Agent Security Cheat Sheet</a>, read 4 October 2026. Section 6, Monitoring &amp; Observability.</li>
+<li id="source-agentic"><a href="https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/">OWASP Top 10 for Agentic Applications for 2026</a>, version 2026, released 9 December 2025. ASI02 Tool Misuse and Exploitation, prevention and mitigation guideline 8.</li>
+<li id="source-api2023"><a href="https://api-security.owasp.org/editions/2023/en/0x11-t10/">OWASP API Security Top 10 2023</a>. Cited for an absence: its ten entries include none on logging. The site's navigation lists API10:2019 Insufficient Logging &amp; Monitoring under the 2019 edition, whose text this module did not read and does not cite. Among the ten 2023 entries that title appears only in the references of <a href="https://api-security.owasp.org/editions/2023/en/0xa6-unrestricted-access-to-sensitive-business-flows/">API6:2023</a>.</li>
+</ul>
+</main>
+<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
+</body>
+</html>

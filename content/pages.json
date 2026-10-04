@@ -17,7 +17,7 @@
           "id": "overview",
           "aria-labelledby": "course-overview"
         },
-        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>New security engineers who can read Python and HTTP requests.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. Four labs also need the <code>cryptography</code> package. No account or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 30 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Examples of learning outcomes</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
+        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>New security engineers who can read Python and HTTP requests.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. Four labs also need the <code>cryptography</code> package. No account or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 31 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Examples of learning outcomes</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
       },
       {
         "tag": "h2",
@@ -264,6 +264,11 @@
         "definition": "A signature input derived from the control data or other parts of the message rather than from a header field, written with a leading <code>@</code>, such as <code>@method</code>, <code>@authority</code> or <code>@path</code>. RFC 9421 section 2.2."
       },
       {
+        "id": "detection-rule",
+        "term": "Detection rule",
+        "definition": "A condition evaluated over logged events that raises an alert when it is met, such as five authorization failures for one account inside a minute. It sees only what the events record."
+      },
+      {
         "id": "double-submit-cookie",
         "term": "Double-submit cookie",
         "definition": "A <a href=\"#csrf\">CSRF</a> defence that keeps no token on the server. The token arrives in a cookie the page can read, and the page must send it back in a header or a form field. The OWASP CSRF Prevention Cheat Sheet recommends the signed form, an <a href=\"#hmac\">HMAC</a> bound to the session, because a plain value can be planted by anyone who can set a cookie for the domain."
@@ -289,6 +294,11 @@
         "definition": "Refusing the request when a check cannot complete. The opposite, failing open, lets the request through because the check raised an error, which OWASP Top 10:2025 A10 lists as CWE-636, Not Failing Securely."
       },
       {
+        "id": "false-positive",
+        "term": "False positive",
+        "definition": "An alert raised for activity that was not an attack. Enough of them and people stop reading alerts, so a threshold is tuned against real traffic and not set once."
+      },
+      {
         "id": "fetch",
         "term": "Fetch",
         "definition": "The browser API that issues HTTP requests from a page, and the name of the WHATWG standard that defines request and response handling, including <a href=\"#cors\">CORS</a>. A fetch states whether credentials are omitted, included, or sent only to the same origin."
@@ -307,6 +317,11 @@
         "id": "hash",
         "term": "Hash",
         "definition": "A fixed-length fingerprint of data, such as SHA-256. Anyone can compute it, and changing one byte of input changes the output completely. A hash alone proves nothing about who made it."
+      },
+      {
+        "id": "hash-chain",
+        "term": "Hash chain",
+        "definition": "A list of <a href=\"#hash\">hashes</a> in which each one covers a record and the hash before it, so changing or removing a record changes every later hash. It shows tampering only to someone who holds a copy of the last hash that the person tampering could not rewrite."
       },
       {
         "id": "hidden-context",
@@ -347,6 +362,11 @@
         "id": "improper-output-handling",
         "term": "Improper output handling",
         "definition": "Passing a model's output downstream without validating or encoding it for where it is going. OWASP LLM10:2026. The bug is in the calling code rather than in the model's answer."
+      },
+      {
+        "id": "incident",
+        "term": "Incident",
+        "definition": "One or more adverse events that someone has analysed and declared to be a real compromise or violation. NIST SP 800-61r3 keeps the two apart: it says additional analysis is often needed to decide whether adverse events mean an incident has occurred."
       },
       {
         "id": "indirect-prompt-injection",
@@ -397,6 +417,11 @@
         "id": "keyid",
         "term": "keyId",
         "definition": "An identifier sent with a signed request telling the receiver which key to verify with. It must never be the key itself."
+      },
+      {
+        "id": "log-injection",
+        "term": "Log injection",
+        "definition": "Writing a value an attacker controls into a log so that a reader takes it for something else, such as a line break that starts a forged second entry. OWASP Top 10:2025 A09 lists CWE-117, Improper Output Neutralization for Logs, among its mapped weaknesses."
       },
       {
         "id": "luhn-check",
@@ -644,6 +669,11 @@
         "definition": "A value a stateless server mints to carry state across requests, handed back to it as an ordinary argument. Possession of one is not authentication, so the server binds it to the caller it was minted for and refuses it from anyone else."
       },
       {
+        "id": "structured-logging",
+        "term": "Structured logging",
+        "definition": "Writing each event as named fields in a format a program can parse, such as one JSON object per line, in place of a sentence. The encoder escapes line breaks and quotes inside values, so a value cannot end its own entry."
+      },
+      {
         "id": "sunset-header",
         "term": "Sunset header",
         "definition": "The <code>Sunset</code> HTTP response header field, which \"indicates that a URI is likely to become unresponsive at a specified point in the future\" (RFC 8594). When a response carries both, its timestamp must not be earlier than the one in the <a href=\"#deprecation-header\">Deprecation header</a> (RFC 9745 section 4)."
@@ -736,7 +766,7 @@
         "attrs": {
           "class": "meta"
         },
-        "html": "<p class=\"meta\">All 30 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written.</p>"
+        "html": "<p class=\"meta\">All 31 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written.</p>"
       },
       {
         "tag": "section",

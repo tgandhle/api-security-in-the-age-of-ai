@@ -1,5 +1,5 @@
 {
-  "total": 30,
+  "total": 31,
   "lessons": [
     {
       "slug": "security-foundations",
@@ -180,6 +180,12 @@
       "lesson_number": 30,
       "module": 29,
       "title": "Security misconfiguration"
+    },
+    {
+      "slug": "logging-and-detection",
+      "lesson_number": 31,
+      "module": 30,
+      "title": "Logging, detection and response"
     }
   ]
 }
