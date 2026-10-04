@@ -201,7 +201,7 @@ Work on one module per task unless told otherwise.
 - [ ] `python3 tools/check_site.py` prints `all checks passed`.
 - [ ] `python3 tools/extract_lessons.py --check` prints `content/ matches the published pages`.
 - [ ] `python3 tools/render_site.py` prints `the template reproduces every published page byte for byte`.
-- [ ] `python3 tools/check_transcripts.py` prints `all 32 published lab transcripts match a live run`. If it reports any as skipped, install the package the lab names and run it again, or say in your report which ones were not checked and why.
+- [ ] `python3 tools/check_transcripts.py` prints `all 33 published lab transcripts match a live run`. If it reports any as skipped, install the package the lab names and run it again, or say in your report which ones were not checked and why.
 - [ ] `python3 tools/build_lab_bundles.py --check` prints `every lab bundle matches its .py file`.
 - [ ] `python3 tools/extract_pages.py --check` prints `content/pages.json matches the published pages`.
 - [ ] `python3 tools/build_search_index.py --check` prints `the search index matches content/`.
@@ -277,6 +277,7 @@ All of these modules are now published. The list is kept as the record of intent
 29. **Security misconfiguration** (OWASP API8:2023). Attack: a default install that leaks errors, serves debug routes and a default account, and accepts old TLS. Lab: the same code audited under a default and a hardened configuration, plus drift between environments.
 30. **Logging, detection and response.** Attack: an enumeration nobody sees. Lab: structured events, threshold rules and their limits, log injection, a field allowlist, a hash chain.
 31. **Agent code execution and containment** (OWASP ASI05, ASI08, ASI10). Attacks: injected code execution, a fault cascading across agents, an agent that leaves its declared behaviour. Lab: a deny-by-default sandbox, budgets, a checkpoint and circuit breaker, quarantine and revocation. No real code is executed.
+32. **Model and artifact supply chain** (OWASP LLM04:2026, added after the first five because module 25 teaches only the data side). Attacks: a model file that runs code on load, a model resolved by a name an attacker re-registered, a backdoored artifact signed by the expected pipeline, an invented package name. Lab: a restricted loader and a data-only format, digest pinning, a signed manifest and its limit, a promotion gate with a behavioural evaluation, hash-checked installs and an inventory. The pickle payload calls only a function defined in the lab.
 
 Labs for Part 4 must not call real model APIs. Use local stubs that simulate model behavior.
 
@@ -292,4 +293,5 @@ These are starting points to open and verify, not citations to copy. Confirm eac
 - TLS: RFC 9846 (TLS 1.3). Recommendations: RFC 9325, updated by RFC 9852 and RFC 10015 (both July 2026). RFC 8996 deprecates TLS 1.0 and 1.1. HSTS: RFC 6797.
 - Cookies: RFC 6265. SameSite and cookie prefixes are defined only in draft-ietf-httpbis-rfc6265bis (revision 22 as of 2026-10-04), an Internet-Draft: cite it as a draft. Fetch Metadata Request Headers is a W3C Working Draft (21 September 2026). OAuth 2.0 for Browser-Based Applications is RFC 10017 (August 2026), not a draft any more.
 - NIST SP 800-63B-4 (authentication), SP 800-92 (log management, September 2006), SP 800-61r3 (incident response, April 2025). OWASP Top 10:2025. The OWASP Cheat Sheet Series is unversioned: cite the sheet and the date it was read.
+- Model and artifact supply chain: SLSA specification v1.2. NIST SP 800-218A (July 2024). The OpenSSF model signing project (`sigstore/model-transparency`) and `safetensors` have no versioned specification in the sense of an RFC: pin by commit. pip documentation: cite the version in the page title.
 - MCP specification, revision 2026-07-28. A2A specification, release v1.0.1 (the project changelog dates it 2026-05-26; the GitHub release was published 2026-05-28). Do not cite `a2a-protocol.org/latest/`, which serves the unreleased development build.

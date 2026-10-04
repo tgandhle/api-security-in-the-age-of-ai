@@ -38,6 +38,7 @@ Work through the published modules in order. Each lesson includes an attack exam
 | 29 | [Security misconfiguration](topics/security-misconfiguration/index.html) | [`misconfiguration_lab.py`](labs/misconfiguration_lab.py) |
 | 30 | [Logging, detection and response](topics/logging-and-detection/index.html) | [`detection_lab.py`](labs/detection_lab.py) |
 | 31 | [Agent code execution and containment](topics/agent-containment/index.html) | [`containment_lab.py`](labs/containment_lab.py) |
+| 32 | [Model and artifact supply chain](topics/model-supply-chain/index.html) | [`model_supply_chain_lab.py`](labs/model_supply_chain_lab.py) |
 
 [Full module plan](index.html#path) · [Glossary](glossary/index.html) · [Review checklist](checklist/index.html) · [OWASP coverage](coverage/index.html)
 

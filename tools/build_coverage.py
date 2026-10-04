@@ -108,10 +108,10 @@ NOT_COVERED = {
 
 # A caveat on an entry that is cited. Shown under the lessons.
 NOTES = {
-    "LLM04:2026": "Module 25 teaches the data side only: who can put a "
-                  "document into a retrieval index or a memory store. The "
-                  "entry is mainly about third-party models, datasets and "
-                  "model artifacts, and no lesson teaches those.",
+    "LLM04:2026": "Module 32 teaches the entry: models, adapters, converted "
+                  "files and packages taken in from outside. Module 25 "
+                  "teaches the data side only. On-device models are named "
+                  "in module 32 and not taught.",
 }
 
 # Topics no lesson mentions at all. --check fails if a lesson starts to.

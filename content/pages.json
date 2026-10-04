@@ -8,7 +8,7 @@
           "id": "course",
           "data-course-dashboard": null
         },
-        "html": "<section class=\"course-hero\" id=\"course\" data-course-dashboard>\n<p class=\"kicker\">Interactive learning course</p>\n<h1>API Security in the Age of AI</h1>\n<div class=\"prose\">\n<p>For new security engineers. Each module starts with a real attack, shows why it works, teaches the control that stops it, and ends with a test you can run. The second half of each page is a reference you can use in design reviews.</p>\n<p class=\"meta\">Self-paced. Work through the modules in order. Each one assumes the ones before it. Labs need Python 3. The labs for modules 3, 5, 6 and 7 also need one package, <code>cryptography</code>. Progress is stored only in this browser.</p>\n</div>\n<div class=\"course-progress\" aria-label=\"Course progress\"><p data-course-progress>0 of 32 published lessons complete</p><div class=\"progress-track\" role=\"progressbar\" aria-label=\"Published lesson progress\" aria-valuemin=\"0\" aria-valuemax=\"100\"><span data-course-progress-bar></span></div><p class=\"meta\" data-course-assessment-progress>0 of 32 published quick checks passed</p></div>\n<div class=\"course-actions\"><a class=\"button\" href=\"topics/security-foundations/index.html\">Start with the primer</a><button class=\"button secondary\" type=\"button\" data-reset-progress>Reset progress</button></div>\n</section>"
+        "html": "<section class=\"course-hero\" id=\"course\" data-course-dashboard>\n<p class=\"kicker\">Interactive learning course</p>\n<h1>API Security in the Age of AI</h1>\n<div class=\"prose\">\n<p>For new security engineers. Each module starts with a real attack, shows why it works, teaches the control that stops it, and ends with a test you can run. The second half of each page is a reference you can use in design reviews.</p>\n<p class=\"meta\">Self-paced. Work through the modules in order. Each one assumes the ones before it. Labs need Python 3. The labs for modules 3, 5, 6 and 7 also need one package, <code>cryptography</code>. Progress is stored only in this browser.</p>\n</div>\n<div class=\"course-progress\" aria-label=\"Course progress\"><p data-course-progress>0 of 33 published lessons complete</p><div class=\"progress-track\" role=\"progressbar\" aria-label=\"Published lesson progress\" aria-valuemin=\"0\" aria-valuemax=\"100\"><span data-course-progress-bar></span></div><p class=\"meta\" data-course-assessment-progress>0 of 33 published quick checks passed</p></div>\n<div class=\"course-actions\"><a class=\"button\" href=\"topics/security-foundations/index.html\">Start with the primer</a><button class=\"button secondary\" type=\"button\" data-reset-progress>Reset progress</button></div>\n</section>"
       },
       {
         "tag": "section",
@@ -17,7 +17,7 @@
           "id": "overview",
           "aria-labelledby": "course-overview"
         },
-        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>New security engineers who can read Python and HTTP requests.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. Four labs also need the <code>cryptography</code> package. No account or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 32 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Examples of learning outcomes</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
+        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>New security engineers who can read Python and HTTP requests.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. Four labs also need the <code>cryptography</code> package. No account or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 33 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Examples of learning outcomes</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
       },
       {
         "tag": "h2",
@@ -31,7 +31,7 @@
         "attrs": {
           "class": "meta"
         },
-        "html": "<p class=\"meta\">Every module is published: the primer, all of Parts 1 and 2, all seven modules of Part 3, all seven of Part 4, the capstone, and all five of Part 5. Each one carries its lesson, a runnable lab with its real output, primary sources, and review checklist items. The <a href=\"coverage/index.html\">coverage page</a> lists each entry of three OWASP lists with the lessons that cite it, and says what the course leaves out.</p>"
+        "html": "<p class=\"meta\">Every module is published: the primer, all of Parts 1 and 2, all seven modules of Part 3, all seven of Part 4, the capstone, and all six of Part 5. Each one carries its lesson, a runnable lab with its real output, primary sources, and review checklist items. The <a href=\"coverage/index.html\">coverage page</a> lists each entry of three OWASP lists with the lessons that cite it, and says what the course leaves out.</p>"
       }
     ]
   },
@@ -52,6 +52,11 @@
         "id": "act-claim",
         "term": "Act claim",
         "definition": "The <code>act</code> claim in a token, naming the party that has been delegated authority. The outermost one is the current actor and nested ones are prior actors, and a consumer applying access control policy must consider only the top-level claims and the current actor. RFC 8693 section 4.1."
+      },
+      {
+        "id": "adapter",
+        "term": "Adapter",
+        "definition": "A small set of extra weights that changes a base model's behaviour when it is applied, such as a LoRA adapter. OWASP LLM04:2026 says a malicious adapter can compromise the integrity of the base model, so an adapter is verified like a model, and so is the result of applying it."
       },
       {
         "id": "agent-card",
@@ -77,6 +82,11 @@
         "id": "api-key",
         "term": "API key",
         "definition": "A credential issued to an application for API access. In this course, it is a secret bearer value checked against a server-side record."
+      },
+      {
+        "id": "artifact",
+        "term": "Artifact",
+        "definition": "A file or set of files that is built once and then moved around unchanged: a package, a container image, a model's weights. SLSA v1.2 defines it as \"An immutable blob of data\". Identify one by its digest, because a name can be pointed at a different artifact."
       },
       {
         "id": "asymmetric-signature",
@@ -117,6 +127,11 @@
         "id": "back-channel",
         "term": "Back channel",
         "definition": "A direct server-to-server request that does not pass through the user's browser. Values sent here are not exposed to browser history or to anything on the redirect path."
+      },
+      {
+        "id": "backdoor",
+        "term": "Backdoor",
+        "definition": "Behaviour hidden in a model or in code that appears only for an input its author chose, called the trigger. A backdoored model answers ordinary tests correctly, so an evaluation that does not contain the trigger passes."
       },
       {
         "id": "bearer-credential",
@@ -519,6 +534,11 @@
         "definition": "Trying one common password against many accounts, then the next password, so that no single account collects enough failures to lock."
       },
       {
+        "id": "pinning",
+        "term": "Pinning",
+        "definition": "Naming a dependency by something that cannot change: a digest for a model, an exact version and a hash for a package. What loads tomorrow is then what was reviewed. A tag such as <code>latest</code> is the opposite, because its owner can point it somewhere else."
+      },
+      {
         "id": "pkce",
         "term": "PKCE",
         "definition": "Proof Key for Code Exchange. The client commits to a secret verifier by sending its hash, then proves possession of the verifier when redeeming the code, so a stolen code on its own is useless."
@@ -556,7 +576,7 @@
       {
         "id": "provenance",
         "term": "Provenance",
-        "definition": "The record of where a document or a claim came from, attached to it. Without it an untrusted retrieved claim becomes an unattributed fact, and deleting the source document does not reach what was written from it."
+        "definition": "The record of where a document or a claim came from, attached to it. Without it an untrusted retrieved claim becomes an unattributed fact, and deleting the source document does not reach what was written from it. For built software and model artifacts, SLSA v1.2 uses the word for \"Attestation (metadata) describing how the outputs were produced, including identification of the platform and external parameters.\""
       },
       {
         "id": "public-client",
@@ -567,6 +587,11 @@
         "id": "push-notification-config",
         "term": "Push notification configuration",
         "definition": "In A2A v1.0.1, the webhook a client gives a server for task updates: an HTTPS URL, an optional token unique to the task or session, and optional authentication details. The URL is supplied by the client, so the server should not POST to it blindly."
+      },
+      {
+        "id": "quantization",
+        "term": "Quantization",
+        "definition": "Storing a model's weights at lower precision to make the model smaller and faster. The result is a different artifact from the full-precision model, and OWASP LLM04:2026 says full-precision assurances do not transfer to it."
       },
       {
         "id": "quarantine",
@@ -649,6 +674,11 @@
         "definition": "A restricted environment for running code or commands, enforced from outside the thing it restricts: which files it can read and write, which hosts it can reach, and what is in its environment. It limits what a wrong step can do, not whether the step is wrong."
       },
       {
+        "id": "sbom",
+        "term": "SBOM",
+        "definition": "Software bill of materials. A machine-readable list of the components a system is built from. For AI systems the list is extended to models, adapters and datasets, under names such as AI BOM and ML-BOM."
+      },
+      {
         "id": "schema",
         "term": "Schema",
         "definition": "A machine-readable description of the shape a request or response body must have: its fields, their types and their limits. A validator checks a parsed object against it, so a schema cannot refuse what goes wrong before or during parsing."
@@ -667,6 +697,11 @@
         "id": "sender-constrained-token",
         "term": "Sender-constrained token",
         "definition": "A token that only works for a holder who can prove possession of a particular key, through a client certificate or a per-request proof."
+      },
+      {
+        "id": "serialization",
+        "term": "Serialization",
+        "definition": "Turning an object in memory into bytes that can be stored or sent. Deserialization is the reverse. Some formats, such as Python pickle, can name functions to call during loading, so loading the file runs code. A data-only format cannot."
       },
       {
         "id": "session-fixation",
@@ -697,6 +732,11 @@
         "id": "site",
         "term": "Site",
         "definition": "A scheme and a registrable domain, such as <code>https</code> and <code>exampleair.example</code>. Two hosts under the same registrable domain are same-site although they are different <a href=\"#origin\">origins</a>, so a <a href=\"#samesite\">SameSite</a> cookie is sent with a request from a sibling subdomain."
+      },
+      {
+        "id": "slopsquatting",
+        "term": "Slopsquatting",
+        "definition": "Registering a package name that AI coding assistants tend to invent, so that a developer who installs the suggestion gets the attacker's code. OWASP LLM04:2026 uses the term."
       },
       {
         "id": "spiffe-id",
@@ -811,7 +851,7 @@
         "attrs": {
           "class": "meta"
         },
-        "html": "<p class=\"meta\">All 32 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written. What the course does not cover is listed on the <a href=\"../coverage/index.html\">coverage page</a>.</p>"
+        "html": "<p class=\"meta\">All 33 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written. What the course does not cover is listed on the <a href=\"../coverage/index.html\">coverage page</a>.</p>"
       },
       {
         "tag": "section",
@@ -860,7 +900,7 @@
         "attrs": {
           "aria-labelledby": "part-5"
         },
-        "html": "<section aria-labelledby=\"part-5\">\n<h2 id=\"part-5\">Part 5: Hardening and operations</h2>\n<p class=\"prose\">All five modules of Part 5 are published. They are listed on the <a href=\"../index.html#path\">modules page</a>. Part 5 was added after the capstone so that the numbers of the earlier modules did not change.</p>\n</section>"
+        "html": "<section aria-labelledby=\"part-5\">\n<h2 id=\"part-5\">Part 5: Hardening and operations</h2>\n<p class=\"prose\">All six modules of Part 5 are published. They are listed on the <a href=\"../index.html#path\">modules page</a>. Part 5 was added after the capstone so that the numbers of the earlier modules did not change.</p>\n</section>"
       }
     ]
   }
