@@ -12,7 +12,7 @@
 <main>
 <p class="kicker">Part 4: AI and agents &middot; Module 21</p>
 <h1>Agent-to-agent</h1>
-<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<p class="meta">Last reviewed 2026-10-04 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 
 <div class="prose">
 <p><strong>Objective.</strong> After this module you can say what an agent card does and does not prove, verify one the way the specification describes, refuse a mid-task credential request on principle rather than on instinct, and validate a webhook URL a counterparty hands you.</p>
@@ -64,6 +64,7 @@
 <p><a href="../../glossary/index.html#push-notification-config">Push notification configuration</a> carries "a <code>url</code> (the HTTPS webhook URL), an optional <code>token</code> (for client-side validation), and optional <code>authentication</code> details", supplied either with the initial message or later through the create-config method.</p>
 <p>For the server receiving that URL, the documentation is explicit: "Servers <strong>SHOULD NOT</strong> blindly trust and send POST requests to any URL provided by a client", naming <a href="../../glossary/index.html#ssrf">SSRF</a> and amplification as the risks and <a href="../../glossary/index.html#allowlist">allowlisting</a>, ownership verification and network controls as the mitigations. Section 13.2 of the specification says the same at the same strength: agents "<strong>SHOULD</strong> validate webhook URLs to prevent SSRF", by rejecting private, localhost and link-local addresses and using allowlists "where appropriate". That is <a href="../ssrf-and-unsafe-consumption/index.html">module 14</a> with the roles swapped: here you are the server being asked to make the request. Part D of the lab is an allowlist on the host name followed by a check on the address it resolves to, and then the reason both are needed: checks 37 to 41 validate an allowlisted name that resolves to a public address, and resolve it again at send time to an internal one. The allowlist checked a name. Names are not addresses.</p>
 <p>For the notification itself, both ends have a duty. The server "<strong>MUST</strong> authenticate itself to the client's webhook URL" per the configured scheme, and the webhook "<strong>MUST</strong> rigorously verify the authenticity of incoming notification requests", with notifications that "<strong>SHOULD</strong> include a timestamp" so <a href="../../glossary/index.html#replay-attack">replays</a> can be rejected. Part E is <a href="../webhooks/index.html">module 16</a>'s receiver applied to A2A, including the <code>token</code>, which binds a notification to the task it is about rather than merely to your webhook.</p>
+<p>The receiver has one more duty, and it is about the payload, not the sender. Section 4.3.3 of the specification says "Clients MUST validate the task ID matches an expected task". Section 13.2 repeats it at a lower strength: "Clients <strong>SHOULD</strong> verify the task ID in the payload matches an expected task they created". A notification can be authentic, fresh and carry your token, and still name a task you never started. Check 48 of the lab sends that notification, and the webhook refuses it because the task id is not in the set of tasks the client created. Check 49 sends the same kind of notification for a task in that set, and the webhook accepts it.</p>
 </div>
 
 <h3>The whole system</h3>
@@ -97,7 +98,7 @@
 <li><strong>Decide in advance which credentials your agent may obtain and by what path,</strong> so a mid-task request is matched against a list.</li>
 <li><strong>Never deliver a credential inside the task conversation.</strong> Section 7.6.1 requires the agent to arrange to receive it out of band unless an in-band mechanism was negotiated beforehand, and this course's baseline is to negotiate none.</li>
 <li><strong>Allowlist webhook hosts, then validate the resolved address,</strong> and treat the gap between validation and connection as real.</li>
-<li><strong>Authenticate your notifications,</strong> and verify them at the receiving end: signature, freshness, the task <code>token</code>, and an identifier you have not already handled.</li>
+<li><strong>Authenticate your notifications,</strong> and verify them at the receiving end: signature, freshness, the task <code>token</code>, a task id that matches a task you created, and an identifier you have not already handled.</li>
 <li><strong>Keep the card's endpoint and the card itself separately access-controlled</strong> where either carries anything sensitive, with an authenticated extended card for the detail.</li>
 </ol>
 
@@ -135,7 +136,8 @@
 <li>The list of systems your agent may obtain credentials for, and for each one the out-of-band path.</li>
 <li>A test that a credential request arriving inside a task is refused.</li>
 <li>The webhook host allowlist, plus evidence that the resolved address is checked at send time and not only at configuration time.</li>
-<li>A 2xx and a rejection captured from your own webhook, showing signature, freshness, token and replay checks each firing.</li>
+<li>A 2xx and a rejection captured from your own webhook, showing signature, freshness, token, expected task and replay checks each firing.</li>
+<li>A test that a notification with a valid signature, a fresh timestamp and the right token is refused when its task id is not one your client created.</li>
 <li>Whether the public agent card contains anything you would not publish, and if so, what moved to the extended card.</li>
 </ul>
 </div>
@@ -209,11 +211,13 @@ Part E: the notification arriving at the client's webhook.
 45. signed with another key                                  reject: signature does not verify
 46. correctly signed, wrong task token                       reject: token does not match this task
 47. correctly signed, captured an hour ago                   reject: outside the freshness window
-48. a POST failing all four tests, to a webhook that verifies nothing accept: task-7781
-49.   and again                                              accept: task-7781
+48. correctly signed, fresh, our token, a task we never created reject: not a task this client created
+49.   the same, naming a task we did create                  accept: task-7782
+50. a POST failing four tests, to a webhook that verifies nothing accept: task-9999
+51.   and again, a replay, which is the fifth                accept: task-9999
 
 Part D again: the allowed host as userinfo, another host behind it.
-50.   https://hooks.exampleair.example:x@inside.exampleair.example/a2a refuse: inside.exampleair.example is not an allowed webhook host
+52.   https://hooks.exampleair.example:x@inside.exampleair.example/a2a refuse: inside.exampleair.example is not an allowed webhook host
 
 all lab checks passed</code></pre>
 <div class="prose">
@@ -221,13 +225,14 @@ all lab checks passed</code></pre>
 <p>Checks 9 and 10 are the rule people get wrong. A card signed with its own <code>signatures</code> field inside the signed content is not weakly signed, it is unverifiable, because a verifier following section 8 computes over a different document than the signer did. There is no way to check it short of guessing what the signer included.</p>
 <p>Checks 11 to 15 are the forged card, and the thing to notice is that it is internally consistent. It verifies. Its origin matches. The only wrong thing about it is the <code>name</code> field, and that is a string in the signed content rather than something the signature establishes. If your verifier obtains the key from the card or from the domain serving it, checks 11 and 1 are indistinguishable.</p>
 <p>Checks 16 and 17 are the opposite failure and the more subtle one: the partner's real key, correctly verified, and an interface URL on another host. A key check alone passes this. That is why the origin check is in the control list, and why it is labelled Baseline rather than Standard: it is not a requirement of the specification.</p>
-<p>Part D is worth running twice. Checks 30 to 32 are refused by the allowlist before anything resolves. Check 50 writes the allowed host as userinfo in front of <code>@inside.exampleair.example</code>, and the allowlist refuses it on <code>inside.exampleair.example</code>, because <code>check_webhook</code> tests the parsed host name, not the text after <code>https://</code>. Checks 33 to 35 put three names on the allowlist, two of them the hosts from checks 31 and 32, and refuse each on the address it resolves to, which is what the second check is for. Then checks 37 to 41: an allowlisted host, public at validation, internal at send. Both checks passed, in order, on a name that was in the allowlist the whole time.</p>
-<p>Checks 48 and 49 are the control group. The POST in check 48 is unsigned, an hour old, carries the wrong token and repeats a task id, so it fails each of the four tests the strict webhook applies. A webhook that verifies nothing accepts it twice, which is the state a webhook is in on the day it is first stood up.</p>
+<p>Part D is worth running twice. Checks 30 to 32 are refused by the allowlist before anything resolves. Check 52 writes the allowed host as userinfo in front of <code>@inside.exampleair.example</code>, and the allowlist refuses it on <code>inside.exampleair.example</code>, because <code>check_webhook</code> tests the parsed host name, not the text after <code>https://</code>. Checks 33 to 35 put three names on the allowlist, two of them the hosts from checks 31 and 32, and refuse each on the address it resolves to, which is what the second check is for. Then checks 37 to 41: an allowlisted host, public at validation, internal at send. Both checks passed, in order, on a name that was in the allowlist the whole time.</p>
+<p>Checks 48 and 49 are the task id test on its own. The notification in check 48 is signed with the right key, carries the current time and the right token, and names <code>task-9999</code>, which the client never created. The signature, freshness and token tests all pass it, and the comparison with the set of created tasks refuses it. Check 49 changes only the task id, to <code>task-7782</code>, which the client did create, and the webhook accepts it.</p>
+<p>Checks 50 and 51 are the control group. The POST in check 50 is unsigned, an hour old, carries the wrong token and names a task the client never created, so it fails four of the tests the strict webhook applies. Check 51 sends it again, which is a replay and fails the fifth. A webhook that verifies nothing accepts it both times, which is the state a webhook is in on the day it is first stood up.</p>
 <p><strong>Try next:</strong></p>
 <ul>
 <li>Change <code>canonical</code> to <code>sort_keys=False</code> and rerun. Two checks fail, and they tell you what canonicalization was buying.</li>
 <li>Make <code>verify_card</code> compute over the whole card including <code>signatures</code>. Four checks fail, including the ones that were supposed to succeed.</li>
-<li>Add the attacker's kid and key to <code>keys</code>, as a verifier that accepts any key the card names would. The run prints the same 66 lines, because no check verifies the lookalike card against <code>keys</code>. Add <code>print(kid_or_why(lookalike, keys))</code> after check 11: it prints <code>attacker-1</code> where the published <code>keys</code> gives <code>refused: no signature verifies</code>. Decide what is left of the check.</li>
+<li>Add the attacker's kid and key to <code>keys</code>, as a verifier that accepts any key the card names would. The run prints the same 68 lines, because no check verifies the lookalike card against <code>keys</code>. Add <code>print(kid_or_why(lookalike, keys))</code> after check 11: it prints <code>attacker-1</code> where the published <code>keys</code> gives <code>refused: no signature verifies</code>. Decide what is left of the check.</li>
 <li>Add a <code>seat-refund</code> skill to the declared list so it matches the reachable list. The run exits 1 with two failures: check 20 prints <code>3</code> and check 22 prints <code>[]</code>. Decide whether that fixed anything or just moved the finding.</li>
 <li>For an agent integration you run: write down which key you verify the counterparty's card against, and how you got it. If the answer is that you fetch it from them, that is this module's finding.</li>
 </ul>
@@ -274,7 +279,7 @@ all lab checks passed</code></pre>
 <ul>
 <li data-option="a">That holds only while the card reaches the verifier with its keys in the order the signer had them. Check 3 reverses the order, which is what any re-serialisation between the two is free to do.</li>
 <li data-option="b">Check 1 still prints <code>partner-2026</code>. That card is verified in the same key order it was signed in, so the unsorted bytes happen to agree.</li>
-<li data-option="c">Correct. Exit 1, two failures. Check 3, the same card with its keys in the opposite order, goes from <code>partner-2026</code> to <code>refused: no signature verifies</code>, and check 5 goes from <code>yes</code> to <code>no</code>. The other 48 checks print what they printed before, including check 1. A genuine card from the real partner is now refused because something in between changed the key order, which is not a change to the card at all. Check <code>a2a-05</code> in the <a href="#reference">Reference</a> layer asks for JCS, and sorted keys are the part of it this lab depends on.</li>
+<li data-option="c">Correct. Exit 1, two failures. Check 3, the same card with its keys in the opposite order, goes from <code>partner-2026</code> to <code>refused: no signature verifies</code>, and check 5 goes from <code>yes</code> to <code>no</code>. The other 50 checks print what they printed before, including check 1. A genuine card from the real partner is now refused because something in between changed the key order, which is not a change to the card at all. Check <code>a2a-05</code> in the <a href="#reference">Reference</a> layer asks for JCS, and sorted keys are the part of it this lab depends on.</li>
 <li data-option="d">Check 5 is the cause and check 3 is the effect. The verifier computes its MAC over the bytes check 5 compares, so when those differ the signature cannot match.</li>
 </ul>
 </details>
@@ -295,7 +300,7 @@ all lab checks passed</code></pre>
 <p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 <details class="exercise-answers"><summary>Every option, and why</summary>
 <ul>
-<li data-option="a">Correct. Exit 1, one failure: check 24 goes from <code>refuse: credentials do not travel in the task conversation</code> to <code>obtain seating-vendor-api out of band, then resume the task</code>. The other 49 checks are unchanged. Read the new line with care. The request asked for the credential inside the task conversation, and the client now answers with a sentence about going out of band, because nothing looks at the route any more. The credential is on the pre-agreed list, so the list check passes it. Check <code>a2a-02</code> in the <a href="#reference">Reference</a> layer is about the route, and the list in <code>a2a-07</code> does not stand in for it.</li>
+<li data-option="a">Correct. Exit 1, one failure: check 24 goes from <code>refuse: credentials do not travel in the task conversation</code> to <code>obtain seating-vendor-api out of band, then resume the task</code>. The other 51 checks are unchanged. Read the new line with care. The request asked for the credential inside the task conversation, and the client now answers with a sentence about going out of band, because nothing looks at the route any more. The credential is on the pre-agreed list, so the list check passes it. Check <code>a2a-02</code> in the <a href="#reference">Reference</a> layer is about the route, and the list in <code>a2a-07</code> does not stand in for it.</li>
 <li data-option="b"><code>seating-vendor-api</code> is in the <code>out_of_band</code> set the lab passes, so the list check does not refuse it. That reason appears only for <code>payments-gateway</code> and <code>crm-admin</code>, in checks 26 and 27.</li>
 <li data-option="c">The list answers which credential, not which route. This credential is on the list, so with the route test gone nothing refuses the request.</li>
 <li data-option="d">Check 25 asks for <code>our-own-a2a-credential</code>, which the first test in the function refuses before the deleted lines would have run. It still prints <code>refuse: that is the credential we authenticate to it with</code>.</li>
@@ -321,7 +326,7 @@ all lab checks passed</code></pre>
 <li data-option="a">Checks 31 and 32 resolve to 127.0.0.1 and 169.254.169.254. The address check is still there and refuses both.</li>
 <li data-option="b">The address check has nothing to say about check 30. <code>hooks.exampleattacker.example</code> resolves to 203.0.113.9, which this lab treats as a public address.</li>
 <li data-option="c">The outcome of checks 31 and 32 is the same and the printed lines are not. Their old reason named the allowlist, and that test no longer exists.</li>
-<li data-option="d">Correct. Exit 1, four failures. Check 30 goes from <code>refuse: hooks.exampleattacker.example is not an allowed webhook host</code> to <code>accept</code>. Check 31 goes from <code>refuse: localhost is not an allowed webhook host</code> to <code>refuse: resolves to 127.0.0.1, which is not a public address</code>, and check 32 goes from <code>refuse: metadata.exampleattacker.example is not an allowed webhook host</code> to <code>refuse: resolves to 169.254.169.254, which is not a public address</code>. Check 50 goes from <code>refuse: inside.exampleair.example is not an allowed webhook host</code> to <code>refuse: resolves to 10.2.3.4, which is not a public address</code>. The address check stops the internal targets and lets through any public host a client names, so the server now POSTs task results wherever it is told to. Check <code>a2a-03</code> in the <a href="#reference">Reference</a> layer asks for both checks because each one catches what the other cannot see.</li>
+<li data-option="d">Correct. Exit 1, four failures. Check 30 goes from <code>refuse: hooks.exampleattacker.example is not an allowed webhook host</code> to <code>accept</code>. Check 31 goes from <code>refuse: localhost is not an allowed webhook host</code> to <code>refuse: resolves to 127.0.0.1, which is not a public address</code>, and check 32 goes from <code>refuse: metadata.exampleattacker.example is not an allowed webhook host</code> to <code>refuse: resolves to 169.254.169.254, which is not a public address</code>. Check 52 goes from <code>refuse: inside.exampleair.example is not an allowed webhook host</code> to <code>refuse: resolves to 10.2.3.4, which is not a public address</code>. The address check stops the internal targets and lets through any public host a client names, so the server now POSTs task results wherever it is told to. Check <code>a2a-03</code> in the <a href="#reference">Reference</a> layer asks for both checks because each one catches what the other cannot see.</li>
 </ul>
 </details>
 </article>
@@ -333,18 +338,18 @@ all lab checks passed</code></pre>
 </div>
 <fieldset><legend>What does the run print differently?</legend>
 <label><input type="radio" name="a2a-x4" value="a"> Check 47, captured an hour ago, becomes <code>accept: task-7782</code>.</label>
-<label><input type="radio" name="a2a-x4" value="b" data-correct="true"> Nothing. All 50 checks pass.</label>
+<label><input type="radio" name="a2a-x4" value="b" data-correct="true"> Nothing. All 52 checks pass.</label>
 <label><input type="radio" name="a2a-x4" value="c"> Check 42 becomes <code>reject: outside the freshness window</code>.</label>
-<label><input type="radio" name="a2a-x4" value="d"> Checks 48 and 49 change, because they carry a timestamp an hour old.</label>
+<label><input type="radio" name="a2a-x4" value="d"> Checks 50 and 51 change, because they carry a timestamp an hour old.</label>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button>
 <p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 <details class="exercise-answers"><summary>Every option, and why</summary>
 <ul>
 <li data-option="a">Check 47 is an hour in the past. <code>now - note["timestamp"]</code> is 3600 with or without <code>abs()</code>, and 3600 is more than the 300 second window.</li>
-<li data-option="b">Correct. Exit 0, 66 of 66 lines identical. Every timestamp in the lab is now or in the past, so the lab cannot tell the two versions apart. Measured on a notification the lab does not send, correctly signed, with the right task token and a timestamp one hour in the future: as published the webhook answers <code>reject: outside the freshness window</code>, and without <code>abs()</code> it answers <code>accept: task-7783</code>. The window now has one edge. A notification stamped ahead of the receiver's clock stays acceptable until that time arrives and for 300 seconds after it. Check <code>a2a-04</code> in the <a href="#reference">Reference</a> layer asks for freshness, and a test that only looks backwards checks half of it.</li>
+<li data-option="b">Correct. Exit 0, 68 of 68 lines identical. Every timestamp in the lab is now or in the past, so the lab cannot tell the two versions apart. Measured on a notification the lab does not send, correctly signed, naming <code>task-7782</code>, which the client created, with the right task token and a timestamp one hour in the future: as published a new <code>Webhook</code> answers <code>reject: outside the freshness window</code>, and without <code>abs()</code> it answers <code>accept: task-7782</code>. The window now has one edge. A notification stamped ahead of the receiver's clock stays acceptable until that time arrives and for 300 seconds after it. Check <code>a2a-04</code> in the <a href="#reference">Reference</a> layer asks for freshness, and a test that only looks backwards checks half of it.</li>
 <li data-option="c">Check 42 carries the current time. The difference is 0 either way.</li>
-<li data-option="d">Checks 48 and 49 go to a webhook built with <code>window=None</code>, which skips the freshness test entirely. They print <code>accept: task-7781</code> as before.</li>
+<li data-option="d">Checks 50 and 51 go to a webhook built with <code>window=None</code>, which skips the freshness test entirely. They print <code>accept: task-9999</code> as before.</li>
 </ul>
 </details>
 </article>
@@ -363,6 +368,7 @@ all lab checks passed</code></pre>
 <li><span class="label std">Standard</span>Where an agent needs further credentials during a task, the "client is then responsible for obtaining these secondary credentials through a process outside of the A2A protocol itself". A2A: Enterprise Implementation of A2A. The specification adds: "Agents MUST arrange to receive credentials via an out-of-band means, unless an in-band mechanism has been negotiated out-of-band or via an extension." A2A v1.0.1 section 7.6.1.</li>
 <li><span class="label std">Standard</span>"Servers <strong>SHOULD NOT</strong> blindly trust and send POST requests to any URL provided by a client", with SSRF and amplification named as the risks and allowlisting, ownership verification and network controls as mitigations. A2A Streaming and Asynchronous Operations. The specification says agents "<strong>SHOULD</strong> validate webhook URLs to prevent SSRF". A2A v1.0.1 section 13.2.</li>
 <li><span class="label std">Standard</span>The server "<strong>MUST</strong> authenticate itself to the client's webhook URL"; the webhook "<strong>MUST</strong> rigorously verify the authenticity of incoming notification requests"; notifications "<strong>SHOULD</strong> include a timestamp" to prevent replay. A2A Streaming and Asynchronous Operations. In the specification, agents "<strong>MUST</strong> include authentication credentials in webhook requests" and clients "<strong>MUST</strong> validate webhook authenticity using the provided authentication credentials". A2A v1.0.1 section 13.2.</li>
+<li><span class="label std">Standard</span>"Clients MUST validate the task ID matches an expected task". A2A v1.0.1 section 4.3.3. Section 13.2 states the same duty as a recommendation: "Clients <strong>SHOULD</strong> verify the task ID in the payload matches an expected task they created". A2A v1.0.1 section 13.2.</li>
 <li><span class="label std">Standard</span>Push notification configuration carries "a <code>url</code> (the HTTPS webhook URL), an optional <code>token</code> (for client-side validation), and optional <code>authentication</code> details". A2A Streaming and Asynchronous Operations.</li>
 <li><span class="label std">Standard</span>"Any Agent Card containing sensitive data must be protected with authentication and authorization mechanisms", and the documentation "strongly recommends the use of out-of-band dynamic credentials rather than embedding static secrets within the Agent Card". A2A Agent Discovery.</li>
 <li><span class="label std">Standard</span>Tasks can reach an interrupted state such as <code>input-required</code> or <code>auth-required</code>. To continue an interaction, clients can send later messages with the same <code>contextId</code>. A2A Life of a Task.</li>
@@ -372,7 +378,7 @@ all lab checks passed</code></pre>
 <li><span class="label base">Baseline</span>Compare each counterparty's declared skills with the ones its endpoint answers, and treat the difference as a finding.</li>
 <li><span class="label base">Baseline</span>Maintain a list of systems your agent may obtain credentials for, with the out-of-band path for each, and match mid-task requests against it.</li>
 <li><span class="label base">Baseline</span>Allowlist webhook hosts and check the resolved address, treating the two as separate checks because one tests a name and the other an address.</li>
-<li><span class="label base">Baseline</span>Verify every inbound notification on signature, freshness, task token and identifier, and treat the webhook URL as public.</li>
+<li><span class="label base">Baseline</span>Verify every inbound notification on signature, freshness, task token, expected task id and identifier, and treat the webhook URL as public.</li>
 <li><span class="label opt">Option</span>Serve a minimal public card and put the detail behind an authenticated extended card, which the documentation recommends for sensitive content.</li>
 <li><span class="label opt">Option</span>Put mTLS, network restrictions or HTTP authentication on the card endpoint itself where the card's existence is not public information.</li>
 <li><span class="label opt">Option</span>Re-resolve and re-check the webhook address immediately before each POST, where the gap between validation and connection is in the threat model.</li>
@@ -384,7 +390,7 @@ all lab checks passed</code></pre>
 <li data-check="a2a-01" data-severity="Critical"><strong>Agent cards are verified against an out-of-band key per counterparty</strong> <span>Not against a key the card names or the serving domain supplies. A forged card signed with the forger's own key verifies perfectly.</span></li>
 <li data-check="a2a-02" data-severity="Critical"><strong>Credentials never travel inside a task conversation</strong> <span>Section 7.6.1 has agents receive credentials out of band unless an in-band mechanism was negotiated beforehand. With none negotiated, a request to deliver one in-band is a finding.</span></li>
 <li data-check="a2a-03" data-severity="Critical"><strong>Client-supplied webhook URLs are allowlisted and address-checked</strong> <span>A name check and an address check are different checks. The A2A documentation says servers should not POST blindly to any URL a client provides.</span></li>
-<li data-check="a2a-04" data-severity="Critical"><strong>Inbound notifications are verified on signature, freshness and task token</strong> <span>And on an identifier, so a replay is handled once. The webhook URL should be treated as public.</span></li>
+<li data-check="a2a-04" data-severity="Critical"><strong>Inbound notifications are verified on signature, freshness and task token</strong> <span>And on the task id: section 4.3.3 says clients MUST validate that it matches an expected task. And on an identifier, so a replay is handled once. The webhook URL should be treated as public.</span></li>
 <li data-check="a2a-05" data-severity="High"><strong>Card signing canonicalizes with JCS and excludes the signatures field</strong> <span>Both are stated in section 8. Including the field makes the card unverifiable rather than weakly signed.</span></li>
 <li data-check="a2a-06" data-severity="High"><strong>A card's interface URL is on the origin that served the card</strong> <span>Or the split is a recorded decision. A signature check alone does not catch an off-origin interface.</span></li>
 <li data-check="a2a-07" data-severity="High"><strong>Credentials your agent may obtain are a pre-agreed list</strong> <span>With the out-of-band path for each, so a mid-task request is matched rather than assessed on its wording.</span></li>
@@ -395,7 +401,7 @@ all lab checks passed</code></pre>
 
 <h2>Sources</h2>
 <ul class="prose">
-<li><a href="https://a2a-protocol.org/v1.0.1/specification/">Agent2Agent (A2A) Protocol Specification</a>, release v1.0.1, 28 May 2026 (protocol version 1.0). Section 8, Agent Discovery: The Agent Card, including the well-known path, JWS signing, JCS canonicalization, the exclusion of the <code>signatures</code> field and signature verification. Section 7.6, In-Task Authorization. Section 13.2, Push Notification Security. Section 3.6, Versioning.</li>
+<li><a href="https://a2a-protocol.org/v1.0.1/specification/">Agent2Agent (A2A) Protocol Specification</a>, release v1.0.1, 28 May 2026 (protocol version 1.0). Section 8, Agent Discovery: The Agent Card, including the well-known path, JWS signing, JCS canonicalization, the exclusion of the <code>signatures</code> field and signature verification. Section 7.6, In-Task Authorization. Section 4.3.3, Push Notification Payload. Section 13.2, Push Notification Security. Section 3.6, Versioning.</li>
 <li><a href="https://a2a-protocol.org/v1.0.1/topics/enterprise-ready/">A2A: Enterprise Implementation of A2A</a>, v1.0.1 documentation. Authentication, Authorization, and in-task secondary credentials.</li>
 <li><a href="https://a2a-protocol.org/v1.0.1/topics/streaming-and-async/">A2A: Streaming and Asynchronous Operations</a>, v1.0.1 documentation. Push notification configuration, webhook URL validation, server authentication to the webhook, receiver verification and replay prevention. The <code>topics/push-notifications/</code> page redirects here.</li>
 <li><a href="https://a2a-protocol.org/v1.0.1/topics/agent-discovery/">A2A: Agent Discovery</a>, v1.0.1 documentation. The well-known URI, securing agent cards, authenticated extended cards, and out-of-band dynamic credentials.</li>

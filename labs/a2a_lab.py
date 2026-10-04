@@ -210,12 +210,19 @@ def send_notification(body, key, token, timestamp=NOW):
 
 
 class Webhook:
-    """The client's endpoint. It verifies, because anyone can POST to it."""
+    """The client's endpoint. It verifies, because anyone can POST to it.
 
-    def __init__(self, key, token, verify_sig=True, check_token=True,
-                 window=300, remember=True):
+    expected is the set of task ids this client created. A2A section 4.3.3:
+    "Clients MUST validate the task ID matches an expected task". Section
+    13.2: "Clients SHOULD verify the task ID in the payload matches an
+    expected task they created". Pass None to skip that test.
+    """
+
+    def __init__(self, key, token, expected, verify_sig=True,
+                 check_token=True, window=300, remember=True):
         self.key = key
         self.token = token
+        self.expected = expected
         self.verify_sig = verify_sig
         self.check_token = check_token
         self.window = window
@@ -235,6 +242,8 @@ class Webhook:
         if self.check_token and note.get("token") != self.token:
             return "reject: token does not match this task"
         task_id = json.loads(note["body"])["taskId"]
+        if self.expected is not None and task_id not in self.expected:
+            return "reject: not a task this client created"
         if self.remember:
             if task_id in self.seen:
                 return "reject: already handled"
@@ -443,7 +452,8 @@ def main():
     print("Part E: the notification arriving at the client's webhook.")
     token = "task-token-" + "0" * 8
     body = json.dumps({"taskId": "task-7781", "state": "completed"}).encode()
-    hook = Webhook(hook_key, token)
+    created = {"task-7781", "task-7782"}     # the tasks this client started
+    hook = Webhook(hook_key, token, created)
     good = send_notification(body, hook_key, token)
     check("a notification the server authenticated", "accept: task-7781",
           hook.post(good))
@@ -466,14 +476,26 @@ def main():
               json.dumps({"taskId": "task-7782",
                           "state": "completed"}).encode(),
               hook_key, token, timestamp=NOW - 3600)))
-    open_hook = Webhook(hook_key, token, verify_sig=False, check_token=False,
-                        window=None, remember=False)
-    check("a POST failing all four tests, to a webhook that verifies nothing",
-          "accept: task-7781",
-          open_hook.post({"body": body, "timestamp": NOW - 3600,
+    # Authentic, fresh and carrying our token, but about a task we never
+    # started. Only the comparison with the created set refuses it.
+    stranger = json.dumps({"taskId": "task-9999",
+                           "state": "completed"}).encode()
+    check("correctly signed, fresh, our token, a task we never created",
+          "reject: not a task this client created",
+          hook.post(send_notification(stranger, hook_key, token)))
+    check("  the same, naming a task we did create", "accept: task-7782",
+          hook.post(send_notification(
+              json.dumps({"taskId": "task-7782",
+                          "state": "completed"}).encode(),
+              hook_key, token)))
+    open_hook = Webhook(hook_key, token, None, verify_sig=False,
+                        check_token=False, window=None, remember=False)
+    check("a POST failing four tests, to a webhook that verifies nothing",
+          "accept: task-9999",
+          open_hook.post({"body": stranger, "timestamp": NOW - 3600,
                           "token": "anything", "signature": ""}))
-    check("  and again", "accept: task-7781",
-          open_hook.post({"body": body, "timestamp": NOW - 3600,
+    check("  and again, a replay, which is the fifth", "accept: task-9999",
+          open_hook.post({"body": stranger, "timestamp": NOW - 3600,
                           "token": "anything", "signature": ""}))
 
     print()
