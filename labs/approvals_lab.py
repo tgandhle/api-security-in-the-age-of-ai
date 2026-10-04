@@ -132,6 +132,27 @@ def render(params):
     return "Refund %s to %s" % (params["amount"], params["account_name"])
 
 
+# ----------------------------- Part E: how many times a human is asked
+
+def issue_as_needed(ops, key, prefix, document=None):
+    """Issue approvals for a run of operations, asking only when needed.
+
+    Each operation is tried against the approval in hand first. A new
+    approval is issued only when that one does not authorise it. document
+    is what the approver is asked to approve: the operation itself when it
+    is None, the same fixed document every time otherwise. The length of
+    the result is the number of times a human was asked.
+    """
+    issued = []
+    for op in ops:
+        if issued and outcome(check_approval, issued[-1], op,
+                              key) == "executed":
+            continue
+        issued.append(approve(op if document is None else document, key,
+                              nonce="%s-%d" % (prefix, len(issued) + 1)))
+    return issued
+
+
 RESULTS = []
 
 
@@ -158,11 +179,14 @@ def main():
     loose.propose("p2", original)
     loose.approve("p2")
     loose.items["p2"] = dict(tampered)       # the agent writes again
+    ran = loose.execute("p2")
     check("the same approval after the proposal was rewritten",
-          "executed 4000 to ACC-999 for refund", loose.execute("p2"))
+          "executed 4000 to ACC-999 for refund", ran)
     check("  what the human approved", "Refund 40 to T. Okafor",
           render(original))
-    check("  what ran", "4000", str(loose.items["p2"]["amount"]))
+    # The amount is read from what the executor reported, not from the store.
+    check("  what ran", "4000",
+          ran.split()[1] if ran.startswith("executed ") else "nothing")
 
     bound = Queue(bind=True, key=key)
     bound.propose("p3", original)
@@ -267,16 +291,21 @@ def main():
     print("Part E: the blanket approval, measured.")
     session_ops = [dict(original, booking_id="B-%04d" % n, amount=40 + n)
                    for n in range(12)]
-    per_action = [approve(p, key, nonce="per-%d" % i)
-                  for i, p in enumerate(session_ops)]
+    # Both counts below are measured. Each policy runs the twelve operations
+    # and issues a new approval only when the one in hand refuses the next
+    # operation, so a change to what an approval covers changes the count.
+    per_action = issue_as_needed(session_ops, key, "per")
     check("operations in the session", "12", str(len(session_ops)))
     check("approvals a per-action policy issues", "12", str(len(per_action)))
-    blanket = approve({"session": "s-1"}, key, nonce="blanket-1")
-    check("approvals a blanket policy issues, for the same twelve", "1",
-          str(len([blanket])))
     # The executor presents the operation with the session handle. The
     # blanket approval covers only the handle, so nothing else in the
     # operation is compared.
+    in_session = [dict(p, session="s-1") for p in session_ops]
+    blanket_issued = issue_as_needed(in_session, key, "blanket",
+                                     document={"session": "s-1"})
+    check("approvals a blanket policy issues, for the same twelve", "1",
+          str(len(blanket_issued)))
+    blanket = blanket_issued[0]
     authorised = sum(1 for p in session_ops
                      if outcome(check_approval, blanket,
                                 dict(p, session="s-1"),

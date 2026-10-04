@@ -23,7 +23,7 @@
       "attrs": {
         "class": "meta"
       },
-      "html": "\n<p class=\"meta\">Last reviewed 2026-10-02 &middot; <a class=\"jump\" href=\"#reference\">Jump to reference</a></p>"
+      "html": "\n<p class=\"meta\">Last reviewed 2026-10-04 &middot; <a class=\"jump\" href=\"#reference\">Jump to reference</a></p>"
     },
     {
       "tag": "div",
@@ -344,7 +344,7 @@
   "lesson_key": "agent-authority-and-approvals",
   "title": "Agent authority and approvals",
   "kicker": "Part 4: AI and agents &middot; Module 23",
-  "reviewed": "2026-10-02",
+  "reviewed": "2026-10-04",
   "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 24 of 27</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
   "lesson_number": 24,
   "lesson_total": 27,
