@@ -469,6 +469,11 @@
         "definition": "Model Context Protocol. A JSON-RPC protocol for exposing data and tools to LLM applications. Revisions are dated strings such as <code>2026-07-28</code>, incremented when a backwards incompatible change lands, and a protected MCP server is an OAuth 2.1 resource server."
       },
       {
+        "id": "model-token",
+        "term": "Model token",
+        "definition": "The unit a language model counts its input and output in. For text it is a chunk of text, often a word or part of a word, and images, audio and video are converted into model tokens as well. A provider that charges per token bills for the ones the model reads and the ones it writes. It is not an access token, which is a credential, and not a token in a token bucket, which is a unit of allowance in a rate limiter."
+      },
+      {
         "id": "mtls",
         "term": "mTLS",
         "definition": "Mutual TLS. Both client and server present certificates, so each proves its identity to the other when the connection opens."
