@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security misconfiguration | API Security in the Age of AI</title>
+<link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/course.js" defer></script>
+</head>
+<body data-course-lesson="security-misconfiguration">
+<nav class="site-nav" aria-label="Site"><div><a class="home" href="../../index.html">API Security in the Age of AI</a><a href="../../index.html#course">Course</a><a href="../../index.html#path">Modules</a><a href="../../roadmap/index.html">Roadmap</a><a href="../../checklist/index.html">Checklist</a><a href="../../glossary/index.html">Glossary</a></div></nav>
+<main>
+<p class="kicker">Part 5: Hardening and operations &middot; Module 29</p>
+<h1>Security misconfiguration</h1>
+<p class="meta">Last reviewed 2026-10-04 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+
+<div class="prose">
+<p><strong>Objective.</strong> After this module you can audit a deployed API for the settings OWASP API8:2023 lists, say what an error response, a method list, a TLS configuration and a set of response headers should look like and which source says so, explain what a redirect and HSTS do not do for an API client, and show that an environment still matches its baseline.</p>
+<p><strong>Before you start.</strong> You should be able to read an HTTP request and response and a Python dict. You should know that <a href="../../glossary/index.html#tls">TLS</a> encrypts a connection and proves the server's identity to the client. The primer, <a href="../security-foundations/index.html">Security concepts for the course</a>, covers that.</p>
+</div>
+<section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 30 of 30</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
+
+<span class="layer" id="learn">Learn</span>
+
+<h2>1. The attack</h2>
+<div class="prose">
+<p>Running example: ExampleHotels installs a booking API from a framework's quick-start guide and puts it on the internet at <code>api.examplehotels.example</code>. The company is fictional. The application code is correct: it checks a token before it returns a booking. Nobody changed a setting, so every setting is whatever the framework shipped with.</p>
+<p>An attacker with an ordinary guest account sends a request with a booking id of <code>abc</code>. The reply is a debug page. It holds a <strong>stack trace</strong> (the list of function calls that were running when the code failed), the file path of the application, the SQL query that was being built, and the server's name and version. The attacker looks up that version, finds a published flaw, and now has a target. Then they try the rest of the defaults: a <code>DELETE</code> that nobody meant to offer, a <code>/debug/config</code> page, the vendor's documented default account, and the same API on plain HTTP.</p>
+<p>None of this is a bug in the code. OWASP calls it <strong>security misconfiguration</strong>, API8:2023, and says it "can happen at any level of the API stack, from the network level to the application level." The table shows four configurations of the same code. Every cell is a result the lab in section 7 measures.</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>The attacker tries to</th><th>Default install</th><th>Hardened</th><th>Hardened, but plain HTTP redirects</th><th>Hardened, but debug errors left on</th></tr></thead>
+<tbody>
+<tr><td>Read a stack trace, a query and a version from an error</td><td class="yes">Works</td><td class="no">Blocked</td><td class="no">Blocked</td><td class="yes">Works</td></tr>
+<tr><td>Delete a booking with a method the API never needed</td><td class="yes">Works</td><td class="no">Blocked</td><td class="no">Blocked</td><td class="no">Blocked</td></tr>
+<tr><td>Log in with the vendor's default account</td><td class="yes">Works</td><td class="no">Blocked</td><td class="no">Blocked</td><td class="no">Blocked</td></tr>
+<tr><td>Read a booking with a malformed credential</td><td class="yes">Works</td><td class="no">Blocked</td><td class="no">Blocked</td><td class="no">Blocked</td></tr>
+<tr><td>Make a client that offers only TLS 1.0 connect</td><td class="yes">Works</td><td class="no">Blocked</td><td class="no">Blocked</td><td class="no">Blocked</td></tr>
+<tr><td>Capture a token that a client sends to the <code>http</code> URL</td><td class="yes">Works</td><td class="no">Blocked: nothing is listening</td><td class="yes">Works: the token crossed before the redirect</td><td class="no">Blocked</td></tr>
+</tbody></table></div>
+<p class="prose">The last row needs an attacker who can see the network between the client and the server. The third column is the one people get wrong, and section 5 covers it.</p>
+
+<h2>2. Why it works</h2>
+<div class="prose">
+<p>Software ships with defaults chosen so that it works the first time someone runs it. That is a reasonable goal for a developer's laptop and the wrong one for a public listener (a port that accepts connections from the internet). Four broken assumptions keep the defaults in place:</p>
+<ul>
+<li><strong>"The code passed review, so the service is safe."</strong> A review of the code reads none of the settings below. API8:2023 lists eight ways an API might be vulnerable, and a deployment can get every one of them wrong with no change to the application code: missing <a href="../../glossary/index.html#hardening">hardening</a> or wrong cloud permissions, missing patches, unnecessary features such as HTTP verbs, servers in a chain that process a request differently, missing TLS, missing security or cache directives, a missing or wrong <a href="../../glossary/index.html#cors">CORS</a> policy, and error messages that include stack traces.</li>
+<li><strong>"An error message helps the caller."</strong> It helps the attacker more. The OWASP Error Handling Cheat Sheet says an attack begins with a reconnaissance phase in which the attacker gathers technical information, "often name and version properties", and that unhandled errors assist it. OWASP Top 10:2025 A10 describes the next step: the attacker "continues to force errors in order to use the sensitive system information to create a better SQL injection attack."</li>
+<li><strong>"If something goes wrong, the request will fail."</strong> Only if someone decided that. An exception that is caught and ignored lets the request carry on without the check that raised it. That is failing open. A10 lists it by name, as CWE-636, Not Failing Securely.</li>
+<li><strong>"Production matches what we tested."</strong> A setting changed by hand during an incident stays changed. This is <a href="../../glossary/index.html#configuration-drift">configuration drift</a>, and nothing reports it unless something compares the environment with its baseline.</li>
+</ul>
+<p>Old versions of the API and old TLS versions fail the same way: they stay enabled because turning them off might break a caller nobody can name. RFC 8996 gives that as one of its reasons for deprecating TLS 1.0 and 1.1: "Support for four TLS protocol versions increases the likelihood of misconfiguration."</p>
+</div>
+
+<h2>3. The control</h2>
+<div class="prose">
+<p>The control is a written baseline, applied the same way everywhere, and an audit that probes the running service. In order:</p>
+</div>
+<ol class="steps prose">
+<li><strong>Return a generic error and keep the detail on the server.</strong> One global exception handler catches whatever the code did not. The client gets a status code, a fixed title and an identifier for this occurrence, called a <a href="../../glossary/index.html#correlation-id">correlation ID</a>. The exception goes to the server log under the same identifier. RFC 9457 defines a JSON format for this, <a href="../../glossary/index.html#problem-details">problem details</a>, with the media type <code>application/problem+json</code>. Section 4 has the limits of that RFC.</li>
+<li><strong><a href="../../glossary/index.html#fail-closed">Fail closed</a>.</strong> When a check cannot complete, the answer is no. An error in <a href="../../glossary/index.html#authentication">authentication</a> or <a href="../../glossary/index.html#authorization">authorization</a> code must never turn into "allowed". This is <a href="../../glossary/index.html#deny-by-default">deny by default</a> applied to the error path.</li>
+<li><strong>Allow only the methods each route needs.</strong> Keep an <a href="../../glossary/index.html#allowlist">allowlist</a> of methods per route. RFC 9110 section 9.1 says a server should answer 405 (Method Not Allowed) for a method it knows but does not allow on that resource, and 501 (Not Implemented) for one it does not recognize. Section 15.5.6 requires a 405 response to carry an <code>Allow</code> header listing the supported methods. Turn <code>TRACE</code> off: it asks the server to send the request back, headers included.</li>
+<li><strong>Remove what the API does not use.</strong> Debug endpoints, sample pages and default accounts come out of the build. Management endpoints move to a listener the internet cannot reach, with their own strong authentication.</li>
+<li><strong>Use TLS on every hop and refuse plain HTTP.</strong> API8 asks for an encrypted channel between the client, the API server and "any downstream/upstream components", "regardless of whether it is an internal or public-facing API." Disable SSL 2, SSL 3, TLS 1.0 and TLS 1.1. Offer TLS 1.3. If you keep TLS 1.2, restrict its cipher suites (the named combinations of key exchange, encryption and hash that a connection may use). Section 4 gives the sources.</li>
+<li><strong>Send the response headers an API needs.</strong> <code>Cache-Control: <a href="../../glossary/index.html#no-store">no-store</a></code> on any response with personal or secret data, a correct <code>Content-Type</code> on every response that has content, and <code>X-Content-Type-Options: nosniff</code>, which tells a browser to follow the declared type and not guess one from the content. Send no version in the <code>Server</code> header. Send <a href="../../glossary/index.html#hsts">HSTS</a> if a browser may ever call the API.</li>
+<li><strong>Make every server in the chain read a request the same way.</strong> A proxy that blocks <code>/admin</code> and a backend that treats <code>//admin</code> as <code>/admin</code> do not enforce the same rule. API8 asks that all servers in the chain "process incoming requests in a uniform manner to avoid desync issues" and gives no example. The double slash, here and in Part E of the lab, is this project's illustration, not OWASP's.</li>
+<li><strong>Patch, and know what you run.</strong> Compare each component's version with the vendor's first fixed version, on a schedule.</li>
+<li><strong>Build every environment from the baseline and audit it automatically.</strong> Compare each environment with the baseline, not only with another environment, and probe the running service as well as reading its settings.</li>
+</ol>
+
+<h3>Where each setting lives</h3>
+<div class="diagram">
+<svg viewBox="0 0 1100 330" width="100%" style="min-width:900px" role="img">
+<title>Where the settings in this module live along the request path</title>
+<desc>A client connects to two listeners on an edge proxy: plain HTTP, which should be off, and HTTPS, where the TLS versions and cipher suites are set. The edge proxy forwards to the API server, where the method allowlist, the error handler, the response headers and the fail closed rule are set. The API server depends on components that need patches, and has a separate internal management listener for debug and admin functions. A band underneath says that the baseline and the automated audit cover every box in every environment.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+<text class="lab" x="20" y="24">Each box has its own settings. A request is only as well protected as the weakest of them.</text>
+
+<g class="p"><rect x="20" y="96" width="170" height="60" rx="8"/><text class="th" x="105" y="120" text-anchor="middle">Client</text><text class="ts" x="105" y="140" text-anchor="middle">App, script or browser</text></g>
+
+<g class="r"><rect x="250" y="44" width="220" height="60" rx="8"/><text class="th" x="360" y="68" text-anchor="middle">Plain HTTP listener</text><text class="ts" x="360" y="88" text-anchor="middle">Off. Not serve, not redirect</text></g>
+<g class="h"><rect x="250" y="148" width="220" height="60" rx="8"/><text class="th" x="360" y="172" text-anchor="middle">HTTPS listener, edge proxy</text><text class="ts" x="360" y="192" text-anchor="middle">TLS versions, suites, path rules</text></g>
+
+<g class="h"><rect x="540" y="148" width="240" height="60" rx="8"/><text class="th" x="660" y="172" text-anchor="middle">API server</text><text class="ts" x="660" y="192" text-anchor="middle">Methods, errors, headers, fail closed</text></g>
+<g class="s"><rect x="540" y="44" width="240" height="60" rx="8"/><text class="th" x="660" y="68" text-anchor="middle">Internal management listener</text><text class="ts" x="660" y="88" text-anchor="middle">Admin only here. No default account</text></g>
+<g class="s"><rect x="850" y="148" width="230" height="60" rx="8"/><text class="th" x="965" y="172" text-anchor="middle">Components</text><text class="ts" x="965" y="192" text-anchor="middle">Framework, libraries: patch level</text></g>
+
+<line class="rej" x1="190" y1="112" x2="246" y2="80" marker-end="url(#a)"/>
+<line class="arr" x1="190" y1="140" x2="246" y2="172" marker-end="url(#a)"/>
+<line class="arr" x1="470" y1="178" x2="536" y2="178" marker-end="url(#a)"/>
+<line class="leader" x1="660" y1="148" x2="660" y2="104"/>
+<line class="leader" x1="780" y1="178" x2="850" y2="178"/>
+
+<g class="g"><rect x="20" y="250" width="1060" height="56" rx="8"/><text class="th" x="40" y="273">One baseline, every environment.</text><text class="ts" x="40" y="293">The same settings are applied to each box in development, staging and production, and an automated audit compares what runs with the baseline.</text></g>
+</svg>
+<div class="legend"><span class="lg-p">Client</span><span class="lg-h">Request path</span><span class="lg-s">Not on the request path</span><span class="lg-r">Must refuse</span></div>
+</div>
+<p class="prose meta">Some of this ground is taught elsewhere and only linked here. From API8's lists: CORS policy is Module 17, <a href="../cors/index.html">CORS</a>. API8 also says to restrict incoming content types and to define and enforce response <a href="../../glossary/index.html#schema">schemas</a>, error responses included. This module does not teach either. The nearest lesson is Module 13, <a href="../request-and-response-contracts/index.html">Request and response contracts</a>, which covers checking request bodies and giving every rejection one error shape. Two neighbours are not on API8's lists: old versions that are still reachable are API9:2023 and Module 18, <a href="../versioning-and-deprecation/index.html">Versioning and deprecation</a>, and paths that reach a service without passing the gateway are Module 12, <a href="../gateway-enforcement/index.html">Gateway enforcement</a>.</p>
+
+<h2>4. Defaults and when to change them</h2>
+<div class="wrap"><table>
+<thead><tr><th>Decision</th><th>Starting default</th><th>What the sources say, and when to change it</th></tr></thead>
+<tbody>
+<tr><td>Error body</td><td>RFC 9457 problem details with <code>type</code> <code>about:blank</code>, the status, the standard title and an <code>instance</code> that carries the correlation ID</td><td>RFC 9457 defines a format. It does not require an API to use it: section 1 says problem details "are (naturally) not the only way to convey the details of a problem in HTTP". What it does say about content is in section 4, "Problem details are not a debugging tool for the underlying implementation", and section 5 encourages generators that provide links to occurrence information to avoid making a stack dump available through the HTTP interface. Define your own problem types for errors a client can act on. The correlation ID is this project's use of <code>instance</code>, which the RFC defines as a URI reference that identifies the specific occurrence.</td></tr>
+<tr><td>Minimum TLS version</td><td>TLS 1.2 and TLS 1.3 enabled, nothing older</td><td>RFC 9325 section 3.1.1 says implementations must not negotiate SSL 2, SSL 3, TLS 1.0 or TLS 1.1. RFC 8996 sections 4 and 5 say the same of TLS 1.0 and 1.1. Drop TLS 1.2 once every caller supports 1.3: RFC 9325 section 1 says a provider "might decide to disable TLS 1.2 entirely and offer only TLS 1.3."</td></tr>
+<tr><td>TLS 1.3 and TLS 1.2 support</td><td>Offer TLS 1.3 and prefer it</td><td>RFC 9325 section 3.1.1, as published in 2022, says implementations must support TLS 1.2 and should support TLS 1.3, and must prefer 1.3 when they have it. RFC 9852 (July 2026) changes two of those for new protocols that use TLS: TLS 1.3 must be supported, and TLS 1.2 may be. Its rule is addressed to protocol specifications: "Any new protocol that uses TLS MUST specify TLS 1.3 as its default." It does not tell an existing HTTP API to turn TLS 1.2 off. TLS 1.3 itself is RFC 9846.</td></tr>
+<tr><td>TLS 1.2 cipher suites</td><td>The four suites RFC 9325 section 4.2 recommends, all ECDHE with AES-GCM</td><td>RFC 10015 (July 2026) raises three of RFC 9325's "should not" rules to "must not" for TLS 1.2: static RSA key exchange, ephemeral finite field Diffie-Hellman and non-ephemeral finite field Diffie-Hellman. Non-ephemeral elliptic curve Diffie-Hellman stays at "should not". RFC 9325 section 4.1 already forbids NULL and RC4 suites. Change the list only to remove suites.</td></tr>
+<tr><td>Plain HTTP</td><td>Listener off</td><td>The OWASP Transport Layer Security Cheat Sheet: "API-only endpoints should disable HTTP altogether and only support encrypted connections. When that is not possible, API endpoints should fail requests made over unencrypted HTTP connections instead of redirecting them." RFC 6797 section 7.2 says an HSTS host should answer plain HTTP with a permanent redirect. That advice is written for sites that people visit in a browser. Redirect only for those.</td></tr>
+<tr><td>HSTS</td><td><code>Strict-Transport-Security: max-age=31536000</code> on HTTPS responses</td><td>RFC 6797 section 6.1.1 requires the <code>max-age</code> directive and section 7.2 forbids sending the header over plain HTTP. RFC 9325 section 3.2 says web servers should use HSTS. The value is one year. RFC 6797 uses it in an example (section 6.2) and neither RFC recommends a figure, so the choice is this project's. It only affects clients that implement HSTS, which in practice means browsers. Start with a short <code>max-age</code> when a mistake would lock users out.</td></tr>
+<tr><td>Methods</td><td>An allowlist per route, <code>TRACE</code> off</td><td>API8: "Be specific about which HTTP verbs each API can be accessed by: all other HTTP verbs should be disabled (e.g. HEAD)." RFC 9110 section 9.1 says "All general-purpose servers MUST support the methods GET and HEAD", so the lab keeps <code>HEAD</code> next to <code>GET</code>. If a browser calls the API across origins, the route also needs <code>OPTIONS</code> for the <a href="../../glossary/index.html#preflight">preflight</a>.</td></tr>
+<tr><td>Caching</td><td><code>Cache-Control: no-store</code> on every response</td><td>RFC 9111 section 5.2.2.5: with <code>no-store</code>, "a cache MUST NOT store any part of either the immediate request or the response". Relax it only for responses that hold nothing private and that you want cached.</td></tr>
+<tr><td>Server banner</td><td>No <code>Server</code> header, or a value with no version</td><td>RFC 9110 section 10.2.4 says an origin server should not send "needlessly fine-grained detail". The OWASP HTTP Headers Cheat Sheet: "Remove this header or set non-informative values." Section 5 says how little this buys.</td></tr>
+<tr><td>Environments</td><td>Identical settings, different credentials and hostnames</td><td>OWASP Top 10:2025 A02: "Development, QA, and production environments should all be configured identically, with different credentials used in each environment." List the settings that are meant to differ, and keep that list short.</td></tr>
+</tbody></table></div>
+
+<h2>5. What it proves, and what it doesn't</h2>
+<div class="prose">
+<p><strong>Proves:</strong> that on the day of the audit, the running service refused each probe, and that its settings matched the baseline. That is all a clean audit says.</p>
+<p><strong>Doesn't prove the code is right.</strong> The lab's hardened API still fails on a booking id of <code>abc</code>. The configuration hides the detail and denies the request. It does not fix the missing input check. A10 says to catch errors where they occur and to keep a global handler "in case there is ever something we have missed". The handler is the backstop, not the fix.</p>
+<p><strong>Doesn't make a hidden version safe.</strong> RFC 9110 section 17.12 says that product information can in theory help an attacker, and then: "in practice, attackers tend to try all potential holes regardless of the apparent software versions being used". Removing the banner is cheap and worth doing. Patching is the control.</p>
+<p><strong><code>no-store</code> is an instruction, not a guarantee.</strong> RFC 9111 says of it: "This directive is not a reliable or sufficient mechanism for ensuring privacy." A cache that is broken or hostile can ignore it.</p>
+<div class="callout warn"><strong>A redirect and HSTS do not protect an API client.</strong> A redirect from <code>http</code> to <code>https</code> is an answer, and the server can only answer a request it has already received. The token in that request crossed the network in clear text first. HSTS exists to stop a browser sending that first request the next time, and it only works in a client that implements it. RFC 6797 section 14.2: "Non-conformant user agents ignore the Strict-Transport-Security header field". A script, a mobile app's HTTP library or another server will follow whatever URL it was configured with. Even a conformant client is exposed on its first visit, which RFC 6797 section 14.6 calls the bootstrap MITM vulnerability (MITM is short for man in the middle, an attacker placed between the client and the server). For an API, the control is that nothing answers on plain HTTP and every documented URL starts with <code>https</code>. A closed listener stops an attacker who can only watch the network. One who can answer in the server's place can still collect what a client sends to an <code>http</code> URL, which is why the client's URL is half of the control. Part D of the lab counts the tokens that leak each way.</div>
+<p><strong>Most browser security headers do nothing for a non-browser client.</strong> The OWASP REST Security Cheat Sheet says that if an API is only consumed by non-browser clients, "most of these headers will have no effect since they are directives for browsers." Send the short list in section 3 anyway. It costs nothing, and you rarely know every client. Cookie attributes and request forgery belong to Module 28, Browser sessions, cookies and CSRF.</p>
+<p><strong>A comparison of two environments is not an audit.</strong> Two environments with the same wrong setting are identical. Part C of the lab shows two default installs that differ in nothing and have 15 findings each.</p>
+</div>
+
+<h2>6. Prove it</h2>
+<div class="prose">
+<p>A hardened deployment must pass every one of these, in every environment. If one fails, the control is broken:</p>
+<ul>
+<li>A request that makes the code raise an error returns a generic body with no stack trace, file path, query text or version, and the server log holds the detail under the identifier in the body.</li>
+<li>A malformed, truncated or oversized credential is refused. It never falls through to the handler.</li>
+<li>Every method that is not on a route's allowlist returns 405 with an <code>Allow</code> header, <code>TRACE</code> included, and has no effect. An unknown method returns 501.</li>
+<li><code>/debug</code>, sample pages and framework consoles return 404 on the public listener.</li>
+<li>The vendor's default account is refused on every listener, and the management login is not reachable from the public listener at all.</li>
+<li>A response with personal data carries <code>Cache-Control: no-store</code>, a correct <code>Content-Type</code> and <code>X-Content-Type-Options: nosniff</code>.</li>
+<li>A connection to the plain HTTP port is refused. If a redirect is unavoidable, no HSTS header appears on the plain HTTP response.</li>
+<li>A client that offers only TLS 1.0 or TLS 1.1 fails the handshake. No TLS 1.2 suite with static RSA or finite field Diffie-Hellman key exchange is selected.</li>
+<li>A path written as <code>//admin/login</code> gets the same answer from the edge as <code>/admin/login</code>.</li>
+<li>No component is behind its first fixed version.</li>
+<li>The settings of each environment differ from the baseline only in the keys listed as per-environment, and the list is reviewed when it changes.</li>
+</ul>
+</div>
+
+<h2>7. Lab</h2>
+<div class="prose">
+<p>Download <a href="../../labs/misconfiguration_lab.py"><code>labs/misconfiguration_lab.py</code></a> and run it with Python 3. It needs no packages beyond the standard library. On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>.</p>
+<p>The API is a Python class driven by a configuration dict, and the auditor is a second class that calls it. The same application code runs in every part. Nothing opens a socket. TLS is a tuple of version names and a tuple of cipher suite names compared with the RFCs' rules, and no handshake takes place. The leaked error page is built from fixed strings, so it is not a real traceback, and the correlation ID is a counter where a real service would use a random value. The cipher suite check matches name prefixes, which is enough for the suites in the lab; RFC 10015 section 5 lists the affected suites one by one. The HSTS agent in Part D models two rules of RFC 6797: it notes a host from a header received over HTTPS (section 8.1) and rewrites <code>http</code> to <code>https</code> for a noted host (section 8.3). It does not follow redirects, and it leaves out <code>includeSubDomains</code>, <code>max-age=0</code>, preloaded lists and certificate errors. The vendor's default account is a placeholder pair, not any real product's default. Responses carry only the headers this module is about: RFC 9110 section 15.5.2 requires a 401 to carry <code>WWW-Authenticate</code>, and the lab's 401 does not.</p>
+</div>
+<pre><code>$ python3 labs/misconfiguration_lab.py
+hosts use the reserved .example domain; no request leaves this process
+
+Part A: a default install, probed by an auditor with a guest token.
+ 1. GET /v1/bookings/abc, an id the code never expected                 500
+ 2.   what the error body gives away                                    ['stack trace', 'file path', 'SQL', 'version']
+ 3.   its Content-Type                                                  text/html
+ 4.   the Server header                                                 ExampleServe/4.2.1
+ 5. DELETE /v1/bookings/1002, a method the API has no use for           204
+ 6.   booking 1002 still exists                                         False
+ 7. TRACE /v1/bookings/1001                                             200
+ 8.   the reply repeats the caller's Authorization header               True
+ 9. GET /debug/config                                                   200
+10. GET /samples/hello                                                  200
+11. the vendor's default account, on the public listener                200
+12. GET /v1/bookings/1001, which carries a guest's email                200
+13.   Cache-Control                                                     None
+14.   X-Content-Type-Options                                            None
+15. the same request on the plain HTTP listener                         200
+16.   requests with credentials that crossed in clear text              1
+17. TLS versions enabled that must not be negotiated                    ['TLS1.0', 'TLS1.1']
+18.   a client offering only TLS1.0 negotiates                          TLS1.0
+19.   a client offering TLS1.2 and TLS1.3 negotiates                    TLS1.2
+20. TLS 1.2 cipher suites that must not be selected                     ['TLS_RSA_WITH_AES_128_CBC_SHA', 'TLS_DHE_RSA_WITH_AES_128_GCM_SHA256']
+21. components behind their first fixed version                         ['ExampleServe 4.2.1 &lt; 4.2.7']
+22. GET /v1/bookings/1001 with a malformed Authorization header         200
+23.   what the server logged about it                                   auth error ignored
+24.   and with no Authorization header at all                           401
+25. findings from the full audit of a fresh default install             15
+
+Part B: the hardened configuration. Same code, same probes.
+26. GET /v1/bookings/abc                                                500
+27.   what the error body gives away                                    []
+28.   its Content-Type                                                  application/problem+json
+29.   the body                                                          {"instance": "/errors/req-0001", "status": 500, "title": "Internal Server Error", "type": "about:blank"}
+30.   the server log, under the same id                                 ('req-0001', 'ValueError while handling /v1/bookings/abc')
+31.   the Server header                                                 None
+32. DELETE /v1/bookings/1002                                            405
+33.   Allow                                                             GET, HEAD
+34.   booking 1002 still exists                                         True
+35. TRACE /v1/bookings/1001                                             405
+36. FROB /v1/bookings/1001, a method that does not exist                501
+37. GET /debug/config                                                   404
+38. GET /samples/hello                                                  404
+39. the default account, on the public listener                         404
+40.   the default account, on the internal management listener          401
+41.   the operator's own account, on the management listener            200
+42. GET /v1/bookings/1001 with the guest token still works              200
+43.   the guest in the body                                             A. Guest
+44.   Cache-Control                                                     no-store
+45.   X-Content-Type-Options                                            nosniff
+46.   Content-Type                                                      application/json
+47.   Strict-Transport-Security                                         max-age=31536000
+48. HEAD /v1/bookings/1001 still works                                  200
+49. the same GET on the plain HTTP listener                             connection refused
+50.   requests with credentials that crossed in clear text              0
+51. TLS versions enabled that must not be negotiated                    []
+52.   a client offering only TLS1.0 gets                                protocol_version alert
+53.   a client offering TLS1.2 and TLS1.3 negotiates                    TLS1.3
+54. TLS 1.2 cipher suites that must not be selected                     []
+55. components behind their first fixed version                         []
+56. GET /v1/bookings/1001 with a malformed Authorization header         500
+57.   the body holds the booking                                        False
+58. findings from the full audit of a fresh hardened install            []
+
+Part C: drift between two environments built from one baseline.
+59. settings that differ, staging against production                    ['debug_errors', 'hostname']
+60.   leaving out the ones meant to differ                              ['debug_errors']
+61. audit of staging                                                    []
+62. audit of production                                                 ['error-detail']
+63. two default installs compared with each other differ in             []
+64.   settings where a default install differs from the baseline        17
+
+Part D: a redirect and HSTS, seen by a client that is not a browser.
+65. a plain API client configured with an http URL gets                 301
+66.   Location                                                          https://api.examplehotels.example/v1/bookings/1001
+67.   Strict-Transport-Security on that plain HTTP reply                None
+68.   tokens that have crossed in clear text so far                     1
+69. an HSTS agent that has never seen the host loads the http URL over  http
+70.   tokens in clear text so far                                       2
+71. an HSTS agent that loaded https once then loads the http URL over   https
+72.   tokens in clear text so far                                       2
+73.   and once max-age has run out it loads it over                     http
+74. the plain API client again: tokens in clear text so far             4
+75. with the listener off, the plain API client gets                    connection refused
+76.   tokens in clear text                                              0
+
+Part E: an edge proxy and a backend that disagree about a path.
+77. POST /admin/login through the edge                                  403
+78. POST //admin/login through the same edge                            401
+79.   when the edge reads paths the way the backend does                403
+80.   when the login is not on the public listener at all               404
+
+all 80 lab checks passed</code></pre>
+<div class="prose">
+<p>Four results are worth a second look. Checks 22 to 24 are the fail open case: with no <code>Authorization</code> header the default install answers 401, as it should, but a header that the parser cannot split answers 200, and the server's own log says the error was ignored. Checks 56 and 57 are the same request against the hardened configuration: 500, and no booking in the body.</p>
+<p>Checks 29 and 30 show both halves of an error. The client gets four fields, and none of them describes the code. The exception type and the path are in the server log under the same identifier. Module 30, Logging, detection and response, covers what to do with that log.</p>
+<p>Checks 63 and 64 are the reason to compare with a baseline. Two default installs differ from each other in nothing. Each differs from the hardened baseline in 17 settings.</p>
+<p>Checks 65 to 76 count tokens. With a redirect in place, a plain API client leaks its token on every call (checks 68 and 74). A client that implements HSTS leaks it on its first visit (check 70), stops once it has seen the header over HTTPS (check 72), and starts again when <code>max-age</code> runs out (check 73). The count in check 74 is 4 because it includes that request and the plain client's second call. With the listener off, the count stays at zero (check 76).</p>
+<p><strong>Try next:</strong></p>
+<ul>
+<li>In <code>Api._finish</code>, delete <code>and listener != "public-http"</code>, so the HSTS header is also sent on plain HTTP responses. One check changes: check 67 prints <code>max-age=31536000</code> where the published run prints <code>None</code>, and the lab exits 1. Checks 69 to 73 print the same as before, because the agent only notes a host from a header that arrived over HTTPS. The server broke the rule in RFC 6797 section 7.2, and a conformant client ignored the header, as section 8.1 requires.</li>
+<li>In <code>HARDENED</code>, change <code>"cache_control": "no-store"</code> to <code>"no-cache"</code>. Check 44 prints <code>no-cache</code>, checks 58 and 61 print <code>['no-store']</code> where they printed <code>[]</code>, check 62 prints <code>['error-detail', 'no-store']</code>, and the lab exits 1 with those four failures. The OWASP HTTP Headers Cheat Sheet warns about this one: <code>no-cache</code> "does not prevent caching; it allows caches to store responses."</li>
+</ul>
+</div>
+
+<h2>8. Check your understanding</h2>
+<details><summary>An API answers every plain HTTP request with a 301 to the <code>https</code> URL. A partner's script is configured with the <code>http</code> URL. What has the redirect protected?</summary><p>Nothing in that request. The script sent its token in clear text, and the server could only redirect after it arrived. If the script follows the redirect, the call succeeds and nobody notices. Refusing the connection makes the mistake fail on the first test.</p></details>
+<details><summary>Your error responses now follow RFC 9457. Is the information leak fixed?</summary><p>Not by the format. RFC 9457 defines where fields go. It does not stop a generator putting a stack trace in <code>detail</code>. The RFC says <code>detail</code> "ought to focus on helping the client correct the problem, rather than giving debugging information", and its security considerations say the details given must be scrutinized. The fix is what you put in the body, and one global handler so that no error path is missed.</p></details>
+<details><summary>Staging and production have identical configuration files. Is production hardened?</summary><p>You do not know yet. They may be identical and wrong. Compare each with the written baseline, then probe the running service, because a setting can also be overridden at run time without the file changing.</p></details>
+<details><summary>RFC 9852 says new protocols must require TLS 1.3. Must you disable TLS 1.2 on an existing API today?</summary><p>The RFC does not say so. It changes RFC 9325's rules for new protocols that use TLS: TLS 1.3 must be supported and TLS 1.2 may be. What every deployment must not do is negotiate TLS 1.0, TLS 1.1 or SSL, and, since RFC 10015, select static RSA or finite field Diffie-Hellman key exchange in TLS 1.2. Dropping TLS 1.2 is a choice you make when your callers allow it.</p></details>
+
+<section class="course-quiz" data-quiz data-quiz-id="security-misconfiguration-check" data-correct-feedback="Correct. The handler caught the error and carried on, so the check that raised it never ran. An error in a security check has to end in a refusal." data-incorrect-feedback="Not quite. The token check exists and works for a well-formed header. The fault is what the configuration does when that check raises an error: it allows the request instead of refusing it.">
+<p class="kicker">Quick check</p>
+<h2>An error in the wrong direction</h2>
+<fieldset><legend>An API returns 401 when the <code>Authorization</code> header is missing and 200 when the header is present but cannot be parsed. Which rule is broken?</legend>
+<label><input type="radio" name="cfg-fail" value="tls"> Use TLS on every hop.</label>
+<label><input type="radio" name="cfg-fail" value="closed" data-correct="true"> Fail closed: an error in a check must deny the request.</label>
+<label><input type="radio" name="cfg-fail" value="cache"> Send <code>Cache-Control: no-store</code>.</label>
+<label><input type="radio" name="cfg-fail" value="methods"> Allow only the methods each route needs.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+</section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="security-misconfiguration-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/misconfiguration_lab.py"><code>labs/misconfiguration_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant, not a reading of the code. The published run prints 93 lines and ends <code>all 80 lab checks passed</code>. None of the edits needs a package.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="cfg-x1" data-covers="cfg-03">
+<h3>1. The plain HTTP listener redirects</h3>
+<div class="prose">
+<p>A partner complains that <code>http</code> URLs stopped working. In <code>HARDENED</code>, change <code>"http_listener": "off"</code> to <code>"redirect"</code>.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="cfg-x1" value="a"> Nothing. A redirect sends the client to HTTPS, so all 80 checks pass.</label>
+<label><input type="radio" name="cfg-x1" value="b"> Check 49 prints <code>301</code> and check 58 lists a <code>plain-http</code> finding.</label>
+<label><input type="radio" name="cfg-x1" value="c" data-correct="true"> Checks 49 and 75 print <code>301</code>, and checks 50 and 76 count one token in clear text. Check 58 still prints <code>[]</code>.</label>
+<label><input type="radio" name="cfg-x1" value="d"> Checks 49 and 75 print <code>200</code>, because the booking is served over HTTP again.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">The lab exits 1. A redirect is an answer to a request that has already been sent, and the lab counts the credentials in those requests.</li>
+<li data-option="b">Check 49 does print <code>301</code>, but check 58 still prints <code>[]</code>. The auditor's <code>plain-http</code> probe only reports a listener that serves content with a 200. An audit finds what its probes look for, which is a reason to read them.</li>
+<li data-option="c">Correct. Exit 1, four failures. Checks 49 and 75 go from <code>connection refused</code> to <code>301</code>, and checks 50 and 76 go from <code>0</code> to <code>1</code>. The guest token crossed the network in clear text before the server could answer, and the full audit in check 58 did not notice. Check <code>cfg-03</code> in the <a href="#reference">Reference</a> layer asks for a refused connection for this reason.</li>
+<li data-option="d">That is the <code>"serve"</code> setting, which the default install uses. With <code>"redirect"</code> the booking is not in the reply. The token still was in the request.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="cfg-x2" data-covers="cfg-02">
+<h3>2. Authentication errors are allowed through again</h3>
+<div class="prose">
+<p>The token service has an outage, and someone decides the API should stay up when authentication code fails. In <code>HARDENED</code>, change <code>"on_auth_error": "deny"</code> to <code>"allow"</code>.</p>
+</div>
+<fieldset><legend>How many checks fail, and what does check 56 print?</legend>
+<label><input type="radio" name="cfg-x2" value="a"> One check fails. Check 56 prints <code>200</code>.</label>
+<label><input type="radio" name="cfg-x2" value="b" data-correct="true"> Six checks fail. Check 56 prints <code>200</code>.</label>
+<label><input type="radio" name="cfg-x2" value="c"> Six checks fail. Check 56 prints <code>401</code>.</label>
+<label><input type="radio" name="cfg-x2" value="d"> None. The hardened install has no malformed tokens.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 56 does print <code>200</code>, but it is not alone. The setting is part of the baseline, so every environment built from it inherits the change, and the audits and the settings count see it too.</li>
+<li data-option="b">Correct. Exit 1, six failures. Check 56 goes from <code>500</code> to <code>200</code> and check 57 from <code>False</code> to <code>True</code>: the booking is in the body. Check 58 goes from <code>[]</code> to <code>['fail-open']</code>, check 61 the same, check 62 from <code>['error-detail']</code> to <code>['error-detail', 'fail-open']</code>, and check 64 from <code>17</code> to <code>16</code>, because the baseline now agrees with the default install on one more setting. Check <code>cfg-02</code> in the <a href="#reference">Reference</a> layer is the rule this breaks.</li>
+<li data-option="c">A 401 would be a refusal. The <code>"allow"</code> branch returns a caller named <code>unverified</code>, which is not <code>None</code>, so the handler carries on and serves the booking.</li>
+<li data-option="d">The auditor sends one. Check 56 uses an <code>Authorization</code> header with a scheme and no token, which is all it takes.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="cfg-x3" data-covers="cfg-10">
+<h3>3. The drifted setting is declared a per-environment difference</h3>
+<div class="prose">
+<p>The comparison in Part C keeps reporting <code>debug_errors</code>. To quiet it, someone adds the key to the list of settings that are meant to differ:</p>
+</div>
+<pre><code>PER_ENVIRONMENT_KEYS = ("hostname", "debug_errors")</code></pre>
+<fieldset><legend>What does Part C print now?</legend>
+<label><input type="radio" name="cfg-x3" value="a" data-correct="true"> Check 60 prints <code>[]</code>. Check 62 still prints <code>['error-detail']</code>.</label>
+<label><input type="radio" name="cfg-x3" value="b"> Checks 60 and 62 both print <code>[]</code>.</label>
+<label><input type="radio" name="cfg-x3" value="c"> Check 59 prints <code>['hostname']</code> and check 60 prints <code>[]</code>.</label>
+<label><input type="radio" name="cfg-x3" value="d"> Nothing changes. All 80 checks pass.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Correct. Exit 1, one failure: check 60 goes from <code>['debug_errors']</code> to <code>[]</code>. The comparison is now silent, and production still returns a stack trace, which the probe behind check 62 still finds. An exception list is itself configuration. Check <code>cfg-10</code> in the <a href="#reference">Reference</a> layer asks for it to be short and reviewed, and for the running service to be probed as well.</li>
+<li data-option="b">Check 62 does not read the list. It sends a request with a bad booking id to production and looks at the body that comes back.</li>
+<li data-option="c">Check 59 is the comparison with nothing left out, so it still prints <code>['debug_errors', 'hostname']</code>.</li>
+<li data-option="d">The lab compares check 60 with the value it expects, so quieting the comparison fails the run.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="cfg-x4" data-covers="cfg-04">
+<h3>4. TLS 1.1 is turned back on for one old client</h3>
+<div class="prose">
+<p>In <code>HARDENED</code>, change <code>"tls_versions": ("TLS1.2", "TLS1.3")</code> to <code>("TLS1.1", "TLS1.2", "TLS1.3")</code>.</p>
+</div>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="cfg-x4" value="a"> Check 51 only.</label>
+<label><input type="radio" name="cfg-x4" value="b"> Checks 51 and 52. The TLS 1.0 client now connects.</label>
+<label><input type="radio" name="cfg-x4" value="c"> Checks 51 and 53. The modern client now negotiates TLS 1.1.</label>
+<label><input type="radio" name="cfg-x4" value="d" data-correct="true"> Checks 51, 58, 61 and 62. Checks 52 and 53 print the same as before.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 51 changes, and so does every audit of an environment built from this baseline.</li>
+<li data-option="b">Check 52 still prints <code>protocol_version alert</code>. The client in that check offers only TLS 1.0, and TLS 1.0 is still off.</li>
+<li data-option="c">Check 53 still prints <code>TLS1.3</code>. The lab's <code>negotiate</code> picks the highest version both sides have, and a client that offers TLS 1.2 and 1.3 is not affected by a lower version being enabled. The exposure is to clients that offer nothing better.</li>
+<li data-option="d">Correct. Exit 1, four failures. Check 51 goes from <code>[]</code> to <code>['TLS1.1']</code>, checks 58 and 61 from <code>[]</code> to <code>['tls-versions']</code>, and check 62 from <code>['error-detail']</code> to <code>['error-detail', 'tls-versions']</code>. No request in the lab behaves differently, which is why this kind of change survives: nothing breaks, and one exception for one client becomes the setting for every environment. Check <code>cfg-04</code> in the <a href="#reference">Reference</a> layer is the rule.</li>
+</ul>
+</details>
+</article>
+</section>
+
+<p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
+<span class="layer" id="reference" style="margin-top:3rem">Reference</span>
+<h2 style="border-top:none;margin-top:.5rem">Controls</h2>
+<p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
+<ul class="controls">
+<li><span class="label std">Standard</span>OWASP API8:2023 says an API might be vulnerable if hardening is missing across any part of the API stack or cloud permissions are improperly configured, the latest security patches are missing, unnecessary features are enabled, "There are discrepancies in the way incoming requests are processed by servers in the HTTP server chain", TLS is missing, security or cache control directives are not sent to clients, a CORS policy is missing or improperly set, or error messages include stack traces or expose other sensitive information. It is an awareness document and sets no requirements. <a href="#source-api8">API8:2023</a>, Is the API Vulnerable?</li>
+<li><span class="label std">Standard</span>OWASP API8:2023 says the API life cycle should include "A repeatable hardening process leading to fast and easy deployment of a properly locked down environment", a task to review and update configurations across the entire API stack, and "An automated process to continuously assess the effectiveness of the configuration and settings in all environments". It goes on to say: use an encrypted channel (TLS) for all API communications, internal or public-facing; be specific about which HTTP verbs each API can be accessed by and disable the others; for APIs that browser-based clients call, implement a proper CORS policy and include applicable security headers; restrict incoming content types and data formats; make all servers in the HTTP server chain process incoming requests in a uniform manner; and, where applicable, define and enforce all response payload schemas, error responses included. <a href="#source-api8">API8:2023</a>, How To Prevent.</li>
+<li><span class="label std">Standard</span>RFC 9457 defines the problem details format and the <code>application/problem+json</code> media type. It says "Problem details are not a debugging tool for the underlying implementation" (section 4) and encourages generators that provide links to occurrence information "to avoid making implementation details such as a stack dump available through the HTTP interface" (section 5). It does not require an API to use the format. The OWASP Error Handling Cheat Sheet recommends that "a generic response is returned by the application but the error details are logged server side for investigation, and not returned to the user".</li>
+<li><span class="label std">Standard</span>An origin server should answer 501 to a method it does not recognize or implement, and 405 to a method it implements but does not allow for the target resource (RFC 9110 section 9.1). It must generate an <code>Allow</code> header in a 405 response (RFC 9110 section 15.5.6). The final recipient of a <code>TRACE</code> request should exclude request fields that are likely to contain sensitive data when it generates the response (RFC 9110 section 9.3.8).</li>
+<li><span class="label std">Standard</span>Implementations must not negotiate SSL version 2, SSL version 3, TLS 1.0 or TLS 1.1 (RFC 9325 section 3.1.1). "TLS 1.0 MUST NOT be used." and "TLS 1.1 MUST NOT be used." (RFC 8996 sections 4 and 5).</li>
+<li><span class="label std">Standard</span>RFC 9325 section 3.1.1 says implementations must support TLS 1.2, should support TLS 1.3, and must prefer TLS 1.3 when they implement it. RFC 9852 section 5 changes that for new protocols that use TLS: "this document mandates that TLS 1.3 MUST be supported for new protocols using TLS", and "this document says that TLS 1.2 MAY be supported as described above". The changes apply to TLS and not to DTLS.</li>
+<li><span class="label std">Standard</span>In TLS 1.2 connections, clients must not offer and servers must not select cipher suites that use RSA key exchange, ephemeral finite field Diffie-Hellman, or non-ephemeral finite field Diffie-Hellman, and should not offer or select non-ephemeral elliptic curve Diffie-Hellman (RFC 10015 sections 2, 3 and 4, with the changes to RFC 9325 tabulated in section 6). Implementations must not negotiate NULL or RC4 cipher suites (RFC 9325 section 4.1). RFC 9325 section 4.2 recommends four ECDHE suites with AES-GCM for TLS 1.2.</li>
+<li><span class="label std">Standard</span>Service providers "SHOULD ensure that all servers providing the same service provide equivalent levels of security" in their TLS configuration, because an attacker might direct a client to the server that is easier to exploit (RFC 9325 section 3.9).</li>
+<li><span class="label std">Standard</span>With the <code>no-store</code> response directive, "a cache MUST NOT store any part of either the immediate request or the response". The same section says: "This directive is not a reliable or sufficient mechanism for ensuring privacy." RFC 9111 section 5.2.2.5. The OWASP HTTP Headers Cheat Sheet recommends: "Use no-store for sensitive data to prevent any form of caching."</li>
+<li><span class="label std">Standard</span>An HSTS host should include the <code>Strict-Transport-Security</code> field in responses sent over secure transport (RFC 6797 section 7.1) and must not include it in responses sent over non-secure transport (section 7.2). A user agent must ignore the field when it arrives over insecure transport (section 8.1). Web servers should use HSTS unless it would weaken security in their deployment (RFC 9325 section 3.2).</li>
+<li><span class="label std">Standard</span>A sender that generates a message containing content should generate a <code>Content-Type</code> header unless the media type is unknown to it (RFC 9110 section 8.3). An origin server should not generate a <code>Server</code> header "containing needlessly fine-grained detail" (RFC 9110 section 10.2.4). The OWASP HTTP Headers Cheat Sheet recommends <code>X-Content-Type-Options: nosniff</code> together with a correct <code>Content-Type</code>.</li>
+<li><span class="label std">Standard</span>The OWASP Transport Layer Security Cheat Sheet recommends that API-only endpoints disable HTTP altogether, or fail requests made over unencrypted HTTP "instead of redirecting them". The OWASP REST Security Cheat Sheet recommends an allowlist of permitted HTTP methods with a 405 for everything else, and says to avoid exposing management endpoints via the internet. Cheat sheets are guidance and set no requirements.</li>
+<li><span class="label std">Standard</span>OWASP Top 10:2025 A10 names failing open among the scenarios it covers and says that part way through a transaction "it is extremely important that you roll back every part of the transaction and start again (also known as failing closed)". OWASP Top 10:2025 A02 lists "Default accounts and their passwords are still enabled and unchanged." among its conditions. Both are awareness documents and set no requirements.</li>
+<li><span class="label base">Baseline</span>One global exception handler returns <code>application/problem+json</code> with <code>type</code> <code>about:blank</code>, the status, the standard title and an <code>instance</code> that carries a correlation ID. The exception is logged under the same ID and nowhere else.</li>
+<li><span class="label base">Baseline</span>An error inside an authentication or authorization check denies the request. No setting exists that turns such an error into "allowed".</li>
+<li><span class="label base">Baseline</span>The plain HTTP listener of an API is off. TLS 1.2 and TLS 1.3 are enabled, nothing older, with the four TLS 1.2 suites RFC 9325 section 4.2 recommends.</li>
+<li><span class="label base">Baseline</span>Each route has a method allowlist. <code>TRACE</code>, debug endpoints, sample content and default accounts are off in every environment, not only in production.</li>
+<li><span class="label base">Baseline</span>Every response carries <code>Cache-Control: no-store</code>, <code>X-Content-Type-Options: nosniff</code> and, when it has content, a correct <code>Content-Type</code>. No response names a product version.</li>
+<li><span class="label base">Baseline</span>Every environment is built from one baseline. The settings allowed to differ are listed by name. An automated audit compares each environment with the baseline and probes the running service.</li>
+<li><span class="label opt">Option</span>Offer only TLS 1.3 once every caller supports it. RFC 9325 section 1 names this as a decision a service provider might make.</li>
+<li><span class="label opt">Option</span>Redirect plain HTTP to HTTPS and send HSTS when people reach the same host in a browser. Keep API hosts and browser-facing hosts separate so the API host can refuse.</li>
+<li><span class="label opt">Option</span>Publish a <code>security.txt</code> file so that someone who finds a misconfiguration knows where to report it. RFC 9116 defines the format.</li>
+</ul>
+
+<h2>Review checklist items</h2>
+<p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
+<ul class="checks">
+<li data-check="cfg-01" data-severity="Critical"><strong>No error response carries a stack trace, query text, file path or version</strong> <span>One global handler returns a generic body with a correlation ID, and the detail is logged on the server under the same ID.</span></li>
+<li data-check="cfg-02" data-severity="Critical"><strong>An error inside a security check denies the request</strong> <span>Test with malformed and truncated credentials. No configuration setting turns an authentication or authorization error into access.</span></li>
+<li data-check="cfg-03" data-severity="Critical"><strong>Plain HTTP is refused, and every hop uses TLS</strong> <span>The API's HTTP listener is off, not redirecting, and internal connections between components are encrypted as well.</span></li>
+<li data-check="cfg-04" data-severity="High"><strong>SSL, TLS 1.0 and TLS 1.1 are disabled and TLS 1.3 is offered</strong> <span>No TLS 1.2 suite uses static RSA or finite field Diffie-Hellman key exchange, and every server for the same service has the same TLS settings.</span></li>
+<li data-check="cfg-05" data-severity="High"><strong>Each route allows only the methods it needs</strong> <span>Everything else returns 405 with an Allow header and has no effect. TRACE is off.</span></li>
+<li data-check="cfg-06" data-severity="Critical"><strong>Debug endpoints, sample content and default accounts are gone</strong> <span>Management functions are on a listener the internet cannot reach, with their own authentication, in every environment.</span></li>
+<li data-check="cfg-07" data-severity="High"><strong>Sensitive responses carry Cache-Control: no-store</strong> <span>Every response with content has a correct Content-Type and X-Content-Type-Options: nosniff, and no response names a product version.</span></li>
+<li data-check="cfg-08" data-severity="High"><strong>Every server in the chain reads a request the same way</strong> <span>Test path, method and header variants through the edge and compare them with what the backend does with the same bytes.</span></li>
+<li data-check="cfg-09" data-severity="High"><strong>No component is behind its first fixed version</strong> <span>The comparison runs on a schedule against vendor advisories, for the framework, the server and the TLS library.</span></li>
+<li data-check="cfg-10" data-severity="High"><strong>Every environment is built from one baseline and audited automatically</strong> <span>The audit compares settings with the baseline and probes the running service. The list of settings allowed to differ is short and reviewed.</span></li>
+</ul>
+
+<h2>Sources</h2>
+<ul class="prose">
+<li id="source-api8"><a href="https://api-security.owasp.org/editions/2023/en/0xa8-security-misconfiguration/">OWASP API Security Top 10 2023, API8:2023 Security Misconfiguration</a>.</li>
+<li><a href="https://top10.owasp.org/2025/A02_2025-Security_Misconfiguration/">OWASP Top 10:2025, A02:2025 Security Misconfiguration</a>, and <a href="https://top10.owasp.org/2025/A10_2025-Mishandling_of_Exceptional_Conditions/">A10:2025 Mishandling of Exceptional Conditions</a>.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9457">RFC 9457: Problem Details for HTTP APIs</a>, July 2023. Sections 1, 3.1, 4, 4.2.1 and 5.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9110">RFC 9110: HTTP Semantics</a>, June 2022. Sections 8.3, 9.1, 9.3.8, 10.2.4, 15.5.2, 15.5.6, 15.6.2 and 17.12.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9111">RFC 9111: HTTP Caching</a>, June 2022. Section 5.2.2.5.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9325">RFC 9325: Recommendations for Secure Use of Transport Layer Security (TLS) and Datagram Transport Layer Security (DTLS)</a>, BCP 195, November 2022. Updated by RFC 9852 and RFC 10015. Sections 1, 3.1.1, 3.2, 3.9, 4.1 and 4.2.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9852">RFC 9852: New Protocols Using TLS Must Require TLS 1.3</a>, BCP 195, July 2026. Sections 4 and 5.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc10015">RFC 10015: Deprecating Obsolete Key Exchange Methods in TLS 1.2 and DTLS 1.2</a>, July 2026. Sections 2, 3, 4, 5 and 6.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc8996">RFC 8996: Deprecating TLS 1.0 and TLS 1.1</a>, BCP 195, March 2021. Sections 1, 4 and 5.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9846">RFC 9846: The Transport Layer Security (TLS) Protocol Version 1.3</a>, July 2026. Obsoletes RFC 8446. Cited as the current definition of TLS 1.3.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc6797">RFC 6797: HTTP Strict Transport Security (HSTS)</a>, November 2012. Sections 6.1.1, 6.2, 7.1, 7.2, 8.1, 8.3, 14.2 and 14.6.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9116">RFC 9116: A File Format to Aid in Security Vulnerability Disclosure</a>, April 2022. Informational.</li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html">OWASP Cheat Sheet Series, Error Handling Cheat Sheet</a>, read 4 October 2026.</li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html">OWASP Cheat Sheet Series, HTTP Headers Cheat Sheet</a>, read 4 October 2026.</li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Transport_Layer_Security_Cheat_Sheet.html">OWASP Cheat Sheet Series, Transport Layer Security Cheat Sheet</a>, read 4 October 2026.</li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html">OWASP Cheat Sheet Series, REST Security Cheat Sheet</a>, read 4 October 2026.</li>
+</ul>
+</main>
+<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
+</body>
+</html>

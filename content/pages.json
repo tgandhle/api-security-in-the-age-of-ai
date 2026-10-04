@@ -17,7 +17,7 @@
           "id": "overview",
           "aria-labelledby": "course-overview"
         },
-        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>New security engineers who can read Python and HTTP requests.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. Four labs also need the <code>cryptography</code> package. No account or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 29 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Examples of learning outcomes</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
+        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>New security engineers who can read Python and HTTP requests.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. Four labs also need the <code>cryptography</code> package. No account or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 30 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Examples of learning outcomes</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
       },
       {
         "tag": "h2",
@@ -184,6 +184,11 @@
         "definition": "A client that can keep a secret, such as a server-side application. It authenticates to the authorization server in its own right."
       },
       {
+        "id": "configuration-drift",
+        "term": "Configuration drift",
+        "definition": "The gap that opens between an environment's settings and the baseline it was built from, usually through changes made by hand and never undone. Nothing reports it unless something compares the two."
+      },
+      {
         "id": "confirmation-claim",
         "term": "Confirmation claim",
         "definition": "The <code>cnf</code> claim in a token, naming a key its holder must be able to use. It turns a bearer token into one that also requires proof of possession."
@@ -202,6 +207,11 @@
         "id": "content-digest",
         "term": "Content-Digest",
         "definition": "A header carrying a hash of the message body, defined by RFC 9530. RFC 9421 does not cover message content on its own, so a request body enters an HTTP message signature through a digest field such as this one, and then only if it is a covered component and the receiver recomputes it."
+      },
+      {
+        "id": "correlation-id",
+        "term": "Correlation ID",
+        "definition": "An identifier an application gives one request, writes into every event that request causes, and returns in an error response. The client can quote it and the operator can find the events and the detail, so the detail never has to be in the response."
       },
       {
         "id": "cors",
@@ -274,6 +284,11 @@
         "definition": "OWASP LLM03:2026: \"the vulnerability that enables damaging actions to be performed in response to unexpected, ambiguous or manipulated outputs from an LLM, regardless of what is causing the LLM to malfunction\". OWASP says the root cause is typically one or more of excessive functionality, excessive permissions and excessive autonomy."
       },
       {
+        "id": "fail-closed",
+        "term": "Fail closed",
+        "definition": "Refusing the request when a check cannot complete. The opposite, failing open, lets the request through because the check raised an error, which OWASP Top 10:2025 A10 lists as CWE-636, Not Failing Securely."
+      },
+      {
         "id": "fetch",
         "term": "Fetch",
         "definition": "The browser API that issues HTTP requests from a page, and the name of the WHATWG standard that defines request and response handling, including <a href=\"#cors\">CORS</a>. A fetch states whether credentials are omitted, included, or sent only to the same origin."
@@ -282,6 +297,11 @@
         "id": "front-channel",
         "term": "Front channel",
         "definition": "A request or response that travels through the user's browser, usually as a redirect. Anything in a front-channel URL may reach browser history, referrer headers, proxy logs, and other apps on the device."
+      },
+      {
+        "id": "hardening",
+        "term": "Hardening",
+        "definition": "Changing a system's settings from the defaults it shipped with to a locked-down baseline: unused features off, default accounts removed, old protocol versions disabled. OWASP API8:2023 asks for it to be a repeatable process."
       },
       {
         "id": "hash",
@@ -297,6 +317,11 @@
         "id": "hmac",
         "term": "HMAC",
         "definition": "Hash-based message authentication code. A hash computed with a secret key mixed in, so only key holders can produce or check it."
+      },
+      {
+        "id": "hsts",
+        "term": "HSTS",
+        "definition": "HTTP Strict Transport Security, RFC 6797. A response header that tells a user agent to use only HTTPS for a host for a stated time. It works only in clients that implement it, and only for a host the client already knows, usually because it received the header once over HTTPS."
       },
       {
         "id": "id-token",
@@ -404,6 +429,11 @@
         "definition": "Signing in with evidence of at least two different kinds: something you know, something you have, something you are. A password and a PIN are the same kind twice, so they do not count."
       },
       {
+        "id": "no-store",
+        "term": "no-store",
+        "definition": "A <code>Cache-Control</code> directive. RFC 9111 section 5.2.2.5 says a cache must not store any part of the request or the response. The same section says it is not a reliable or sufficient mechanism for ensuring privacy."
+      },
+      {
         "id": "non-repudiation",
         "term": "Non-repudiation",
         "definition": "The property that a signer cannot plausibly deny having signed. An asymmetric signature gives a technical version of this, because the verifier could not have produced it, and it holds only as far as private key custody holds."
@@ -447,6 +477,11 @@
         "id": "preflight",
         "term": "Preflight",
         "definition": "An <code>OPTIONS</code> request a browser sends before a cross-origin request that is not safelisted, carrying <code>Access-Control-Request-Method</code> and sometimes <code>Access-Control-Request-Headers</code>. It asks whether the <a href=\"#cors\">CORS</a> protocol is understood, not whether the caller is authorised."
+      },
+      {
+        "id": "problem-details",
+        "term": "Problem details",
+        "definition": "The JSON error format RFC 9457 defines, with the media type <code>application/problem+json</code> and the members <code>type</code>, <code>status</code>, <code>title</code>, <code>detail</code> and <code>instance</code>. It is a format, not a rule about what an error may reveal."
       },
       {
         "id": "prompt-injection",
@@ -701,7 +736,7 @@
         "attrs": {
           "class": "meta"
         },
-        "html": "<p class=\"meta\">All 29 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written.</p>"
+        "html": "<p class=\"meta\">All 30 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written.</p>"
       },
       {
         "tag": "section",
