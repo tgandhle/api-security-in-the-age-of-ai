@@ -44,24 +44,28 @@ REGISTER = {
                      owner="team-payments", owner_kind="team",
                      last_used=d(2026, 9, 29), rotate_every_days=90,
                      last_rotated=d(2026, 8, 15), retire_by=None,
+                     retire_when="ExampleHotels transfer agreement ends",
                      systems=["svc-transfer"], scope="transfer:write",
                      revocation="AS revocation endpoint"),
     "cred-002": dict(kind="HMAC shared secret", purpose="inbound hotel webhooks",
                      owner=None, owner_kind=None,
                      last_used=d(2026, 9, 30), rotate_every_days=180,
                      last_rotated=d(2023, 6, 14), retire_by=None,
+                     retire_when=None,
                      systems=["svc-webhooks"], scope="webhook:verify",
                      revocation="replace the secret on both sides"),
     "cred-003": dict(kind="API key", purpose="legacy reporting export",
                      owner="a.okonkwo", owner_kind="person",
                      last_used=d(2025, 2, 11), rotate_every_days=365,
                      last_rotated=d(2022, 1, 20), retire_by=None,
+                     retire_when="legacy reporting export is switched off",
                      systems=["svc-reporting"], scope=None,
                      revocation="delete the key record"),
     "cred-004": dict(kind="OAuth client secret", purpose="billing and invoicing",
                      owner="team-finance-platform", owner_kind="team",
                      last_used=d(2026, 9, 30), rotate_every_days=90,
                      last_rotated=d(2024, 11, 2), retire_by=None,
+                     retire_when="svc-billing is decommissioned",
                      systems=["svc-billing", "svc-invoices"],
                      scope="billing:read billing:write",
                      revocation="AS revocation endpoint"),
@@ -69,24 +73,28 @@ REGISTER = {
                      owner="team-loyalty", owner_kind="team",
                      last_used=d(2026, 9, 12), rotate_every_days=180,
                      last_rotated=d(2026, 6, 1), retire_by=d(2026, 3, 31),
+                     retire_when=None,
                      systems=["svc-loyalty-pilot"], scope="loyalty:read",
                      revocation="delete the key record"),
     "cred-006": dict(kind="service account key", purpose="nightly batch",
                      owner="team-platform", owner_kind="team",
                      last_used=d(2026, 9, 30), rotate_every_days=None,
                      last_rotated=d(2024, 5, 9), retire_by=None,
+                     retire_when=None,
                      systems=["svc-batch"], scope="batch:run",
                      revocation="AS revocation endpoint"),
     "cred-007": dict(kind="Ed25519 signing key", purpose="request signing, module 3",
                      owner="team-payments", owner_kind="team",
                      last_used=d(2026, 9, 30), rotate_every_days=365,
                      last_rotated=d(2026, 1, 12), retire_by=None,
+                     retire_when="svc-transfer is decommissioned",
                      systems=["svc-transfer"], scope="transfer:sign",
                      revocation="retire the keyid, publish the successor"),
     "cred-008": dict(kind="OAuth client secret", purpose="partner search feed",
                      owner="team-search", owner_kind="team",
                      last_used=d(2026, 9, 30), rotate_every_days=90,
-                     last_rotated=d(2026, 9, 1), retire_by=None,
+                     last_rotated=d(2026, 9, 1), retire_by=d(2027, 6, 30),
+                     retire_when=None,
                      systems=["svc-search"], scope="search:read",
                      revocation=None),
 }
@@ -97,6 +105,7 @@ DEPLOYED = {"cred-001", "cred-002", "cred-004", "cred-005", "cred-006",
             "cred-007", "cred-008", "cred-009"}
 
 RANK = {"Critical": 0, "High": 1, "Medium": 2}
+NO_RETIREMENT = "no retirement date or condition recorded"
 
 
 def findings(entry):
@@ -106,8 +115,6 @@ def findings(entry):
         out.append(("Critical", "no owner recorded"))
     elif entry["owner_kind"] == "person":
         out.append(("High", "owned by a person, not a team"))
-    # Only a date that has passed is flagged. A record with no retirement
-    # date at all is not: this lab has no rule for a missing one.
     if entry["retire_by"] and TODAY > entry["retire_by"]:
         out.append(("Critical", "past its retirement date and still live"))
     if entry["revocation"] is None:
@@ -117,6 +124,11 @@ def findings(entry):
     elif days_since(entry["last_rotated"]) > entry["rotate_every_days"]:
         out.append(("High", "rotation overdue by %d days"
                     % (days_since(entry["last_rotated"]) - entry["rotate_every_days"])))
+    # A record must say when the credential stops: a date (retire_by) or a
+    # named event (retire_when). This rule tests only that one is written
+    # down. It cannot judge whether the words name a real event.
+    if not entry["retire_by"] and not entry["retire_when"]:
+        out.append(("High", NO_RETIREMENT))
     if len(entry["systems"]) > 1:
         out.append(("Medium", "shared by %d systems" % len(entry["systems"])))
     if days_since(entry["last_used"]) > UNUSED_DAYS:
@@ -173,6 +185,9 @@ def main():
           worst(REGISTER, "cred-006"))
     check("cred-008 partner search feed", "High: no recorded way to revoke it",
           worst(REGISTER, "cred-008"))
+    check("no retirement date or condition recorded", "['cred-002', 'cred-006']",
+          str(sorted(k for k, v in REGISTER.items()
+                     if NO_RETIREMENT in [text for _, text in findings(v)])))
 
     print()
     print("Part B: reconcile the register against what is deployed.")
@@ -191,9 +206,12 @@ def main():
     fixed = {k: dict(v) for k, v in REGISTER.items()}
     deployed = set(DEPLOYED)
 
-    # Fix the record: ownership, the missing rotation interval and the revocation route.
-    fixed["cred-002"].update(owner="team-integrations", owner_kind="team")
-    fixed["cred-006"].update(rotate_every_days=180)
+    # Fix the record: ownership, the missing rotation interval, the missing
+    # retirement conditions and the revocation route.
+    fixed["cred-002"].update(owner="team-integrations", owner_kind="team",
+                             retire_when="ExampleHotels webhook integration ends")
+    fixed["cred-006"].update(rotate_every_days=180,
+                             retire_when="svc-batch is decommissioned")
     fixed["cred-008"].update(revocation="AS revocation endpoint")
     # Rotate what is overdue, and split the credential two systems shared.
     fixed["cred-002"].update(last_rotated=TODAY)
@@ -203,6 +221,7 @@ def main():
                              owner="team-platform", owner_kind="team",
                              last_used=TODAY, rotate_every_days=90,
                              last_rotated=TODAY, retire_by=None,
+                             retire_when="svc-ops is decommissioned",
                              systems=["svc-ops"], scope="ops:read",
                              revocation="delete the key record")
     # Withdraw: revoke in the system first, then remove the record.
