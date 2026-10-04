@@ -38,7 +38,7 @@
         "class": "lesson-status",
         "aria-label": "Lesson progress"
       },
-      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 20 of 27</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
+      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 20 of 28</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
     },
     {
       "tag": "span",
@@ -333,9 +333,9 @@
   "title": "Delegation and token exchange",
   "kicker": "Part 4: AI and agents &middot; Module 19",
   "reviewed": "2026-10-02",
-  "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 20 of 27</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
+  "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 20 of 28</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
   "lesson_number": 20,
-  "lesson_total": 27,
+  "lesson_total": 28,
   "module": 19,
   "intro_prose": [
     "<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can tell delegation from impersonation in a token, name the three parameters RFC 8693 requires and the four it leaves to you, enforce who is allowed to act for whom, and say what an exchange does not fix.</p>\n<p><strong>Before you start.</strong> Every module so far has assumed the caller is the party doing the work. An agent is not. It holds a token that came from somewhere else and it calls on behalf of a person who is nowhere in the request.</p>\n</div>"

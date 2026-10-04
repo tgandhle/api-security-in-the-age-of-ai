@@ -17,7 +17,7 @@
           "id": "overview",
           "aria-labelledby": "course-overview"
         },
-        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>New security engineers who can read Python and HTTP requests.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. Four labs also need the <code>cryptography</code> package. No account or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 27 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Examples of learning outcomes</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
+        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>New security engineers who can read Python and HTTP requests.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. Four labs also need the <code>cryptography</code> package. No account or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 28 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Examples of learning outcomes</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
       },
       {
         "tag": "h2",
@@ -42,6 +42,11 @@
         "id": "access-token",
         "term": "Access token",
         "definition": "A credential a client presents to a resource server for access the resource owner granted. In OAuth it carries authorization, not identity, and it is usually a bearer credential."
+      },
+      {
+        "id": "account-lockout",
+        "term": "Account lockout",
+        "definition": "Refusing every sign-in attempt on an account for a period after too many failed ones. It limits guessing, and it lets anyone who knows a username keep its owner out, so the lock should be temporary and the password reset should stay open."
       },
       {
         "id": "act-claim",
@@ -124,6 +129,11 @@
         "definition": "One approval covering a whole session or class of actions. Its worth is the number of an operation's fields it constrains, which is often zero, and then it records that somebody was present rather than controlling what happened."
       },
       {
+        "id": "blocklist",
+        "term": "Blocklist",
+        "definition": "A list of values a check refuses. For passwords, NIST SP 800-63B-4 section 3.1.1.2 describes \"a blocklist that contains known commonly used, expected, or compromised passwords\". The whole candidate password is compared with it when a password is set."
+      },
+      {
         "id": "bound-approval",
         "term": "Bound approval",
         "definition": "An approval carrying a signature over the parameters as the approver saw them, so the executor can confirm it is running the same thing rather than the same identifier. Approving an identifier approves whatever that identifier holds later."
@@ -202,6 +212,11 @@
         "id": "covered-components",
         "term": "Covered components",
         "definition": "The ordered list of message parts a signature is computed over. Anything not in the list is outside the signature and can be changed without invalidating it."
+      },
+      {
+        "id": "credential-stuffing",
+        "term": "Credential stuffing",
+        "definition": "Replaying username and password pairs taken from another site's breach, on the bet that people reuse passwords. A reused password is right on the first try, so limits on failed attempts slow the attack without stopping it."
       },
       {
         "id": "cryptoperiod",
@@ -374,6 +389,11 @@
         "definition": "Mutual TLS. Both client and server present certificates, so each proves its identity to the other when the connection opens."
       },
       {
+        "id": "multi-factor-authentication",
+        "term": "Multi-factor authentication",
+        "definition": "Signing in with evidence of at least two different kinds: something you know, something you have, something you are. A password and a PIN are the same kind twice, so they do not count."
+      },
+      {
         "id": "non-repudiation",
         "term": "Non-repudiation",
         "definition": "The property that a signer cannot plausibly deny having signed. An asymmetric signature gives a technical version of this, because the verifier could not have produced it, and it holds only as far as private key custody holds."
@@ -389,9 +409,19 @@
         "definition": "Comparing the authenticated caller with the owner recorded on the specific object a request names, after loading it. Its absence is OWASP API1:2023, Broken Object Level Authorization, or BOLA."
       },
       {
+        "id": "one-time-password",
+        "term": "One-time password",
+        "definition": "A short code that is accepted for one sign-in, computed from a secret shared with the server and either a counter (HOTP, RFC 4226) or the time (TOTP, RFC 6238). It shows the caller holds the device with the secret. It can still be phished."
+      },
+      {
         "id": "origin",
         "term": "Origin",
         "definition": "The scheme, host and port of a URL taken together, serialised with no path and no trailing slash, for example <code>https://app.example</code>. Two URLs are same-origin only when all three agree, so the same host over <code>http</code> is a different origin."
+      },
+      {
+        "id": "password-spraying",
+        "term": "Password spraying",
+        "definition": "Trying one common password against many accounts, then the next password, so that no single account collects enough failures to lock."
       },
       {
         "id": "pkce",
@@ -464,6 +494,11 @@
         "definition": "Resending a captured, valid request unchanged. The signature is still correct, so only freshness and nonce checks stop it."
       },
       {
+        "id": "reset-token",
+        "term": "Reset token",
+        "definition": "The secret a service sends to an address it already holds so the owner can set a new password. It works as a temporary password, so it has to be random, tied to one account, short-lived and usable once."
+      },
+      {
         "id": "resource-indicator",
         "term": "Resource indicator",
         "definition": "The <code>resource</code> request parameter, which names the service a token is being requested for so the authorization server can bind the token's audience to it. RFC 8707."
@@ -482,6 +517,11 @@
         "id": "revocation",
         "term": "Revocation",
         "definition": "Withdrawing a credential, or the grant behind a token, before it expires. A self-contained token does not change when this happens, so a resource server only notices if it consults current state."
+      },
+      {
+        "id": "salt",
+        "term": "Salt",
+        "definition": "A random value, different for every stored password, that is hashed together with the password and kept beside the result. Two users with the same password then have different stored hashes, and a table of precomputed hashes is useless."
       },
       {
         "id": "schema",
@@ -621,7 +661,7 @@
         "attrs": {
           "class": "meta"
         },
-        "html": "<p class=\"meta\">All 27 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written.</p>"
+        "html": "<p class=\"meta\">All 28 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written.</p>"
       },
       {
         "tag": "section",
@@ -664,6 +704,13 @@
           "aria-labelledby": "capstone"
         },
         "html": "<section aria-labelledby=\"capstone\">\n<h2 id=\"capstone\">Capstone</h2>\n<p class=\"prose\">The capstone is published. It is listed on the <a href=\"../index.html#path\">modules page</a>.</p>\n</section>"
+      },
+      {
+        "tag": "section",
+        "attrs": {
+          "aria-labelledby": "part-5"
+        },
+        "html": "<section aria-labelledby=\"part-5\">\n<h2 id=\"part-5\">Part 5: Hardening and operations</h2>\n<p class=\"prose\">The published modules of Part 5 are listed on the <a href=\"../index.html#path\">modules page</a>.</p>\n</section>"
       }
     ]
   }

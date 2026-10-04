@@ -1,5 +1,5 @@
 {
-  "total": 27,
+  "total": 28,
   "lessons": [
     {
       "slug": "security-foundations",
@@ -162,6 +162,12 @@
       "lesson_number": 27,
       "module": 26,
       "title": "Design review"
+    },
+    {
+      "slug": "authentication-endpoints",
+      "lesson_number": 28,
+      "module": 27,
+      "title": "Attacks on authentication endpoints"
     }
   ]
 }

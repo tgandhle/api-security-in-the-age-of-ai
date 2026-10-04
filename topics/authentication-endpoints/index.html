@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Attacks on authentication endpoints | API Security in the Age of AI</title>
+<link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/course.js" defer></script>
+</head>
+<body data-course-lesson="authentication-endpoints">
+<nav class="site-nav" aria-label="Site"><div><a class="home" href="../../index.html">API Security in the Age of AI</a><a href="../../index.html#course">Course</a><a href="../../index.html#path">Modules</a><a href="../../roadmap/index.html">Roadmap</a><a href="../../checklist/index.html">Checklist</a><a href="../../glossary/index.html">Glossary</a></div></nav>
+<main>
+<p class="kicker">Part 5: Hardening and operations &middot; Module 27</p>
+<h1>Attacks on authentication endpoints</h1>
+<p class="meta">Last reviewed 2026-10-04 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+
+<div class="prose">
+<p><strong>Objective.</strong> After this module you can name the attacks that target login, password reset and credential change endpoints, say which control stops each one and which it leaves open, and review a password reset flow for the faults that turn it into a way around the login.</p>
+<p><strong>Before you start.</strong> You should know what a <a href="../../glossary/index.html#hash">hash</a> is and what a <a href="../../glossary/index.html#rate-limit">rate limit</a> does. The <a href="../security-foundations/index.html">primer</a> covers the first and <a href="../rate-limiting-and-cost/index.html">module 15</a> (Rate limiting and cost controls) covers the second. Modules 1 to 8 covered <a href="../../glossary/index.html#api-key">API keys</a>, request signing, OAuth and tokens. This module covers what they left out: the endpoints where a person proves who they are with a password.</p>
+</div>
+<section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 28 of 28</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
+
+<span class="layer" id="learn">Learn</span>
+
+<h2>1. The attack</h2>
+<div class="prose">
+<p>Running example: ExampleHotels members sign in to their rewards account with an email address and a password. Company names are fictional. Three endpoints accept a claim about identity: login, password reset and the change of a sign-in address. OWASP lists the failures of all three as <strong>API2:2023 Broken Authentication</strong>, and its test for a vulnerable API starts from the point this module is built on: "Authentication endpoints and flows are assets that need to be protected."</p>
+<p>A second site, ExampleForum, is breached. Its list of email and password pairs circulates. Some ExampleHotels members used the same password on both sites. Nobody has broken into ExampleHotels, and its login endpoint is about to tell an attacker which of those pairs work.</p>
+<p>The guessing attacks come in three shapes. The OWASP Authentication Cheat Sheet defines them in one line each:</p>
+<ul>
+<li><strong>Brute force.</strong> "Testing multiple passwords from a dictionary or other source against a single account."</li>
+<li><strong><a href="../../glossary/index.html#credential-stuffing">Credential stuffing</a>.</strong> "Testing username/password pairs obtained from the breach of another site."</li>
+<li><strong><a href="../../glossary/index.html#password-spraying">Password spraying</a>.</strong> "Testing a single weak password against a large number of different accounts."</li>
+</ul>
+<p>Each one is shaped to get past a different limit, which is why the table needs more than one column. Every cell was measured by running the two services from the lab in section 7 with that column's controls switched on. The lab's own transcript prints a selection of them.</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>The attacker</th><th>No controls</th><th>Lock per account</th><th>Lock per account, limit per source</th><th>Plus a second factor on the account</th></tr></thead>
+<tbody>
+<tr><td>Tries 11 dictionary passwords on one account</td><td class="yes">Works on guess 8</td><td class="no">Blocked after 5</td><td class="no">Blocked after 5</td><td class="no">Blocked</td></tr>
+<tr><td>Sprays 3 passwords over 5 accounts from one address</td><td class="yes">Works</td><td class="yes">Works: no account ever locks</td><td class="no">Blocked after 10 failures</td><td class="no">Blocked</td></tr>
+<tr><td>Replays 20 breached pairs from one address</td><td class="yes">Works: 2 accounts</td><td class="yes">Works: 2 accounts</td><td class="yes">Works: 1 account, the other pair is never tested</td><td class="no">Blocked</td></tr>
+<tr><td>Replays the same 20 pairs, each from a different address</td><td class="yes">Works: 2 accounts</td><td class="yes">Works: 2 accounts</td><td class="yes">Works: 2 accounts</td><td class="no">Blocked</td></tr>
+<tr><td>Presents the right password and a current one-time code</td><td class="yes">Works</td><td class="yes">Works</td><td class="yes">Works</td><td class="yes">Works</td></tr>
+</tbody></table></div>
+<div class="prose">
+<p>The last row never turns green. The service cannot tell who is typing a correct password and a correct code, so a code phished from the user in real time (typed into a fake sign-in page and passed on at once) still signs the attacker in. Section 5 covers that limit.</p>
+<p>Guessing is half of the module. The other half needs no guess at all: an error message that says which addresses have accounts (<a href="../../glossary/index.html#enumeration">enumeration</a>), a <a href="../../glossary/index.html#reset-token">reset token</a> that can be predicted or used twice, and an email change that asks for nothing except a session. Part A of the lab runs all of them.</p>
+</div>
+
+<h2>2. Why it works</h2>
+<div class="prose">
+<p>OWASP's summary of the attacker's position is short: "The authentication mechanism is an easy target for attackers since it's exposed to everyone." A login endpoint cannot require <a href="../../glossary/index.html#authentication">authentication</a>, because it is where authentication happens. Six broken assumptions do the rest:</p>
+<ul>
+<li><strong>"Only the user knows the password."</strong> People reuse passwords, and other sites lose them. The OWASP Multifactor Authentication Cheat Sheet says to plan for it: "it should be assumed that users' passwords will be compromised at some point". A stuffed password is not a guess. It is right on the first attempt.</li>
+<li><strong>"A wrong guess costs the attacker something."</strong> Without a limit on failures it costs one request. The vulnerable service in the lab answers 11 dictionary guesses and gives up the account on the eighth.</li>
+<li><strong>"An error message only helps the user."</strong> "No such account" and "wrong password" together are a membership test for any email address. The same leak has two quieter forms: a different status code, and a different amount of work. A login that returns early for an unknown account skips the password hash, so it answers faster.</li>
+<li><strong>"We already have a rate limit."</strong> Module 15 limits what an identified caller may spend. A login attempt has no identified caller: the only names available are the account being claimed and the address the request came from, and the attacker chooses both. The thing to count is failed attempts, not requests: the first attack scenario in API2:2023 is a login limited to three requests a minute, which the attacker gets around by putting many login attempts into one batched request. And refusing has a victim, because locking an account also locks out its owner. OWASP asks for more than the general limit: "This mechanism should be stricter than the regular rate limiting mechanisms on your APIs."</li>
+<li><strong>"Password reset is a convenience feature."</strong> It is a second way to sign in, and OWASP says to treat it as one: "Credential recovery/forgot password endpoints should be treated as login endpoints in terms of brute force, rate limiting, and lockout protections." A reset token is a temporary password that the service chose. If it is a counter, anyone who has seen one token knows the next.</li>
+<li><strong>"A valid session means the user is present."</strong> A session identifier is a <a href="../../glossary/index.html#bearer-credential">bearer credential</a>. Whoever holds it can use it. If a session alone can change the sign-in address, then a stolen session becomes a stolen account, by way of the reset flow. That is the second attack scenario in API2:2023.</li>
+</ul>
+<p>API2:2023 also lists token faults: unsigned tokens, missing expiry checks, weak keys. <a href="../jwt-validation/index.html">Module 5</a> (JWT validation) covers those. It also says "API keys should not be used for user authentication", which is the boundary between this module and <a href="../api-keys/index.html">module 1</a> (API keys).</p>
+</div>
+
+<h2>3. The control</h2>
+<h3>At sign-in, in this order</h3>
+<ol class="steps prose">
+<li><strong>Check the limits before doing any work.</strong> Count recent failures for the submitted username and for the source address. If either is over its limit, answer <code>429</code> and stop. No password hash is computed for a refused attempt.</li>
+<li><strong>Verify the password with a slow, salted hash, every time.</strong> If the account does not exist, verify against a dummy record anyway, so an unknown account costs the same work as a known one. Compare with a <a href="../../glossary/index.html#constant-time-comparison">constant-time comparison</a>.</li>
+<li><strong>Check the second factor if the account has one.</strong> <a href="../../glossary/index.html#multi-factor-authentication">Multi-factor authentication</a> asks for evidence of a different kind, usually a <a href="../../glossary/index.html#one-time-password">one-time password</a> from a device the user holds. Accept each code once.</li>
+<li><strong>On any failure, give one answer.</strong> The same status, the same body and the same headers for an unknown account, a wrong password and a wrong code. Count the failure against the username and the source.</li>
+<li><strong>On success, clear the account's failure count and issue a new session.</strong> What happens to that session afterwards is the subject of module 28 (Browser sessions, cookies and CSRF).</li>
+</ol>
+<h3>Why two counters</h3>
+<div class="prose">
+<p>Each counter stops the attack the other one misses. A counter per account stops brute force, and the Authentication Cheat Sheet explains why it should not be per address: "The counter of failed logins should be associated with the account itself, rather than the source IP address", because an attacker can spread guesses over many addresses. A counter per account alone misses spraying, which is designed to touch each account only a few times. A counter per source catches that, as long as the spray comes from one place. Neither catches a list replayed from many addresses with one attempt per account. The Credential Stuffing Prevention Cheat Sheet says so about the tools that do this: "This may defeat both IP block-lists and rate limiting, as per IP request volume may remain relatively low, even on high volume attacks."</p>
+<p>That is why the same cheat sheet leads with a different control. It calls multi-factor authentication "by far the best defense against the majority of password-related attacks, including credential stuffing and password spraying", and says of the alternatives: "In isolation none of these are as effective as MFA".</p>
+</div>
+<h3>Lockout or delay</h3>
+<div class="prose">
+<p><a href="../../glossary/index.html#account-lockout">Account lockout</a> refuses every attempt on an account for a period after too many failures. It caps the guessing rate, and it hands the attacker a new tool: anyone who knows a username can keep its owner out. The Authentication Cheat Sheet warns that "care must be taken to prevent it from being used to cause a denial of service by locking out other users' accounts", and OWASP's A07:2025 entry puts both halves in one sentence: "Limit or increasingly delay failed login attempts but be careful not to create a denial of service scenario."</p>
+<p>The lab's answer is a lock that is short, grows with each further failure, and never exceeds a cap: 60 seconds after the fifth failure, doubling up to 15 minutes. Attempts made while the lock is active are refused without being counted, so hammering does not extend it. A correct sign-in clears the count. And the reset flow stays open to a locked account, which is the escape route the same cheat sheet suggests: "One way this could be performed is to allow the use of the forgotten password functionality to log in, even if the account is locked out."</p>
+</div>
+<h3>When a password is set</h3>
+<div class="prose">
+<p>Compare the whole candidate with a <a href="../../glossary/index.html#blocklist">blocklist</a> of common, expected and breached passwords, including the service's own name and the username. Enforce a minimum length. Do not add rules about character types. Then store it with a password hashing scheme: a function built to be slow, given a <a href="../../glossary/index.html#salt">salt</a> that is random and different for every user. A fast hash such as SHA-256 is the wrong tool here, because the attacker who steals the table can try guesses as fast as the hash runs.</p>
+</div>
+<h3>Password reset</h3>
+<ol class="steps prose">
+<li><strong>Request.</strong> Give the same answer whether or not the address has an account. Send the token to the address already on file, never to one supplied in the request. Limit how many messages one account can be sent.</li>
+<li><strong>Token.</strong> Random bytes from a cryptographic generator, long enough that guessing is hopeless. Store only its hash. Tie it to one account, give it a short life, and delete it when it is used.</li>
+<li><strong>Use.</strong> Check the token, the account it belongs to and its expiry. Limit failed attempts by source, not by account: the Forgot Password Cheat Sheet says "Accounts should not be locked out in response to a forgotten password attack, as this can be used to deny access to users with known usernames." Apply the same password rules as registration.</li>
+<li><strong>Afterwards.</strong> End the account's existing sessions, tell the user that the password changed, and make them sign in. Do not sign them in from the reset.</li>
+</ol>
+<h3>Sensitive changes</h3>
+<div class="prose">
+<p>Before changing the sign-in address, the password or the second factor, ask for the current password again, or the second factor. API2:2023 lists it under prevention: "Require re-authentication for sensitive operations". Then notify the old address, because that is the one the real owner still reads.</p>
+</div>
+
+<h3>Where each check sits</h3>
+<div class="diagram">
+<svg viewBox="0 0 1100 440" width="100%" style="min-width:900px" role="img">
+<title>The checks a sign-in attempt passes through, in order</title>
+<desc>A caller sends an email address, a password and an optional code. The attempt passes through three checks in a row: the throttle, the password check and the second factor check, and then a session is issued. Above each check is the stored state it reads: failure counters for the throttle, password records holding a salt and a hash for the password check, and code seeds for the second factor. Below the throttle is a refusal box for 429 Too Many Requests. Below the password and second factor checks is one shared refusal box for 401 with a single message. A band at the bottom says the reset endpoint is a second way to sign in and is held to the same rules.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+<text class="lab" x="20" y="24">One sign-in attempt, in the order the fixed service in the lab checks it</text>
+
+<g class="s"><rect x="240" y="40" width="200" height="56" rx="8"/><text class="th" x="340" y="62" text-anchor="middle">Failure counters</text><text class="ts" x="340" y="82" text-anchor="middle">Per username, per source</text></g>
+<g class="s"><rect x="490" y="40" width="200" height="56" rx="8"/><text class="th" x="590" y="62" text-anchor="middle">Password records</text><text class="ts" x="590" y="82" text-anchor="middle">A salt and a slow hash each</text></g>
+<g class="s"><rect x="740" y="40" width="180" height="56" rx="8"/><text class="th" x="830" y="62" text-anchor="middle">Code seeds</text><text class="ts" x="830" y="82" text-anchor="middle">And the last step used</text></g>
+
+<g class="p"><rect x="20" y="150" width="170" height="56" rx="8"/><text class="th" x="105" y="172" text-anchor="middle">Caller</text><text class="ts" x="105" y="192" text-anchor="middle">Email, password, code</text></g>
+<g class="h"><rect x="240" y="150" width="200" height="56" rx="8"/><text class="th" x="340" y="172" text-anchor="middle">1. Throttle</text><text class="ts" x="340" y="192" text-anchor="middle">Before any hash is computed</text></g>
+<g class="h"><rect x="490" y="150" width="200" height="56" rx="8"/><text class="th" x="590" y="172" text-anchor="middle">2. Password</text><text class="ts" x="590" y="192" text-anchor="middle">Hashed even if no account</text></g>
+<g class="h"><rect x="740" y="150" width="180" height="56" rx="8"/><text class="th" x="830" y="172" text-anchor="middle">3. Second factor</text><text class="ts" x="830" y="192" text-anchor="middle">Each code accepted once</text></g>
+<g class="g"><rect x="960" y="150" width="120" height="56" rx="8"/><text class="th" x="1020" y="172" text-anchor="middle">Session</text><text class="ts" x="1020" y="192" text-anchor="middle">Count cleared</text></g>
+<line class="arr" x1="190" y1="178" x2="236" y2="178" marker-end="url(#a)"/>
+<line class="arr" x1="440" y1="178" x2="486" y2="178" marker-end="url(#a)"/>
+<line class="arr" x1="690" y1="178" x2="736" y2="178" marker-end="url(#a)"/>
+<line class="arr" x1="920" y1="178" x2="956" y2="178" marker-end="url(#a)"/>
+<line class="leader" x1="340" y1="96" x2="340" y2="150"/>
+<line class="leader" x1="590" y1="96" x2="590" y2="150"/>
+<line class="leader" x1="830" y1="96" x2="830" y2="150"/>
+
+<g class="r"><rect x="240" y="260" width="200" height="56" rx="8"/><text class="th" x="340" y="282" text-anchor="middle">429 Too Many Requests</text><text class="ts" x="340" y="302" text-anchor="middle">With Retry-After</text></g>
+<g class="r"><rect x="490" y="260" width="430" height="56" rx="8"/><text class="th" x="705" y="282" text-anchor="middle">401, one message</text><text class="ts" x="705" y="302" text-anchor="middle">No account, wrong password and wrong code look the same</text></g>
+<line class="rej" x1="340" y1="206" x2="340" y2="256" marker-end="url(#a)"/>
+<line class="rej" x1="590" y1="206" x2="590" y2="256" marker-end="url(#a)"/>
+<line class="rej" x1="830" y1="206" x2="830" y2="256" marker-end="url(#a)"/>
+
+<g class="h"><rect x="20" y="360" width="1060" height="56" rx="8"/><text class="th" x="40" y="383">Password reset is a second way to sign in.</text><text class="ts" x="40" y="403">It gets the same single answer and the same limit per source, and a token that is random, tied to one account, short-lived and used once.</text></g>
+</svg>
+<div class="legend"><span class="lg-p">Caller</span><span class="lg-h">Checks</span><span class="lg-s">Stored state</span><span class="lg-r">Refusals</span></div>
+</div>
+<p class="prose meta">Every failure after step 1 is counted against the username and the source before the 401 is sent. That counting is what step 1 reads on the next attempt.</p>
+
+<h2>4. Defaults and when to change them</h2>
+<div class="wrap"><table>
+<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>
+<tbody>
+<tr><td>Failures before an account starts to lock</td><td>5 in a row</td><td>Raise it if real users are being locked. NIST SP 800-63B-4 section 3.2.2 sets an upper bound of 100 consecutive failures for the systems it covers and allows lower limits.</td></tr>
+<tr><td>Length of a lock</td><td>60 seconds, doubling to a cap of 15 minutes, never permanent</td><td>Use a permanent lock only where a staffed recovery route exists. NIST's own example of an increasing wait is "30 seconds up to an hour".</td></tr>
+<tr><td>Failures per source</td><td>10 in 10 minutes</td><td>Raise it where many users share one address, such as an office or a mobile carrier. Never rely on it alone.</td></tr>
+<tr><td>Failure response</td><td>One status, one message, the same work</td><td>A flow that must tell the user something specific, such as registration, needs another control. The Authentication Cheat Sheet suggests a CAPTCHA there (a puzzle meant to tell a person from a script).</td></tr>
+<tr><td>Second factor</td><td>Offered to every user, required for staff and administrators</td><td>Require it for everyone as soon as your users can manage it. The Multifactor Authentication Cheat Sheet's first quick recommendation is to require some form of it for all users.</td></tr>
+<tr><td>Password rules</td><td>At least 15 characters, with at least 64 allowed, a blocklist check, no character-type rules, no scheduled changes</td><td>8 characters is the NIST minimum when the password is only ever used together with a second factor.</td></tr>
+<tr><td>Password hash</td><td>Argon2id with at least 19 MiB of memory, 2 iterations and 1 degree of parallelism</td><td>The Password Storage Cheat Sheet gives the alternatives: scrypt with a cost parameter of at least 2^17, block size 8 and parallelization 1 when Argon2id is not available; PBKDF2 with HMAC-SHA-256 and 600,000 or more iterations when FIPS-140 compliance is required; bcrypt with a work factor of 10 or more only for legacy systems.</td></tr>
+<tr><td>Reset token</td><td>32 random bytes, valid for 15 minutes, used once</td><td>Lengthen the life only for a slow channel. NIST's limits for the systems it covers are 24 hours for a code sent by email and 10 minutes by text message or voice.</td></tr>
+<tr><td>One-time codes</td><td>Six digits, a 30 second step, the current step or the one before it</td><td>RFC 6238 recommends the 30 second step and at most one step of allowance. A wider window is a longer time in which a stolen code still works.</td></tr>
+</tbody></table></div>
+<div class="prose">
+<p><strong>The lab's hash settings are not a default.</strong> The lab uses PBKDF2 with <a href="../../glossary/index.html#hmac">HMAC</a>-SHA-256 and 1,000 iterations. That is a lab value, chosen so the lab finishes quickly, and it is 600 times lower than the cheat sheet's figure for PBKDF2. Python's <code>hashlib</code> has no Argon2id on the Python 3.13 and 3.14 builds the lab was run on. It has <code>hashlib.scrypt</code> and <code>hashlib.pbkdf2_hmac</code>, and the documentation for the second says: "Function only available when Python is compiled with OpenSSL." So the lab carries its own copy of PBKDF2, written with the <code>hmac</code> module, for a Python where the library function is missing, and check 50 compares the copy with the library function wherever both exist. The cheat sheet's rule of thumb for tuning is about the server, not the lab: "As a general rule, calculating a hash should take less than one second."</p>
+<p><strong>Reading NIST.</strong> SP 800-63B-4 is written for government systems, and several of its requirements name federal agencies: "This guideline focuses on the authentication of subjects who interact with government information systems". Where this page says NIST requires something, it means NIST requires it of the systems that guideline covers. For everyone else it is a well-argued reference, and most of the defaults above follow it.</p>
+</div>
+
+<h2>5. What it proves, and what it doesn't</h2>
+<div class="prose">
+<p><strong>Proves:</strong> that the caller presented the account's password, and, with a second factor, a code from the device enrolled on that account, at that moment.</p>
+<p><strong>Doesn't prove:</strong> that the caller is the account's owner. NIST says it of both pieces of evidence: "Passwords are not phishing-resistant." and "OTP authentication is not phishing-resistant." A fake sign-in page can collect the password and the code and use them within the same 30 seconds. That is the row that stays red in section 1. Authenticators that are tied to the real site's address, such as passkeys, are the answer to phishing, and they are outside this module.</p>
+<p><strong>Doesn't stop a reused password on an account with no second factor.</strong> Throttling counts failures. A breached password does not fail. Checks 28 and 29 in the lab show a stuffing run that is never throttled. Of the two members who reused a password, it opens the account of the one with no second factor. For those accounts the remaining controls are indirect: screening new passwords against breach lists, forcing a change when a password is known to be compromised, and noticing the pattern in the logs.</p>
+<p><strong>Doesn't protect the stored hashes.</strong> Throttling limits guesses made through the endpoint. An attacker holding a copy of the password table guesses on their own hardware with no limit at all, and the only things in the way are the salt and the cost of the hash.</p>
+<p><strong>Doesn't cover what happens after sign-in.</strong> A correct login produces a session. How that session is stored, sent and ended is module 28. What a signed-in user may do is Part 2 of the course.</p>
+<div class="callout warn"><strong>Lockout is not free.</strong> Check 52 in the lab is the cost: after five wrong guesses by someone else, the account's owner presents the right password and is refused. Every lockout design chooses how much of that to accept. A lock that is short and capped bounds each lock, not the attack: one more wrong guess when a lock ends starts the next one, so an attacker who keeps guessing keeps the owner out for as long as they keep going. The reset route, which stays open and clears the count, is what lets the owner back in (checks 57 and 58). A permanent lock hands anyone who knows a username a way to close the account.</div>
+</div>
+
+<h2>6. Prove it</h2>
+<div class="prose">
+<p>A working implementation must pass every one of these. If any fails, the control is broken:</p>
+<ul>
+<li>A wrong password for a real account and any password for an unknown account get the same status, body and headers, and take the same work.</li>
+<li>The reset request gives the same answer for a known and an unknown address.</li>
+<li>After the configured number of failures on one account, the next attempt is refused with <code>429</code>, even from a new address and even with the correct password.</li>
+<li>One source that fails across many accounts is refused, although no single account has locked.</li>
+<li>A batch of attempts in one request, or attempts through a second login route such as a mobile or legacy endpoint, hit the same counters.</li>
+<li>A lock ends by itself, a correct sign-in after it clears the count, and a locked user can still complete a password reset.</li>
+<li>A correct password without the second factor does not sign in, and the same code is refused the second time.</li>
+<li>A reset token is refused for another account, refused after one use, and refused after its lifetime.</li>
+<li>A thousand guesses at a reset token change nothing and do not lock the account.</li>
+<li>A common password, the service's name and a short password are refused when a password is set, with the reason.</li>
+<li>An email change with a valid session and no current password is refused, and the old address is told when a change succeeds.</li>
+<li>Two accounts with the same password have different stored hashes.</li>
+</ul>
+</div>
+
+<h2>7. Lab</h2>
+<div class="prose">
+<p>Download <a href="../../labs/auth_endpoints_lab.py"><code>labs/auth_endpoints_lab.py</code></a> and run it with Python 3. It needs no packages beyond the standard library. On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>. The login service is a Python object, the attacker is a loop, and time is a clock the lab moves by hand, so nothing opens a socket and the output is the same on every run. Three accounts are given passwords from the lab's list of common passwords on purpose, and one of those appears in a check label. Every other password, and every session identifier, salt, code seed and reset token of the fixed service, is random, generated when the lab starts and never printed. Source addresses come from the ranges RFC 5737 reserves for documentation.</p>
+</div>
+<pre><code>$ python3 labs/auth_endpoints_lab.py
+accounts use the reserved .example domain; no request leaves this process
+
+Part A: the vulnerable service. Every attack succeeds.
+ 1. credential stuffing, 20 breached pairs: accounts opened          ['ana', 'ben']
+ 2.   answers to those 20 attempts                                   2 x 200, 1 x 401, 17 x 404
+ 3. enumeration by login message: unknown, then wrong password       ['404 no such account', '401 wrong password']
+ 4. enumeration by reset: unknown, then known address                ['404 no account uses that address', '200 reset link sent']
+ 5. enumeration by work: hashes computed for unknown, known          [0, 1]
+ 6. brute force on dee, 11 guesses: the guess that worked            [8]
+ 7. password spraying, 3 passwords over 5 accounts: opened           ['fay']
+ 8. reset token guessed as the attacker's own plus one               200 password changed
+ 9.   the attacker then signs in as chen                             200
+10. reset token issued to mal, used on ana's account                 200 password changed
+11. the same token used a second time                                200 password changed
+12.   and again 30 days later                                        200 password changed
+13. email changed with a stolen session and no password              200 email changed
+14.   ben's account now opens for the attacker; ben gets             [200, '404 no such account']
+15. stored hashes of fay and gia, who share a password, are equal    True
+16. stolen table, one pass of 11 candidates: accounts cracked        ['dee', 'fay', 'gia']
+
+Part B: the fixed service. Throttling and uniform responses.
+17. brute force on dee, 11 guesses: answers                          5 x 401, 6 x 429
+18.   Retry-After on the first refusal, seconds                      60
+19.   password hashes computed for the 11 guesses                    5
+20. password spraying from one source: answers                       10 x 401, 5 x 429
+21.   accounts locked while it ran                                   0
+22. login answers: unknown, then wrong password                      ['401 invalid credentials', '401 invalid credentials']
+23. reset answers for unknown and known address are equal            True
+24. hashes computed for unknown, known                               [1, 1]
+25. six wrong guesses: unknown and known account answer alike        True
+
+Part C: what throttling does not stop.
+26. credential stuffing from one source: answers                     1 x 200, 10 x 401, 9 x 429
+27.   accounts opened                                                ['ana']
+28. the same list, each pair from a different source: answers        1 x 200, 19 x 401
+29.   accounts opened (ben has a second factor)                      ['ana']
+30.   messages waiting for ben                                       ['your password was right but the code was not']
+31. ben, with his password and the current code                      200
+32.   the same code presented again                                  401
+33. truncation of the example in RFC 4226 section 5.4                872921
+
+Part D: reset tokens.
+34. 1000 counter-style guesses at chen's token: answers              10 x 401, 990 x 429
+35. mal's own valid token, used on chen's account                    401 invalid or expired reset link
+36. chen's token, with a blocklisted new password                    400 password is on the blocklist of common or expected values
+37.   and with a short one                                           400 password is shorter than 15 characters
+38.   and with a long random one                                     200 password changed, sign in to continue
+39. the same token used a second time                                401 invalid or expired reset link
+40. chen's earlier session after the reset                           401 sign in first
+41. ana's token, 900 seconds after it was issued                     401 invalid or expired reset link
+42. ten reset requests for dee in a row: messages sent               3
+
+Part E: re-authentication and password storage.
+43. email change with a stolen session and no password               401 invalid credentials
+44.   with the session and the current password                      200 email changed
+45.   messages waiting at ben's old address                          ['your sign-in address was changed to ben@work.example']
+46. registering with Password1!                                      400 password is on the blocklist of common or expected values
+47. registering with the service's own name as the password          400 password is on the blocklist of common or expected values
+48. stored hashes of gia and hal, who share a password, are equal    False
+49. stolen table, the same one pass of 11 candidates: cracked        []
+50. pure-Python PBKDF2 equals hashlib.pbkdf2_hmac where that exists  True
+
+Part F: the legitimate user, and the cost of lockout.
+51. chen signs in with her own password                              200
+52. after five wrong guesses by someone else, chen gets              429 too many attempts
+53.   and once Retry-After has passed                                200
+54.   failures still counted against chen after that                 0
+55. one guess a second for an hour, 3600 sent: guesses tested        11
+56.   longest single lock, seconds                                   900
+57. chen, still locked out, resets her password                      200 password changed, sign in to continue
+58.   and signs in at once with the new one                          200
+
+all 58 lab checks passed</code></pre>
+<div class="prose">
+<p>Four results are worth a second look. Checks 20 and 21 are the spray: the per-source limit refuses it after ten failures, and not one account locked while it ran, which is what a counter per account alone would have reported. Checks 26 to 29 are the stuffing run. From one address the source limit cuts it off, but only after the first pair, which was correct, had already opened ana's account. From twenty addresses nothing is refused at all, and of the two accounts whose password was reused, the one that survives is the one with a second factor. Check 30 is the signal that run leaves behind: a message to ben that his password was right and the code was not, which tells him to change it.</p>
+<p>Check 34 sends a thousand guesses at a reset token. Ten are tested and 990 are refused. None of them is counted against chen's account, because the reset endpoint counts failures by source only, and in check 38 her real token still works. Check 55 measures what the lock is worth: an attacker who sends one guess a second for an hour gets 11 of 3,600 tested.</p>
+<p><strong>Try next:</strong></p>
+<ul>
+<li>Change <code>ACCOUNT_FAILURES</code> from 5 to 8 and run it again. Check 17 becomes <code>1 x 200, 10 x 401</code>: dee's password is the eighth guess in the list, and the account now allows eight. Five checks differ in all (17, 18, 19, 25 and 55) and the lab exits 1. A threshold only protects passwords that are not among the first few guesses, which is what the blocklist is for.</li>
+<li>In <code>FixedAuth._code_ok</code>, delete <code>step + offset &gt; user["last_step"] and</code> from the condition. Check 32 changes from 401 to 200, and nothing else changes. A code that can be used twice is a code an eavesdropper can use.</li>
+<li>In <code>FixedAuth.reset</code>, delete <code>entry["email"] != email or</code> from the condition. Check 35 changes to <code>200 password changed, sign in to continue</code>: a token issued to the attacker's own account now resets chen's password. No other check changes.</li>
+</ul>
+</div>
+
+<h2>8. Check your understanding</h2>
+<details><summary>Your login endpoint locks an account after five failures. Why does that not stop password spraying?</summary><p>Spraying tries one password on every account before moving to the next password, so each account sees one failure per round and never reaches five. The lab's spray is three passwords over five accounts, so no account can collect more than three failures, and none locks (check 21). A limit on failures per source stops a spray that comes from one address, and nothing based on counting stops one that comes from many.</p></details>
+<details><summary>A stuffing run from thousands of addresses tries one breached pair per account. Which controls on this page still do something?</summary><p>A second factor on the account, because the password alone no longer signs in. For accounts without one: the blocklist check when a password is set, a forced change once a password is known to be breached, and detection from the logs. The two counters do nothing, because nothing fails often enough from any one place or against any one account.</p></details>
+<details><summary>Both failure messages now read "invalid credentials". How could the endpoint still reveal which accounts exist?</summary><p>By status code, by headers, or by work. If the code returns early for an unknown account, it skips the slow hash and answers faster, and it may also skip the failure counters, so repeated attempts on a real account eventually get a 429 and attempts on an unknown one never do. The fixed service hashes against a dummy record and counts failures by the submitted username whether or not it exists.</p></details>
+<details><summary>An attacker has a member's session but not their password. What stops them taking the account for good?</summary><p>Re-authentication. Changing the sign-in address, the password or the second factor asks for the current password again, so the session alone is not enough. Without that check the attacker changes the address to their own, requests a reset, and owns the account. The notice sent to the old address is what tells the real owner if the check ever fails.</p></details>
+
+<section class="course-quiz" data-quiz data-quiz-id="authentication-endpoints-check" data-correct-feedback="Correct. Each attempt is a first attempt from a new address, so neither counter ever sees enough failures, and the correct password does not fail at all. Only a second factor makes the correct password insufficient." data-incorrect-feedback="Not quite. Count what each control sees: one attempt per account and one attempt per address. Nothing reaches a limit, and identical error messages do not affect an attempt that succeeds. The control that works is the one that makes a correct password not enough.">
+<p class="kicker">Quick check</p>
+<h2>One correct password among thousands</h2>
+<fieldset><legend>An attacker replays breached email and password pairs, one attempt per account, each from a different address. One of the passwords is correct. Which control stops that sign-in?</legend>
+<label><input type="radio" name="authn" value="account"> The lock after five failures on an account.</label>
+<label><input type="radio" name="authn" value="source"> The limit on failures from one source.</label>
+<label><input type="radio" name="authn" value="mfa" data-correct="true"> A second factor on the account.</label>
+<label><input type="radio" name="authn" value="uniform"> Identical error messages.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+</section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="authentication-endpoints-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/auth_endpoints_lab.py"><code>labs/auth_endpoints_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant, not a reading of the code. The lab compares every result with the one it expects, so each of these edits also makes it exit 1 and list what differed below the checks.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="authn-x1" data-covers="authn-02">
+<h3>1. Failures are counted per source only</h3>
+<div class="prose">
+<p>In <code>FixedAuth._failure</code>, the two lines <code>if account is None:</code> and <code>return</code> skip the account counter for reset attempts. Replace them with a bare <code>return</code>, so no failure is ever counted against an account:</p>
+</div>
+<pre><code>self.by_source.setdefault(source, []).append(self.clock.now)
+return</code></pre>
+<fieldset><legend>Check 55 sends one wrong guess a second for an hour, rotating through 250 source addresses. How many of the 3,600 guesses are tested now?</legend>
+<label><input type="radio" name="authn-x1" value="a"> 11, as before. The source limit does the same job.</label>
+<label><input type="radio" name="authn-x1" value="b"> 10. The source limit stops the run at its tenth failure.</label>
+<label><input type="radio" name="authn-x1" value="c" data-correct="true"> 3600. Every guess is tested.</label>
+<label><input type="radio" name="authn-x1" value="d"> 0. With no account counter the service refuses everything.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">No. The 11 came from the account lock, which is the thing this edit removes. The source limit counts failures per address, and the guesses arrive from 250 of them.</li>
+<li data-option="b">That is what happens to a run from one address, and check 20 still prints <code>10 x 401, 5 x 429</code>. This run rotates addresses, so each one fails once every 250 seconds and never has ten failures inside the 600 second window.</li>
+<li data-option="c">Correct. Check 55 prints 3600 and check 56 prints 0, because no lock is ever issued. Seven checks differ in all: 17, 18, 19, 25, 52, 55 and 56. Check 17 now reads <code>1 x 200, 10 x 401</code>, so the brute force on dee succeeds as well. This is why check <code>authn-02</code> in the <a href="#reference">Reference</a> layer asks for both counters.</li>
+<li data-option="d">No. Removing a counter removes refusals. Nothing is refused that was not refused before.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="authn-x2" data-covers="authn-03">
+<h3>2. The login returns early for an unknown account</h3>
+<div class="prose">
+<p>In <code>FixedAuth.login</code>, replace the line that verifies against the dummy record with a quick exit. The message for an unknown account is still the generic one:</p>
+</div>
+<pre><code>user = self.users.get(email)
+if user is None:
+    return self.FAILED
+ok = self._verify(user, password)</code></pre>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="authn-x2" value="a"> Check 22. The two login answers are no longer the same.</label>
+<label><input type="radio" name="authn-x2" value="b"> Check 24 only. The work differs and nothing else does.</label>
+<label><input type="radio" name="authn-x2" value="c" data-correct="true"> Checks 24, 25 and 26.</label>
+<label><input type="radio" name="authn-x2" value="d"> None. The response is identical, so the lab passes.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 22 does not change. Both answers still read <code>401 invalid credentials</code>, which is what makes this fault easy to miss in a review that only reads the messages.</li>
+<li data-option="b">Check 24 does change, from <code>[1, 1]</code> to <code>[0, 1]</code>: no hash is computed for the unknown account. But the early return also skips the line that counts the failure, and two more checks notice.</li>
+<li data-option="c">Correct. Check 24 becomes <code>[0, 1]</code>. Check 25 becomes <code>False</code>: six wrong guesses at a real account end in a 429 and six at an unknown one never do, which is an enumeration test that needs no stopwatch. Check 26 becomes <code>1 x 200, 19 x 401</code>: the stuffing run from one address is no longer throttled, because its failures on unknown accounts stopped counting against the source. Check <code>authn-03</code> in the <a href="#reference">Reference</a> layer asks for the same work as well as the same words for this reason.</li>
+<li data-option="d">The response is identical. The behaviour is not, and the lab exits 1 with three lines under the checks.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="authn-x3" data-covers="authn-05">
+<h3>3. A reset token is not deleted when it is used</h3>
+<div class="prose">
+<p>In <code>FixedAuth.reset</code>, delete the line <code>del self.reset_tokens[digest]</code>. The token keeps its expiry and stays tied to its account.</p>
+</div>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="authn-x3" value="a" data-correct="true"> Check 39 only.</label>
+<label><input type="radio" name="authn-x3" value="b"> Checks 35 and 39.</label>
+<label><input type="radio" name="authn-x3" value="c"> Checks 39 and 40.</label>
+<label><input type="radio" name="authn-x3" value="d"> Checks 39 and 41.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Correct. Check 39 changes from <code>401 invalid or expired reset link</code> to <code>200 password changed, sign in to continue</code>, and nothing else moves. Anyone who later finds the used link, in a mail archive or a proxy log, can set the password again until the token expires. Check <code>authn-05</code> in the <a href="#reference">Reference</a> layer lists single use next to expiry because neither replaces the other.</li>
+<li data-option="b">Check 35 still refuses. A token issued to mal is still tied to mal's account, and this edit does not touch that comparison.</li>
+<li data-option="c">Check 40 still prints <code>401 sign in first</code>. The first, legitimate reset ended chen's earlier session, and that happens whether or not the token is deleted.</li>
+<li data-option="d">Check 41 still refuses. Expiry is a separate test, and ana's token is 900 seconds old when it is presented.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="authn-x4" data-covers="authn-04">
+<h3>4. The cap on a lock is raised to a day</h3>
+<div class="prose">
+<p>Change <code>LOCK_CAP = 900</code> to <code>LOCK_CAP = 86400</code>. Locks still start at 60 seconds and double with each further failure.</p>
+</div>
+<fieldset><legend>Check 56 prints the longest single lock issued during the hour of guessing. What does it print now?</legend>
+<label><input type="radio" name="authn-x4" value="a"> 86400</label>
+<label><input type="radio" name="authn-x4" value="b"> 900</label>
+<label><input type="radio" name="authn-x4" value="c" data-correct="true"> 1920</label>
+<label><input type="radio" name="authn-x4" value="d"> 3600</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">The cap is a ceiling, not a value. Doubling from 60 seconds has to climb to it, and one hour is not long enough to get there.</li>
+<li data-option="b">900 was the old cap. With the cap out of the way the fifth lock is 960 seconds and the sixth is longer still.</li>
+<li data-option="c">Correct. The locks issued are 60, 120, 240, 480, 960 and 1920 seconds, and the last one runs past the end of the hour. Check 55 drops from 11 to 10 guesses tested. One fewer guess for the attacker costs the owner a lock of 32 minutes in place of 15, and the doubling would continue to a full day. Check <code>authn-04</code> in the <a href="#reference">Reference</a> layer asks for the bound to be chosen, because this is the trade.</li>
+<li data-option="d">The lab measures one hour, but no lock is defined by the length of the measurement.</li>
+</ul>
+</details>
+</article>
+</section>
+
+<p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
+<span class="layer" id="reference" style="margin-top:3rem">Reference</span>
+<h2 style="border-top:none;margin-top:.5rem">Controls</h2>
+<p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
+<ul class="controls">
+<li><span class="label std">Standard</span>OWASP API2:2023 Broken Authentication, an awareness document that sets no requirements, recommends treating credential recovery endpoints as login endpoints for brute force, rate limiting and lockout; re-authentication for sensitive operations; multi-factor authentication where possible; anti-brute-force mechanisms stricter than the regular rate limiting; account lockout or CAPTCHA; and weak-password checks. <a href="#source-api2">OWASP API2:2023</a>, How To Prevent.</li>
+<li><span class="label std">Standard</span>The OWASP Credential Stuffing Prevention Cheat Sheet calls multi-factor authentication "by far the best defense against the majority of password-related attacks, including credential stuffing and password spraying", and says blocking IP addresses "should not be used as the sole or primary defense". <a href="#source-stuffing">Credential Stuffing Prevention Cheat Sheet</a>, Multi-Factor Authentication and IP Mitigation and Intelligence.</li>
+<li><span class="label std">Standard</span>The OWASP Authentication Cheat Sheet, which is guidance and sets no requirements, says that for login, password reset and password recovery "an application must respond with a generic error message" whether the user ID or password was wrong, the account does not exist, or the account is locked or disabled, and warns that a different HTTP status code or processing time leaks the same thing. <a href="#source-authn">Authentication Cheat Sheet</a>, Authentication and Error Messages.</li>
+<li><span class="label std">Standard</span>The same cheat sheet recommends that the counter of failed logins be associated with the account and not the source IP address, and that a lockout design take care not to let an attacker deny service by locking other users' accounts. <a href="#source-authn">Authentication Cheat Sheet</a>, Account Lockout.</li>
+<li><span class="label std">Standard</span>For the systems it covers, NIST requires a verifier to limit consecutive failed attempts on one account to no more than 100, allows lower limits, allows a wait that grows as the account nears its limit, and recommends disregarding earlier failures after a successful authentication. <a href="#source-nist">NIST SP 800-63B-4</a> section 3.2.2.</li>
+<li><span class="label std">Standard</span>For the systems it covers, NIST requires a minimum of 15 characters for a password used as the only factor and 8 when it is only used with another factor, recommends allowing at least 64, forbids other composition rules and scheduled changes, and requires each new password to be compared in full with a blocklist of commonly used, expected or compromised values, with the reason given on rejection. <a href="#source-nist">NIST SP 800-63B-4</a> section 3.1.1.2.</li>
+<li><span class="label std">Standard</span>For the systems it covers, NIST requires stored passwords to be salted and hashed with a suitable password hashing scheme, with a salt of at least 32 bits, and recommends a cost factor as high as practical and a further keyed hash whose key is stored separately. <a href="#source-nist">NIST SP 800-63B-4</a> section 3.1.1.2.</li>
+<li><span class="label std">Standard</span>The OWASP Password Storage Cheat Sheet recommends Argon2id with a minimum of 19 MiB of memory, an iteration count of 2 and 1 degree of parallelism; scrypt with a cost parameter of at least 2^17, block size 8 and parallelization 1 if Argon2id is not available; bcrypt with a work factor of 10 or more for legacy systems; and PBKDF2 with HMAC-SHA-256 and 600,000 or more iterations if FIPS-140 compliance is required. <a href="#source-storage">Password Storage Cheat Sheet</a>, Introduction.</li>
+<li><span class="label std">Standard</span>The OWASP Forgot Password Cheat Sheet recommends a consistent message and a uniform response time for existing and non-existing accounts; tokens that are randomly generated with a cryptographically safe algorithm, long enough to resist brute force, stored securely, single use, expiring and linked to an individual user; no change to the account until a valid token is presented; and no account lockout in response to a forgotten password attack. <a href="#source-forgot">Forgot Password Cheat Sheet</a>, Introduction, General Security Practices and Account Lockout.</li>
+<li><span class="label std">Standard</span>For the systems it covers, NIST requires a recovery code that is issued to an address to be valid for at most 24 hours when sent by email and 10 minutes when sent by text message or voice, requires its verification to be throttled, and requires a notification to the subscriber whenever an account is recovered. <a href="#source-nist">NIST SP 800-63B-4</a> section 4.2.</li>
+<li><span class="label std">Standard</span>The 429 (Too Many Requests) status code "indicates that the user has sent too many requests in a given amount of time". The response may include a <code>Retry-After</code> header and must not be stored by a cache. A server is not required to use 429. <a href="#source-6585">RFC 6585</a> sections 4 and 7.2.</li>
+<li><span class="label std">Standard</span>A server that generates a 401 (Unauthorized) response must send a <code>WWW-Authenticate</code> header field with at least one challenge. <a href="#source-9110">RFC 9110</a> sections 15.5.2 and 11.6.1. The lab models status and message only.</li>
+<li><span class="label std">Standard</span>RFC 6238, an Informational RFC, recommends a default time step of 30 seconds and at most one time step of allowance for network delay, and says a verifier "MUST NOT accept the second attempt of the OTP after the successful validation has been issued for the first OTP". RFC 4226, also Informational, recommends throttling one-time password validation at the server. <a href="#source-6238">RFC 6238</a> section 5.2 and <a href="#source-4226">RFC 4226</a> section 7.3.</li>
+<li><span class="label base">Baseline</span>Count failed attempts both per submitted username and per source, and check both before any password hash is computed. Count attempts, not requests, so a batch of ten logins in one request is ten attempts.</li>
+<li><span class="label base">Baseline</span>Lock for a short period that grows with each further failure up to a fixed cap. Do not count attempts refused during a lock. Clear the count on a successful sign-in or reset.</li>
+<li><span class="label base">Baseline</span>For an unknown account, verify against a dummy record and count the failure, so the status, the body, the work and the eventual 429 are the same as for a real account.</li>
+<li><span class="label base">Baseline</span>Generate reset tokens with 32 bytes from a cryptographic generator, store only a hash, tie each to one account, expire it after 15 minutes, delete it on use, and let a new request replace the old token.</li>
+<li><span class="label base">Baseline</span>After a reset, end the account's sessions, notify the user and require a normal sign-in.</li>
+<li><span class="label base">Baseline</span>Require the current password or a second factor to change the sign-in address, the password or the second factor, and notify the previous address.</li>
+<li><span class="label base">Baseline</span>Log every failure, lockout and reset, and alert on the patterns: many accounts from one source, and many sources against one account. Module 30 (Logging, detection and response) covers what to do with them.</li>
+<li><span class="label opt">Option</span>Require a CAPTCHA after a few failures. The Authentication Cheat Sheet treats it as defence in depth that makes guessing slower and more expensive, not as prevention.</li>
+<li><span class="label opt">Option</span>Ask for the second factor only when a sign-in looks unusual: a new device, an unusual location, an address that has tried several accounts.</li>
+<li><span class="label opt">Option</span>Offer phishing-resistant authenticators such as passkeys. For the systems it covers, NIST requires a verifier to offer at least one phishing-resistant option at authentication assurance level 2 (section 2.2.2).</li>
+<li><span class="label opt">Option</span>Do not build it. OWASP A07:2025 suggests using a premade, well-trusted system for authentication, identity and session management where possible. The checklist below then becomes the list of questions to ask about that system.</li>
+</ul>
+
+<h2>Review checklist items</h2>
+<p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
+<ul class="checks">
+<li data-check="authn-01" data-severity="Critical"><strong>A second factor is available to every user and required for privileged accounts</strong> <span>A correct password alone does not sign in to an account that has one, each code is accepted once, and every login route enforces it, including mobile and legacy endpoints.</span></li>
+<li data-check="authn-02" data-severity="Critical"><strong>Failed sign-in attempts are limited per account and per source</strong> <span>Both counters exist, both are checked before any password hash is computed, the limit is stricter than the general API rate limit, and a batch of attempts in one request counts as that many attempts.</span></li>
+<li data-check="authn-03" data-severity="High"><strong>Login, reset and registration answer the same for known and unknown accounts</strong> <span>The status, body, headers and work are the same, and an unknown username reaches the 429 after the same number of failures as a real one.</span></li>
+<li data-check="authn-04" data-severity="High"><strong>Lockout is temporary and bounded, and refused attempts do not extend it</strong> <span>The longest lock is a chosen value, attempts refused during a lock are not counted, a correct sign-in clears the count, and a locked user can still reset the password.</span></li>
+<li data-check="authn-05" data-severity="Critical"><strong>Reset tokens are random, single use, short-lived and bound to one account</strong> <span>They come from a cryptographic generator, only a hash is stored, failed attempts are limited by source without locking the account, and a successful reset ends existing sessions and notifies the user.</span></li>
+<li data-check="authn-06" data-severity="Critical"><strong>Changing the sign-in address, password or second factor requires re-authentication</strong> <span>A valid session alone is refused, the current password or second factor is checked, and the previous address is notified of the change.</span></li>
+<li data-check="authn-07" data-severity="Critical"><strong>Passwords are stored with a salted password hashing scheme at published parameters</strong> <span>Argon2id, scrypt or PBKDF2 at the settings the Password Storage Cheat Sheet gives, a random salt per user, and no fast or unsalted hash anywhere, including old accounts.</span></li>
+<li data-check="authn-08" data-severity="High"><strong>New passwords are checked against a blocklist and a minimum length</strong> <span>The whole password is compared with common, breached and service-specific values, the reason for a refusal is shown, and there are no character-type rules or scheduled changes.</span></li>
+<li data-check="authn-09" data-severity="Medium"><strong>Authentication failures, lockouts and resets are logged and alerted on</strong> <span>The alerts cover one source failing across many accounts and many sources failing against one account, and a user is told when their password was right and the second factor was not.</span></li>
+<li data-check="authn-10" data-severity="Medium"><strong>Every way to sign in is inventoried and held to the same controls</strong> <span>Web, mobile, partner and legacy login routes and every recovery route share the counters, the responses and the second factor.</span></li>
+</ul>
+
+<h2>Sources</h2>
+<ul class="prose">
+<li id="source-api2"><a href="https://api-security.owasp.org/editions/2023/en/0xa2-broken-authentication/">OWASP API Security Top 10 2023, API2:2023 Broken Authentication</a>. The risk table, Is the API Vulnerable, both attack scenarios and How To Prevent. An awareness document: it sets no requirements.</li>
+<li id="source-a07"><a href="https://top10.owasp.org/2025/A07_2025-Authentication_Failures/">OWASP Top 10:2025, A07:2025 Authentication Failures</a>. Description and How to prevent. An awareness document: it sets no requirements.</li>
+<li id="source-authn"><a href="https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html">OWASP Cheat Sheet Series, Authentication Cheat Sheet</a>, read 4 October 2026. Authentication and Error Messages, Protect Against Automated Attacks, Account Lockout, CAPTCHA, Require Re-authentication for Sensitive Features.</li>
+<li id="source-stuffing"><a href="https://cheatsheetseries.owasp.org/cheatsheets/Credential_Stuffing_Prevention_Cheat_Sheet.html">OWASP Cheat Sheet Series, Credential Stuffing Prevention Cheat Sheet</a>, read 4 October 2026. Multi-Factor Authentication, Alternative Defenses, IP Mitigation and Intelligence, Notify users about unusual security events.</li>
+<li id="source-forgot"><a href="https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html">OWASP Cheat Sheet Series, Forgot Password Cheat Sheet</a>, read 4 October 2026. Introduction, Forgot Password Request, User Resets Password, General Security Practices, Account Lockout.</li>
+<li id="source-mfa"><a href="https://cheatsheetseries.owasp.org/cheatsheets/Multifactor_Authentication_Cheat_Sheet.html">OWASP Cheat Sheet Series, Multifactor Authentication Cheat Sheet</a>, read 4 October 2026. Introduction, Advantages, Quick Recommendations, Changing MFA Factors.</li>
+<li id="source-storage"><a href="https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html">OWASP Cheat Sheet Series, Password Storage Cheat Sheet</a>, read 4 October 2026. Introduction, Salting, Using Work Factors, Password Hashing Algorithms.</li>
+<li id="source-nist"><a href="https://pages.nist.gov/800-63-4/sp800-63b.html">NIST SP 800-63B-4</a>, HTML edition, page dated 26 August 2025. Written for government information systems, as its abstract says. Every section cited here is one the document marks as normative: 2.2.2 for assurance level 2, 3.1.1 for passwords, 3.1.4 for one-time passwords, 3.2.2 for rate limiting, 4.2 for account recovery.</li>
+<li id="source-6585"><a href="https://www.rfc-editor.org/rfc/rfc6585">RFC 6585: Additional HTTP Status Codes</a>, April 2012. Section 4, 429 Too Many Requests, and section 7.2, its security considerations.</li>
+<li id="source-9110"><a href="https://www.rfc-editor.org/rfc/rfc9110">RFC 9110: HTTP Semantics</a>, June 2022. Sections 15.5.2 and 11.6.1 for 401 and <code>WWW-Authenticate</code>, and 10.2.3 for <code>Retry-After</code>.</li>
+<li id="source-6238"><a href="https://www.rfc-editor.org/rfc/rfc6238">RFC 6238: TOTP: Time-Based One-Time Password Algorithm</a>, May 2011. Informational. Sections 4.2 and 5.2.</li>
+<li id="source-4226"><a href="https://www.rfc-editor.org/rfc/rfc4226">RFC 4226: HOTP: An HMAC-Based One-Time Password Algorithm</a>, December 2005. Informational. Section 5.3 for truncation, 5.4 for the worked example the lab checks itself against, and 7.3 for throttling.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc5737">RFC 5737: IPv4 Address Blocks Reserved for Documentation</a>, January 2010. Informational. Why the lab's source addresses are in documentation ranges.</li>
+<li><a href="https://docs.python.org/3.14/library/hashlib.html">Python 3.14 documentation: hashlib module</a>, read 4 October 2026. <code>pbkdf2_hmac</code> and <code>scrypt</code>.</li>
+<li><a href="https://docs.python.org/3.14/library/secrets.html">Python 3.14 documentation: secrets module</a>, read 4 October 2026. Token generation for password resets, and <code>compare_digest</code>.</li>
+</ul>
+</main>
+<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
+</body>
+</html>

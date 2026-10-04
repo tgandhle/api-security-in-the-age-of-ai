@@ -38,7 +38,7 @@
         "class": "lesson-status",
         "aria-label": "Lesson progress"
       },
-      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 18 of 27</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
+      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 18 of 28</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
     },
     {
       "tag": "span",
@@ -304,9 +304,9 @@
   "title": "CORS",
   "kicker": "Part 3: Edges and boundaries &middot; Module 17",
   "reviewed": "2026-10-02",
-  "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 18 of 27</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
+  "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 18 of 28</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
   "lesson_number": 18,
-  "lesson_total": 27,
+  "lesson_total": 28,
   "module": 17,
   "intro_prose": [
     "<div class=\"prose\">\n<p><strong>Objective.</strong> Explain what a successful CORS check does and does not establish, find the two configurations that hand a response to any site, and test a preflight that refuses what it should.</p>\n<p><strong>Before you start.</strong> You should be able to read an HTTP request and a Python function. An <a href=\"../../glossary/index.html#origin\">origin</a> is the scheme, host and port of a URL taken together. <a href=\"../../glossary/index.html#cors\">CORS</a> is the mechanism by which a server tells a browser that a response may be handed to a page from another origin. It is enforced by the browser, not by the server.</p>\n</div>"
