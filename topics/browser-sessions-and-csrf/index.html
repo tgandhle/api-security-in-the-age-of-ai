@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browser sessions, cookies and CSRF | API Security in the Age of AI</title>
+<link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/course.js" defer></script>
+</head>
+<body data-course-lesson="browser-sessions-and-csrf">
+<nav class="site-nav" aria-label="Site"><div><a class="home" href="../../index.html">API Security in the Age of AI</a><a href="../../index.html#course">Course</a><a href="../../index.html#path">Modules</a><a href="../../roadmap/index.html">Roadmap</a><a href="../../checklist/index.html">Checklist</a><a href="../../glossary/index.html">Glossary</a></div></nav>
+<main>
+<p class="kicker">Part 5: Hardening and operations &middot; Module 28</p>
+<h1>Browser sessions, cookies and CSRF</h1>
+<p class="meta">Last reviewed 2026-10-04 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<div class="prose">
+<p><strong>Objective.</strong> After this module you can explain how a cookie session works, show why a browser will send a request the user never asked for, say what each cookie attribute and each anti-forgery control stops, and review a session's whole life from login to logout.</p>
+<p><strong>Before you start.</strong> You should be able to read an HTTP request and a Python function, and you should know what an <a href="../../glossary/index.html#origin">origin</a> is. Module 17, <a href="../cors/index.html">CORS</a>, covers who may <em>read</em> a response from another origin. This module covers requests that are <em>sent</em> and take effect whether or not anyone can read the response. The two fit together, and this page does not repeat that one.</p>
+</div>
+<section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 29 of 29</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
+<span class="layer" id="learn">Learn</span>
+<h2>1. The attack</h2>
+<div class="prose">
+<p>ExampleAir's members manage their miles at <code>app.exampleair.example</code>. The page and its API share that origin. When a member logs in, the server creates a session and sends the browser a cookie that holds a <a href="../../glossary/index.html#session-identifier">session identifier</a>. From then on the browser attaches that cookie to every request it sends to that host, and the API treats the cookie as proof of who is asking. The company and the people are fictional.</p>
+<p>Maya is logged in. In another tab she opens a page on <code>evil.example</code>. That page contains a hidden form whose target is <code>https://app.exampleair.example/api/transfer</code>, and a script that submits it. Maya's browser sends the POST and attaches her session cookie, because the cookie belongs to the host the request is going to. In this first version the cookie is set with <code>SameSite=None</code>, an attribute section 3 explains, so the browser attaches it whichever site caused the request. The API sees a valid session and moves 10,000 miles to the attacker. This is <a href="../../glossary/index.html#csrf">cross-site request forgery</a> (CSRF): the attacker never sees the cookie and never needs to.</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>The attacker tries</th><th>Cookie is <code>SameSite=None</code>, no other defence</th><th><code>SameSite=Lax</code></th><th><code>SameSite=Strict</code></th><th><code>Strict</code>, a CSRF token, and no GET that changes state</th></tr></thead>
+<tbody>
+<tr><td>A hidden form on <code>evil.example</code> that posts a transfer</td><td class="yes">Works</td><td class="no">Blocked</td><td class="no">Blocked</td><td class="no">Blocked</td></tr>
+<tr><td>An image tag on <code>evil.example</code> whose URL is a transfer</td><td class="yes">Works</td><td class="no">Blocked</td><td class="no">Blocked</td><td class="no">Blocked</td></tr>
+<tr><td>A link on <code>evil.example</code> to a GET route that transfers</td><td class="yes">Works</td><td class="yes">Works</td><td class="no">Blocked</td><td class="no">Blocked</td></tr>
+<tr><td>A hidden form on <code>promo.exampleair.example</code>, a sibling subdomain the attacker controls</td><td class="yes">Works</td><td class="yes">Works</td><td class="yes">Works</td><td class="no">Blocked</td></tr>
+<tr><td>A script injected into the app's own page</td><td class="yes">Works</td><td class="yes">Works</td><td class="yes">Works</td><td class="yes">Works</td></tr>
+</tbody></table></div>
+<p class="prose">Every cell is measured with the lab in section 7. The last row never turns green. A script running inside your own origin is your page as far as the browser and the server can tell, and section 5 covers it.</p>
+<h2>2. Why it works</h2>
+<div class="prose">
+<p>A <a href="../../glossary/index.html#bearer-credential">bearer credential</a> in a header is attached by code that chose to attach it. A cookie is attached by the browser, by rule. The cookie specification names the problem: "user agents attach cookies even if the remote party does not know the contents of the cookies", and "the issue stems from cookies being a form of ambient authority" (RFC 6265 section 8.2, and the same words in section 8.2 of the <a href="#source-6265bis">rfc6265bis draft</a>). The attacker chooses the request. The browser supplies the <a href="../../glossary/index.html#authentication">authentication</a>. That is a <a href="../../glossary/index.html#confused-deputy">confused deputy</a>, and here the deputy is the browser.</p>
+<p>Five assumptions keep this bug alive:</p>
+<ul>
+<li><strong>"A request with our session cookie came from our page."</strong> It came from the user's browser. Any page open in that browser can cause it.</li>
+<li><strong>"The attacker cannot read the response, so nothing happened."</strong> <a href="../../glossary/index.html#cors">CORS</a> decides who may read. The transfer happens when the server processes the request. Module 17 shows the same row from the other side.</li>
+<li><strong>"Our API only accepts JSON."</strong> Under the <a href="#source-fetch">Fetch Standard</a> a browser sends a <a href="../../glossary/index.html#preflight">preflight</a> for "requests that are more involved than what is possible with HTML's form element". That sentence is in section 3.3.1. A POST whose <code>Content-Type</code> is <code>application/x-www-form-urlencoded</code>, <code>multipart/form-data</code> or <code>text/plain</code> is not one of those (sections 2.2.1, 2.2.2 and 4.1). A script can put JSON text in a <code>text/plain</code> body. A note in section 2.2.2 of the standard, written about a request that carries <code>Content-Type</code> twice, names the same danger: such a request would go out with no preflight, and "a na&iuml;ve parser on the server might treat the request body as JSON". The claim is true only if the server refuses every other content type.</li>
+<li><strong>"GET is harmless."</strong> Only if no GET changes anything. A link, an image tag and a redirect all send GET.</li>
+<li><strong>"Our subdomains are us."</strong> Same-origin means the scheme, host and port all match. Same-site is wider: the scheme and the registrable domain match, where the draft defines the registrable domain as the public suffix plus the label to its left, and a public suffix as the part of a domain that a public registry controls (section 2.3). Here the public suffix is <code>example</code> and the registrable domain is <code>exampleair.example</code>. <code>app.exampleair.example</code> and <code>promo.exampleair.example</code> are two origins and one <a href="../../glossary/index.html#site">site</a>. A forgotten marketing host, a host that serves customer content, or a subdomain an attacker has taken over is inside that boundary, and RFC 10017 section 6.1.3.3.1 names the result: a takeover of one subdomain enables CSRF against its sibling.</li>
+</ul>
+</div>
+<h2>3. The control</h2>
+<div class="prose">
+<p>No single item below is enough. Apply them in this order, because each one covers a gap the one before it leaves.</p>
+</div>
+<h3>What the cookie says</h3>
+<pre><code>Set-Cookie: __Host-sid=&lt;session id&gt;; Path=/; Secure; HttpOnly; SameSite=Strict
+
+__Host-          name prefix: the browser stores it only with Secure, Path=/ and no Domain
+&lt;session id&gt;     random, meaningless, looked up on the server
+Path=/           sent for every path on this host
+Secure           sent only over HTTPS
+HttpOnly         hidden from scripts (document.cookie)
+SameSite=Strict  withheld from requests another site caused
+(no Domain)      sent to this host only, not to its subdomains</code></pre>
+<div class="prose">
+<p class="meta">The right-hand notes are for this page only. <code>Secure</code>, <code>HttpOnly</code>, <code>Path</code> and <code>Domain</code> are defined in RFC 6265. <code>SameSite</code> and the <code>__Host-</code> and <code>__Secure-</code> prefixes are not in RFC 6265. They are defined in <a href="#source-6265bis">draft-ietf-httpbis-rfc6265bis-22</a>, an Internet-Draft that has not been published as an RFC. The CSRF Prevention Cheat Sheet reports that current browsers support both, but the document that defines them can still change.</p>
+</div>
+<h3>What the server does, in order</h3>
+<ol class="steps prose">
+<li><strong>Make sure no <a href="../../glossary/index.html#safe-method">safe method</a> changes state.</strong> GET, HEAD, OPTIONS and TRACE are the safe methods. RFC 9110 section 9.2.1 says that when a URL selects an unsafe action, "the resource owner MUST disable or disallow that action when it is accessed using a safe request method". Every later control assumes this one.</li>
+<li><strong>Set <a href="../../glossary/index.html#samesite"><code>SameSite</code></a> explicitly.</strong> <code>Strict</code>: the cookie goes only with same-site requests. <code>Lax</code>: also with a top-level navigation from another site, if the method is safe. A top-level navigation is a request that loads a new page into the tab, as a followed link or a submitted form does. <code>None</code>: with every request, and the browser accepts it only with <code>Secure</code>. With no attribute, the draft applies a default equal to <code>Lax</code>, and it allows a looser mode for recently created cookies, so do not rely on the default.</li>
+<li><strong>Require a CSRF token on every state-changing request.</strong> With a <a href="../../glossary/index.html#synchronizer-token">synchronizer token</a>, the server keeps a random value in the session, the page receives it in a response body, and the page sends it back in a custom header or a form field. With a <a href="../../glossary/index.html#double-submit-cookie">double-submit cookie</a>, the server keeps nothing: the token is an <a href="../../glossary/index.html#hmac">HMAC</a> over the session identifier and a random value, delivered in a cookie the page can read and sent back in a header. Compare with a <a href="../../glossary/index.html#constant-time-comparison">constant-time comparison</a>. Never put the token in a URL.</li>
+<li><strong>Check where the request came from.</strong> Read <code>Sec-Fetch-Site</code>. Refuse <code>cross-site</code> on unsafe methods, and refuse <code>same-site</code> too unless you trust every host under your site. If the header is absent, compare <code>Origin</code> with your own origin, exactly, and refuse if it is absent or different.</li>
+<li><strong>Refuse content types you do not parse.</strong> A JSON API answers <code>415</code> to anything that is not <code>application/json</code>, and never guesses the format from the body.</li>
+<li><strong>Issue a new session identifier at login.</strong> Destroy the one from before login. Accept a session identifier from the cookie only, never from a URL. This stops <a href="../../glossary/index.html#session-fixation">session fixation</a>.</li>
+<li><strong>End sessions on the server.</strong> Apply an idle timeout and an absolute timeout, and delete the session record on logout. Clearing the cookie is not enough.</li>
+</ol>
+<h3>Where each defence acts</h3>
+<div class="diagram">
+<svg viewBox="0 0 1100 430" width="100%" style="min-width:900px" role="img">
+<title>Where each defence acts on a forged request</title>
+<desc>An attacker page, the member's browser and the API are shown as three vertical lanes. The attacker page submits a hidden form. The browser decides whether to attach the session cookie, which is where SameSite acts, and adds Origin and Sec-Fetch-Site headers. The request reaches the API, which checks the session, Sec-Fetch-Site or Origin, and the CSRF token before it acts. The API answers, and the browser withholds the answer from the attacker page. A note records that the browser can stop the forgery at step two and the server at step four, and that withholding the answer at step six does not undo the transfer.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+<text class="lab" x="20" y="24">The attacker writes the request. The browser adds the cookie. Only two steps can refuse it.</text>
+
+<g class="r"><rect x="20" y="40" width="200" height="50" rx="8"/><text class="th" x="120" y="62" text-anchor="middle">Attacker page</text><text class="ts" x="120" y="80" text-anchor="middle">evil.example</text></g>
+<g class="p"><rect x="420" y="40" width="200" height="50" rx="8"/><text class="th" x="520" y="62" text-anchor="middle">Maya's browser</text><text class="ts" x="520" y="80" text-anchor="middle">holds the session cookie</text></g>
+<g class="s"><rect x="820" y="40" width="200" height="50" rx="8"/><text class="th" x="920" y="62" text-anchor="middle">API</text><text class="ts" x="920" y="80" text-anchor="middle">app.exampleair.example</text></g>
+
+<line class="leader" x1="120" y1="90" x2="120" y2="350"/>
+<line class="leader" x1="520" y1="90" x2="520" y2="350"/>
+<line class="leader" x1="920" y1="90" x2="920" y2="350"/>
+
+<line class="arr" x1="120" y1="122" x2="516" y2="122" marker-end="url(#a)"/>
+<text class="ts" fill="var(--muted)" x="128" y="114">1. hidden form: POST /api/transfer</text>
+
+<g class="r"><rect x="365" y="140" width="310" height="30" rx="8"/><text class="ts" x="520" y="160" text-anchor="middle">2. attach the cookie? SameSite decides here</text></g>
+
+<line class="arr" x1="520" y1="204" x2="916" y2="204" marker-end="url(#a)"/>
+<text class="ts" fill="var(--muted)" x="528" y="196">3. POST, Cookie, Origin, Sec-Fetch-Site: cross-site</text>
+
+<g class="r"><rect x="745" y="220" width="350" height="30" rx="8"/><text class="ts" x="920" y="240" text-anchor="middle">4. session, Sec-Fetch-Site or Origin, token: then act</text></g>
+
+<line class="arr" x1="920" y1="282" x2="524" y2="282" marker-end="url(#a)"/>
+<text class="ts" fill="var(--muted)" x="528" y="274">5. 200 or 403</text>
+
+<line class="arr" x1="520" y1="322" x2="124" y2="322" marker-end="url(#a)"/>
+<text class="ts" fill="var(--muted)" x="128" y="314">6. answer withheld from the page (module 17)</text>
+
+<g class="h"><rect x="20" y="360" width="1060" height="56" rx="8"/><text class="th" x="40" y="383">Step 6 is not a defence.</text><text class="ts" x="40" y="403">The browser can refuse at step 2 and the server at step 4. If both let the request through, the transfer has happened before step 6 hides the answer.</text></g>
+</svg>
+<div class="legend"><span class="lg-r">Attacker page, and the two steps that can refuse</span><span class="lg-p">Browser</span><span class="lg-s">Server</span><span class="lg-h">Already happened</span></div>
+</div>
+<h3>If the page holds a token instead of a cookie</h3>
+<div class="prose">
+<p>A single-page app can send an <a href="../../glossary/index.html#access-token">access token</a> in an <code>Authorization</code> header instead of using a cookie. The browser does not attach that header by itself, so a form on another site sends no credential and classic CSRF does not apply. A script on another site that tries to set <code>Authorization</code> triggers a preflight, and it does not know the token anyway.</p>
+<p>The cost is where the token lives. The page's script must be able to read it, so any script that runs in the page's origin can read it too. RFC 10017, the best current practice for OAuth in browser apps, says that "localStorage does not protect against unauthorized access from malicious JavaScript" (section 8.5), and that none of the persistent storage APIs it lists can fully stop token theft once an attacker runs code in the app.</p>
+<p>RFC 10017 ranks three designs "in decreasing order of security" (section 6). The first is the backend for frontend (BFF): a server component that belongs to the app, runs the OAuth flow, keeps the tokens, and gives the browser only a session cookie. The browser calls the BFF, and the BFF adds the access token and forwards the call. RFC 10017 strongly recommends this design for business applications, sensitive applications and applications that handle personal data (section 6.1.4.3), and does not recommend a browser-only OAuth client for those (section 6.3.4.3). A BFF is a cookie session again, so everything in this module applies to it: "The BFF MUST implement a proper CSRF defense" (section 6.1.3.3). Module 4, <a href="../oauth-basics/index.html">OAuth basics</a>, covers the flow, and module 7, <a href="../sender-constrained-tokens/index.html">Sender-constrained tokens: mTLS and DPoP</a>, covers what a stolen token can still do.</p>
+</div>
+<h2>4. Defaults and when to change them</h2>
+<div class="wrap"><table>
+<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>
+<tbody>
+<tr><td><code>SameSite</code></td><td><code>Strict</code>, written out</td><td>Use <code>Lax</code> when a link from another site must land on a logged-in page. Use <code>None</code> only for a cookie that must work inside another site's page, and treat every other control here as mandatory.</td></tr>
+<tr><td>Cookie name and scope</td><td><code>__Host-</code> prefix, <code>Path=/</code>, no <code>Domain</code></td><td>Use <code>__Secure-</code> with a <code>Domain</code> only when several of your hosts must share one session. Every host under that domain can then read and overwrite the cookie.</td></tr>
+<tr><td><code>Secure</code> and <code>HttpOnly</code></td><td>Both, always, on the session cookie</td><td>Never for the session cookie. A double-submit token cookie is the one cookie that must be readable by script.</td></tr>
+<tr><td>CSRF token</td><td>Synchronizer token, one per session, sent in a custom header</td><td>Use the signed, session-bound double-submit cookie when the server keeps no session state. Do not use the unsigned form in new code.</td></tr>
+<tr><td>Request source check</td><td>Refuse <code>cross-site</code> and <code>same-site</code> on unsafe methods. Fall back to an exact <code>Origin</code> match. Refuse when both are absent.</td><td>Allow <code>same-site</code> only if every host under your site is yours and equally trusted. List each endpoint that is meant to be called from another origin.</td></tr>
+<tr><td>Session identifier</td><td>At least 128 random bits from the platform's secure generator, new at every login</td><td>Also renew it on any change of privilege, such as a step up to an administrator role.</td></tr>
+<tr><td>Timeouts</td><td>15 minutes idle, 8 hours absolute, both enforced on the server</td><td>Shorten the idle timeout for high-value actions. The Session Management Cheat Sheet gives 2 to 5 minutes for high-value applications and 15 to 30 minutes for low-risk ones.</td></tr>
+<tr><td>Tokens in a browser app</td><td>Keep them on the server behind a BFF</td><td>Hold tokens in the browser only when there is no backend, keep them short-lived, and accept that injected script can use them.</td></tr>
+</tbody></table></div>
+<h2>5. What it proves, and what it doesn't</h2>
+<div class="prose">
+<p><strong>Proves:</strong> a valid session cookie proves that the request came from a browser that holds the cookie. A valid CSRF token proves that the sender could read a value that only your own origin can read. A <code>Sec-Fetch-Site: same-origin</code> header proves that a browser says your own origin made the request.</p>
+<p><strong>Doesn't prove:</strong> that the user meant it. None of these controls survive a script running in your own origin. That script reads the token, sends same-origin requests, and the cookie goes with them. The CSRF Prevention Cheat Sheet says cross-site scripting "can defeat all CSRF mitigation techniques". RFC 10017 section 5.1.4 calls this proxying requests through the user's browser and says: "It is commonly accepted that this scenario cannot be stopped or prevented by application-level security measures." Preventing injected script is a separate job.</p>
+<p><strong><code>SameSite</code> is one layer.</strong> The draft says <code>Lax</code> "does not offer a robust defense against CSRF as a general category of attack" (section 5.6.7.1), and of <code>Strict</code> that it is "prudent to ensure that this designation is not the extent of a site's defense against CSRF" (section 8.8.1). The cheat sheet's reason is the boundary: "SameSite is scoped to the registrable domain, not the origin." A browser that does not implement the attribute ignores it.</p>
+<p><strong>The source headers mean something only from a browser.</strong> A script on the attacker's own machine sets <code>Origin</code> and <code>Sec-Fetch-Site</code> to anything. It has no session cookie, so it gains nothing, but that is the cookie doing the work. The headers are a filter for forged browser requests. They are not <a href="../../glossary/index.html#authorization">authorization</a>, and a proxy can strip them, which is one more thing to test at the gateway (module 12, <a href="../gateway-enforcement/index.html">Gateway enforcement</a>).</p>
+<div class="callout warn"><strong>A CSRF defence is only as good as your CORS policy.</strong> The synchronizer token is safe because a page on another origin cannot read the response that carries it. An API that reflects any <code>Origin</code> and allows credentials, the fault module 17 teaches, hands the token to the attacker's page, and the forged request then carries a valid token.</div>
+</div>
+<h2>6. Prove it</h2>
+<div class="prose">
+<p>A working implementation must pass every one of these. If any fails, the control is broken:</p>
+<ul>
+<li>A state-changing request with a valid session and no CSRF token is refused. So is one with a wrong token, and one with a valid token from a different session.</li>
+<li>No GET, HEAD or OPTIONS request changes anything. Test every route, including the old ones.</li>
+<li>A POST with <code>Sec-Fetch-Site: cross-site</code> is refused, and so is one with <code>Sec-Fetch-Site: same-site</code> unless that is a recorded decision.</li>
+<li>A POST with no <code>Sec-Fetch-Site</code> and an <code>Origin</code> that is absent, a sibling subdomain, or a lookalike such as <code>https://app.exampleair.example.evil.example</code> is refused.</li>
+<li>A JSON endpoint answers <code>415</code> to <code>text/plain</code> and to form content types.</li>
+<li>The session cookie in a real response carries <code>Secure</code>, <code>HttpOnly</code>, an explicit <code>SameSite</code>, and no <code>Domain</code>.</li>
+<li>The session identifier after login differs from the one before, and the old one is refused.</li>
+<li>A session identifier supplied in a URL is ignored.</li>
+<li>A session identifier copied before logout is refused after logout, after the idle timeout, and after the absolute timeout.</li>
+<li>All of the above are tests in the build, sent with a plain HTTP client that sets the headers itself.</li>
+</ul>
+</div>
+<h2>7. Lab</h2>
+<div class="prose">
+<p>Download <a href="../../labs/csrf_lab.py"><code>labs/csrf_lab.py</code></a> and run it with Python 3. It needs no packages beyond the standard library. On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>.</p>
+<p>The lab models a browser as a Python object with a cookie jar, and the API as a Python class. The jar follows the storage and retrieval rules of the rfc6265bis draft, and the browser adds <code>Origin</code> and <code>Sec-Fetch-Site</code> as the Fetch Standard and the Fetch Metadata draft describe. Nothing opens a socket. Session identifiers and tokens are random on every run and never printed, so the output is the same every time. The simplifications are listed at the top of the file. Three matter here. The lab treats the last two labels of a host as its registrable domain, where a browser uses the public suffix list. It treats a cookie with no <code>SameSite</code> attribute exactly as <code>Lax</code>, which is the draft's base rule. Section 5.6.7.2 of the draft also allows a browser to send such a cookie with a cross-site top-level POST while the cookie is new, and gives 2 minutes or less as a reasonable limit. A browser that does so would print <code>sent</code> in the unset column of check 24, because every cookie in the lab is new. And the lab's browser always attaches a cookie that the rules permit, where section 5.8.1 of the draft allows a browser to leave cookies out of third-party requests.</p>
+</div>
+<pre><code>$ python3 labs/csrf_lab.py
+hosts use the reserved .example domain; no request leaves this process
+
+Part A: no defence. The session cookie is SameSite=None.
+ 1. the app's own page moves 10,000 miles                                  200 transferred 10000 to hotel
+ 2. a hidden form on evil.example posts a transfer: cookies attached       ['sid']
+ 3.   and the API answers                                                  200 transferred 10000 to attacker
+ 4.   the page on evil.example can read that answer                        False
+ 5. an image tag on evil.example with the transfer in its URL              200 transferred 10000 to attacker
+ 6. miles the attacker now holds                                           20000
+ 7. the same POST from the attacker's own machine, with no cookie          401 no session
+
+Part B: "our API only accepts JSON".
+ 8. a script on evil.example sends JSON as application/json: unsafe names  ['content-type']
+ 9.   the browser asks first, and the request is                           blocked by the browser: preflight refused
+10.   requests that reached the API handler                                0
+11. the same body labelled text/plain: unsafe names                        []
+12.   an API that parses any body as JSON answers                          200 transferred 10000 to attacker
+13.   an API that requires application/json answers                        415 content type must be application/json
+14.   and still serves its own page's JSON request                         200 transferred 10000 to hotel
+
+Part C: what each cookie attribute scopes.
+15. no Domain attribute: sent to app, to m.app, to promo                   [True, False, False]
+16. Domain=exampleair.example: sent to app, to promo                       [True, True]
+17. Secure: sent over https, over http                                     [True, False]
+18. Path=/api: sent to /api/balance, /apiary, /login                       [True, False, False]
+19. HttpOnly: in the Cookie header, in document.cookie                     [True, False]
+20. __Host-sid with a Domain attribute                                     ignored: __Host- needs Secure, Path=/ and no Domain
+21. __Host-sid with Secure and Path=/ only                                 stored
+22. __Secure-sid without Secure                                            ignored: __Secure- needs Secure
+23. SameSite=None without Secure                                           ignored: SameSite=None needs Secure
+
+Part D: SameSite. Which requests carry the session cookie.
+24. form POST from evil.example                                            None=sent Lax=withheld Strict=withheld unset=withheld
+25. image GET from evil.example                                            None=sent Lax=withheld Strict=withheld unset=withheld
+26. script POST from evil.example                                          None=sent Lax=withheld Strict=withheld unset=withheld
+27. link GET from evil.example                                             None=sent Lax=sent Strict=withheld unset=sent
+28. form POST from promo.exampleair.example                                None=sent Lax=sent Strict=sent unset=sent
+29. script POST from the app's own page                                    None=sent Lax=sent Strict=sent unset=sent
+30. address typed by the user                                              None=sent Lax=sent Strict=sent unset=sent
+31. Lax: the hidden form from Part A                                       401 no session
+32. Lax: a link on evil.example to the GET transfer route                  200 transferred 10000 to attacker
+33. Lax, and GET no longer changes state                                   405 use POST
+34. Strict: the same link                                                  401 no session
+35. Strict: a legitimate link from a partner site to the balance page      401 no session
+36. Strict: a hidden form on promo.exampleair.example                      200 transferred 10000 to attacker
+37. Lax, in a browser that does not enforce SameSite                       200 transferred 10000 to attacker
+
+Part E: CSRF tokens. The cookie is Strict and the attacker is on promo.
+38. synchronizer: the app reads its token and sends it in a header         200 transferred 10000 to hotel
+39.   hidden form with no token                                            403 csrf token missing
+40.   hidden form with a guessed token                                     403 csrf token mismatch
+41.   a script on promo asks for the token: cookie sent, answer readable   [True, False]
+42. naive double submit: promo plants its own csrf cookie                  stored
+43.   hidden form carrying the planted value                               200 transferred 10000 to attacker
+44. signed and session-bound: the same plant and form                      403 csrf token invalid
+45.   the attacker's own valid token, planted and submitted                403 csrf token invalid
+46.   the app's own request, token read from document.cookie               200 transferred 10000 to hotel
+47. naive with a __Host-csrf cookie: the plant is                          ignored: __Host- needs Secure, Path=/ and no Domain
+48.   hidden form carrying the value promo chose                           403 csrf token mismatch
+
+Part F: Origin and Sec-Fetch-Site. The cookie is SameSite=None again.
+49. the app's own script POST                                              Origin=https://app.exampleair.example Sec-Fetch-Site=same-origin
+50. hidden form on evil.example                                            Origin=https://evil.example Sec-Fetch-Site=cross-site
+51. hidden form on promo.exampleair.example                                Origin=https://promo.exampleair.example Sec-Fetch-Site=same-site
+52. link on evil.example, a GET                                            Origin=absent Sec-Fetch-Site=cross-site
+53. address typed by the user                                              Origin=absent Sec-Fetch-Site=none
+54. Origin check: forms on evil, on promo and on a lookalike host          ['403 origin not allowed', '403 origin not allowed', '403 origin not allowed']
+55.   the app's own request                                                200 transferred 10000 to hotel
+56.   a script client that forges Origin and has no cookie                 401 no session
+57. Sec-Fetch-Site check: forms on evil, on promo                          ['403 cross-site request refused', '403 same-site request refused']
+58.   the app's own request                                                200 transferred 10000 to hotel
+59.   a browser that sends no Sec-Fetch-Site: the Origin fallback          403 origin not allowed
+60. both checks on, and a link to the GET transfer route                   200 transferred 10000 to attacker
+61.   after GET stops changing state                                       405 use POST
+
+Part G: session fixation, expiry and logout.
+62. id kept at login: [planted, unchanged by login, attacker, Maya]        [True, True, '200 balance 50000', '200 balance 50000']
+63. id regenerated at login                                                [True, False, '401 no session', '200 balance 50000']
+64. id kept, but never taken from the URL                                  [False, True, '401 no session', '200 balance 50000']
+65. a request 14 minutes after the last one                                200 balance 50000
+66. a request 16 minutes after that                                        401 session expired
+67. a request every 10 minutes: how many of 49 are answered                48
+68.   and the last one                                                     401 session expired
+69. logout destroys the session: [browser, a copied id]                    ['401 no session', '401 no session']
+70. logout only clears the cookie: [browser, a copied id]                  ['401 no session', '200 balance 50000']
+
+Part H: a bearer token in the Authorization header instead.
+71. the app's own script attaches the token                                200 transferred 10000 to hotel
+72. the hidden form from Part A: [cookies attached, answer]                [[], '401 no credential']
+73. a script on evil.example that sets Authorization: unsafe names         ['authorization']
+74. a script injected into the app's page reads from storage               ['access_token']
+75. the same script and the HttpOnly session cookie: document.cookie       {}
+76.   but it can still send a transfer that carries the cookie             200 transferred 10000 to attacker
+
+all 76 lab checks passed</code></pre>
+<div class="prose">
+<p>Four results are worth reading twice. Checks 8 to 14 are the JSON claim. Declared as <code>application/json</code>, the forged request needs a preflight, the API refuses it, and nothing reaches the handler. Labelled <code>text/plain</code>, the same bytes go straight through, and a server that parses whatever arrives moves the miles. Only the server that answers <code>415</code> is protected, and it still serves its own page.</p>
+<p>Checks 24 to 30 are the <code>SameSite</code> table. <code>Lax</code> and the unset default differ from <code>Strict</code> in one row, the link, and check 32 shows what that row costs when a GET route changes state. Check 35 is the price of <code>Strict</code>: a legitimate link from a partner site arrives logged out. Checks 28 and 36 are the limit of the whole attribute: a sibling subdomain is same-site, so even <code>Strict</code> sends the cookie.</p>
+<p>Checks 42 to 48 show why the cheat sheet recommends the signed form of the double-submit cookie. The sibling host plants a cookie named <code>csrf</code> for the parent domain with a longer path, so it is listed first (section 5.8.3 of the draft says a browser should list longer paths first), and the unsigned comparison passes. The signed token is tied to Maya's session, so neither a value the attacker chose nor the attacker's own valid token works. A <code>__Host-</code> name also stops the plant, because the browser refuses a <code>__Host-</code> cookie that has a <code>Domain</code> or a <code>Path</code> other than <code>/</code>, and the plant needs both.</p>
+<p>Check 60 is the reason step 1 comes first. With both source checks on, a link to the GET transfer route still moves the miles, because the checks examine unsafe methods only.</p>
+<p><strong>Try next:</strong></p>
+<ul>
+<li>In <code>Api.DEFAULTS</code>, change <code>state_changing_get=True</code> to <code>False</code> and run it again. Four checks change: 5, 32 and 60 print <code>405 use POST</code>, and check 6 prints <code>10000</code> because only the form in Part A still pays the attacker. The lab reports those four and exits 1. One setting closes a hole that three different parts of the lab had open.</li>
+<li>In <code>Api.DEFAULTS</code>, change <code>trust_same_site=False</code> to <code>True</code>. One check changes: in check 57 the form on <code>promo.exampleair.example</code> goes from <code>403 same-site request refused</code> to <code>200 transferred 10000 to attacker</code>. The lab reports it and exits 1. Trusting same-site requests is trusting every host under your domain.</li>
+</ul>
+</div>
+<h2>8. Check your understanding</h2>
+<details><summary>A page on another site posts a form to your API. The browser will not let that page read the response. Why is that not a defence?</summary><p>The server processes the request before any response exists. Reading is what CORS controls, and module 17 covers it. The forged request needs only to arrive with the session cookie attached, and the attacker learns that it worked when the miles show up.</p></details>
+<details><summary>Your API parses JSON bodies only. Is it safe from forged requests?</summary><p>Only if it also refuses every request whose <code>Content-Type</code> is not <code>application/json</code>. A request with that content type from another origin needs a preflight, and an API that allows no other origin refuses it. A request labelled <code>text/plain</code> needs no preflight, and a server that parses the body as JSON anyway accepts it. Keep the other controls as well: the preflight rule is a browser behaviour, and the CSRF Prevention Cheat Sheet advises adding tokens in case a browser fails to enforce it.</p></details>
+<details><summary><code>promo.exampleair.example</code> is taken over. The session cookie is <code>SameSite=Strict</code>. What still stops a forged transfer from that host?</summary><p>Not the cookie attribute: the two hosts share a site, so the cookie is sent. A synchronizer token or a signed, session-bound double-submit token stops it, because the attacker's page cannot read a value from your origin. An exact <code>Origin</code> comparison stops it, and so does refusing <code>Sec-Fetch-Site: same-site</code>. A <code>__Host-</code> prefix on your cookies stops that host from planting cookies of the same name.</p></details>
+<details><summary>A team replaces the session cookie with an access token kept in <code>localStorage</code> and sent in an <code>Authorization</code> header. What did they gain and what did they lose?</summary><p>They gained immunity to classic CSRF, because the browser no longer attaches the credential by itself. They lost <code>HttpOnly</code>: any script that runs in the page's origin can read the token and take it away, where before it could only send requests while the page was open. RFC 10017 ranks this design last of its three and recommends a backend for frontend for sensitive applications.</p></details>
+
+<section class="course-quiz" data-quiz data-quiz-id="browser-sessions-and-csrf-check" data-correct-feedback="Correct. Lax withholds the cookie from cross-site requests except a top-level navigation that uses a safe method. A link is exactly that, so a GET route that changes state is still forgeable." data-incorrect-feedback="Not quite. Lax withholds the cookie from a cross-site form POST, an image and a script request. The exception is a top-level navigation with a safe method, which is what a link is.">
+<p class="kicker">Quick check</p>
+<h2>What Lax still sends</h2>
+<fieldset><legend>The session cookie is <code>SameSite=Lax</code>. Which request from a page on another site still carries it?</legend>
+<label><input type="radio" name="csrf-lax" value="form"> A hidden form that sends a POST.</label>
+<label><input type="radio" name="csrf-lax" value="image"> An image tag.</label>
+<label><input type="radio" name="csrf-lax" value="link" data-correct="true"> A link the user follows, which sends a top-level GET.</label>
+<label><input type="radio" name="csrf-lax" value="script"> A script request that sends a POST.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+</section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="browser-sessions-and-csrf-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/csrf_lab.py"><code>labs/csrf_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant, not a reading of the code. The lab compares every result with the one it expects, so each of these edits also makes it exit 1 and list what differed at the end.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="csrf-x1" data-covers="csrf-03">
+<h3>1. The browser drops the safe-method condition from Lax</h3>
+<div class="prose">
+<p>In <code>Browser.cookies_for</code>, the Lax exception requires a safe method and a top-level request. Delete <code>and method in SAFE_METHODS</code> so that it reads:</p>
+</div>
+<pre><code>lax_exception = (http and c.same_site in ("Lax", "Default")
+                 and top_level)</code></pre>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="csrf-x1" value="a"> Check 31 only. The hidden form now transfers.</label>
+<label><input type="radio" name="csrf-x1" value="b" data-correct="true"> Checks 24 and 31. The form row of the table and the hidden form.</label>
+<label><input type="radio" name="csrf-x1" value="c"> Checks 24, 26 and 31. The script POST from <code>evil.example</code> is sent too.</label>
+<label><input type="radio" name="csrf-x1" value="d"> None. A form POST is a top-level navigation, so Lax already sent the cookie.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 31 does change, but it is not alone. Check 24 measures the same request in the table, so it moves with it.</li>
+<li data-option="b">Correct. Exit 1, two failures. Check 24 goes from <code>None=sent Lax=withheld Strict=withheld unset=withheld</code> to <code>None=sent Lax=sent Strict=withheld unset=sent</code>, and check 31 goes from <code>401 no session</code> to <code>200 transferred 10000 to attacker</code>. The safe-method condition is the whole of what Lax adds against a forged form. The draft describes this looser behaviour as "Lax-allowing-unsafe" and allows a browser to apply it to recently created cookies that set no <code>SameSite</code> attribute, which is why check <code>csrf-03</code> in the <a href="#reference">Reference</a> layer asks for the attribute to be written out.</li>
+<li data-option="c">Check 26 still prints <code>withheld</code> for Lax. A script request is not a top-level navigation, and the edit leaves that condition in place.</li>
+<li data-option="d">A form POST is top level, but POST is not a safe method. As published, that second condition is what withholds the cookie.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="csrf-x2" data-covers="csrf-01">
+<h3>2. The signed token is no longer bound to the session</h3>
+<div class="prose">
+<p>In <code>Api.signed_token</code>, sign the random value alone. Replace the line that builds <code>message</code> with:</p>
+</div>
+<pre><code>message = "%d!%s" % (len(nonce), nonce)</code></pre>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="csrf-x2" value="a"> Check 44. The value promo chose is now accepted.</label>
+<label><input type="radio" name="csrf-x2" value="b" data-correct="true"> Check 45 only. The attacker's own token is now accepted.</label>
+<label><input type="radio" name="csrf-x2" value="c"> Checks 44 and 45.</label>
+<label><input type="radio" name="csrf-x2" value="d"> Check 46. The app's own request is now refused.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 44 still prints <code>403 csrf token invalid</code>. The string <code>chosen-by-promo</code> carries no HMAC the server made, so it fails whatever the message covers.</li>
+<li data-option="b">Correct. Exit 1, one failure: check 45 goes from <code>403 csrf token invalid</code> to <code>200 transferred 10000 to attacker</code>. The attacker logs in to their own account, receives a token the server really signed, and submits it from Maya's browser. With the session identifier out of the message, the signature is valid for every session. The cheat sheet says it in one sentence: "Simply signing tokens without session binding provides minimal protection and remains vulnerable to cookie injection attacks." Check <code>csrf-01</code> in the <a href="#reference">Reference</a> layer asks for a token from another session to be refused for this reason.</li>
+<li data-option="c">Only one of the two moves. A signature the server made is needed, and only check 45 submits one.</li>
+<li data-option="d">Check 46 still prints <code>200 transferred 10000 to hotel</code>. The server signs and verifies with the same function, so the app's own token still verifies.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="csrf-x3" data-covers="csrf-04">
+<h3>3. The Origin check matches by suffix</h3>
+<div class="prose">
+<p>In <code>Api.forgery_checks</code>, someone wants the check to keep working if the app moves to another host under the same domain. Replace the comparison <code>if origin != APP:</code> with:</p>
+</div>
+<pre><code>if origin is None or not origin.endswith("exampleair.example"):</code></pre>
+<fieldset><legend>What does check 54 print?</legend>
+<label><input type="radio" name="csrf-x3" value="a"> The same three refusals. All three hosts are still not the app.</label>
+<label><input type="radio" name="csrf-x3" value="b" data-correct="true"> The second entry, the form on promo, becomes <code>200 transferred 10000 to attacker</code>.</label>
+<label><input type="radio" name="csrf-x3" value="c"> The third entry, the lookalike host, becomes <code>200 transferred 10000 to attacker</code>.</label>
+<label><input type="radio" name="csrf-x3" value="d"> The second and third entries both become transfers.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">The run does not stay clean. It exits 1 with one failure, check 54.</li>
+<li data-option="b">Correct. Check 54 goes from three times <code>403 origin not allowed</code> to <code>['403 origin not allowed', '200 transferred 10000 to attacker', '403 origin not allowed']</code>. <code>https://promo.exampleair.example</code> ends with the suffix, so the sibling host passes. A suffix match turns an origin check into a site check, and the site is the boundary the attacker is already inside. Check <code>csrf-04</code> in the <a href="#reference">Reference</a> layer asks for an exact comparison.</li>
+<li data-option="c">That is the other loose comparison. Measured separately: with <code>origin.startswith(APP)</code> instead, the third entry is the one that becomes a transfer, because <code>https://app.exampleair.example.evil.example</code> begins with the app's origin. With the suffix test it ends in <code>evil.example</code> and is still refused.</li>
+<li data-option="d">Each loose comparison lets one of them through, not both. A suffix admits the sibling and a prefix admits the lookalike.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="csrf-x4" data-covers="csrf-05">
+<h3>4. The session identifier is regenerated by default</h3>
+<div class="prose">
+<p>This edit is a fix. In <code>Api.DEFAULTS</code>, change <code>regenerate_at_login=False</code> to <code>regenerate_at_login=True</code>. Every scenario in the lab now gets a new session identifier at login unless it asks otherwise.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="csrf-x4" value="a"> Nothing. A fix cannot make a check fail.</label>
+<label><input type="radio" name="csrf-x4" value="b"> Check 62 only.</label>
+<label><input type="radio" name="csrf-x4" value="c" data-correct="true"> Checks 62 and 64.</label>
+<label><input type="radio" name="csrf-x4" value="d"> Checks 62, 63 and 64.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">The lab compares each result with the published one, and two published results show an identifier that survives login. A fix changes them, so the run exits 1.</li>
+<li data-option="b">Check 64 also reports whether login changed the identifier, and that entry moves too.</li>
+<li data-option="c">Correct. Exit 1, two failures. Check 62 goes from <code>[True, True, '200 balance 50000', '200 balance 50000']</code> to <code>[True, False, '401 no session', '200 balance 50000']</code>: the identifier is still planted, login replaces it, the attacker is refused and Maya is not. Check 64 goes from <code>[False, True, '401 no session', '200 balance 50000']</code> to <code>[False, False, '401 no session', '200 balance 50000']</code>. Every other line is unchanged, including all of Parts A to F, so regenerating the identifier costs the legitimate flows nothing. That is check <code>csrf-05</code> in the <a href="#reference">Reference</a> layer.</li>
+<li data-option="d">Check 63 already passes <code>regenerate_at_login=True</code> itself, so the new default changes nothing there.</li>
+</ul>
+</details>
+</article>
+</section>
+<p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
+<span class="layer" id="reference" style="margin-top:3rem">Reference</span>
+<h2 style="border-top:none;margin-top:.5rem">Controls</h2>
+<p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
+<ul class="controls">
+<li><span class="label std">Standard</span>A user agent that attaches a <code>Cookie</code> header must include a cookie with the <code>Secure</code> attribute only when the request uses a secure protocol, and must leave a cookie with <code>HttpOnly</code> out of the cookie string it builds for a non-HTTP API such as script access. Without a <code>Domain</code> attribute a cookie is host-only. RFC 6265 sections 5.3 and 5.4, summarized in sections 4.1.2.3 to 4.1.2.6.</li>
+<li><span class="label std">Standard</span>Cookies are ambient authority: "user agents attach cookies even if the remote party does not know the contents of the cookies", which can let a remote party exercise authority at an unwary server. RFC 6265 section 8.2. This is the security considerations section and sets no requirement.</li>
+<li><span class="label std">Standard</span>Safe methods are GET, HEAD, OPTIONS and TRACE, and when a URL selects an unsafe action "the resource owner MUST disable or disallow that action when it is accessed using a safe request method". RFC 9110 section 9.2.1.</li>
+<li><span class="label std">Standard</span>Draft: a user agent that attaches cookies must leave out a cookie whose same-site flag is not <code>None</code> when the request is cross-site, unless the flag is <code>Lax</code> or the default, the request is HTTP, the method is safe and the request's target is the active browsing context or a top-level traversable. The draft takes that term from the HTML Standard, and this page reads it as a tab or a window. <a href="#source-6265bis">draft-ietf-httpbis-rfc6265bis-22</a> sections 5.8.1 and 5.8.3. An Internet-Draft, not a standard.</li>
+<li><span class="label std">Standard</span>Draft: a user agent must ignore a cookie with <code>SameSite=None</code> and no <code>Secure</code>, a cookie named <code>__Secure-</code> without <code>Secure</code>, and a cookie named <code>__Host-</code> unless it has <code>Secure</code>, no <code>Domain</code> and <code>Path=/</code>, matching the prefix without regard to case. Servers should use the prefixes. <a href="#source-6265bis">draft-ietf-httpbis-rfc6265bis-22</a> sections 5.7, 5.4 and 4.1.3.</li>
+<li><span class="label std">Standard</span>Draft: <code>Lax</code> "does not offer a robust defense against CSRF as a general category of attack", and developers are strongly encouraged to deploy the usual server-side defences, for which it gives CSRF tokens and ensuring that safe methods are idempotent as examples. The server should take care to avoid session fixation. <a href="#source-6265bis">draft-ietf-httpbis-rfc6265bis-22</a> sections 5.6.7.1, 8.8.1 and 8.4.</li>
+<li><span class="label std">Standard</span>A cross-origin request avoids a preflight when its method is GET, HEAD or POST and every header is CORS-safelisted, and a <code>Content-Type</code> of <code>application/x-www-form-urlencoded</code>, <code>multipart/form-data</code> or <code>text/plain</code> is safelisted. The <code>Origin</code> header is sent on CORS requests and on requests whose method is neither GET nor HEAD. <a href="#source-fetch">Fetch Standard</a> sections 2.2.1, 2.2.2, 3.2 and 4.1.</li>
+<li><span class="label std">Standard</span>Working Draft: <code>Sec-Fetch-Site</code> carries <code>cross-site</code>, <code>same-origin</code>, <code>same-site</code> or <code>none</code>, where <code>none</code> marks a navigation the user caused directly. The <code>Sec-</code> prefix makes the header "unmodifiable from JavaScript". Servers should ignore the header if its value is invalid. <a href="#source-fetch-metadata">Fetch Metadata Request Headers</a> sections 2.3 and 4.2. A W3C Working Draft, not a Recommendation.</li>
+<li><span class="label std">Standard</span>The CSRF Prevention Cheat Sheet recommends the synchronizer token pattern for stateful software and the signed double-submit cookie, bound to the session, for stateless software. It discourages the unsigned form, says a Fetch Metadata check needs a fallback to <code>Origin</code> or <code>Referer</code> verification, and says not to use GET for state-changing operations. <a href="#source-csrf-cs">OWASP CSRF Prevention Cheat Sheet</a>, Introduction and the sections "Signed Double-Submit Cookie (RECOMMENDED)", "Naive Double-Submit Cookie Pattern (DISCOURAGED)" and "Fetch Metadata headers". Guidance, not a requirement.</li>
+<li><span class="label std">Standard</span>The Session Management Cheat Sheet says the session identifier is to be renewed after any privilege level change, with login the most common case, that idle and absolute timeouts are to be enforced on the server, that logout is to invalidate the session on the server, and that "deleting a cookie alone does not invalidate a stolen copy of the session ID". <a href="#source-session-cs">OWASP Session Management Cheat Sheet</a>, sections "Renew the Session ID After Any Privilege Level Change", "Idle Timeout", "Absolute Timeout" and "Expire and Max-Age Attributes". Guidance, not a requirement.</li>
+<li><span class="label std">Standard</span>For a backend for frontend, RFC 10017 requires <code>Secure</code> and <code>HttpOnly</code> on its cookies and a CSRF defence, and recommends <code>SameSite=Strict</code>, a path of <code>/</code>, no <code>Domain</code> attribute and a name prefix that shows the cookie was set over HTTP, for which its example is <code>__Host-Http-</code> from a separate Internet-Draft this page does not cover. It notes that <code>SameSite=Strict</code> falls short when another application shares the site. RFC 10017 sections 6.1.3.2, 6.1.3.3 and 6.1.3.3.1.</li>
+<li><span class="label std">Standard</span>OWASP Top 10:2025 lists reusing the session identifier after login and failing to invalidate sessions on logout or inactivity under A07 Authentication Failures, and maps CWE-352, cross-site request forgery, to A01 Broken Access Control. A07 section "Description" and A01 section "List of Mapped CWEs". An awareness document: it sets no requirements.</li>
+<li><span class="label base">Baseline</span>Name the session cookie with the <code>__Host-</code> prefix and set <code>Path=/; Secure; HttpOnly; SameSite=Strict</code> with no <code>Domain</code>. Use <code>Lax</code> only where links from other sites must arrive logged in.</li>
+<li><span class="label base">Baseline</span>Require a CSRF token on every state-changing request: a synchronizer token, or a signed double-submit token bound to the session. Compare in constant time. Never accept it from a cookie alone or put it in a URL.</li>
+<li><span class="label base">Baseline</span>Refuse unsafe methods whose <code>Sec-Fetch-Site</code> is <code>cross-site</code> or <code>same-site</code>. When the header is absent, require <code>Origin</code> to equal your own origin exactly, and refuse when it is absent.</li>
+<li><span class="label base">Baseline</span>Answer <code>415</code> to any content type the endpoint does not parse. Never infer the format from the body.</li>
+<li><span class="label base">Baseline</span>Issue a new session identifier at login, destroy the old one, and accept identifiers from the cookie only.</li>
+<li><span class="label base">Baseline</span>Enforce a 15 minute idle timeout and an 8 hour absolute timeout on the server, and delete the session record on logout.</li>
+<li><span class="label opt">Option</span>Use <code>SameSite=Lax</code> for a cookie that grants read access and a second <code>Strict</code> cookie that is required for changes, as section 8.8.2 of the draft describes.</li>
+<li><span class="label opt">Option</span>Require a custom request header on API calls so that a cross-origin script request always needs a preflight. RFC 10017 section 6.1.3.3.2 recommends this for a BFF that relies on CORS as its CSRF defence.</li>
+<li><span class="label opt">Option</span>Ask the user to authenticate again before the most sensitive operations, such as a password change or a large transfer.</li>
+<li><span class="label opt">Option</span>Send an access token in the <code>Authorization</code> header instead of a cookie when there is no backend to hold a session. Classic CSRF no longer applies, and the token becomes readable by any script in the origin.</li>
+</ul>
+
+<h2>Review checklist items</h2>
+<p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
+<ul class="checks">
+<li data-check="csrf-01" data-severity="Critical"><strong>Every state-changing request in a cookie session carries a CSRF token the server verifies</strong> <span>A missing token, a wrong token and a valid token from another session are all refused. A double-submit token is signed and bound to the session.</span></li>
+<li data-check="csrf-02" data-severity="Critical"><strong>No safe method changes state</strong> <span>GET, HEAD and OPTIONS routes are read-only, including legacy routes. A link or an image tag sends GET, and SameSite=Lax sends the cookie with a link.</span></li>
+<li data-check="csrf-03" data-severity="High"><strong>The session cookie sets Secure, HttpOnly, an explicit SameSite, Path=/ and no Domain</strong> <span>Prefer the __Host- name prefix and SameSite=Strict. Read the attributes from a real response, not from configuration.</span></li>
+<li data-check="csrf-04" data-severity="High"><strong>Unsafe requests are refused unless Sec-Fetch-Site or Origin shows the app's own origin</strong> <span>Cross-site and same-site are refused, the Origin comparison is exact, and a request with neither header is refused. Test a sibling subdomain and a lookalike host.</span></li>
+<li data-check="csrf-05" data-severity="High"><strong>The session identifier is replaced at login and at every change of privilege</strong> <span>The identifier from before login is destroyed, and an identifier supplied in a URL is never accepted.</span></li>
+<li data-check="csrf-06" data-severity="High"><strong>Sessions end on the server</strong> <span>Idle and absolute timeouts are enforced server-side, and logout deletes the session record. A copied identifier is refused after each of the three.</span></li>
+<li data-check="csrf-07" data-severity="Medium"><strong>Endpoints refuse content types they do not parse</strong> <span>A JSON endpoint answers 415 to text/plain and form content types. This is a layer, not the CSRF defence.</span></li>
+<li data-check="csrf-08" data-severity="Medium"><strong>Every host under the registrable domain is known and trusted to the same level</strong> <span>A sibling subdomain is same-site, so SameSite cookies are sent with its requests and it can set cookies for the parent domain. Remove unused DNS records.</span></li>
+<li data-check="csrf-09" data-severity="Medium"><strong>The place a browser app keeps its tokens is a recorded decision</strong> <span>Tokens in script-readable storage are exposed to any injected script. A backend for frontend keeps them on the server and needs the CSRF controls above.</span></li>
+</ul>
+
+<h2>Sources</h2>
+<ul class="prose">
+<li id="source-6265"><a href="https://www.rfc-editor.org/rfc/rfc6265">RFC 6265: HTTP State Management Mechanism</a>, April 2011. Section 4.1.2 for the attributes, 5.3 and 5.4 for what a user agent stores and sends, 8.2 for ambient authority, 8.4 for session identifiers and 8.6 for sibling domains. It does not define <code>SameSite</code> or cookie name prefixes.</li>
+<li id="source-6265bis"><a href="https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-rfc6265bis-22">draft-ietf-httpbis-rfc6265bis-22: Cookies: HTTP State Management Mechanism</a>, Internet-Draft, revision 22, 1 December 2025. The IETF datatracker lists it as an active Internet-Draft with an intended status of Proposed Standard, and it would obsolete RFC 6265 if approved. It is a work in progress, not a standard. Sections 4.1.2.7 and 4.1.3 for <code>SameSite</code> and the prefixes, 5.2 for same-site and cross-site requests, 5.6.7 for the enforcement modes, 5.7 for storage, 5.8.3 for retrieval, and 8.8 for the limits of <code>SameSite</code>. Section 5.2 takes the definition of "same site" from the HTML Standard.</li>
+<li id="source-fetch"><a href="https://fetch.spec.whatwg.org/commit-snapshots/357bd98924d94b81fbe8608192a2ee1f123b82f4/">Fetch Standard</a>, WHATWG Living Standard, commit snapshot 357bd98, Last Updated 21 September 2026. Section 2.2.1 for the safelisted methods, 2.2.2 for the header safelist and its note on a second <code>Content-Type</code>, 3.2 for the <code>Origin</code> header, 3.3.1 for the sentence on forms and preflights, and 4.1 for the condition that sends a preflight.</li>
+<li id="source-fetch-metadata"><a href="https://www.w3.org/TR/2026/WD-fetch-metadata-20260921/">Fetch Metadata Request Headers</a>, W3C Working Draft, 21 September 2026. Section 2.3 for <code>Sec-Fetch-Site</code>, 4.1 for redirects and the same-site example, 4.2 for the <code>Sec-</code> prefix and 4.3 for the value <code>none</code>. A draft, not a W3C Recommendation.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9110">RFC 9110: HTTP Semantics</a>, June 2022. Section 9.2.1, safe methods.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc10017">RFC 10017: OAuth 2.0 for Browser-Based Applications</a>, BCP 212, August 2026. Section 5.1.4 for requests proxied through the user's browser, 6 for the three architecture patterns, 6.1 for the backend for frontend and its cookie and CSRF requirements, and 8 for token storage in the browser.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc6454">RFC 6454: The Web Origin Concept</a>, Standards Track, December 2011. Section 3.2 for the origin as scheme, host and port. Cited for the concept only, as module 17 does.</li>
+<li id="source-csrf-cs"><a href="https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html">OWASP Cheat Sheet Series, Cross-Site Request Forgery Prevention Cheat Sheet</a>, read 4 October 2026. Guidance, not a standard.</li>
+<li id="source-session-cs"><a href="https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html">OWASP Cheat Sheet Series, Session Management Cheat Sheet</a>, read 4 October 2026. Guidance, not a standard.</li>
+<li><a href="https://top10.owasp.org/2025/A07_2025-Authentication_Failures/">OWASP Top 10:2025, A07 Authentication Failures</a>, and <a href="https://top10.owasp.org/2025/A01_2025-Broken_Access_Control/">A01 Broken Access Control</a>. An awareness document.</li>
+</ul>
+</main>
+<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
+</body>
+</html>

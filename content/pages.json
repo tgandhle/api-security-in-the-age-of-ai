@@ -17,7 +17,7 @@
           "id": "overview",
           "aria-labelledby": "course-overview"
         },
-        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>New security engineers who can read Python and HTTP requests.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. Four labs also need the <code>cryptography</code> package. No account or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 28 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Examples of learning outcomes</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
+        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>New security engineers who can read Python and HTTP requests.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. Four labs also need the <code>cryptography</code> package. No account or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 29 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Examples of learning outcomes</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
       },
       {
         "tag": "h2",
@@ -224,6 +224,11 @@
         "definition": "\"The time span during which a specific key is authorized for use or in which the keys for a given system or application may remain in effect\" (NIST SP 800-57 Part 1 Rev. 5). The specifications give you the concept; the length is your judgment to make and defend."
       },
       {
+        "id": "csrf",
+        "term": "CSRF",
+        "definition": "Cross-site request forgery. A page on one site makes a logged-in user's browser send a request to another site. The browser attaches that site's cookies by itself, so the request arrives authenticated although the user never asked for it. The attacker does not need to read the response."
+      },
+      {
         "id": "data-minimisation",
         "term": "Data minimisation",
         "definition": "Putting only the fields a task needs into a prompt, chosen from an allowlist. It removes copies rather than filtering them, so it acts on every sink at once: logs, traces, caches, the provider and the answer."
@@ -247,6 +252,11 @@
         "id": "derived-component",
         "term": "Derived component",
         "definition": "A signature input derived from the control data or other parts of the message rather than from a header field, written with a leading <code>@</code>, such as <code>@method</code>, <code>@authority</code> or <code>@path</code>. RFC 9421 section 2.2."
+      },
+      {
+        "id": "double-submit-cookie",
+        "term": "Double-submit cookie",
+        "definition": "A <a href=\"#csrf\">CSRF</a> defence that keeps no token on the server. The token arrives in a cookie the page can read, and the page must send it back in a header or a form field. The OWASP CSRF Prevention Cheat Sheet recommends the signed form, an <a href=\"#hmac\">HMAC</a> bound to the session, because a plain value can be planted by anyone who can set a cookie for the domain."
       },
       {
         "id": "dpop",
@@ -519,9 +529,19 @@
         "definition": "Withdrawing a credential, or the grant behind a token, before it expires. A self-contained token does not change when this happens, so a resource server only notices if it consults current state."
       },
       {
+        "id": "safe-method",
+        "term": "Safe method",
+        "definition": "A request method whose defined semantics are essentially read-only. RFC 9110 section 9.2.1 names GET, HEAD, OPTIONS and TRACE. A browser sends GET for a link or an image tag, so a safe method that changes state can be triggered from another site."
+      },
+      {
         "id": "salt",
         "term": "Salt",
         "definition": "A random value, different for every stored password, that is hashed together with the password and kept beside the result. Two users with the same password then have different stored hashes, and a table of precomputed hashes is useless."
+      },
+      {
+        "id": "samesite",
+        "term": "SameSite",
+        "definition": "A cookie attribute that tells the browser when to attach the cookie to a request another <a href=\"#site\">site</a> caused. <code>Strict</code> never does, <code>Lax</code> does only for a top-level navigation that uses a <a href=\"#safe-method\">safe method</a>, and <code>None</code> always does. It is defined in the rfc6265bis Internet-Draft, not in RFC 6265."
       },
       {
         "id": "schema",
@@ -544,6 +564,16 @@
         "definition": "A token that only works for a holder who can prove possession of a particular key, through a client certificate or a per-request proof."
       },
       {
+        "id": "session-fixation",
+        "term": "Session fixation",
+        "definition": "An attack in which the attacker gets a <a href=\"#session-identifier\">session identifier</a> they already know into the victim's browser, waits for the victim to log in with it, and then uses the same identifier. Issuing a new identifier at login stops it."
+      },
+      {
+        "id": "session-identifier",
+        "term": "Session identifier",
+        "definition": "A random value a server stores in a cookie to find the state it keeps for one browser. It has no meaning by itself. After login, whoever presents it is treated as that user, so it is a <a href=\"#bearer-credential\">bearer credential</a>."
+      },
+      {
         "id": "shared-secret",
         "term": "Shared secret",
         "definition": "A key known to both parties. Either party can create a valid signature, which is why a shared secret can't prove which one did."
@@ -557,6 +587,11 @@
         "id": "signature-base",
         "term": "Signature base",
         "definition": "The exact ASCII string an HTTP message signature is computed over: one line per covered component, with the signature parameters as the last line. RFC 9421 section 2.5."
+      },
+      {
+        "id": "site",
+        "term": "Site",
+        "definition": "A scheme and a registrable domain, such as <code>https</code> and <code>exampleair.example</code>. Two hosts under the same registrable domain are same-site although they are different <a href=\"#origin\">origins</a>, so a <a href=\"#samesite\">SameSite</a> cookie is sent with a request from a sibling subdomain."
       },
       {
         "id": "spiffe-id",
@@ -577,6 +612,11 @@
         "id": "sunset-header",
         "term": "Sunset header",
         "definition": "The <code>Sunset</code> HTTP response header field, which \"indicates that a URI is likely to become unresponsive at a specified point in the future\" (RFC 8594). When a response carries both, its timestamp must not be earlier than the one in the <a href=\"#deprecation-header\">Deprecation header</a> (RFC 9745 section 4)."
+      },
+      {
+        "id": "synchronizer-token",
+        "term": "Synchronizer token",
+        "definition": "A random value the server keeps in the user's session and gives to its own pages, which must send it back with every state-changing request. A page on another origin cannot read it, so a forged request arrives without it."
       },
       {
         "id": "system-prompt",
@@ -661,7 +701,7 @@
         "attrs": {
           "class": "meta"
         },
-        "html": "<p class=\"meta\">All 28 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written.</p>"
+        "html": "<p class=\"meta\">All 29 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written.</p>"
       },
       {
         "tag": "section",

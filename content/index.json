@@ -1,5 +1,5 @@
 {
-  "total": 28,
+  "total": 29,
   "lessons": [
     {
       "slug": "security-foundations",
@@ -168,6 +168,12 @@
       "lesson_number": 28,
       "module": 27,
       "title": "Attacks on authentication endpoints"
+    },
+    {
+      "slug": "browser-sessions-and-csrf",
+      "lesson_number": 29,
+      "module": 28,
+      "title": "Browser sessions, cookies and CSRF"
     }
   ]
 }

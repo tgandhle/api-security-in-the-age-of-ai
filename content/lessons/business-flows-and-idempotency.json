@@ -38,7 +38,7 @@
         "class": "lesson-status",
         "aria-label": "Lesson progress"
       },
-      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 12 of 28</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
+      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 12 of 29</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
     },
     {
       "tag": "span",
@@ -357,9 +357,9 @@
   "title": "Business flows and idempotency",
   "kicker": "Part 2: Deciding what they may do &middot; Module 11",
   "reviewed": "2026-10-02",
-  "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 12 of 28</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
+  "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 12 of 29</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
   "lesson_number": 12,
-  "lesson_total": 28,
+  "lesson_total": 29,
   "module": 11,
   "intro_prose": [
     "<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can say which HTTP methods are idempotent and why that does not help you, implement an <a href=\"../../glossary/index.html#idempotency-key\">idempotency key</a> with the four details that decide whether it works, and tell the duplicate-execution problem apart from the excessive-use problem, which look similar and need different controls.</p>\n<p><strong>Before you start.</strong> <a href=\"../object-level-authorization/index.html\">Module 9</a> and <a href=\"../property-and-function-authorization/index.html\">module 10</a> settled which objects, properties and functions a caller may reach. Every request in this module is one they may make. That is the point.</p>\n</div>"
