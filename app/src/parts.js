@@ -7,5 +7,5 @@ export const PARTS = [
   { name: "Part 3: Edges and boundaries", from: 12, to: 18 },
   { name: "Part 4: AI and agents", from: 19, to: 25 },
   { name: "Capstone", from: 26, to: 26 },
-  { name: "Part 5: Hardening and operations", from: 27, to: 33 }
+  { name: "Part 5: Hardening and operations", from: 27, to: 34 }
 ];

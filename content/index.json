@@ -1,5 +1,5 @@
 {
-  "total": 34,
+  "total": 35,
   "lessons": [
     {
       "slug": "security-foundations",
@@ -204,6 +204,12 @@
       "lesson_number": 34,
       "module": 33,
       "title": "GraphQL, gRPC and WebSocket APIs"
+    },
+    {
+      "slug": "security-testing",
+      "lesson_number": 35,
+      "module": 34,
+      "title": "Testing API security"
     }
   ]
 }

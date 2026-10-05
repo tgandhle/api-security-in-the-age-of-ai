@@ -38,7 +38,7 @@
         "class": "lesson-status",
         "aria-label": "Lesson progress"
       },
-      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 32 of 34</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
+      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 32 of 35</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
     },
     {
       "tag": "span",
@@ -357,9 +357,9 @@
   "title": "Agent code execution and containment",
   "kicker": "Part 5: Hardening and operations &middot; Module 31",
   "reviewed": "2026-10-04",
-  "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 32 of 34</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
+  "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 32 of 35</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
   "lesson_number": 32,
-  "lesson_total": 34,
+  "lesson_total": 35,
   "module": 31,
   "intro_prose": [
     "<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can say what an agent's code execution tool is able to reach, write a <a href=\"../../glossary/index.html#deny-by-default\">deny-by-default</a> policy for it, put enforced budgets on a run, stop one agent's bad output before the next agent acts on it, and disable an agent that has left its declared behaviour, including the credential it holds.</p>\n<p><strong>Before you start.</strong> Part 4 covered what an agent is allowed to do. <a href=\"../prompt-injection-and-output-handling/index.html\">Module 22</a> showed that <a href=\"../../glossary/index.html#prompt-injection\">prompt injection</a> cannot be reliably prevented, and <a href=\"../agent-authority-and-approvals/index.html\">module 23</a> showed what a human approval does and does not cover. This module assumes both controls are in place and the agent does the wrong thing anyway. It is about what limits the damage then.</p>\n</div>"

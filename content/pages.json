@@ -8,7 +8,7 @@
           "id": "course",
           "data-course-dashboard": null
         },
-        "html": "<section class=\"course-hero\" id=\"course\" data-course-dashboard>\n<p class=\"kicker\">Interactive learning course</p>\n<h1>API Security in the Age of AI</h1>\n<div class=\"prose\">\n<p>For new security engineers. Each module starts with a real attack, shows why it works, teaches the control that stops it, and ends with a test you can run. The second half of each page is a reference you can use in design reviews.</p>\n<p class=\"meta\">Self-paced. Work through the modules in order. Each one assumes the ones before it. Labs need Python 3. The labs for modules 3, 5, 6 and 7 also need one package, <code>cryptography</code>. Progress is stored only in this browser.</p>\n</div>\n<div class=\"course-progress\" aria-label=\"Course progress\"><p data-course-progress>0 of 34 published lessons complete</p><div class=\"progress-track\" role=\"progressbar\" aria-label=\"Published lesson progress\" aria-valuemin=\"0\" aria-valuemax=\"100\"><span data-course-progress-bar></span></div><p class=\"meta\" data-course-assessment-progress>0 of 34 published quick checks passed</p></div>\n<div class=\"course-actions\"><a class=\"button\" href=\"topics/security-foundations/index.html\">Start with the primer</a><button class=\"button secondary\" type=\"button\" data-reset-progress>Reset progress</button></div>\n</section>"
+        "html": "<section class=\"course-hero\" id=\"course\" data-course-dashboard>\n<p class=\"kicker\">Interactive learning course</p>\n<h1>API Security in the Age of AI</h1>\n<div class=\"prose\">\n<p>For new security engineers. Each module starts with a real attack, shows why it works, teaches the control that stops it, and ends with a test you can run. The second half of each page is a reference you can use in design reviews.</p>\n<p class=\"meta\">Self-paced. Work through the modules in order. Each one assumes the ones before it. Labs need Python 3. The labs for modules 3, 5, 6 and 7 also need one package, <code>cryptography</code>. Progress is stored only in this browser.</p>\n</div>\n<div class=\"course-progress\" aria-label=\"Course progress\"><p data-course-progress>0 of 35 published lessons complete</p><div class=\"progress-track\" role=\"progressbar\" aria-label=\"Published lesson progress\" aria-valuemin=\"0\" aria-valuemax=\"100\"><span data-course-progress-bar></span></div><p class=\"meta\" data-course-assessment-progress>0 of 35 published quick checks passed</p></div>\n<div class=\"course-actions\"><a class=\"button\" href=\"topics/security-foundations/index.html\">Start with the primer</a><button class=\"button secondary\" type=\"button\" data-reset-progress>Reset progress</button></div>\n</section>"
       },
       {
         "tag": "section",
@@ -17,7 +17,7 @@
           "id": "overview",
           "aria-labelledby": "course-overview"
         },
-        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>New security engineers who can read Python and HTTP requests.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. Four labs also need the <code>cryptography</code> package. No account or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 34 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Examples of learning outcomes</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
+        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>New security engineers who can read Python and HTTP requests.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. Four labs also need the <code>cryptography</code> package. No account or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 35 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Examples of learning outcomes</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
       },
       {
         "tag": "h2",
@@ -31,7 +31,7 @@
         "attrs": {
           "class": "meta"
         },
-        "html": "<p class=\"meta\">Every module is published: the primer, all of Parts 1 and 2, all seven modules of Part 3, all seven of Part 4, the capstone, and all seven of Part 5. Each one carries its lesson, a runnable lab with its real output, primary sources, and review checklist items. The <a href=\"coverage/index.html\">coverage page</a> lists each entry of three OWASP lists with the lessons that cite it, and says what the course leaves out.</p>"
+        "html": "<p class=\"meta\">Every module is published: the primer, all of Parts 1 and 2, all seven modules of Part 3, all seven of Part 4, the capstone, and all eight of Part 5. Each one carries its lesson, a runnable lab with its real output, primary sources, and review checklist items. The <a href=\"coverage/index.html\">coverage page</a> lists each entry of three OWASP lists with the lessons that cite it, and says what the course leaves out.</p>"
       }
     ]
   },
@@ -72,6 +72,11 @@
         "id": "allowlist",
         "term": "Allowlist",
         "definition": "A list of the values a check accepts, with everything else refused. It states what an endpoint is for, so a field, host or algorithm added later stays out until someone lists it. A denylist only describes what existed on the day it was written."
+      },
+      {
+        "id": "api-description",
+        "term": "API description",
+        "definition": "A machine-readable document that lists an API's paths, operations, parameters, schemas and security requirements. OpenAPI is one format for it. It says what the API is meant to do, so a tester compares it with what is deployed."
       },
       {
         "id": "api-gateway",
@@ -117,6 +122,11 @@
         "id": "authorization-code",
         "term": "Authorization code",
         "definition": "A short-lived, single-use value returned through the browser that a client exchanges for a token on a server-to-server request. It is not a credential for the API itself."
+      },
+      {
+        "id": "authorization-matrix",
+        "term": "Authorization matrix",
+        "definition": "A table of every operation against every role and, for an API, whose object the request names, with the expected answer in each cell. The OWASP Authorization Testing Automation Cheat Sheet describes it. Written before the test, it is what a result is compared with."
       },
       {
         "id": "authorization-server",
@@ -354,6 +364,11 @@
         "definition": "A request or response that travels through the user's browser, usually as a redirect. Anything in a front-channel URL may reach browser history, referrer headers, proxy logs, and other apps on the device."
       },
       {
+        "id": "fuzzing",
+        "term": "Fuzzing",
+        "definition": "Sending many generated malformed inputs to a target and watching how it reacts: a 5xx, a stack trace, a hang. It finds input the code did not expect. It cannot find a well-formed request that the caller should not have been allowed to make."
+      },
+      {
         "id": "graphql-introspection",
         "term": "GraphQL introspection",
         "definition": "Asking a GraphQL service to describe its own types, fields and arguments, through the fields <code>__schema</code> and <code>__type</code> that the GraphQL specification defines. It is not the token <a href=\"#introspection\">introspection</a> of OAuth, which asks whether a token is active."
@@ -504,6 +519,11 @@
         "definition": "Model Context Protocol. A JSON-RPC protocol for exposing data and tools to LLM applications. Revisions are dated strings such as <code>2026-07-28</code>, incremented when a backwards incompatible change lands, and a protected MCP server is an OAuth 2.1 resource server."
       },
       {
+        "id": "misuse-case",
+        "term": "Misuse case",
+        "definition": "A description of how one step of normal use could be abused, written next to the use case it comes from. The OWASP Web Security Testing Guide derives security requirements, and so negative tests, from them. Also called an abuse case."
+      },
+      {
         "id": "model-token",
         "term": "Model token",
         "definition": "The unit a language model counts its input and output in. For text it is a chunk of text, often a word or part of a word, and images, audio and video are converted into model tokens as well. A provider that charges per token bills for the ones the model reads and the ones it writes. It is not an access token, which is a credential, and not a token in a token bucket, which is a unit of allowance in a rate limiter."
@@ -517,6 +537,11 @@
         "id": "multi-factor-authentication",
         "term": "Multi-factor authentication",
         "definition": "Signing in with evidence of at least two different kinds: something you know, something you have, something you are. A password and a PIN are the same kind twice, so they do not count."
+      },
+      {
+        "id": "negative-test",
+        "term": "Negative test",
+        "definition": "A test that sends something the system must refuse and passes only if it is refused. A functional test shows that a valid request works. Only a negative test fails when a check is missing."
       },
       {
         "id": "no-store",
@@ -552,6 +577,11 @@
         "id": "password-spraying",
         "term": "Password spraying",
         "definition": "Trying one common password against many accounts, then the next password, so that no single account collects enough failures to lock."
+      },
+      {
+        "id": "penetration-testing",
+        "term": "Penetration testing",
+        "definition": "Security testing in which people imitate real attacks to find ways around a system's security features (NIST SP 800-115's definition, reworded). It is done with the owner's written permission and for a fixed time. It samples what an attacker might find and does not prove the absence of flaws."
       },
       {
         "id": "persisted-operation",
@@ -644,6 +674,11 @@
         "definition": "A credential a client uses to obtain a new access token from the authorization server when the current one expires. It is sent only to the authorization server and never to a resource server (RFC 6749 section 1.5), and it is one more long-lived credential to protect."
       },
       {
+        "id": "regression-test",
+        "term": "Regression test",
+        "definition": "A test kept after a flaw is fixed that replays the request which found it and expects the fixed answer. Run on every change, it fails if the flaw comes back."
+      },
+      {
         "id": "replay-attack",
         "term": "Replay attack",
         "definition": "Resending a captured, valid request unchanged. The signature is still correct, so only freshness and nonce checks stop it."
@@ -682,6 +717,11 @@
         "id": "rogue-agent",
         "term": "Rogue agent",
         "definition": "OWASP ASI10: an agent that has come to \"deviate from their intended function or authorized scope\". The entry is about the behaviour once the drift begins, not about how it began."
+      },
+      {
+        "id": "rules-of-engagement",
+        "term": "Rules of engagement",
+        "definition": "The written agreement that authorizes a security test before it starts: what is in scope, what is excluded, which activities are allowed, when, and who to call. NIST SP 800-115 says it gives the test team authority to conduct the defined activities."
       },
       {
         "id": "safe-method",
@@ -891,7 +931,7 @@
         "attrs": {
           "class": "meta"
         },
-        "html": "<p class=\"meta\">All 34 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written. What the course does not cover is listed on the <a href=\"../coverage/index.html\">coverage page</a>.</p>"
+        "html": "<p class=\"meta\">All 35 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written. What the course does not cover is listed on the <a href=\"../coverage/index.html\">coverage page</a>.</p>"
       },
       {
         "tag": "section",
@@ -940,7 +980,7 @@
         "attrs": {
           "aria-labelledby": "part-5"
         },
-        "html": "<section aria-labelledby=\"part-5\">\n<h2 id=\"part-5\">Part 5: Hardening and operations</h2>\n<p class=\"prose\">All seven modules of Part 5 are published. They are listed on the <a href=\"../index.html#path\">modules page</a>. Part 5 was added after the capstone so that the numbers of the earlier modules did not change.</p>\n</section>"
+        "html": "<section aria-labelledby=\"part-5\">\n<h2 id=\"part-5\">Part 5: Hardening and operations</h2>\n<p class=\"prose\">All eight modules of Part 5 are published. They are listed on the <a href=\"../index.html#path\">modules page</a>. Part 5 was added after the capstone so that the numbers of the earlier modules did not change.</p>\n</section>"
       }
     ]
   }
