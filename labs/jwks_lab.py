@@ -127,22 +127,32 @@ class KeyCache:
     failed attempt and loaded_at is the time of the last successful one. A
     healthy endpoint never sets failed_at, so its schedule is not delayed.
 
-    While the endpoint is down the stale set stays in use. A key the issuer
-    removed keeps verifying for the whole outage, and for up to one back-off
-    after the endpoint is back.
+    While the endpoint is down the stale set stays in use, up to a hard limit.
+    Once the last successful load is max_stale old, the set is not served at
+    all: every token is rejected as "key set too stale" until a refresh
+    succeeds. The back-off still applies, so the retries go on at the same
+    rate. A key the issuer removed therefore keeps verifying for the shorter
+    of two times: the outage plus up to one back-off, or max_stale. The price
+    is that an outage of the key endpoint longer than max_stale becomes an
+    outage of this API for every caller.
 
-    Project baseline, stated because no specification settles it:
+    Project baseline, stated because the specifications this lesson cites do
+    not settle it:
       - A successful, well-formed set is authoritative. It replaces what we
         hold, even when it contains zero usable signing keys.
       - A malformed, truncated or failed retrieval is not authoritative. It
         leaves the last known good set in place. A request for a kid that is
         not in that set still fails; a request for a kid that is in it is
-        served from the stale set.
+        served from the stale set, until the set reaches max_stale.
+      - A set whose last successful load is max_stale old is not served.
+        This fails closed: a removed key gets an upper bound, and a long
+        outage of the key endpoint rejects every caller.
     """
 
     max_age = 600
     cooldown = 300
     backoff = 60
+    max_stale = 3600
 
     def __init__(self, endpoint, clock):
         self.endpoint = endpoint
@@ -202,6 +212,9 @@ class KeyCache:
             outcome = self._refresh(scheduled=True)
             if outcome != "ok" and not self.loaded:
                 return None, "key set refresh failed"
+        # Tested after the attempt above, so a healthy endpoint never gets here.
+        if self.clock[0] - self.loaded_at >= self.max_stale:
+            return None, "key set too stale"
         if kid not in self.keys:
             outcome = self._refresh()
             if outcome in ("malformed", "retrieval failed"):
@@ -420,6 +433,48 @@ def main():
     clock[0] += 60
     check("endpoint back, the removed key", "reject: unknown kid", out_verifier.verify(late_a, clock))
     check("endpoint back, the new key", "accept", out_verifier.verify(late_b, clock))
+
+    # A long outage. Each request carries a token signed at that moment, so
+    # token expiry plays no part. The cache holds keys a and b. The issuer
+    # removes key a, and its endpoint goes down and stays down. The times
+    # below are written out, not read from max_stale, so checks 21 to 23 pin
+    # the limit at 3600 seconds after the last successful load.
+    def fresh(key, kid):
+        return make_token(key, kid, iat=clock[0] - 30, exp=clock[0] + 3600)
+
+    long = KeyEndpoint()
+    long.serve({"keys": [jwk_a, jwk_b]})
+    long_cache = KeyCache(long, clock)
+    long_verifier = Verifier(long_cache)
+    long_verifier.verify(fresh(key_a, "hotel-a"), clock)
+    long.script = [TimeoutError("connect timed out")]
+    clock[0] += 3599
+    check("long outage, 1 s before the limit", "accept", long_verifier.verify(fresh(key_a, "hotel-a"), clock))
+    clock[0] += 1
+    before = long.fetches
+    check("at the limit, a key still in the kept set", "reject: key set too stale",
+          long_verifier.verify(fresh(key_b, "hotel-b"), clock))
+    check("at the limit, the removed key", "reject: key set too stale",
+          long_verifier.verify(fresh(key_a, "hotel-a"), clock))
+    for kid in ("hotel-b", "hotel-x3", "hotel-b"):
+        clock[0] += 10
+        long_verifier.verify(fresh(key_b, kid), clock)
+    check("5 requests past the limit, in the back-off", "fetches: 0", "fetches: %d" % (long.fetches - before))
+    long.script = [{"keys": [jwk_b]}]
+    clock[0] += 30
+    check("endpoint back, service is restored", "accept", long_verifier.verify(fresh(key_b, "hotel-b"), clock))
+
+    # A healthy endpoint: a request every 10 minutes for two hours, then a
+    # quiet two hours and one more request. Each one refreshes first.
+    well = KeyEndpoint()
+    well.serve({"keys": [jwk_a]})
+    well_verifier = Verifier(KeyCache(well, clock))
+    seen = [well_verifier.verify(fresh(key_a, "hotel-a"), clock)]
+    for step in [600] * 12 + [7200]:
+        clock[0] += step
+        seen.append(well_verifier.verify(fresh(key_a, "hotel-a"), clock))
+    check("healthy endpoint, 4 hours, 14 requests", "accept",
+          "accept" if set(seen) == {"accept"} else sorted(set(seen) - {"accept"})[0])
 
     print()
     print("Part C: revocation.")
