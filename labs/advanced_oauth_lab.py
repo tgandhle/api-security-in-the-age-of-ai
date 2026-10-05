@@ -21,6 +21,9 @@ controls a high-assurance deployment puts around it, one attack at a time.
           Security Profile requires. Rich authorization requests and step-up
           are added on top: the profile requires neither. Then one request
           that none of it stops.
+  Part F  each rule on its own. Ten rules that Parts A to E apply but never
+          show alone. Each check changes one thing in a request that is
+          otherwise valid, so the refusal names one rule.
 
 ExampleBank, ExamplePay and ExampleAir are fictional. The authorization
 server, the client and the resource server are Python objects in this file
@@ -1053,6 +1056,84 @@ def main():
     record("  with an ownership check at the resource server", "404 not found",
            owner_checked.handle("GET", "/payments/pay-7002", flow["token"],
                                 conn_key=bound_key))
+
+    # ---------------- Part F -------------------------------------------
+    # Each check below differs from a request the lab accepts in one way
+    # only, so each refusal belongs to one rule. Delete that rule and that
+    # check, and no other, reports a failure.
+    section("Part F: each rule on its own. Which rule refused the request?")
+    server = AuthorizationServer(clock, registry(), require_par=True)
+    api = PaymentsAPI(server)
+    rich = run_flow(server, pay_key, new_user(clock),
+                    {"authorization_details": payment_details()})
+    record("the granted amount and currency, to another account",
+           '403 Bearer error="insufficient_scope"',
+           api.handle("POST", "/payments", rich["token"],
+                      dict(booking, creditor="acct-attacker")))
+    record("the granted account and amount, in another currency",
+           '403 Bearer error="insufficient_scope"',
+           api.handle("POST", "/payments", rich["token"], dict(booking, currency="USD")))
+
+    record("an assertion whose iss is not the client",
+           "invalid_client: iss is not the client",
+           server.authenticate(assertion_form(jwt_es256(pay_key, dict(
+               claims_for("examplepay", ISSUER, clock.now), iss="examplereader"))))[1])
+    no_jti = claims_for("examplepay", ISSUER, clock.now)
+    del no_jti["jti"]
+    record("an assertion with no jti", "invalid_client: jti missing",
+           server.authenticate(assertion_form(jwt_es256(pay_key, no_jti)))[1])
+
+    verifier = secrets.token_urlsafe(32)
+
+    def pushed_as_examplepay(**change):
+        """One valid pushed request from ExamplePay, with `change` applied."""
+        form = dict({"response_type": "code", "redirect_uri": REDIRECT,
+                     "code_challenge": s256(verifier), "code_challenge_method": "S256",
+                     "authorization_details": payment_details()}, **change)
+        status, body = server.par(assertion_form(
+            jwt_es256(pay_key, claims_for("examplepay", ISSUER, clock.now)), **form))
+        return status, body
+
+    def new_code():
+        status, body = pushed_as_examplepay()
+        return server.authorize({"client_id": "examplepay",
+                                 "request_uri": body["request_uri"]},
+                                new_user(clock))["code"]
+
+    def redeem(key, client_id, code, code_verifier):
+        status, body = server.token(assertion_form(
+            jwt_es256(key, claims_for(client_id, ISSUER, clock.now)),
+            grant_type="authorization_code", code=code, code_verifier=code_verifier))
+        return [status, body.get("error")]
+
+    record("another client redeems ExamplePay's code, with the right verifier",
+           [400, "invalid_grant"],
+           redeem(reader_key, "examplereader", new_code(), verifier))
+    record("ExamplePay redeems its own code, with another verifier",
+           [400, "invalid_grant"],
+           redeem(pay_key, "examplepay", new_code(), secrets.token_urlsafe(32)))
+
+    status, body = pushed_as_examplepay(redirect_uri="https://app.examplepay.example/other")
+    record("a pushed request whose redirect_uri is not a registered one",
+           [400, "invalid_request: redirect_uri"], [status, body.get("error")])
+    incomplete = json.loads(payment_details())
+    del incomplete[0]["creditorAccount"]
+    status, body = pushed_as_examplepay(authorization_details=json.dumps(incomplete))
+    record("pushed details with the required field creditorAccount left out",
+           [400, "invalid_authorization_details: missing field creditorAccount"],
+           [status, body.get("error")])
+
+    elsewhere = run_flow(server, pay_key, new_user(clock), {
+        "authorization_details": payment_details(
+            locations=["https://api.examplebank.example/standing-orders"])})
+    record("a grant whose locations name another endpoint: the booking payment",
+           '403 Bearer error="insufficient_scope"',
+           api.handle("POST", "/payments", elsewhere["token"], booking))
+    record("an assertion sent with another client's client_id",
+           "invalid_client: client_id does not match the assertion",
+           server.authenticate(assertion_form(
+               jwt_es256(pay_key, claims_for("examplepay", ISSUER, clock.now)),
+               client_id="examplereader"))[1])
 
     width = max(len(label) for label, _, _ in RESULTS if label is not None)
     for label, expected, actual in RESULTS:

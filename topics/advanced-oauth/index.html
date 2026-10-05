@@ -409,7 +409,19 @@ Part E: the controls together, and what they still do not decide.
 70. every check above passed; the same token reads pay-7002                  200 310.00 EUR to acct-landlord, owned by customer-42
 71.   with an ownership check at the resource server                         404 not found
 
-all 71 lab checks passed</code></pre>
+Part F: each rule on its own. Which rule refused the request?
+72. the granted amount and currency, to another account                      403 Bearer error="insufficient_scope"
+73. the granted account and amount, in another currency                      403 Bearer error="insufficient_scope"
+74. an assertion whose iss is not the client                                 invalid_client: iss is not the client
+75. an assertion with no jti                                                 invalid_client: jti missing
+76. another client redeems ExamplePay's code, with the right verifier        [400, 'invalid_grant']
+77. ExamplePay redeems its own code, with another verifier                   [400, 'invalid_grant']
+78. a pushed request whose redirect_uri is not a registered one              [400, 'invalid_request: redirect_uri']
+79. pushed details with the required field creditorAccount left out          [400, 'invalid_authorization_details: missing field creditorAccount']
+80. a grant whose locations name another endpoint: the booking payment       403 Bearer error="insufficient_scope"
+81. an assertion sent with another client's client_id                        invalid_client: client_id does not match the assertion
+
+all 81 lab checks passed</code></pre>
 <div class="prose">
 <p>Checks 1 to 6 are the first row of the table in section 1. The Basic header that carried the secret works again an hour later from a copy in a log (check 2). With <code>client_secret_jwt</code> the secret never travels, and that does not help against the server's own table: check 4 mints a valid assertion from the stored record. Check 6 tries the same thing against the <code>private_key_jwt</code> record and finds nothing there that can sign.</p>
 <p>Checks 9 to 11 are the <code>jti</code> record. In checks 5 to 8 three assertions naming ExamplePay reached the server and one was genuine, so one <code>jti</code> is recorded: the forged ones never reached the record. The genuine assertion, copied and sent again, is refused in check 10 and accepted in check 11 by a server that follows RFC 7523 and does not track. Check 15 is why the lifetime cap in check 14 matters: once the assertions have expired the record is empty again.</p>
@@ -418,6 +430,7 @@ all 71 lab checks passed</code></pre>
 <p>Checks 36 to 44 are RAR. The scope pays anyone (37). The details pay one payee one amount (41 to 43). Check 44 is the same token at an API that looks only for the type. Checks 48 and 49 are the reason RFC 9396 tells clients to protect the details: sent on the front channel, the amount becomes 0.45, and the only party who can notice is a client that compares the token response with what it asked for.</p>
 <p>Checks 50 to 57 are step-up. Reading a balance is allowed on a two-hour-old password session and paying is not. Checks 56 and 57 take the two conditions apart: strong but old is challenged, and fresh but weak is challenged. Check 59 is the other error, for comparison with module 20.</p>
 <p>Checks 61 to 69 run everything together on a server configured as FAPI 2.0 requires, with details and step-up added. Then check 70: the same token, from the right key, after a fresh second factor, reads a payment that belongs to customer-42. Check 71 is the one line of the API that stops it.</p>
+<p>Checks 72 to 81 are Part F, each rule on its own. Parts A to E apply these ten rules and never show one of them alone. Check 42, for example, changes the payee and the amount together. A check that changes two things at once cannot tell you which rule refused the request. Each check in Part F changes one thing in a request that is otherwise valid. Checks 72 and 73 change the payee alone and the currency alone. Checks 74, 75 and 81 are an assertion with the wrong <code>iss</code>, with no <code>jti</code>, and sent with another client's <code>client_id</code>. Checks 76 and 77 are a code redeemed by another client and a code redeemed with another PKCE verifier. Checks 78 and 79 are a pushed request with a <code>redirect_uri</code> that is not registered and one with a required field left out. Check 80 is a grant whose <code>locations</code> name another endpoint. Measured: with any one of the ten rules switched off, its own check fails and no other check does.</p>
 <p><strong>Try next:</strong></p>
 <ul>
 <li>In <code>AuthorizationServer.par</code>, change <code>secrets.token_urlsafe(32)</code> to <code>secrets.token_urlsafe(8)</code>. Check 25 prints <code>64</code> and the lab exits 1. Every other check still passes, including the guessed <code>request_uri</code> in check 29, because one guess proves nothing about entropy. The general guidance in RFC 9101 section 10.2 is 128 bits or more.</li>
