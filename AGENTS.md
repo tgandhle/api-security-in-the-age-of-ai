@@ -33,6 +33,10 @@ These do not change:
 | `tools/check_site.py` | Links, anchors, dashes, secrets, checklist freshness. Skips `react-poc/`. |
 | `tools/build_coverage.py` | Regenerates `coverage/index.html` and `content/coverage.json`. Which lessons cite an entry is read from the lesson pages, not written in the tool. `--check` exits 1 if either file is stale, if an entry is cited by no lesson and has no stated reason, or if a lesson cites an entry or mentions a topic the page says is not covered. |
 | `tools/check_a11y.py` | axe-core against every page, light and dark, desktop and mobile. Author tool. Skips cleanly if not installed. With `--app` it serves `app/dist` on 127.0.0.1 and checks the React build, which is what the hosted site serves; that mode exits 1 if `app/dist` is missing. In that mode it stores the matching theme before each page loads and emulates the same system setting, so each mode tests the theme a reader who chose it gets. A stored choice wins over the system setting on the build. |
+| `tools/check_labs_browser.py` | Presses "Run this lab in your browser" on every lesson of `app/dist` (or of a served site, with `--base`). A lab must run and match its transcript, or be one `assets/course.js` lists in `NOT_IN_BROWSER`. Author tool: needs Playwright and network access to the Pyodide CDN. Skips cleanly without Playwright unless `--require` is given. |
+| `tools/release_evidence.py` | Release tool. Runs every check with nothing allowed to skip and writes `evidence/evidence.json` and `evidence/evidence.md`: the commit, the system, the versions, the counts and what each check said. `evidence/` is not tracked. The record describes one run, not a certification. |
+| `tools/requirements-ci.txt`, `tools/requirements-release.txt` | The Python packages the two workflows install, each pinned by version and by the hash of every Linux wheel PyPI publishes for it. Regenerate both from PyPI's file list when a pinned version changes; never add a hash by hand from anywhere else. |
+| `.github/workflows/pages.yml`, `.github/workflows/release.yml` | Publishing on every push to `main`, and the release gate on a `v` tag. Changing either is a stop-and-ask item. See Decisions, 2026-10-05. |
 | `tools/extract_lessons.py` | Extracts the published pages into `content/` as structured JSON. `--check` rebuilds each page from its record, compares it byte for byte, checks the lesson numbering against `index.html`, and exits 1 if `content/` is stale. |
 | `tools/render_site.py` | Renders the lesson pages from `content/` through `tools/page_template.tmpl`. Compares by default; `--write` overwrites the pages. |
 | `tools/check_transcripts.py` | Runs every lab whose output is published and compares it to the page byte for byte. Reports a lab that needs a missing package as skipped, not failed. Also flags a lab command written in any form other than `python3 labs/<lab>.py`. |
@@ -167,6 +171,27 @@ when the reason it gives has stopped being true, and say so in the commit.
   cannot be run outside GitHub. Adding it was an owner decision; changing it
   is still a stop-and-ask item. To go back, set Pages to deploy from the
   `main` branch root again; nothing else has to change.
+- **2026-10-05, transcripts are checked on every publish, and a tag runs a
+  release gate.** Owner decision. (1) `pages.yml` now installs `cryptography`
+  from `tools/requirements-ci.txt`, by hash, and runs
+  `check_transcripts.py --no-skips` before it builds: a lab that no longer
+  prints what its page says stops the deployment, and so does a lab that
+  could not run. (2) `release.yml` runs on a tag that starts with `v`, or by
+  hand. Its first job runs `tools/release_evidence.py`: every check, the two
+  accessibility runs with `--require`, and `tools/check_labs_browser.py`,
+  which presses the run button on every lesson. Accessibility runs here and
+  not on every push because the two runs take minutes and need a browser.
+  Its second job creates a draft release with the record attached, and only
+  that job may write to the repository; it runs no package code. A tag needs
+  `release-notes/<tag>.md` in the tagged commit or the release job fails.
+  (3) The record is produced by the workflow and attached to the release. It
+  is not committed, because a committed result describes a commit that is
+  already in the past. (4) New pinned inputs: `actions/setup-python` v7.0.0,
+  `actions/upload-artifact` v7.0.1 and `actions/download-artifact` v8.0.1, by
+  commit; the Python packages by hash; the axe-core 4.13.0 tarball by the
+  integrity value npm publishes for it. No new dependency was approved:
+  `cryptography`, `playwright` and `axe-core` already were, and the rest are
+  what those need. Neither workflow could be run before it was committed.
 - **2026-10-05, the part that holds module 26 is called "Design review", not
   "Capstone".** Eleven modules now follow it, so "capstone" no longer
   described where it sits. Module 26 keeps its title, number and address. The

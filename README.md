@@ -101,9 +101,14 @@ python3 tools/build_search_index.py --check  # assets/search-index.js matches co
 python3 tools/check_transcripts.py       # runs every lab and compares its output to the page
 python3 tools/check_a11y.py              # axe-core, light and dark, desktop and mobile
 python3 tools/check_a11y.py --app        # the same against app/dist, after npm run build in app/
+python3 tools/check_labs_browser.py      # presses "Run this lab in your browser" on every lesson of app/dist
 ```
 
-All eight exit 0 when the site is clean, and 1 with a named reason otherwise.
+All ten exit 0 when the site is clean, and 1 with a named reason otherwise.
+
+`check_labs_browser.py` is an author tool too, with the same Playwright requirement, and it needs network access to the CDN the page loads Python from. It expects every lab to run and match its transcript, except the labs `assets/course.js` lists as not offered in a browser.
+
+Publishing and releases: `.github/workflows/pages.yml` runs the page checks and `check_transcripts.py --no-skips` on every push to `main`, with `cryptography` installed from `tools/requirements-ci.txt` by hash, and publishes only if they pass. `.github/workflows/release.yml` runs when a tag starting with `v` is pushed. It runs `tools/release_evidence.py`, which runs every check above with nothing allowed to skip and writes a record of the commit, the versions and the results, then attaches that record to a draft release. The record describes one run against one commit. It is not a certification.
 
 `check_a11y.py` is an author tool and needs Playwright and axe-core, installed once with the commands in its file header. It skips cleanly and exits 0 if they are absent, so it never blocks reading or editing a page.
 

@@ -33,7 +33,9 @@ because the build's module script does not load from a file:// page, and
 checking it without its script would check something no reader gets.
 
 If the tooling is not installed the script says so and exits 0, so it never
-blocks someone who only wants to read or edit a page. The definition of done in
+blocks someone who only wants to read or edit a page. With --require a skip
+exits 1 instead: the release workflow uses it, because there a run that
+checked nothing must not pass. The definition of done in
 AGENTS.md requires the author to run it and paste the real output, so a skip is
 visible in the report rather than silent.
 
@@ -96,11 +98,11 @@ def main():
         from playwright.sync_api import sync_playwright
     except ImportError:
         print("check_a11y: playwright is not installed, skipped. " + INSTALL_HINT)
-        return 0
+        return 1 if "--require" in sys.argv else 0
     source, source_path = axe_source()
     if source is None:
         print("check_a11y: axe-core was not found, skipped. " + INSTALL_HINT)
-        return 0
+        return 1 if "--require" in sys.argv else 0
 
     if app:
         server = serve(dist)

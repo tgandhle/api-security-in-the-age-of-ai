@@ -19,6 +19,11 @@ without the optional dependency.
 Usage:
     python3 tools/check_transcripts.py
     python3 tools/check_transcripts.py --verbose   # show each transcript's verdict
+    python3 tools/check_transcripts.py --no-skips  # exit 1 if any lab was skipped
+
+--no-skips is for the publishing and release workflows, which install the
+package first: there a skipped lab means the run did not check what it claims
+to, so it has to fail.
 """
 
 import html
@@ -61,6 +66,7 @@ def resolve(script):
 
 def main():
     verbose = "--verbose" in sys.argv[1:]
+    no_skips = "--no-skips" in sys.argv[1:]
     checked = identical = skipped_dep = 0
     not_a_lab = 0
     problems = []
@@ -151,6 +157,9 @@ def main():
               "not installed here." % skipped_dep)
         print("Install it with the command the lab prints, then run this "
               "again to cover them.")
+        if no_skips:
+            print("--no-skips: a skipped lab fails this run.")
+            return 1
     else:
         print("\nall %d published lab transcripts match a live run" % identical)
     return 0

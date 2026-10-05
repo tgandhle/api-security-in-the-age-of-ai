@@ -1,9 +1,15 @@
 # Builds the React app in app/ and publishes app/dist to GitHub Pages.
 #
 # The static pages in the repository stay the source of truth. This workflow
-# first runs the checks that need only Python's standard library, so a page
-# that is stale or broken stops the deployment and the site that is already
-# live stays up.
+# first runs the checks on the pages and the generated files, then runs every
+# lab and compares its output with the transcript its page publishes. A page
+# that is stale or broken, or a lab that no longer prints what its page says,
+# stops the deployment, and the site that is already live stays up.
+#
+# Five labs need the cryptography package. It is installed from
+# tools/requirements-ci.txt with every file pinned by hash, and the transcript
+# check runs with --no-skips, so a lab that could not run fails the job
+# instead of being reported as skipped.
 #
 # Every action is pinned to a commit, with its release tag in the comment.
 # Module 32 of the course says why: a tag can be moved, a commit cannot.
@@ -30,6 +36,11 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
       - name: Check the pages and the generated files
         run: |
           python3 tools/check_site.py
@@ -40,6 +51,11 @@ jobs:
           python3 tools/build_lab_bundles.py --check
           python3 tools/build_checklist.py --check
           python3 tools/build_coverage.py --check
+
+      - name: Run every lab and compare it with its published transcript
+        run: |
+          python3 -m pip install --require-hashes -r tools/requirements-ci.txt
+          python3 tools/check_transcripts.py --no-skips
 
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0

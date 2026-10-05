@@ -1,0 +1,29 @@
+# Python packages the publishing workflow installs, pinned by hash.
+# Only check_transcripts.py needs them: five labs import cryptography.
+# Every wheel PyPI publishes for Linux x86-64 (and every pure-Python wheel) of
+# each pinned version is listed, so pip can pick the one that fits the runner
+# and refuses anything else. Generated from PyPI's own file list on 2026-10-05.
+# Install with: python -m pip install --require-hashes -r tools/requirements-ci.txt
+cffi==2.1.1 \
+    --hash=sha256:194cffa889098ced9976c3fc6340305e43f6303657d298da55366907c05c22d6 \
+    --hash=sha256:34e261f78cb6ceaaa36f42f2613f4380d94d9c759a9c73c769ee6e0247364632 \
+    --hash=sha256:c1453022f490d2459a11819d83ad1d586e9ff65a12ac3e705ffebd46d3685dcf \
+    --hash=sha256:a931079504ecc49efed7744c476a5c343a92fabf66dec2db95edb1b2fdc770e2 \
+    --hash=sha256:b0431303acaea1089ad4b3e9ce4e6518193def1118d4073ca848635ee4ea2e96 \
+    --hash=sha256:51b31d1c98274844cfd7838ce00bfc27c7423a4dc00fc0772fc3331c2cc90676 \
+    --hash=sha256:aeae0e330c9f6acd681f647d46cefd30c29f93e3392882e792e82080c9691399 \
+    --hash=sha256:363e05fa78e15116c3c32c210ee36884fd6b9afa6d440e47112c3bd511d64cb6
+cryptography==50.0.1 \
+    --hash=sha256:ff838d62ec1bfce4f9ba7fa16f4a7b554cd8d0c299e6be37502161a660c84eef \
+    --hash=sha256:51593d180cf6d179bde5c5d065bed81386b1f381656ae7d042b7ffc87a9895ad \
+    --hash=sha256:51afcfceb15597cf2635068e4ac9a56b2abde622edde17f37d85fd7b5306497a \
+    --hash=sha256:8921d58f426793c5f1b47f0b59575780de9a095214958d0eb37d909593db8367 \
+    --hash=sha256:8df2de9102026855887e4587084f6eabd80ed0f345b8ad8a7ac27ab9bf4723e0 \
+    --hash=sha256:79bf008d1f9af6071c797ad133e39915dfee7614f18f18f4db9072eb715064a3 \
+    --hash=sha256:e22dfed744bd4002e909464cb23d2f0b05c6f3113a79ef2e9864a53db737c733 \
+    --hash=sha256:407fe2b6db00939c05c0e945e9914238f2f0a430974839429dafc82b1ee6bee5 \
+    --hash=sha256:9dde0a357190eb3b1da1bb9ab750e9c85cba82ca5977aa0836cbb94e92611239 \
+    --hash=sha256:fb4b9672d389c738b175c4166e78310f8a70358886aacd9173ee03a85ffdc671 \
+    --hash=sha256:804728ce710890870f3aaa344b2e161172d258d768ac139d02cfd9092d0d94e6
+pycparser==3.0 \
+    --hash=sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992
