@@ -167,6 +167,16 @@ when the reason it gives has stopped being true, and say so in the commit.
   cannot be run outside GitHub. Adding it was an owner decision; changing it
   is still a stop-and-ask item. To go back, set Pages to deploy from the
   `main` branch root again; nothing else has to change.
+- **2026-10-05, SAML is covered after all: module 37.** This reverses the last
+  sentence of the entry below, on the owner's decision the same day. The
+  module is written for this course's reader, who meets SAML at the edge of
+  an API: what an assertion proves, how its validation fails, and what must
+  happen before anything derived from it reaches an API (a session, then
+  OAuth tokens, or the RFC 7522 exchange). It is not a SAML deployment guide.
+  Its lab does not implement XML Signature: it signs one referenced element
+  with an HMAC stand-in, which keeps the one property the wrapping attack
+  turns on, and the page says so. `coverage/index.html` no longer lists SAML
+  as left out.
 - **2026-10-05, Part 6, "Identity protocols in depth", holds modules 35 and
   36.** An outside review compared the course with an older protocol
   reference and found that OpenID Connect had no lesson, and that client
@@ -294,7 +304,7 @@ Work on one module per task unless told otherwise.
 - [ ] `python3 tools/check_site.py` prints `all checks passed`.
 - [ ] `python3 tools/extract_lessons.py --check` prints `content/ matches the published pages`.
 - [ ] `python3 tools/render_site.py` prints `the template reproduces every published page byte for byte`.
-- [ ] `python3 tools/check_transcripts.py` prints `all 37 published lab transcripts match a live run`. If it reports any as skipped, install the package the lab names and run it again, or say in your report which ones were not checked and why.
+- [ ] `python3 tools/check_transcripts.py` prints `all 38 published lab transcripts match a live run`. If it reports any as skipped, install the package the lab names and run it again, or say in your report which ones were not checked and why.
 - [ ] `python3 tools/build_lab_bundles.py --check` prints `every lab bundle matches its .py file`.
 - [ ] `python3 tools/extract_pages.py --check` prints `content/pages.json matches the published pages`.
 - [ ] `python3 tools/build_search_index.py --check` prints `the search index matches content/`.
@@ -378,6 +388,7 @@ All of these modules are now published. The list is kept as the record of intent
 **Part 6: Identity protocols in depth** (added 2026-10-05; see Decisions)
 35. **OpenID Connect and ID tokens.** Attacks: an ID token sent to an API, an access token used as a login, an ID token for another client or from another issuer, a replayed code caught by the nonce. Lab: an OpenID provider, two clients and an API, with a naive and a correct validator for each. Standard library only: ID tokens are signed with HS256, which the page states.
 36. **Client authentication, PAR and high-assurance OAuth.** Attacks: a client secret copied from a log, an authorization request edited in the browser, a coarse scope that pays any payee, a payment on an old or weak login. Lab: `private_key_jwt`, pushed authorization requests, rich authorization requests, step-up authentication, then a FAPI 2.0 style flow that still reads another customer's object. Uses `cryptography` per rule 7.
+37. **SAML assertions and where they meet APIs.** Attacks: XML signature wrapping, an unsigned assertion inside a signed response, an assertion for another service provider, replay, an unsolicited response, a key taken from the message, an assertion presented to an API. Lab: an identity provider, two service providers, an API and a token endpoint, with a naive and a correct build of each check. Standard library only: the signature is an HMAC stand-in over one referenced element, which the page states.
 
 Labs for Part 4 must not call real model APIs. Use local stubs that simulate model behavior.
 

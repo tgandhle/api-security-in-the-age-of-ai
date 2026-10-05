@@ -8,7 +8,7 @@
           "id": "course",
           "data-course-dashboard": null
         },
-        "html": "<section class=\"course-hero\" id=\"course\" data-course-dashboard>\n<p class=\"kicker\">Interactive learning course</p>\n<h1>API Security in the Age of AI</h1>\n<div class=\"prose\">\n<p>For security engineers, architects and developers who can read Python and HTTP requests. It starts with a primer for people new to security and goes as far as the protocol detail a design review needs. Each module starts with a real attack, shows why it works, teaches the control that stops it, and ends with a test you can run. The second half of each page is a reference you can use in design reviews.</p>\n<p class=\"meta\">Self-paced. Work through the modules in order. Each one assumes the ones before it. Labs need Python 3. The labs for modules 3, 5, 6, 7 and 36 also need one package, <code>cryptography</code>. Progress is stored only in this browser.</p>\n</div>\n<div class=\"course-progress\" aria-label=\"Course progress\"><p data-course-progress>0 of 37 published lessons complete</p><div class=\"progress-track\" role=\"progressbar\" aria-label=\"Published lesson progress\" aria-valuemin=\"0\" aria-valuemax=\"100\"><span data-course-progress-bar></span></div><p class=\"meta\" data-course-assessment-progress>0 of 37 published quick checks passed</p></div>\n<div class=\"course-actions\"><a class=\"button\" href=\"topics/security-foundations/index.html\">Start with the primer</a><button class=\"button secondary\" type=\"button\" data-reset-progress>Reset progress</button></div>\n</section>"
+        "html": "<section class=\"course-hero\" id=\"course\" data-course-dashboard>\n<p class=\"kicker\">Interactive learning course</p>\n<h1>API Security in the Age of AI</h1>\n<div class=\"prose\">\n<p>For security engineers, architects and developers who can read Python and HTTP requests. It starts with a primer for people new to security and goes as far as the protocol detail a design review needs. Each module starts with a real attack, shows why it works, teaches the control that stops it, and ends with a test you can run. The second half of each page is a reference you can use in design reviews.</p>\n<p class=\"meta\">Self-paced. Work through the modules in order. Each one assumes the ones before it. Labs need Python 3. The labs for modules 3, 5, 6, 7 and 36 also need one package, <code>cryptography</code>. Progress is stored only in this browser.</p>\n</div>\n<div class=\"course-progress\" aria-label=\"Course progress\"><p data-course-progress>0 of 38 published lessons complete</p><div class=\"progress-track\" role=\"progressbar\" aria-label=\"Published lesson progress\" aria-valuemin=\"0\" aria-valuemax=\"100\"><span data-course-progress-bar></span></div><p class=\"meta\" data-course-assessment-progress>0 of 38 published quick checks passed</p></div>\n<div class=\"course-actions\"><a class=\"button\" href=\"topics/security-foundations/index.html\">Start with the primer</a><button class=\"button secondary\" type=\"button\" data-reset-progress>Reset progress</button></div>\n</section>"
       },
       {
         "tag": "section",
@@ -17,7 +17,7 @@
           "id": "overview",
           "aria-labelledby": "course-overview"
         },
-        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>Security engineers, architects and developers who can read Python and HTTP requests. Being new to security is fine: module 0 is a primer, and the glossary explains the vocabulary.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. Five labs also need the <code>cryptography</code> package. No account or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 37 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Examples of learning outcomes</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
+        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>Security engineers, architects and developers who can read Python and HTTP requests. Being new to security is fine: module 0 is a primer, and the glossary explains the vocabulary.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. Five labs also need the <code>cryptography</code> package. No account or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 38 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Examples of learning outcomes</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
       },
       {
         "tag": "h2",
@@ -31,7 +31,7 @@
         "attrs": {
           "class": "meta"
         },
-        "html": "<p class=\"meta\">Every module is published: the primer, all of Parts 1 and 2, all seven modules of Part 3, all seven of Part 4, the capstone, all eight of Part 5, and both modules of Part 6. Each one carries its lesson, a runnable lab with its real output, primary sources, and review checklist items. The <a href=\"coverage/index.html\">coverage page</a> lists each entry of three OWASP lists with the lessons that cite it, and says what the course leaves out.</p>"
+        "html": "<p class=\"meta\">Every module is published: the primer, all of Parts 1 and 2, all seven modules of Part 3, all seven of Part 4, the capstone, all eight of Part 5, and all three modules of Part 6. Each one carries its lesson, a runnable lab with its real output, primary sources, and review checklist items. The <a href=\"coverage/index.html\">coverage page</a> lists each entry of three OWASP lists with the lessons that cite it, and says what the course leaves out.</p>"
       }
     ]
   },
@@ -109,6 +109,11 @@
         "definition": "A file or set of files that is built once and then moved around unchanged: a package, a container image, a model's weights. SLSA v1.2 defines it as \"An immutable blob of data\". Identify one by its digest, because a name can be pointed at a different artifact."
       },
       {
+        "id": "assertion",
+        "term": "Assertion",
+        "definition": "In SAML, a package of statements that an identity provider makes about a subject: that the subject authenticated, when, and often attributes such as group names. It names its issuer and the audience it is for, and it or the response around it is signed. A client assertion is a different thing, a JWT, with an entry of its own. Covered in module 37."
+      },
+      {
         "id": "asymmetric-signature",
         "term": "Asymmetric signature",
         "definition": "A signature made with a private key and checked with the matching public key. Knowing the public key lets you verify, not sign, so the verifier can't forge signatures."
@@ -122,6 +127,11 @@
         "id": "audience",
         "term": "Audience",
         "definition": "Who a token is for. In a JWT it is the <code>aud</code> claim, which \"identifies the recipients that the JWT is intended for\". A service checks that its own identifier appears there: when the claim is present and does not name the service processing it, the JWT must be rejected. RFC 7519 section 4.1.3."
+      },
+      {
+        "id": "audience-restriction",
+        "term": "Audience restriction",
+        "definition": "The condition in a SAML assertion that names the parties the assertion is addressed to. A relying party that is not among them rejects the assertion. It does the job of the <code>aud</code> claim in a JWT."
       },
       {
         "id": "authentication",
@@ -459,6 +469,11 @@
         "definition": "A request method is idempotent \"if the intended effect on the server of multiple identical requests with that method is the same as the effect for a single such request\". RFC 9110 section 9.2.2 names PUT, DELETE and the safe methods, and POST is not among them. An operation sent by POST has to get the property from the application, for example with an <a href=\"#idempotency-key\">idempotency key</a>."
       },
       {
+        "id": "identity-provider",
+        "term": "Identity provider",
+        "definition": "The party in SAML that authenticates the user and issues assertions about them to service providers. Abbreviated IdP. An OpenID provider plays the same part in OpenID Connect."
+      },
+      {
         "id": "impersonation",
         "term": "Impersonation",
         "definition": "An arrangement where the acting party is given the rights of another and is \"indistinguishable from\" it in that context, so nothing downstream can tell a different party made the call. RFC 8693 section 1.1."
@@ -744,6 +759,11 @@
         "definition": "A test kept after a flaw is fixed that replays the request which found it and expects the fixed answer. Run on every change, it fails if the flaw comes back."
       },
       {
+        "id": "relaystate",
+        "term": "RelayState",
+        "definition": "A value that a SAML binding carries beside the message, so the party that sent a request can pick up where the user left off. With the POST binding nothing ties it to the message it arrives with, so it is looked up or validated and never followed as a URL."
+      },
+      {
         "id": "relying-party",
         "term": "Relying party",
         "definition": "An OAuth client that uses OpenID Connect to have a user authenticated by an OpenID provider, and relies on the result. Abbreviated RP. It is the audience of the ID token."
@@ -814,6 +834,11 @@
         "definition": "A cookie attribute that tells the browser when to attach the cookie to a request another <a href=\"#site\">site</a> caused. <code>Strict</code> never does, <code>Lax</code> does only for a top-level navigation that uses a <a href=\"#safe-method\">safe method</a>, and <code>None</code> always does. It is defined in the rfc6265bis Internet-Draft, not in RFC 6265."
       },
       {
+        "id": "saml",
+        "term": "SAML",
+        "definition": "Security Assertion Markup Language. An OASIS standard, version 2.0 since March 2005, in which an identity provider issues signed XML assertions about a user to service providers. Module 37 covers its use for single sign-on in a browser."
+      },
+      {
         "id": "sandbox",
         "term": "Sandbox",
         "definition": "A restricted environment for running code or commands, enforced from outside the thing it restricts: which files it can read and write, which hosts it can reach, and what is in its environment. It limits what a wrong step can do, not whether the step is wrong."
@@ -852,6 +877,11 @@
         "id": "server-reflection",
         "term": "Server reflection",
         "definition": "An optional gRPC service that tells a client which methods a server exports and what their messages look like. Debugging tools use it to build requests. It tells an attacker the same things, and the OWASP gRPC Security Cheat Sheet recommends disabling it in production."
+      },
+      {
+        "id": "service-provider",
+        "term": "Service provider",
+        "definition": "The party in SAML that relies on an identity provider to authenticate its users: the application the user signs in to. Abbreviated SP. It is the audience of the assertion, as a relying party is the audience of an ID token."
       },
       {
         "id": "session-fixation",
@@ -917,6 +947,11 @@
         "id": "structured-logging",
         "term": "Structured logging",
         "definition": "Writing each event as named fields in a format a program can parse, such as one JSON object per line, in place of a sentence. The encoder escapes line breaks and quotes inside values, so a value cannot end its own entry."
+      },
+      {
+        "id": "subject-confirmation",
+        "term": "Subject confirmation",
+        "definition": "The part of a SAML assertion that says how a relying party confirms that whoever presents the assertion may use it. In browser sign-in the method is bearer, limited by a Recipient URL, a NotOnOrAfter time and the InResponseTo of the request."
       },
       {
         "id": "subject-identifier",
@@ -999,6 +1034,11 @@
         "definition": "An identity issued to a running service by its platform, rather than a secret handed to it at deployment. It removes the long-lived value that had to be rotated and distributed; it does not remove ownership, scope or retirement."
       },
       {
+        "id": "xml-signature-wrapping",
+        "term": "XML signature wrapping",
+        "definition": "An attack on a signed XML document that moves the signed element aside and puts a forged element where the application reads. The signature still verifies, over an element the application never uses."
+      },
+      {
         "id": "zero-trust",
         "term": "Zero trust",
         "definition": "A security model in which network location alone earns no trust. NIST SP 800-207 section 2.1 lists it as a tenet: \"All communication is secured regardless of network location\", and \"Network location alone does not imply trust\"."
@@ -1036,7 +1076,7 @@
         "attrs": {
           "class": "meta"
         },
-        "html": "<p class=\"meta\">All 37 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written. What the course does not cover is listed on the <a href=\"../coverage/index.html\">coverage page</a>.</p>"
+        "html": "<p class=\"meta\">All 38 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written. What the course does not cover is listed on the <a href=\"../coverage/index.html\">coverage page</a>.</p>"
       },
       {
         "tag": "section",
@@ -1092,7 +1132,7 @@
         "attrs": {
           "aria-labelledby": "part-6"
         },
-        "html": "<section aria-labelledby=\"part-6\">\n<h2 id=\"part-6\">Part 6: Identity protocols in depth</h2>\n<p class=\"prose\">Both modules of Part 6 are published. They are listed on the <a href=\"../index.html#path\">modules page</a>. Part 6 goes further into the protocols Part 1 introduces, and it was added at the end for the same reason as Part 5.</p>\n</section>"
+        "html": "<section aria-labelledby=\"part-6\">\n<h2 id=\"part-6\">Part 6: Identity protocols in depth</h2>\n<p class=\"prose\">All three modules of Part 6 are published. They are listed on the <a href=\"../index.html#path\">modules page</a>. Part 6 goes further into the protocols Part 1 introduces, and it was added at the end for the same reason as Part 5.</p>\n</section>"
       }
     ]
   }

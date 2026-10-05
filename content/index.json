@@ -1,5 +1,5 @@
 {
-  "total": 37,
+  "total": 38,
   "lessons": [
     {
       "slug": "security-foundations",
@@ -222,6 +222,12 @@
       "lesson_number": 37,
       "module": 36,
       "title": "Client authentication, PAR and high-assurance OAuth"
+    },
+    {
+      "slug": "saml",
+      "lesson_number": 38,
+      "module": 37,
+      "title": "SAML assertions and where they meet APIs"
     }
   ]
 }

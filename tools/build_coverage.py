@@ -208,7 +208,6 @@ def render(data):
 <ul class="prose">
 <li>The entries marked above as not covered or partly covered.</li>
 <li>GraphQL, gRPC and WebSocket beyond module 33. That module shows where the controls of earlier modules stop applying under each protocol. It leaves out GraphQL subscriptions, gRPC-Web, attacks on HTTP/2 itself, and injection through these protocols as a subject of its own.</li>
-<li>SAML. No lesson teaches it. Module 35 teaches OpenID Connect.</li>
 <li>Testing tools. Module 34 teaches a method for testing an API's security and what a clean result proves. It recommends no scanner or other tool.</li>
 </ul>
 </section>

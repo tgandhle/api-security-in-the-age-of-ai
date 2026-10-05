@@ -8,5 +8,5 @@ export const PARTS = [
   { name: "Part 4: AI and agents", from: 19, to: 25 },
   { name: "Capstone", from: 26, to: 26 },
   { name: "Part 5: Hardening and operations", from: 27, to: 34 },
-  { name: "Part 6: Identity protocols in depth", from: 35, to: 36 }
+  { name: "Part 6: Identity protocols in depth", from: 35, to: 37 }
 ];
