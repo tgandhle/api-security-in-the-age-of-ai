@@ -1,7 +1,7 @@
 # Conventions
 
 ## Audience
-New security engineers. Assume they can read Python and HTTP, not that they know the vocabulary.
+Security engineers, architects and developers, including people new to security. Assume they can read Python and HTTP, not that they know the vocabulary.
 
 ## Page template
 Each page has two layers, in this order.
