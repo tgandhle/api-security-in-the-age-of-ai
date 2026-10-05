@@ -87,6 +87,20 @@ These apply to every change. If a task seems to require breaking one, stop and a
 Recorded so a later session does not reopen them by accident. Change one only
 when the reason it gives has stopped being true, and say so in the commit.
 
+- **2026-10-05, one lab is not offered in the browser, and a lab whose
+  `main()` returns nothing counts as exit 0.** Every lab was run through the
+  button on the hosted site. Two did not report success. `contracts_lab.py`
+  parses 100000 levels of nesting to show the parser fail. `python3` raises
+  `RecursionError` there; Pyodide overflows the browser's call stack instead
+  ("Maximum call stack size exceeded"), which Python cannot catch and which
+  leaves the runtime unusable until the page is reloaded. Measured on Pyodide
+  314.0.7 in Chromium: 2000 levels parse and 5000 levels already overflow, so
+  no depth gives `RecursionError`. `assets/course.js` lists that lab in
+  `NOT_IN_BROWSER` and shows the reason in place of the button. Add a lab to
+  that list only with a measured reason. `api_keys_lab.py` ends `main()` with
+  no return value, which `python3` exits 0 for; the runner printed
+  "exit code None" and marked the run as failed although the output matched.
+  The runner now reads no return value as 0.
 - **2026-10-05, the browser lab runner loads the packages a lab imports.**
   The 2026-10-02 entry below checked that the four `cryptography` labs give
   the same output on Pyodide's 47.0.0, but `assets/course.js` never asked

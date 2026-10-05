@@ -158,6 +158,18 @@
     "sha384-hYKrcQ7FiKU7f1c92md9N2eh7BoBVX4CPkNDfQyyVclsjZevvDOBUkajGcYk1EF8";
   let pyodideReady = null;
 
+  // Labs that cannot run in a browser, and why. The reader gets the reason
+  // in place of the button. contracts_lab.py parses 100000 levels of nesting
+  // to show the parser fail. python3 raises RecursionError there. Pyodide
+  // overflows the browser's own call stack instead, which no Python code can
+  // catch and which leaves the runtime unusable for the rest of the visit.
+  const NOT_IN_BROWSER = {
+    "contracts_lab.py":
+      "This lab does not run in the browser. It parses 100,000 levels of "
+      + "nesting to show the parser fail, and in a browser that stops Python "
+      + "itself. Download the lab and run it with Python."
+  };
+
   function injectScript(src, integrity) {
     return new Promise((resolve, reject) => {
       const script = document.createElement("script");
@@ -228,10 +240,11 @@
         "_ns = {'__name__': '__lab__'}",
         "try:",
         "    exec(__lab_source, _ns)",
+        // A main() that returns nothing ended cleanly: python3 exits 0 for it.
         "    _rc = _ns['main']()",
         "finally:",
         "    sys.stdout = _old",
-        "_buf.getvalue() + '\\n#exit=' + str(_rc)"
+        "_buf.getvalue() + '\\n#exit=' + str(0 if _rc is None else _rc)"
       ].join("\n"));
 
       const split = result.split("\n#exit=");
@@ -256,6 +269,15 @@
       const panel = document.createElement("div");
       panel.className = "lab-run";
 
+      if (NOT_IN_BROWSER[lab.file]) {
+        const why = document.createElement("p");
+        why.className = "meta";
+        why.textContent = NOT_IN_BROWSER[lab.file];
+        panel.appendChild(why);
+        lab.pre.insertAdjacentElement("afterend", panel);
+        return;
+      }
+
       const button = document.createElement("button");
       button.className = "button secondary";
       button.type = "button";
@@ -264,7 +286,8 @@
       const note = document.createElement("p");
       note.className = "meta";
       note.textContent =
-        "Optional. Downloads about 13 MB of Python from a CDN the first time. "
+        "Optional. Downloads about 13 MB of Python from a CDN the first time, "
+        + "and about 2.4 MB more for a lab that imports cryptography. "
         + "Only the loader is integrity-checked; the runtime it then fetches "
         + "cannot be. Running the lab on your own machine is the authority.";
 
