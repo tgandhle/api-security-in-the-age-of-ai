@@ -73,6 +73,7 @@ Back channel, server to server over TLS:
     client_id=app-exampleair
     code_verifier=&lt;43 to 128 unreserved characters, never sent before&gt;</code></pre>
 <p class="meta">The verifier appears once, on the back channel. The challenge is all the front channel ever sees.</p>
+<p class="prose">The <code>state</code> value in the first request is the client's defence against a forged return. The client puts a random value there, keeps it with the browser session, and when the browser comes back refuses a response whose <code>state</code> does not match. RFC 9700 section 4.7.1 describes it as "a random value, also known as a CSRF Token, in the state parameter" and adds: "The same protection is provided by PKCE or the OpenID Connect nonce value." Section 2.1 lets a client rely on PKCE for this only when it has "ensured that the authorization server supports" PKCE. <a href="../openid-connect/index.html">Module 35</a> shows what <code>state</code> does not prove, and <a href="../browser-sessions-and-csrf/index.html">module 28</a> covers forged requests in general.</p>
 
 <h3>How the authorization server verifies</h3>
 <ol class="steps prose">
