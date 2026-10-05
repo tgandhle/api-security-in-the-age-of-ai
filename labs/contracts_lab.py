@@ -16,6 +16,19 @@ observed on the machine you run it on, not a simulation. The first-wins parser
 and the two limits are the lab's own code. Where behaviour could differ between
 Python versions, the checks compare categories rather than messages.
 
+One input is never given to the parser: the body nested 100000 levels deep.
+What json.loads does with it is not a property of the body. Measured for this
+course on 2026-10-05: CPython 3.13.16 raised RecursionError at every stack
+size tried. CPython 3.14.6 raised RecursionError with an 8 MB or a 16 MB stack
+and returned the parsed object with a 64 MB or an unlimited one. Pyodide
+314.0.7 overflowed the JavaScript call stack, which no Python code can catch.
+A check that printed any one of those would be true on some machines and false
+on others. So Part C measures that body's depth from its text, and shows the
+cost with the lab's own recursive function instead. That function is plain
+Python, so what stops it is the interpreter's recursion limit, which does not
+depend on the stack. The object it walks is the one a parser that succeeds
+would return, built with a loop and taken apart with a loop.
+
 Needs nothing beyond Python 3.
 
 Exit codes: 0 all checks matched, 1 a check did not match.
@@ -78,6 +91,62 @@ def depth_of(text):
     return worst
 
 
+LEVELS = 100000
+
+
+def nested_text(levels):
+    """A transfer body whose notes field is nested until the body is this deep."""
+    return '{"partnerTxnId": "EXA-42", "miles": 10, "notes": %s%s}' % (
+        "[" * (levels - 1), "]" * (levels - 1))
+
+
+def nested_object(levels):
+    """The object a parser returns for nested_text(levels), if it returns.
+
+    Built with a loop, not parsed, so that building it cannot fail.
+    """
+    notes = []
+    for _ in range(levels - 2):
+        notes = [notes]
+    return {"partnerTxnId": "EXA-42", "miles": 10, "notes": notes}
+
+
+def take_apart(body):
+    """Unlink the nesting one level at a time.
+
+    Releasing a deep structure in one step is recursive too, inside the
+    runtime. A loop keeps that out of the lab as well.
+    """
+    node = body.pop("notes")
+    while node:
+        node = node.pop()
+
+
+def with_nested_object(levels, fn):
+    body = nested_object(levels)
+    try:
+        return fn(body)
+    finally:
+        take_apart(body)
+
+
+def count_values(node):
+    """The handler's own code, written the obvious way: it calls itself."""
+    total = 1
+    if isinstance(node, dict):
+        for child in node.values():
+            total += count_values(child)
+    elif isinstance(node, list):
+        for child in node:
+            total += count_values(child)
+    return total
+
+
+def walked(levels):
+    """What happens when the handler's recursive code is given that object."""
+    return with_nested_object(levels, lambda body: outcome(count_values, body))
+
+
 def accepts_schema(body):
     """A contract of the kind teams actually write: types and required fields."""
     if not isinstance(body, dict):
@@ -126,12 +195,12 @@ def main():
     print()
     print("Part C: shapes that cost you before any check runs.")
 
-    nested = "[" * 100000 + "]" * 100000
-    check("100000 levels of nesting, parsed", "crash: RecursionError",
-          outcome(json.loads, nested))
+    nested = nested_text(LEVELS)
+    check("100000 levels of nesting, walked by recursive code",
+          "crash: RecursionError", walked(LEVELS))
     check("its depth, measured without parsing", "100000", str(depth_of(nested)))
     check("a depth limit of 64, applied first", "reject: too deeply nested",
-          "reject: too deeply nested" if depth_of(nested) > 64 else outcome(json.loads, nested))
+          "reject: too deeply nested" if depth_of(nested) > 64 else walked(LEVELS))
 
     payload = json.dumps({"partnerTxnId": "EXA-42", "miles": 10,
                           "notes": "A" * 2_000_000}).encode()
@@ -148,9 +217,8 @@ def main():
     print()
     print("Part D: why the schema cannot do Part C's job.")
 
-    check("the nested body reaches the schema at all", "no, it crashed in the parser",
-          "no, it crashed in the parser"
-          if outcome(json.loads, nested).startswith("crash") else "yes")
+    check("the nested object satisfies the schema", "True",
+          with_nested_object(LEVELS, lambda body: str(accepts_schema(body))))
     check("the oversized body satisfies the schema", "True",
           str(accepts_schema(json.loads(payload))))
     check("the duplicate-key body satisfies the schema", "True",

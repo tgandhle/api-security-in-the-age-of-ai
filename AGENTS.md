@@ -171,6 +171,29 @@ when the reason it gives has stopped being true, and say so in the commit.
   cannot be run outside GitHub. Adding it was an owner decision; changing it
   is still a stop-and-ask item. To go back, set Pages to deploy from the
   `main` branch root again; nothing else has to change.
+- **2026-10-05, no lab may depend on the size of the stack, and every lab
+  now runs in the browser.** The first run of the release workflow failed one
+  check: `contracts_lab.py` exited 1 on the GitHub runner. Its check 11
+  parsed a JSON text nested 100000 levels deep and expected `RecursionError`.
+  Measured the same day: CPython 3.13.16 raises it at every stack size tried;
+  CPython 3.14.6 raises it with an 8 MB or 16 MB stack and parses the text
+  with a 64 MB or unlimited one; Pyodide 314.0.7 dies with a JavaScript
+  `RangeError` that Python cannot catch. So the transcript was true only on
+  some machines, and the lesson's "the parser exhausts the stack" was not a
+  fact about the input. The lab no longer parses that text. It builds the
+  object a successful parse returns, with a loop, and shows the lab's own
+  recursive walker fail on it, which depends on the interpreter's recursion
+  limit (1000 on all three runtimes) and not on the stack. The lesson now
+  says what a parser does with such a document depends on the runtime, which
+  is the stronger reason to limit depth before parsing. `NOT_IN_BROWSER` in
+  `assets/course.js` is empty again and stays as the mechanism. Two
+  corrections to the entry below headed "one lab is not offered in the
+  browser": that lab is offered now, and its "5000 levels already overflow"
+  did not reproduce on a second measurement (5000 parsed under Pyodide in
+  Node and in Chromium), so no threshold is claimed. Rule for new labs: never
+  hand a C-implemented recursive routine an input whose outcome depends on
+  the stack, and never free a deeply nested object by dropping it (that
+  overflowed Pyodide at 10000 levels): take it apart with a loop.
 - **2026-10-05, transcripts are checked on every publish, and a tag runs a
   release gate.** Owner decision. (1) `pages.yml` now installs `cryptography`
   from `tools/requirements-ci.txt`, by hash, and runs

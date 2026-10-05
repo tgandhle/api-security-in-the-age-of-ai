@@ -158,16 +158,13 @@
     "sha384-hYKrcQ7FiKU7f1c92md9N2eh7BoBVX4CPkNDfQyyVclsjZevvDOBUkajGcYk1EF8";
   let pyodideReady = null;
 
-  // Labs that cannot run in a browser, and why. The reader gets the reason
-  // in place of the button. contracts_lab.py parses 100000 levels of nesting
-  // to show the parser fail. python3 raises RecursionError there. Pyodide
-  // overflows the browser's own call stack instead, which no Python code can
-  // catch and which leaves the runtime unusable for the rest of the visit.
+  // Labs that cannot run in a browser, and why: lab file name, then the
+  // sentence the reader gets in place of the button. Today no lab needs it,
+  // so the table is empty. contracts_lab.py was listed until 2026-10-05,
+  // because it parsed 100000 levels of nesting and Pyodide overflowed the
+  // browser's own call stack there, which no Python code can catch. That lab
+  // no longer parses that input. Add a lab only with a measured reason.
   const NOT_IN_BROWSER = {
-    "contracts_lab.py":
-      "This lab does not run in the browser. It parses 100,000 levels of "
-      + "nesting to show the parser fail, and in a browser that stops Python "
-      + "itself. Download the lab and run it with Python."
   };
 
   function injectScript(src, integrity) {
