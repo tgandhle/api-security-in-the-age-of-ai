@@ -63,7 +63,7 @@ python labs/jwks_lab.py
 
 Inside an activated environment use `python`, not `py -3`. The `py` command uses an active environment only when no version is requested: "If you are running in an active virtual environment, have not requested a particular version, and there is no shebang line, the default runtime will be that virtual environment" (Python 3.14 documentation, Using Python on Windows, Python install manager, Basic use). On macOS and Linux the equivalent is `python3 -m venv .venv` then `source .venv/bin/activate`.
 
-The labs are pure in-process Python with no shell or subprocess, and the only file access is the optional `--key-file` in `hmac_lab.py`, so their output does not vary by platform. Checked, not assumed: `tools/check_transcripts.py` runs every lab whose output is published and compares it to the page byte for byte. All 35 match on Windows (Python 3.14.6, `python` in an activated environment) and on Linux (Python 3.13.16 and 3.14.6, `python3`), all with `cryptography==50.0.1`. `tools/check_site.py` also produces identical output on both. Where that package is absent, the four labs that need it are reported as skipped rather than as passing.
+The labs are pure in-process Python with no shell or subprocess, and the only file access is the optional `--key-file` in `hmac_lab.py`, so their output does not vary by platform. Checked, not assumed: `tools/check_transcripts.py` runs every lab whose output is published and compares it to the page byte for byte. All 37 match on Linux (Python 3.13.16 and 3.14.6, `python3`) with `cryptography==50.0.1`. On Windows (Python 3.14.6, `python` in an activated environment) the 35 published before 5 October 2026 matched, with the same package; the two added that day have not been run there yet. `tools/check_site.py` also produces identical output on both. Where that package is absent, the five labs that need it are reported as skipped rather than as passing.
 
 ## Licence
 
@@ -73,7 +73,7 @@ Copyright (c) 2026 tgandhle. All rights reserved. This repository is readable, n
 
 Plain HTML. Open `index.html` in any browser, or publish the folder with GitHub Pages. No build step is needed to view the site.
 
-- Labs: `python3 labs/<lab>.py`. Every module except 3, 5, 6 and 7 needs Python 3 and nothing else. Modules 3, 5, 6 and 7 additionally need `python3 -m pip install cryptography==50.0.1`, because Python has no built-in asymmetric cryptography. Those labs say so and exit cleanly if it is missing.
+- Labs: `python3 labs/<lab>.py`. Every module except 3, 5, 6, 7 and 36 needs Python 3 and nothing else. Modules 3, 5, 6, 7 and 36 additionally need `python3 -m pip install cryptography==50.0.1`, because Python has no built-in asymmetric cryptography. Those labs say so and exit cleanly if it is missing.
 - After editing any checklist item on a topic page: `python3 tools/build_checklist.py`.
 - To confirm the checklist is current: `python3 tools/build_checklist.py --check` (exits 1 if stale).
 - After editing any lesson page: `python3 tools/extract_lessons.py`, which regenerates `content/lessons/`.

@@ -1,5 +1,5 @@
 {
-  "total": 36,
+  "total": 37,
   "lessons": [
     {
       "slug": "security-foundations",
@@ -216,6 +216,12 @@
       "lesson_number": 36,
       "module": 35,
       "title": "OpenID Connect and ID tokens"
+    },
+    {
+      "slug": "advanced-oauth",
+      "lesson_number": 37,
+      "module": 36,
+      "title": "Client authentication, PAR and high-assurance OAuth"
     }
   ]
 }

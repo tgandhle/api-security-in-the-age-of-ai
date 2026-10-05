@@ -38,7 +38,7 @@
         "class": "lesson-status",
         "aria-label": "Lesson progress"
       },
-      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 36 of 36</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
+      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 36 of 37</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
     },
     {
       "tag": "span",
@@ -477,9 +477,9 @@
   "title": "OpenID Connect and ID tokens",
   "kicker": "Part 6: Identity protocols in depth &middot; Module 35",
   "reviewed": "2026-10-05",
-  "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 36 of 36</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
+  "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 36 of 37</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
   "lesson_number": 36,
-  "lesson_total": 36,
+  "lesson_total": 37,
   "module": 35,
   "intro_prose": [
     "<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can say what OpenID Connect adds to OAuth, tell an <a href=\"../../glossary/index.html#id-token\">ID token</a> from an <a href=\"../../glossary/index.html#access-token\">access token</a> and say who may accept each, validate an ID token the way the specification lists it, explain what <code>nonce</code>, <code>at_hash</code> and the UserInfo <code>sub</code> comparison each bind, and state what a valid ID token does not prove.</p>\n<p><strong>Before you start.</strong> You should have read <a href=\"../oauth-basics/index.html\">module 4, OAuth basics</a>, for the authorization code flow and <a href=\"../../glossary/index.html#pkce\">PKCE</a>, and <a href=\"../jwt-validation/index.html\">module 5, JWT validation</a>, for signatures, algorithms and the idea of a <a href=\"../../glossary/index.html#token-profile\">token profile</a>. This module builds on both and repeats neither. SAML is another federation protocol. This course does not cover it.</p>\n</div>"

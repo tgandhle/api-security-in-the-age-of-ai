@@ -224,7 +224,7 @@
       say("Starting Python ...");
       const py = await pyodideReady;
 
-      // Four labs import cryptography, which Pyodide ships but does not
+      // Five labs import cryptography, which Pyodide ships but does not
       // load until asked. This loads only what this lab imports, from the
       // same CDN, and does nothing for a lab that uses the standard library.
       say("Loading the packages this lab imports, if any ...");

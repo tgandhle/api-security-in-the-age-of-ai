@@ -18,7 +18,7 @@
 <p><strong>Objective.</strong> After this module you can explain why a valid <a href="../../glossary/index.html#signature">signature</a> is not a valid token, write the profile a verifier must enforce before it sees any token, carry out the two classic algorithm attacks yourself, and test a verifier against the rejections it must make.</p>
 <p><strong>Before you start.</strong> You should know what an <a href="../../glossary/index.html#access-token">access token</a> is and what it does not prove, from module 4. Module 2 covers <a href="../../glossary/index.html#hmac">HMAC</a> and the difference between a <a href="../../glossary/index.html#shared-secret">shared secret</a> and an <a href="../../glossary/index.html#asymmetric-signature">asymmetric signature</a>, which this module depends on.</p>
 </div>
-<section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 6 of 36</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
+<section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 6 of 37</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
 
 <span class="layer" id="learn">Learn</span>
 
@@ -161,7 +161,7 @@ python -m pip install cryptography==50.0.1
 python labs/jwt_lab.py</code></pre>
 <div class="prose">
 <p>Inside an activated environment use <code>python</code>, not <code>py -3</code>. The <code>py</code> command uses an active environment only when you have not asked for a version: "If you are running in an active virtual environment, have not requested a particular version, and there is no shebang line, the default runtime will be that virtual environment" (Python 3.14 documentation, Using Python on Windows, Python install manager, Basic use). Outside an environment, <code>py -3</code> is still the right command on Windows.</p>
-<p>Every module except 3, 5, 6 and 7 still needs nothing beyond Python 3. The lab generates an RSA key for the run, builds real tokens, and sends the same tokens past two verifiers. Keys, tokens and signatures stay in memory and are never printed.</p>
+<p>Every module except 3, 5, 6, 7 and 36 still needs nothing beyond Python 3. The lab generates an RSA key for the run, builds real tokens, and sends the same tokens past two verifiers. Keys, tokens and signatures stay in memory and are never printed.</p>
 </div>
 <pre><code>$ python3 labs/jwt_lab.py
 key source: RSA generated for this run; keys and tokens never printed

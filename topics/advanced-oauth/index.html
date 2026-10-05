@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Client authentication, PAR and high-assurance OAuth | API Security in the Age of AI</title>
+<link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/course.js" defer></script>
+</head>
+<body data-course-lesson="advanced-oauth">
+<nav class="site-nav" aria-label="Site"><div><a class="home" href="../../index.html">API Security in the Age of AI</a><a href="../../index.html#course">Course</a><a href="../../index.html#path">Modules</a><a href="../../roadmap/index.html">Roadmap</a><a href="../../checklist/index.html">Checklist</a><a href="../../glossary/index.html">Glossary</a></div></nav>
+<main>
+<p class="kicker">Part 6: Identity protocols in depth &middot; Module 36</p>
+<h1>Client authentication, PAR and high-assurance OAuth</h1>
+<p class="meta">Last reviewed 2026-10-05 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+
+<div class="prose">
+<p><strong>Objective.</strong> After this module you can name the method an OAuth client uses to authenticate and say what an attacker needs to impersonate the client under it, check a <code>private_key_jwt</code> assertion claim by claim, say which attack pushed authorization requests, rich authorization requests and step-up authentication each stop, recognize the two legacy grants in a design, and read the FAPI 2.0 Security Profile as a list of separate controls, including what none of them decides.</p>
+<p><strong>Before you start.</strong> This module builds on four others and does not repeat them. <a href="../oauth-basics/index.html">Module 4, OAuth basics</a> teaches the grants, <a href="../../glossary/index.html#pkce">PKCE</a> and <a href="../../glossary/index.html#redirect-uri">redirect URIs</a>. <a href="../jwt-validation/index.html">Module 5, JWT validation</a> teaches how to check a <a href="../../glossary/index.html#jwt">JWT</a>. <a href="../sender-constrained-tokens/index.html">Module 7, Sender-constrained tokens: mTLS and DPoP</a> teaches binding a token to a key. <a href="../credential-lifecycle/index.html">Module 8, Workload and agent identity lifecycle</a> teaches what happens to credentials after they are issued. You should know the difference between <a href="../../glossary/index.html#authentication">authentication</a> and <a href="../../glossary/index.html#authorization">authorization</a>, and what an <a href="../../glossary/index.html#authorization-server">authorization server</a>, a <a href="../../glossary/index.html#resource-server">resource server</a> and an <a href="../../glossary/index.html#access-token">access token</a> are.</p>
+</div>
+<section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 37 of 37</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
+
+<span class="layer" id="learn">Learn</span>
+
+<h2>1. The attack</h2>
+<div class="prose">
+<p>Running example: ExamplePay is a payment app. A customer of ExampleBank uses it to pay 45.00 EUR to ExampleAir for a booking. ExamplePay is the OAuth client, ExampleBank runs the authorization server and the payments API. All three companies are fictional.</p>
+<p>Suppose ExampleBank built everything module 4 teaches: the authorization code grant, PKCE with S256, exact redirect URI matching, a client secret for ExamplePay and a <a href="../../glossary/index.html#scope">scope</a> called <code>payments:write</code>. That is a correct deployment. Each row below is an attack it does not stop, and each one has its own control. None of the controls does the job of another.</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>The attacker</th><th>Code grant with PKCE, a client secret and a scope</th><th>With the added control</th><th>The control</th></tr></thead>
+<tbody>
+<tr><td>Reads ExamplePay's client secret in a proxy log or in the server's client table, then authenticates as ExamplePay</td><td class="yes">Works</td><td class="no">Blocked: the server holds a public key, and no secret travels</td><td><code>private_key_jwt</code> or <a href="../../glossary/index.html#mtls">mutual TLS</a> client authentication</td></tr>
+<tr><td>Edits the authorization request in the browser before it reaches the server</td><td class="yes">Works: the server acts on what arrived</td><td class="no">Blocked: the browser carries only a reference</td><td>Pushed authorization requests (PAR)</td></tr>
+<tr><td>Uses a token with <code>payments:write</code> to pay a different account a different amount</td><td class="yes">Works</td><td class="no">Blocked: the token names one payee and one amount, and the API enforces both</td><td>Rich authorization requests (RAR)</td></tr>
+<tr><td>Makes a payment on a session that signed in with a password two hours ago</td><td class="yes">Works</td><td class="no">Challenged: the API asks for a fresh, stronger authentication</td><td>Step-up authentication</td></tr>
+<tr><td>Copies the access token and uses it from another machine</td><td class="yes">Works</td><td class="no">Blocked</td><td>A sender-constrained token (module 7)</td></tr>
+<tr><td>Is a real, correctly authenticated customer and asks for another customer's payment</td><td class="yes">Works</td><td class="yes">Works</td><td>None of the above. An ownership check (<a href="../object-level-authorization/index.html">module 9, Object-level authorization</a>)</td></tr>
+</tbody></table></div>
+<p class="prose">The last row stays red whichever of these controls you add. Section 5 comes back to it, and Part E of the lab runs it.</p>
+
+<h2>2. Why it works</h2>
+<div class="prose">
+<p>Each attack rests on one assumption that the basic flow leaves untested:</p>
+<ul>
+<li><strong>"The grant decides how the client authenticates."</strong> It does not. The grant is how a client obtains a token. <a href="../../glossary/index.html#client-authentication">Client authentication</a> is how the client proves which client it is, and it is chosen separately. RFC 7523 section 1 says client authentication with a JWT is "nothing more than an alternative way for a client to authenticate to the token endpoint and must be used in conjunction with some grant type".</li>
+<li><strong>"A client that knows the secret is the client."</strong> A client secret is a <a href="../../glossary/index.html#shared-secret">shared secret</a>. The server can check it, so the server holds something that is enough to pass the check, and with <code>client_secret_basic</code> and <code>client_secret_post</code> the secret itself travels in every token request. Anyone who saw it is the client.</li>
+<li><strong>"The authorization request is the one my client sent."</strong> It crossed the <a href="../../glossary/index.html#front-channel">front channel</a> as a URL. RFC 9126 section 1 says of such a request: "There is no cryptographic integrity and authenticity protection." Module 4 told you to treat every value in a redirect as published. It is also editable.</li>
+<li><strong>"A scope says what was approved."</strong> A scope is a short label. RFC 9396 section 1 says scopes are not sufficient for requirements such as "please let me transfer an amount of 45 Euros to Merchant A". A token that says <code>payments:write</code> says nothing about which payment.</li>
+<li><strong>"A valid token means the user was checked properly, just now."</strong> A token is valid for as long as its lifetime says. It records nothing about how the user signed in or how long ago, unless the authorization server writes that down and the resource server reads it.</li>
+<li><strong>"A deployment that passes a security profile is secure."</strong> A profile is a list of controls chosen against a stated attacker. It answers the attacks in its list. It does not decide who may do what to which object, which is <a href="../../glossary/index.html#object-level-authorization">object-level authorization</a>.</li>
+</ul>
+</div>
+
+<h2>3. The control</h2>
+<div class="prose"><p>The parts below take the controls one at a time, each with the attack it stops. The last two show what a reviewer still meets from before these controls, and one published way of putting the controls together.</p></div>
+
+<h3>Client authentication is a separate choice</h3>
+<div class="prose">
+<p>A client registers one method, in the <code>token_endpoint_auth_method</code> client metadata field (RFC 7591 section 2). The server lists the methods it accepts in <code>token_endpoint_auth_methods_supported</code> (RFC 8414 section 2). If nothing is registered the default is <code>client_secret_basic</code>, in both documents and in OpenID Connect Core section 9. RFC 6749 section 2.3 adds one rule for every method: "The client MUST NOT use more than one authentication method in each request."</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>Method</th><th>Where the name is defined</th><th>What the client sends</th><th>What the server stores</th><th>What an attacker needs</th></tr></thead>
+<tbody>
+<tr><td><code>client_secret_basic</code></td><td>RFC 7591 section 2 and OpenID Connect Core section 9, for the mechanism in RFC 6749 section 2.3.1</td><td>The secret itself, in an HTTP Basic header, on every request</td><td>The secret, or a <a href="../../glossary/index.html#hash">hash</a> of it</td><td>The secret, from any place it has been: the client's configuration, a log or proxy that saw the header, or the server's table if it is not hashed</td></tr>
+<tr><td><code>client_secret_post</code></td><td>The same three documents</td><td>The secret itself, in the request body. RFC 6749 section 2.3.1 says this form is not recommended and should be limited to clients that cannot use the Basic scheme</td><td>As above</td><td>As above</td></tr>
+<tr><td><code>client_secret_jwt</code></td><td>OpenID Connect Core section 9, using RFC 7523</td><td>A JWT carrying an <a href="../../glossary/index.html#hmac">HMAC</a> keyed with the secret. The secret does not travel</td><td>The secret itself. It cannot be a hash, because the server needs the key to recompute the HMAC</td><td>The secret, from the client or from the server's table</td></tr>
+<tr><td><code>private_key_jwt</code></td><td>OpenID Connect Core section 9, using RFC 7523</td><td>A JWT signed with the client's private key</td><td>A public key</td><td>The client's private key. Or one captured assertion, until it expires, if the server does not track <code>jti</code></td></tr>
+<tr><td><code>tls_client_auth</code></td><td>RFC 8705 section 2.1.1</td><td>A client certificate in the <a href="../../glossary/index.html#tls">TLS</a> handshake. The server validates the chain and compares one registered subject name</td><td>The expected subject and the trusted certificate authorities</td><td>The private key of a certificate with that subject. This lesson's own addition: so the certificate authorities the server trusts are part of what you review</td></tr>
+<tr><td><code>self_signed_tls_client_auth</code></td><td>RFC 8705 section 2.2.1</td><td>A client certificate in the TLS handshake. The chain is not validated. The certificate must be one the client registered</td><td>The client's certificates, or a <code>jwks_uri</code> to fetch them from</td><td>The private key of a registered certificate. This lesson's own addition: or control of what the <code>jwks_uri</code> serves</td></tr>
+<tr><td><code>none</code></td><td>RFC 7591 section 2</td><td>Nothing. The client is a <a href="../../glossary/index.html#public-client">public client</a></td><td>Nothing</td><td>Nothing. RFC 6749 section 2.3 says the server "MUST NOT rely on public client authentication for the purpose of identifying the client". PKCE protects the code, not the client's identity</td></tr>
+</tbody></table></div>
+<div class="prose">
+<p>The first three rows are one kind of credential and the next three are another. RFC 9700 section 2.5 recommends the second kind, asymmetric cryptography, for client authentication, and gives the reason: "authorization servers do not need to store sensitive symmetric keys, making these methods more robust against leakage of keys". That is the same step <a href="../asymmetric-request-signing/index.html">module 3, Asymmetric request signing</a>, took from HMAC to <a href="../../glossary/index.html#signature">signatures</a>, applied to the client instead of the request. Every row but the last needs a <a href="../../glossary/index.html#confidential-client">confidential client</a>. Module 7 covers the certificate methods' other use, binding a token to a certificate.</p>
+</div>
+
+<h3>A <code>private_key_jwt</code> assertion, claim by claim</h3>
+<div class="prose">
+<p>The client builds a <a href="../../glossary/index.html#client-assertion">client assertion</a>, signs it, and sends it as <code>client_assertion</code> with <code>client_assertion_type</code> set to <code>urn:ietf:params:oauth:client-assertion-type:jwt-bearer</code> (RFC 7523 section 2.2). These are the <a href="../../glossary/index.html#claim">claims</a> the lab's client signs in check 5. The <code>jti</code> is random and is not printed.</p>
+</div>
+<pre><code>{
+  "iss": "examplepay",                          the client says who issued this: itself
+  "sub": "examplepay",                          and who it is about: itself
+  "aud": "https://auth.examplebank.example",    the one server it is meant for
+  "iat": 1790003600,
+  "exp": 1790003660,                            60 seconds later
+  "jti": "&lt;random, used once&gt;"
+}</code></pre>
+<p class="meta">The right-hand notes are for this page only. They are not part of the JWT.</p>
+<ol class="steps prose">
+<li><strong>Find the client, then use its registered key and algorithm.</strong> The <code>sub</code> claim is only a lookup key at this point. Take the algorithm from the registration, never from the JWT header. Module 5 explains <a href="../../glossary/index.html#algorithm-confusion">algorithm confusion</a>, and check 8 of the lab is that attack against this endpoint.</li>
+<li><strong>Verify the signature.</strong> RFC 7523 section 3 requires the server to reject a JWT with an invalid signature or MAC.</li>
+<li><strong>Check <code>iss</code> and <code>sub</code>.</strong> For client authentication RFC 7523 section 3 requires <code>sub</code> to be the <code>client_id</code>, and OpenID Connect Core section 9 requires <code>iss</code> to contain it too.</li>
+<li><strong>Check <code>aud</code>.</strong> RFC 7523 section 3 requires the server to reject a JWT that does not name the server as an intended <a href="../../glossary/index.html#audience">audience</a>. Which string names it is the ambiguity discussed below.</li>
+<li><strong>Check <code>exp</code>.</strong> RFC 7523 section 3 requires an <code>exp</code> claim and requires the server to reject one that has passed. It notes that the server may reject one that is unreasonably far in the future. This project's baseline is to set a cap, because the next step stores something until <code>exp</code>.</li>
+<li><strong>Check <code>jti</code>, and record it last.</strong> A captured assertion is a <a href="../../glossary/index.html#replay-attack">replay</a> waiting to happen until it expires. Record the <code>jti</code> only after everything above passed, for the reason <a href="../hmac-request-signing/index.html">module 2, HMAC request signing</a>, gave for <a href="../../glossary/index.html#nonce">nonces</a>: a forged request must not be able to fill the record.</li>
+<li><strong>On any failure, answer <code>invalid_client</code>.</strong> RFC 7523 section 3.2 requires that error code.</li>
+</ol>
+<div class="prose">
+<p><strong>Replay and <code>jti</code>: the sources differ.</strong> RFC 7523 section 3 says the JWT may contain a <code>jti</code> and the server may track it, and section 6 is plain about it: "The specification does not mandate replay protection for the JWT usage". OpenID Connect Core section 9, which defines the name <code>private_key_jwt</code>, makes <code>jti</code> required and says: "These tokens MUST only be used once, unless conditions for reuse were negotiated between the parties". So a server can follow RFC 7523 and still accept a replay. Ask which behavior a product implements. RFC 7521 section 8.2 explains why the expiry matters to the record: the validity window relieves the server from keeping processed identifiers forever.</p>
+<p><strong>The audience ambiguity.</strong> The documents do not agree on which string names the server. RFC 7523 section 3 allows the token endpoint URL. OpenID Connect Core section 9 recommends it. RFC 9126 section 2 names the problem, "Due to historical reasons, there is potential ambiguity regarding the appropriate audience value", and resolves it in two halves: the client should use the authorization server's <a href="../../glossary/index.html#issuer">issuer</a> identifier as the audience, and the server must accept its issuer identifier, its token endpoint URL or its PAR endpoint URL. FAPI 2.0 section 5.3.2.1 is narrower: the server accepts only its issuer identifier, sent as a string and not as an array. Why it matters is this lesson's own reasoning: an assertion that more than one server would accept can be taken from one and presented to another. The narrower the accepted audience, the smaller that set. The OAuth 2.1 Internet-Draft (revision 16) points to a further draft for updated audience guidance. This lesson has not read that draft and does not rely on it.</p>
+</div>
+
+<h3>Pushed authorization requests</h3>
+<div class="prose">
+<p>A <a href="../../glossary/index.html#pushed-authorization-request">pushed authorization request</a> moves the request parameters off the front channel. RFC 9126 defines it:</p>
+</div>
+<ol class="steps prose">
+<li><strong>The client posts the parameters to the PAR endpoint over the <a href="../../glossary/index.html#back-channel">back channel</a>.</strong> The rules for client authentication at the token endpoint apply here as well (section 2). The server must authenticate the client, reject the request if it carries a <code>request_uri</code>, and validate it as it would an authorization request (section 2.1). Section 1 gives the gain: "PAR allows the authorization server to authenticate the client before any user interaction happens."</li>
+<li><strong>The server answers 201 with a <code>request_uri</code> and <code>expires_in</code></strong> (section 2.2). The <code>request_uri</code> is defined there as a single-use reference. It must contain a random part that makes it "computationally infeasible to predict or guess a valid value", and it "MUST be bound to the client that posted the authorization request". The lifetime is the server's choice, and the RFC expects it to be relatively short, for example between 5 and 600 seconds.</li>
+<li><strong>The browser carries only <code>client_id</code> and <code>request_uri</code></strong> (section 4). There is nothing else on the URL to edit or to read.</li>
+<li><strong>The authorization endpoint looks the reference up.</strong> An expired <code>request_uri</code> must be rejected. Servers should treat it as one-time use, and the RFC allows them to accept a duplicate caused by the user reloading the page. The client must use a value only once (section 4).</li>
+<li><strong>The server can insist.</strong> <code>require_pushed_authorization_requests</code> is both server metadata (section 5) and client metadata (section 6), and defaults to false in both. When it applies, the server refuses any authorization request without a <code>request_uri</code> from the PAR endpoint, with <code>invalid_request</code> (section 4). Without that setting an attacker simply does not use PAR.</li>
+</ol>
+<div class="prose">
+<p>Section 7 of the RFC lists what can still go wrong with the reference itself:</p>
+<ul>
+<li><strong>Guessing (7.1).</strong> The server must account for the considerations in RFC 9101 section 10.2, clause (d), on entropy. That clause requires a short lifetime and sufficiently large entropy, and gives as general guidance a validity of less than a minute and a random value of 128 bits or more.</li>
+<li><strong>Open redirection (7.2).</strong> PAR lets a server accept a redirect URI that was not registered in advance. The server must accept new redirect URIs in a pushed request only from authenticated clients.</li>
+<li><strong>Replay (7.3).</strong> An attacker could replay a captured request URI, so the server should make request URIs one-time use.</li>
+<li><strong>Client policy change (7.4).</strong> The client's policy can change between the push and the authorization request, so the RFC recommends checking the request against the client policy again at the authorization endpoint.</li>
+<li><strong>Swapping (7.5).</strong> An attacker could substitute a request URI from one request into another. Clients should use PKCE, a unique <code>state</code> or the OpenID Connect <code>nonce</code> to prevent it.</li>
+</ul>
+<p><strong>JAR in brief.</strong> RFC 9101 defines the other way to protect the request: the client signs the parameters into a <a href="../../glossary/index.html#request-object">request object</a>, a JWT, and sends it in the <code>request</code> parameter or by reference in <code>request_uri</code>. PAR borrows that <code>request_uri</code> parameter. RFC 9126 section 1 says PAR "complements JAR", and section 3 allows a client to push a signed request object, which is the choice for a client that needs to prove afterwards what it asked for. FAPI 2.0 replaced the request object of FAPI 1.0 with PAR, and its section 5.5 gives the reason as "integrity protection and compatibility improvements for authorization requests".</p>
+</div>
+
+<h3>Rich authorization requests</h3>
+<div class="prose">
+<p>RFC 9396 adds one parameter, <code>authorization_details</code>, which carries <a href="../../glossary/index.html#authorization-details">authorization details</a>: a JSON array of objects. This is the request the lab's client pushes:</p>
+</div>
+<pre><code>[{
+  "type": "payment_initiation",
+  "actions": ["initiate", "status"],
+  "locations": ["https://api.examplebank.example/payments"],
+  "instructedAmount": {"currency": "EUR", "amount": "45.00"},
+  "creditorName": "ExampleAir",
+  "creditorAccount": "acct-exampleair"
+}]</code></pre>
+<div class="prose">
+<ul>
+<li><strong><code>type</code> is the only required field</strong>, and it "determines the allowable contents of the object that contains it" (section 2). The API defines its types. The authorization server controls how each is interpreted (section 2.1).</li>
+<li><strong>Five common fields</strong> are offered for reuse and none is mandatory: <code>locations</code>, <code>actions</code>, <code>datatypes</code>, <code>identifier</code> and <code>privileges</code> (section 2.2). <code>instructedAmount</code>, <code>creditorName</code> and <code>creditorAccount</code> above belong to this API's type, as in the RFC's own payment example.</li>
+<li><strong>The server refuses what the type does not allow.</strong> Section 5 requires it to answer <code>invalid_authorization_details</code> for an unknown type, an unknown field, a field of the wrong type, an invalid value or a missing required field.</li>
+<li><strong>The token response says what was granted.</strong> Section 7 requires the server to return the <code>authorization_details</code> "as granted by the resource owner and assigned to the respective access token". They may differ from what was asked (section 7.1), and a note in section 3 says the user may grant a subset. This lesson's advice is that the client compares the two.</li>
+<li><strong>The resource server is told.</strong> Section 9 requires the authorization server to make the data available to the resource server. For a JWT access token it recommends a top-level claim (9.1). In an <a href="../../glossary/index.html#introspection">introspection</a> response, if included, it must be the top-level member <code>authorization_details</code> (9.2).</li>
+<li><strong>Scope still works alongside.</strong> If both are present the server must process them together and must show the user the merged set (section 3.1).</li>
+</ul>
+<p><strong>What the resource server must still do.</strong> Everything. Section 1 of the RFC says the authorization server and the resource server "will together enforce this consent". The object in the token is data. If the payments API checks that a <code>payment_initiation</code> object is present and does not compare its fields with the payment in front of it, the token is as broad as the scope was. Check 44 of the lab is that API. How to compare is the API's own definition: section 6.1 says "there is no standardized mechanism to compare two arbitrary authorization detail requests".</p>
+<p><strong>The specification's own security considerations</strong> (section 12): the parameter travels through the user agent, so the user can modify it, and "clients MUST protect authorization_details against tampering and swapping" where integrity is a concern, with a signed request object or with PAR. String comparisons follow RFC 8259 with no further normalization. The server must sanitize the data to prevent injection. Section 13 adds that personal data in the details must be kept from leaking, for example through referrer headers. In a payment both concerns are real. Section 3 says implementers may consider PAR for exactly this, and Part C of the lab pushes every request that carries details.</p>
+<p><strong>Two connections.</strong> <a href="../agent-authority-and-approvals/index.html">Module 23, Agent authority and approvals</a>, teaches that an approval must bind the exact parameters that will execute. <code>authorization_details</code> is where OAuth carries those parameters from the consent screen to the API. And RAR does not replace server-side authorization: it narrows what a token may do, and the API still decides whose objects the caller may touch, which is <a href="../object-level-authorization/index.html">module 9, Object-level authorization</a>.</p>
+</div>
+
+<h3>Step-up authentication</h3>
+<div class="prose">
+<p><a href="../../glossary/index.html#step-up-authentication">Step-up authentication</a> lets a resource server refuse one request because of how, or how long ago, the user authenticated. RFC 9470 defines it in four moves:</p>
+</div>
+<ol class="steps prose">
+<li><strong>The resource server reads two facts about the token:</strong> <code>auth_time</code>, when the user authenticated, and <code>acr</code>, an <a href="../../glossary/index.html#authentication-context-class-reference">authentication context class reference</a> that names how. They come from the claims of a JWT access token (section 6.1) or from the introspection response (section 6.2). Section 6.1 notes that the values "will not change in the event of access token renewals": a refreshed token is not a fresher authentication.</li>
+<li><strong>If they do not meet its policy, it challenges.</strong> The error code is <code>insufficient_user_authentication</code>. Two parameters say what would be enough: <code>acr_values</code>, a space-separated list in order of preference, and <code>max_age</code>, the allowed number of seconds since the last active authentication. Both may appear in one challenge (section 3).</li>
+<li><strong>The client starts a new authorization request</strong> carrying those values as the <code>acr_values</code> and <code>max_age</code> request parameters that OpenID Connect Core section 3.1.2.1 defines (section 4, which says the client should do this). The client does not look inside the access token to decide: section 2 says "a client must not attempt to inspect the content of the access token".</li>
+<li><strong>The authorization server authenticates the user again and issues a new token</strong> whose <code>acr</code> and <code>auth_time</code> reflect it. Section 5 says the server should treat the requested <code>acr</code> as necessary: if it cannot be met, the request fails with <code>unmet_authentication_requirements</code>. That stops a client looping on tokens the API has already refused.</li>
+</ol>
+<div class="prose">
+<p>An <code>acr</code> value is only a string. OpenID Connect Core section 2 says: "Parties using this claim will need to agree upon the meanings of the values used". The resource server trusts the authorization server's statement that a <a href="../../glossary/index.html#multi-factor-authentication">second factor</a> was used. RFC 9470 section 9 adds two cautions. The challenge can tell an attacker which users or resources are treated as high value. And a resource server may send the challenge without first validating the token, but doing so leaks its requirements to a caller who has not shown it can obtain a token. The lab validates first.</p>
+<p><strong>This is not the step-up in module 20.</strong> <a href="../mcp-server-authorization/index.html">Module 20, MCP server authorization</a> teaches the <a href="../../glossary/index.html#mcp">MCP</a> specification's "Step-Up Authorization Flow". The words are similar and the thing is different:</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>Question</th><th>Scope step-up (module 20)</th><th>Authentication step-up (this module)</th></tr></thead>
+<tbody>
+<tr><td>What is missing</td><td>Permission. The token does not cover the operation</td><td>Assurance. The token covers the operation, but the user's authentication is too old or too weak</td></tr>
+<tr><td>Error code</td><td><code>insufficient_scope</code>, RFC 6750 section 3.1</td><td><code>insufficient_user_authentication</code>, RFC 9470 section 3</td></tr>
+<tr><td>Status</td><td>RFC 6750 says the server should answer 403</td><td>The examples in RFC 9470 use 401</td></tr>
+<tr><td>What the challenge carries</td><td><code>scope</code></td><td><code>acr_values</code>, <code>max_age</code>, or both</td></tr>
+<tr><td>What the client asks for next</td><td>More scope. In MCP, the union of what it had and what was challenged</td><td>The same access, with a stronger or fresher authentication</td></tr>
+<tr><td>What the user does</td><td>Consents to more</td><td>Signs in again</td></tr>
+</tbody></table></div>
+<p class="prose">One response can carry both. RFC 9470 section 3 allows the resource server to add the <code>scope</code> attribute to an authentication challenge when the request is also lacking scope. Checks 52 and 59 of the lab are the two errors side by side.</p>
+
+<h3>Legacy flows a reviewer will meet</h3>
+<div class="prose">
+<p>Module 4 gives these one table row. Here is the fuller account, because both still appear in designs and in server defaults.</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>Question</th><th>Implicit grant</th><th>Resource owner password credentials grant</th></tr></thead>
+<tbody>
+<tr><td>What it does</td><td>The authorization endpoint returns the access token itself, in the URI fragment of the redirect, with no code and no token request (RFC 6749 section 4.2)</td><td>The client collects the user's username and password and posts them to the token endpoint (RFC 6749 section 4.3)</td></tr>
+<tr><td>What goes wrong</td><td>The token is in a URL, so it can leak, be replayed and be injected, and there is no standardized way to sender-constrain a token issued this way (RFC 9700 section 2.1.2). There is no client authentication (RFC 6749 section 4.2)</td><td>The client sees the password. RFC 9700 section 2.4 says the grant "insecurely exposes the credentials of the resource owner to the client", trains users to enter credentials outside the authorization server, and is not designed to work with two-factor authentication</td></tr>
+<tr><td>What RFC 9700 says, exactly</td><td>"clients SHOULD NOT use the implicit grant (response type token) or other response types issuing access tokens in the authorization response, unless access token injection in the authorization response is prevented and the aforementioned token leakage vectors are mitigated" (section 2.1.2). A recommendation, with a condition</td><td>It "MUST NOT be used" (section 2.4). A requirement, with no condition</td></tr>
+<tr><td>The OAuth 2.1 Internet-Draft, revision 16</td><td>Omits it. Section 10.1 of the draft says <code>response_type=token</code> "is no longer defined in OAuth 2.1". This is a draft, not a standard</td><td>Omits it (section 10 of the draft)</td></tr>
+<tr><td>How to recognize it in a design</td><td><code>response_type=token</code> in an authorization URL. <code>#access_token=</code> in a redirect. <code>implicit</code> in a client's <code>grant_types</code> or <code>token</code> in its <code>response_types</code> (RFC 7591 section 2). Server metadata with no <code>grant_types_supported</code>: RFC 8414 section 2 says the default, if omitted, includes <code>implicit</code></td><td>The app has its own sign-in form for the bank's credentials. <code>grant_type=password</code> with <code>username</code> and <code>password</code> at the token endpoint. <code>password</code> in a client's <code>grant_types</code>. A note that a second factor cannot be used with this client</td></tr>
+</tbody></table></div>
+<p class="prose">RFC 6749 itself warned about the password grant in section 10.7: it "maintains the password anti-pattern this protocol seeks to avoid". The draft says its removal of <code>response_type=token</code> does not affect other response types that return something else from the authorization endpoint. Those belong to OpenID Connect, the subject of <a href="../openid-connect/index.html">module 35</a>, OpenID Connect and ID tokens.</p>
+
+<h3>FAPI 2.0: one published composition</h3>
+<div class="prose">
+<p>The FAPI 2.0 Security Profile is an OpenID Foundation Final Specification (22 February 2025). It selects from the controls above and from modules 4 and 7, and makes them mandatory together. Its keywords are "shall", "should" and "may".</p>
+<p><strong>The attacker model, as far as this lesson can state it.</strong> The profile says it "has been proved by formal analysis to meet the stated attacker model" (section 1), and that it aims to follow the recommendations in RFC 9700 (section 5.1.1). The attacker model is a separate document, the FAPI 2.0 Attacker Model, which this lesson has not read, so it is not summarized here. What this lesson can report is a different list, the attacker model of RFC 9700 itself (section 3). It is not the FAPI one. It describes five kinds of attacker: a web attacker who runs their own clients, servers and pages (A1), a network attacker who controls the network outside what cryptography such as TLS protects (A2), and attackers who can read the authorization response (A3), read the authorization request (A4), or acquire an access token (A5). The profile's own security considerations mention an attacker who can intercept an authorization request and one who can obtain DPoP proofs, and call them A3 and A5 in its own model's numbering (sections 6.4 and 6.2). In RFC 9700 the attacker who reads the authorization request is A4, not A3, so the two lists number their attackers differently. Do not carry one over to the other. The profile also says what it leaves out: only confidential clients are in scope, because the working group "is not currently aware of any mechanisms that would allow public clients to be secured to the same degree" (section 5.1.1).</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>Control</th><th>What the profile requires (section)</th><th>The attack it answers</th></tr></thead>
+<tbody>
+<tr><td>Client authentication</td><td>Authorization servers shall authenticate clients with mutual TLS (RFC 8705 section 2) or <code>private_key_jwt</code>, shall support only confidential clients, and shall accept only their issuer identifier, as a string, in the assertion's <code>aud</code>. Clients send it that way (5.3.2.1, 5.3.3.1)</td><td>A leaked or stored shared secret. An assertion reused at another server</td></tr>
+<tr><td>PAR</td><td>Servers shall support client-authenticated PAR, reject authorization requests sent without it, reject pushed requests without client authentication, require <code>redirect_uri</code> in the pushed request, and issue <code>request_uri</code> values with <code>expires_in</code> under 600 seconds. Clients shall send only <code>client_id</code> and <code>request_uri</code> to the authorization endpoint (5.3.2.2, 5.3.3.2)</td><td>Reading or editing the request in the browser</td></tr>
+<tr><td>Code flow with PKCE</td><td><code>response_type</code> shall be <code>code</code>. PKCE with S256 is required of server and client. Codes live at most 60 seconds and a used code is rejected (5.3.2.1, 5.3.2.2, 5.3.3.2)</td><td>A stolen or injected <a href="../../glossary/index.html#authorization-code">authorization code</a> (module 4)</td></tr>
+<tr><td>Issuer identification</td><td>Servers shall return the <code>iss</code> parameter of RFC 9207 in the authorization response, and clients shall check it (5.3.2.2, 5.3.3.2)</td><td>A <a href="../../glossary/index.html#mix-up-attack">mix-up attack</a> on a client that uses more than one authorization server</td></tr>
+<tr><td>Sender-constrained tokens</td><td>Servers shall issue only <a href="../../glossary/index.html#sender-constrained-token">sender-constrained</a> access tokens, by mutual TLS or <a href="../../glossary/index.html#dpop">DPoP</a>. Resource servers shall support and verify them (5.3.2.1, 5.3.4)</td><td>A stolen access token (module 7)</td></tr>
+<tr><td>Legacy grants</td><td>Servers shall reject the resource owner password credentials grant (5.3.2.1). With <code>response_type</code> fixed to <code>code</code>, there is no implicit grant</td><td>Passwords handed to clients. Tokens in URLs</td></tr>
+<tr><td>Resource server</td><td>Shall accept tokens in the HTTP header and not in query parameters, shall verify "the validity, integrity, expiration and revocation status" of tokens, and shall verify that the authorization the token represents is sufficient for the request (5.3.4)</td><td>Tokens in URLs and logs. Revoked or under-privileged tokens</td></tr>
+<tr><td>Transport and cryptography</td><td>TLS 1.2 or later on every endpoint (5.2.1). JWTs use PS256, ES256 or EdDSA with Ed25519, and never <code>none</code>. RSA keys are at least 2048 bits. Credentials not handled by users have at least 128 bits of entropy (5.4.1)</td><td>Network attackers. Weak keys and guessable values</td></tr>
+<tr><td>Redirects and metadata</td><td>No open redirectors at the server or the client. No <code>http</code> redirect URIs except loopback for native clients. Clients shall take the server's endpoints only from its metadata document and check that the issuer in it matches (5.3.2.1, 5.3.2.2, 5.3.3.1)</td><td>Leaked authorization responses. A client configured with an attacker's endpoint</td></tr>
+</tbody></table></div>
+<div class="prose">
+<p>Three things about that list. First, the profile does not require RAR. A note in section 5.3.2.2 recommends it "when the scope parameter is not expressive enough". It does not mention RFC 9470 at all. A deployment can meet the profile with a coarse scope and no step-up, so Part E of the lab adds both on its own account. Second, a few requirements cut against habit: the server shall not use <a href="../../glossary/index.html#refresh-token">refresh token</a> rotation except in extraordinary circumstances (5.3.2.1). Its note gives the reason: rotation brings no security benefit with confidential clients and sender-constrained tokens, and it causes operational problems. Third, the profile says what it does not solve. Section 6.5 describes a browser-swapping attack and says "there is no way to completely prevent this attack if the authorization response leaks to an attacker in any redirect-based protocol". Section 6.2 notes that DPoP does not sign the request body. Section 5.1.2 forbids a derived profile from removing mandatory behaviors, because doing so "is likely to invalidate the formal security analysis".</p>
+<p><strong>The teaching point.</strong> High assurance is a composition: each control answers one named attack by one kind of attacker, and the list is only as good as the attacker model behind it. An API can have every control above in place and still return another customer's payment to a correctly authenticated caller. The profile has one clause that touches this: the resource server shall verify that the authorization the token represents is sufficient for the requested resource access (5.3.4). It does not say how, and no other control in the list looks at which object was asked for. Deciding whose object it is stays the API's own code. That is module 9, and it is check 70 of the lab.</p>
+</div>
+
+<h3>The whole flow</h3>
+<div class="diagram">
+<svg viewBox="0 0 1100 560" width="100%" style="min-width:900px" role="img">
+<title>A high-assurance authorization code flow, control by control</title>
+<desc>Four lanes: the client ExamplePay, the user's browser, ExampleBank's authorization server and ExampleBank's payments API. Step 1: the client pushes the request to the authorization server over the back channel, authenticated with a signed assertion, carrying the PKCE challenge and the authorization details. Step 2: the server answers with a request URI. Step 3: the browser carries only the client identifier and the request URI. Step 4: the server authenticates the user to the requested strength and shows the payee and amount. Step 5: the browser carries back a code and the issuer. Step 6: the client redeems the code with a new assertion and the PKCE verifier. Step 7: the server returns a token bound to the client's key together with the granted authorization details. Step 8: the client calls the payments API. A box lists the five checks the API makes: the token, the key it is bound to, the authorization details, the authentication strength and age, and the owner of the object. The last check is marked as not part of any OAuth control.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+<text class="lab" x="20" y="24">Only steps 3 and 5 pass through the browser, and neither carries anything worth editing.</text>
+
+<g class="p"><rect x="20" y="40" width="220" height="50" rx="8"/><text class="th" x="130" y="62" text-anchor="middle">Client</text><text class="ts" x="130" y="80" text-anchor="middle">ExamplePay, holds a private key</text></g>
+<g class="g"><rect x="300" y="40" width="200" height="50" rx="8"/><text class="th" x="400" y="62" text-anchor="middle">Browser</text><text class="ts" x="400" y="80" text-anchor="middle">front channel</text></g>
+<g class="h"><rect x="560" y="40" width="240" height="50" rx="8"/><text class="th" x="680" y="62" text-anchor="middle">Authorization server</text><text class="ts" x="680" y="80" text-anchor="middle">auth.examplebank.example</text></g>
+<g class="s"><rect x="860" y="40" width="220" height="50" rx="8"/><text class="th" x="970" y="62" text-anchor="middle">Payments API</text><text class="ts" x="970" y="80" text-anchor="middle">api.examplebank.example</text></g>
+
+<line class="leader" x1="130" y1="90" x2="130" y2="430"/>
+<line class="leader" x1="400" y1="90" x2="400" y2="430"/>
+<line class="leader" x1="680" y1="90" x2="680" y2="430"/>
+<line class="leader" x1="970" y1="90" x2="970" y2="430"/>
+
+<line class="arr" x1="130" y1="124" x2="676" y2="124" marker-end="url(#a)"/>
+<text class="ts" fill="var(--muted)" x="138" y="116">1. PAR: signed assertion, PKCE challenge, authorization_details</text>
+
+<line class="arr" x1="680" y1="164" x2="134" y2="164" marker-end="url(#a)"/>
+<text class="ts" fill="var(--muted)" x="138" y="156">2. request_uri, expires_in</text>
+
+<line class="arr" x1="130" y1="204" x2="396" y2="204" marker-end="url(#a)"/>
+<line class="arr" x1="400" y1="204" x2="676" y2="204" marker-end="url(#a)"/>
+<text class="ts" fill="var(--muted)" x="138" y="196">3. client_id and request_uri only</text>
+
+<line class="arr" x1="680" y1="244" x2="404" y2="244" marker-end="url(#a)"/>
+<text class="ts" fill="var(--muted)" x="408" y="236">4. sign in to the asked acr, approve payee and amount</text>
+
+<line class="arr" x1="680" y1="284" x2="404" y2="284" marker-end="url(#a)"/>
+<line class="arr" x1="400" y1="284" x2="134" y2="284" marker-end="url(#a)"/>
+<text class="ts" fill="var(--muted)" x="138" y="276">5. code and iss</text>
+
+<line class="arr" x1="130" y1="324" x2="676" y2="324" marker-end="url(#a)"/>
+<text class="ts" fill="var(--muted)" x="138" y="316">6. code, PKCE verifier, a new signed assertion</text>
+
+<line class="arr" x1="680" y1="364" x2="134" y2="364" marker-end="url(#a)"/>
+<text class="ts" fill="var(--muted)" x="138" y="356">7. token bound to the client's key, authorization_details as granted</text>
+
+<line class="arr" x1="130" y1="404" x2="966" y2="404" marker-end="url(#a)"/>
+<text class="ts" fill="var(--muted)" x="138" y="396">8. the payment, with the token, from the bound key</text>
+
+<g class="s"><rect x="20" y="444" width="700" height="100" rx="8"/><text class="th" x="40" y="468">What the API checks at step 8, in order</text><text class="ts" x="40" y="490">Is the token active? Is the caller using the key it is bound to? (module 7)</text><text class="ts" x="40" y="510">Do the authorization_details cover this payee, amount and currency?</text><text class="ts" x="40" y="530">Do acr and auth_time meet the policy for this operation? If not, challenge.</text></g>
+<g class="r"><rect x="740" y="444" width="340" height="100" rx="8"/><text class="th" x="760" y="468">Not on any list above</text><text class="ts" x="760" y="490">Does this caller own the object it named?</text><text class="ts" x="760" y="510">No OAuth control asks. The API must.</text><text class="ts" x="760" y="530">Module 9.</text></g>
+</svg>
+<div class="legend"><span class="lg-p">Client</span><span class="lg-h">Authorization server</span><span class="lg-s">Resource server and its checks</span><span class="lg-r">Outside every control here</span></div>
+</div>
+
+<h2>4. Defaults and when to change them</h2>
+<div class="wrap"><table>
+<thead><tr><th>Decision</th><th>Starting default</th><th>Change it when</th></tr></thead>
+<tbody>
+<tr><td>Client authentication</td><td><code>private_key_jwt</code> for every confidential client</td><td>Use the mutual TLS methods where client certificates are already issued and managed. Keep a client secret only for a client that cannot hold a key, and write down what that client can reach.</td></tr>
+<tr><td>Assertion audience</td><td>The issuer identifier, as one string</td><td>Accept the token endpoint URL as well only to interoperate with clients built to RFC 7523 or OpenID Connect Core. RFC 9126 requires a PAR server to accept it. FAPI 2.0 forbids it.</td></tr>
+<tr><td>Assertion lifetime and replay</td><td>60 seconds, a server cap of 5 minutes, and <code>jti</code> recorded until <code>exp</code></td><td>The 60 and 300 are this lab's values, not a standard's. Lengthen only for clients with poor clocks, and keep the cap, because the record grows with it.</td></tr>
+<tr><td>Pushed requests</td><td>Required, by server metadata, for any client whose request parameters matter</td><td>Leave it optional per client only while clients migrate, with a date. An optional control is one the attacker skips.</td></tr>
+<tr><td><code>request_uri</code></td><td>60 seconds, one use, at least 128 random bits</td><td>Lengthen the lifetime if users on slow devices fail to arrive in time. A note in FAPI 2.0 section 5.3.2.2 says this "can easily take over 30 seconds". Another note there recommends enforcing one-time use at the point of authorization, not when the page loads, so that software that preloads links does not use the value up.</td></tr>
+<tr><td>Scope or details</td><td>A scope for stable, coarse permissions. <code>authorization_details</code> for anything with an amount, a payee or a named object</td><td>RFC 9396 section 3.1 recommends that one API use only one of the two forms.</td></tr>
+<tr><td>Step-up policy</td><td>Set per operation, by the resource server. For this lab's payments: a second factor, at most 300 seconds old</td><td>The numbers are this lab's. Choose them from what the operation can lose, and agree the <code>acr</code> values with the authorization server in writing.</td></tr>
+<tr><td>Implicit and password grants</td><td>Off, at the server</td><td>Never for a new build. An existing integration gets a dated migration plan (module 4, check <code>oauth-03</code>).</td></tr>
+<tr><td>A named profile</td><td>Adopt FAPI 2.0 whole where an ecosystem requires it</td><td>Do not adopt part of it and claim the name. Section 5.1.2 of the profile says a derived profile shall not remove or override mandatory behaviors.</td></tr>
+</tbody></table></div>
+
+<h2>5. What it proves, and what it doesn't</h2>
+<div class="prose">
+<p><strong>Proves, control by control:</strong> <code>private_key_jwt</code> proves the caller can use the private key that matches the public key registered for this client, for this server, within the assertion's short lifetime, and once if the server tracks <code>jti</code>. PAR proves the parameters the server acted on are the ones an authenticated client sent it directly. <code>authorization_details</code> on a token prove which specific access the authorization server recorded as granted. <code>acr</code> and <code>auth_time</code> are the authorization server's statement of how and when the user authenticated. A deployment that meets FAPI 2.0 has all of the controls in the table in section 3, analyzed together against a stated attacker.</p>
+<p><strong>Doesn't prove who may do what to which object.</strong> Every control here is about the client, the request, the token or the user's authentication. None of them looks at whether the object named in the API call belongs to the caller. That decision is made in the API, per object and per operation (modules 9 and <a href="../property-and-function-authorization/index.html">10, Property and function authorization</a>).</p>
+<p><strong>Doesn't prove the user understood what they approved.</strong> RAR makes the consent screen able to show the real payee and amount. It cannot make anyone read it. In check 21 of the lab the user is shown a request that was edited in the browser, and approves it. FAPI 2.0 section 7 lists "Insufficient understanding of the end-user granting access to data" among its privacy threats. Module 23 covers the same limit for agent approvals.</p>
+<p><strong>Doesn't prove anything about where the client keeps its private key.</strong> Asymmetric client authentication moves the target from the server's table to the client's key. If that key sits in a repository or an environment variable, anyone who reads it is the client, with a credential that looks stronger on paper. Who owns that key, when it rotates and how it is withdrawn is module 8.</p>
+<p><strong>Doesn't make a token single use.</strong> Nothing in RFC 9396 limits how many times a token may be used. Measured on a call the lab does not make: the token from check 38 pays 45.00 EUR to ExampleAir a second time and gets <code>201</code> again. One approved payment being executed once is a rule for the API to enforce, and it is <a href="../business-flows-and-idempotency/index.html">module 11, Business flows and idempotency</a>.</p>
+<div class="callout warn"><strong>Step-up is not sign-in.</strong> RFC 9470 section 9 says: "This document MUST NOT be used to position OAuth as an authentication protocol." The resource server learns how the authorization server authenticated the user. The client learns nothing about who the user is, and must not treat the new access token as a login. Module 4 makes the same point about access tokens in general.</div>
+</div>
+
+<h2>6. Prove it</h2>
+<div class="prose">
+<p>A working deployment must refuse every one of these. If any is accepted, the control it belongs to is broken:</p>
+<ul>
+<li>A client registered for <code>private_key_jwt</code> presenting a client secret, or presenting two methods in one request.</li>
+<li>An assertion signed with any key other than the registered one, or with an algorithm other than the registered one, including an HMAC keyed with the client's public key.</li>
+<li>An assertion whose <code>aud</code> names another server. If your policy is issuer-only, one whose <code>aud</code> is the token endpoint URL.</li>
+<li>An assertion presented at or after its <code>exp</code>, one whose <code>exp</code> is further away than your cap, and the same assertion presented twice.</li>
+<li>With PAR required: an authorization request that carries its parameters on the URL.</li>
+<li>A <code>request_uri</code> used a second time, used after <code>expires_in</code>, made up, or presented with a different <code>client_id</code>. After the last of these, the rightful client can still use it.</li>
+<li>A pushed request with no client authentication, and one that itself contains a <code>request_uri</code>.</li>
+<li>Parameters added to the authorization URL next to a <code>request_uri</code>: they must have no effect.</li>
+<li>An <code>authorization_details</code> object with an unknown type, an unknown field or a missing field, and a known type the client is not registered to use.</li>
+<li>At the API: a payment whose payee, amount or currency differs from the granted object in any way.</li>
+<li>At the API: a consequential request with a token whose <code>auth_time</code> is older than the policy or whose <code>acr</code> is weaker. The refusal names <code>insufficient_user_authentication</code> and says what is required. An invalid token on the same endpoint gets <code>invalid_token</code> and no policy.</li>
+<li><code>response_type=token</code>, <code>grant_type=password</code> and <code>code_challenge_method=plain</code>.</li>
+<li>In the client: an authorization response whose <code>iss</code> is not the issuer the request was sent to.</li>
+<li>A bound token presented without the key it is bound to.</li>
+<li>And, with every one of the above in place: a request for an object that belongs to another customer.</li>
+</ul>
+</div>
+
+<h2>7. Lab</h2>
+<div class="prose">
+<p>Download <a href="../../labs/advanced_oauth_lab.py"><code>labs/advanced_oauth_lab.py</code></a>. It needs one package:</p>
+</div>
+<pre><code>Windows              macOS and Linux
+py -3 -m venv .venv          python3 -m venv .venv
+.venv\Scripts\Activate.ps1    source .venv/bin/activate
+python -m pip install cryptography==50.0.1
+python labs/advanced_oauth_lab.py</code></pre>
+<div class="prose">
+<p>Inside an activated environment use <code>python</code>, not <code>py -3</code>. The <code>py</code> command uses an active environment only when you have not asked for a version: "If you are running in an active virtual environment, have not requested a particular version, and there is no shebang line, the default runtime will be that virtual environment" (Python 3.14 documentation, Using Python on Windows, Python install manager, Basic use). Outside an environment, <code>py -3</code> is still the right command on Windows.</p>
+<p>On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>. The authorization server, the client and the resource server are Python objects in one file, a request is a method call, and time is a number the lab advances, so the output is the same on every run. Every client assertion is a real JWT, built and checked by hand, with a real ES256 or HS256 signature, and PKCE uses real SHA-256. Three things are simplified and the file says so at the top: access tokens are opaque and the API learns what they mean by introspection, the key a caller proved on its connection in Part E is passed to the handler directly as module 7's lab does, and the two mutual TLS client authentication methods are not modelled. Keys, secrets, assertions, codes, tokens and <code>request_uri</code> values are never printed.</p>
+</div>
+<pre><code>$ python3 labs/advanced_oauth_lab.py
+ExampleBank, ExamplePay and ExampleAir are fictional. No key, secret, assertion or token is printed.
+
+Part A: client authentication. Who can act as the client?
+ 1. client_secret_basic, the real client                                     authenticated
+ 2.   the header copied from the proxy log, an hour later                    authenticated
+ 3. client_secret_jwt, the real client                                       authenticated
+ 4.   an assertion minted from the server's own client record                authenticated
+ 5. private_key_jwt, the real client                                         authenticated
+ 6.   an assertion minted from the server's own client record                the record holds no signing key
+ 7.   signed with the attacker's own key                                     invalid_client: signature
+ 8.   HS256, keyed with the client's public key                              invalid_client: alg is not the registered one
+ 9.   jti values recorded for ExamplePay after checks 5 to 8                 1
+10. that assertion, copied from the proxy log and sent again                 invalid_client: jti already used
+11.   to a server that does not track jti                                    authenticated
+12. an assertion addressed to another server                                 invalid_client: audience
+13. an assertion presented at its exp                                        invalid_client: expired
+14. an assertion that would stay valid for a day                             invalid_client: lifetime too long
+15. jti values still recorded for ExamplePay, its assertions having expired  0
+16. aud is the token endpoint URL: RFC 9126 policy                           authenticated
+17.   the same assertion: issuer-only policy                                 invalid_client: audience
+18. an assertion and a Basic header in one request                           invalid_client: more than one method
+
+Part B: pushed authorization requests. Who can change the request?
+19. the client asks for, on the front channel                                accounts:read
+20.   the URL is edited in the browser; the token carries                    accounts:read payments:write
+21.   what the user was shown and approved                                   read your balance; make payments from your account
+22. the same request pushed, the same edit; the token carries                accounts:read
+23. a pushed request is answered with                                        [201, ['expires_in', 'request_uri']]
+24.   expires_in, in seconds                                                 60
+25.   random bits in the request_uri                                         256
+26.   first use at the authorization endpoint                                code issued
+27.   second use of the same request_uri                                     invalid_request: request_uri already used
+28. a request_uri presented when its lifetime has passed                     invalid_request: request_uri expired
+29. a guessed request_uri                                                    invalid_request: unknown request_uri
+30. another client presents ExamplePay's request_uri                         invalid_request: request_uri belongs to another client
+31.   and ExamplePay can still use it                                        code issued
+32. a push with no client authentication                                     [401, 'invalid_client: no client authentication']
+33. a push that itself carries a request_uri                                 [400, 'invalid_request: request_uri is not allowed here']
+34. a push for a scope the client is not registered for                      [400, 'invalid_scope']
+35. require_pushed_authorization_requests: a request that was not pushed     invalid_request: a pushed authorization request is required
+
+Part C: rich authorization requests. What exactly was granted?
+36. scope payments:write: the booking payment                                201 paid 45.00 EUR to acct-exampleair
+37.   the same token: 9000.00 to another account                             201 paid 9000.00 EUR to acct-attacker
+38. authorization_details: what the user was shown and approved              pay 45.00 EUR to ExampleAir (acct-exampleair)
+39.   the token response returns what was granted                            True
+40.   and so does introspection, for the resource server                     True
+41.   the booking payment                                                    201 paid 45.00 EUR to acct-exampleair
+42.   9000.00 to another account                                             403 Bearer error="insufficient_scope"
+43.   the right account, a larger amount                                     403 Bearer error="insufficient_scope"
+44. a resource server that checks only the type: 9000.00                     201 paid 9000.00 EUR to acct-attacker
+45. a request for a type the server does not define                          invalid_authorization_details: unknown type
+46. a known type with a field its definition does not have                   invalid_authorization_details: unknown field recurring
+47. a type this client is not allowed to request                             invalid_authorization_details: type not allowed for this client
+48. details sent on the front channel, amount edited: granted                0.45
+49.   the client compares the token response with what it asked              not what was asked
+
+Part D: step-up authentication. How was the user authenticated, and when?
+50. the token's acr and the age of its auth_time                             ['https://acr.examplebank.example/pwd', 7200]
+51.   reading the balance with it                                            200 balance of customer-17
+52.   paying with it                                                         401 Bearer error="insufficient_user_authentication", acr_values="https://acr.examplebank.example/mfa", max_age="300"
+53.   what the client reads from the challenge                               ['insufficient_user_authentication', 'https://acr.examplebank.example/mfa', '300']
+54.   a new request with those values: acr and age                           ['https://acr.examplebank.example/mfa', 0]
+55.   the payment, retried with the new token                                201 paid 45.00 EUR to acct-exampleair
+56. strong authentication, 30 minutes old                                    401 Bearer error="insufficient_user_authentication", acr_values="https://acr.examplebank.example/mfa", max_age="300"
+57. password only, 10 seconds old                                            401 Bearer error="insufficient_user_authentication", acr_values="https://acr.examplebank.example/mfa", max_age="300"
+58. a user with no second factor asks for the stronger acr                   unmet_authentication_requirements
+59. a different refusal: a token without accounts:read reads the balance     403 Bearer error="insufficient_scope", scope="accounts:read"
+60. an unknown token is not told the policy                                  401 Bearer error="invalid_token"
+
+Part E: the controls together, and what they still do not decide.
+61. pushed, private_key_jwt, PKCE S256, details, step-up, bound key          token issued
+62.   the payment it was issued for                                          201 paid 45.00 EUR to acct-exampleair
+63.   the same token from a connection without the client's key              401 Bearer error="invalid_token"
+64. a response whose iss names another server                                client refused: iss is not the expected issuer
+65. the same request without a key to bind the token to                      invalid_request: no key to bind the token to
+66. this server and a client secret                                          invalid_client: method not accepted by this server
+67.   response_type=token                                                    unsupported_response_type
+68.   code_challenge_method=plain                                            invalid_request: PKCE with S256 is required
+69.   grant_type=password                                                    [400, 'unsupported_grant_type']
+70. every check above passed; the same token reads pay-7002                  200 310.00 EUR to acct-landlord, owned by customer-42
+71.   with an ownership check at the resource server                         404 not found
+
+all 71 lab checks passed</code></pre>
+<div class="prose">
+<p>Checks 1 to 6 are the first row of the table in section 1. The Basic header that carried the secret works again an hour later from a copy in a log (check 2). With <code>client_secret_jwt</code> the secret never travels, and that does not help against the server's own table: check 4 mints a valid assertion from the stored record. Check 6 tries the same thing against the <code>private_key_jwt</code> record and finds nothing there that can sign.</p>
+<p>Checks 9 to 11 are the <code>jti</code> record. In checks 5 to 8 three assertions naming ExamplePay reached the server and one was genuine, so one <code>jti</code> is recorded: the forged ones never reached the record. The genuine assertion, copied and sent again, is refused in check 10 and accepted in check 11 by a server that follows RFC 7523 and does not track. Check 15 is why the lifetime cap in check 14 matters: once the assertions have expired the record is empty again.</p>
+<p>Checks 16 and 17 are the audience ambiguity, on one assertion. A server following RFC 9126 accepts the token endpoint URL. A server following FAPI 2.0 does not.</p>
+<p>Checks 19 to 22 are the PAR attack and its fix. The client asked for <code>accounts:read</code>, the URL was edited, the user approved a screen that honestly showed two lines, and the token carries <code>payments:write</code>. With the same request pushed, the same edit changes nothing. Checks 26 to 31 are the four properties of the <code>request_uri</code>, and check 31 shows a detail worth copying: another client's failed attempt does not use the value up.</p>
+<p>Checks 36 to 44 are RAR. The scope pays anyone (37). The details pay one payee one amount (41 to 43). Check 44 is the same token at an API that looks only for the type. Checks 48 and 49 are the reason RFC 9396 tells clients to protect the details: sent on the front channel, the amount becomes 0.45, and the only party who can notice is a client that compares the token response with what it asked for.</p>
+<p>Checks 50 to 57 are step-up. Reading a balance is allowed on a two-hour-old password session and paying is not. Checks 56 and 57 take the two conditions apart: strong but old is challenged, and fresh but weak is challenged. Check 59 is the other error, for comparison with module 20.</p>
+<p>Checks 61 to 69 run everything together on a server configured as FAPI 2.0 requires, with details and step-up added. Then check 70: the same token, from the right key, after a fresh second factor, reads a payment that belongs to customer-42. Check 71 is the one line of the API that stops it.</p>
+<p><strong>Try next:</strong></p>
+<ul>
+<li>In <code>AuthorizationServer.par</code>, change <code>secrets.token_urlsafe(32)</code> to <code>secrets.token_urlsafe(8)</code>. Check 25 prints <code>64</code> and the lab exits 1. Every other check still passes, including the guessed <code>request_uri</code> in check 29, because one guess proves nothing about entropy. The general guidance in RFC 9101 section 10.2 is 128 bits or more.</li>
+<li>In <code>run_flow</code>, delete the two lines that compare <code>iss</code> with <code>expected_iss</code> and return <code>client refused</code>. Check 64 prints <code>token issued</code> and the lab exits 1. The server did nothing differently. The <code>iss</code> parameter is a control the client has to apply.</li>
+</ul>
+</div>
+
+<h2>8. Check your understanding</h2>
+<details><summary>A design says "the service uses the client credentials grant, so it authenticates with a client secret". What is wrong with the sentence?</summary><p>It treats two choices as one. The <a href="../../glossary/index.html#client-credentials-grant">client credentials grant</a> is how the client obtains a token. The client authentication method is how it proves which client it is, and any method can be used with that grant, including <code>private_key_jwt</code> and mutual TLS. Ask which method is registered, and what an attacker would need in order to use it.</p></details>
+<details><summary>A server validates client assertions exactly as RFC 7523 section 3 requires. An attacker copies one assertion from a log 20 seconds after it was made. What happens?</summary><p>It may well be accepted. RFC 7523 requires the signature, <code>iss</code>, <code>sub</code>, <code>aud</code> and <code>exp</code> checks, and the copy passes all of them until it expires. Tracking <code>jti</code> is optional in that RFC. OpenID Connect Core section 9 requires single use. Check 11 of the lab is the first server and check 10 is the second.</p></details>
+<details><summary>An API returns 401 with <code>error="insufficient_user_authentication"</code> and <code>max_age="300"</code>. The client refreshes its access token and retries. Does that work?</summary><p>No. RFC 9470 section 6.1 says <code>auth_time</code> and <code>acr</code> are set when the user authenticates and do not change when a token is renewed. The client has to send the user through a new authorization request that carries <code>max_age=300</code>, so that the authorization server authenticates the user again.</p></details>
+<details><summary>A vendor says its payments API is FAPI 2.0 certified. Name two things that statement does not tell you.</summary><p>Whether the API checks that the object in a request belongs to the caller, and whether a payment is limited to the payee and amount the user approved. The profile only recommends RAR. For the first it has one general clause (section 5.3.4: the resource server shall verify that the authorization the token represents is sufficient for the request), and it defines no per-object rule, so that check is the API's own code. It also says nothing about how each client stores its private key, or whether a user understood the consent screen.</p></details>
+
+<section class="course-quiz" data-quiz data-quiz-id="advanced-oauth-check" data-correct-feedback="Correct. The scope says the token may make payments. Only authorization_details that name the payee and the amount, enforced field by field at the API, limit which payment." data-incorrect-feedback="Not quite. Each of the other controls is real and stops a different attack: who the client is, whether the request was edited, or how recently the user signed in. None of them limits which payment a token with payments:write may make.">
+<p class="kicker">Quick check</p>
+<h2>One payment, not any payment</h2>
+<fieldset><legend>A stolen-token attack is already blocked. A token with scope <code>payments:write</code>, used by the real client, pays 9,000 EUR to an account the user never saw. Which control limits a token to the payment the user approved?</legend>
+<label><input type="radio" name="advanced-oauth" value="pkjwt"> <code>private_key_jwt</code> client authentication.</label>
+<label><input type="radio" name="advanced-oauth" value="par"> A pushed authorization request on its own.</label>
+<label><input type="radio" name="advanced-oauth" value="rar" data-correct="true"> <code>authorization_details</code> naming payee and amount, enforced by the API.</label>
+<label><input type="radio" name="advanced-oauth" value="stepup"> A step-up challenge with <code>max_age</code>.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button><p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+</section>
+<section class="course-quiz course-exercises" data-exercises data-exercises-id="advanced-oauth-exercises">
+<p class="kicker">Exercises</p>
+<h2>Change one thing and predict the output</h2>
+<div class="prose">
+<p>Each exercise edits one place in <a href="../../labs/advanced_oauth_lab.py"><code>labs/advanced_oauth_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant, not a reading of the code. The lab compares every result with the one it expects, so each of these edits makes it exit 1 and list what differed. All four need the <code>cryptography</code> package, as the lab does.</p>
+</div>
+
+<article class="exercise" data-exercise data-exercise-id="aoa-x1" data-covers="aoa-02">
+<h3>1. The server stops checking the assertion's audience</h3>
+<div class="prose">
+<p>In <code>AuthorizationServer._authenticate_assertion</code>, delete the two lines that call <code>self._audience_ok</code> and return <code>invalid_client: audience</code>. Everything else, including the signature check, stays.</p>
+</div>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="aoa-x1" value="a"> Check 12 only. The assertion addressed to another server is accepted.</label>
+<label><input type="radio" name="aoa-x1" value="b" data-correct="true"> Checks 12 and 17. Both become <code>authenticated</code>.</label>
+<label><input type="radio" name="aoa-x1" value="c"> Checks 12, 16 and 17.</label>
+<label><input type="radio" name="aoa-x1" value="d"> None. The signature already proves the assertion came from the client.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 12 does flip, and it is not alone. The issuer-only server in check 17 refuses its assertion for one reason, the audience, and that reason is the code this edit deletes.</li>
+<li data-option="b">Correct. Exit 1, two failures: checks 12 and 17 both go from <code>invalid_client: audience</code> to <code>authenticated</code>. Check 12 is an assertion ExamplePay signed for <code>https://auth.other.example</code>. Its signature is genuine, so nothing else refuses it. Any server that receives a client's assertion can now present it here, which is what check <code>aoa-02</code> in the <a href="#reference">Reference</a> layer asks you to rule out.</li>
+<li data-option="c">Check 16 already printed <code>authenticated</code> and still does. An edit that removes a refusal cannot change a check that was an acceptance.</li>
+<li data-option="d">The signature proves who made the assertion. It does not prove which server it was made for. Those are different claims, and <code>aud</code> is the only one that carries the second.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="aoa-x2" data-covers="aoa-04">
+<h3>2. The request_uri is no longer bound to the client</h3>
+<div class="prose">
+<p>In <code>AuthorizationServer.authorize</code>, delete the two lines that compare <code>entry["client_id"]</code> with the client making the request and return <code>request_uri belongs to another client</code>. The expiry and one-time-use checks stay.</p>
+</div>
+<fieldset><legend>What does the run print differently?</legend>
+<label><input type="radio" name="aoa-x2" value="a"> Check 30 prints <code>code issued</code>. Check 31 is unchanged.</label>
+<label><input type="radio" name="aoa-x2" value="b"> Check 30 prints <code>invalid_request: unknown request_uri</code>, because the value was never issued to that client.</label>
+<label><input type="radio" name="aoa-x2" value="c" data-correct="true"> Check 30 prints <code>code issued</code> and check 31 prints <code>invalid_request: request_uri already used</code>.</label>
+<label><input type="radio" name="aoa-x2" value="d"> Checks 29, 30 and 31 all change.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 30 is right. Check 31 is the same <code>request_uri</code>, presented next by ExamplePay, and the one-time-use rule is still in force. The other client has just used it.</li>
+<li data-option="b">The server finds pushed requests by the <code>request_uri</code> alone. The value exists, so the lookup succeeds. The binding was a separate comparison, and it is the one that was deleted.</li>
+<li data-option="c">Correct. Exit 1, two failures. Check 30 goes from <code>invalid_request: request_uri belongs to another client</code> to <code>code issued</code>: a second client has started an authorization on ExamplePay's pushed request. Check 31 goes from <code>code issued</code> to <code>invalid_request: request_uri already used</code>: ExamplePay is locked out of its own request. RFC 9126 section 2.2 requires the binding, and check <code>aoa-04</code> in the <a href="#reference">Reference</a> layer tests for it.</li>
+<li data-option="d">Check 29 is a made-up value, which is still unknown to the server. It prints the same as before.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="aoa-x3" data-covers="aoa-05">
+<h3>3. The API stops comparing the amount</h3>
+<div class="prose">
+<p>In <code>PaymentsAPI._covers</code>, delete the line that compares <code>d["instructedAmount"].get("amount")</code> with <code>body["amount"]</code>. The creditor account and the currency are still compared.</p>
+</div>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="aoa-x3" value="a"> Checks 42 and 43. Both payments now go through.</label>
+<label><input type="radio" name="aoa-x3" value="b" data-correct="true"> Check 43 only.</label>
+<label><input type="radio" name="aoa-x3" value="c"> Checks 43 and 44.</label>
+<label><input type="radio" name="aoa-x3" value="d"> None. The authorization server already validated the amount when the request was pushed.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 42 pays a different account, and the account is still compared. It still prints <code>403 Bearer error="insufficient_scope"</code>.</li>
+<li data-option="b">Correct. Exit 1, one failure: check 43 goes from <code>403 Bearer error="insufficient_scope"</code> to <code>201 paid 450.00 EUR to acct-exampleair</code>. The user approved 45.00 and the token still says 45.00. The API paid ten times that to the right payee, because one field of the granted object was no longer read. Check <code>aoa-05</code> in the <a href="#reference">Reference</a> layer says every field for this reason.</li>
+<li data-option="c">Check 44 runs against the API that checks only the type. It never compared the amount, so it already printed <code>201</code> and prints the same.</li>
+<li data-option="d">The authorization server validated the request and recorded 45.00. It is not present when the token is used. Only the resource server sees the payment that is actually submitted.</li>
+</ul>
+</details>
+</article>
+
+<article class="exercise" data-exercise data-exercise-id="aoa-x4" data-covers="aoa-07">
+<h3>4. The step-up policy joins its two conditions with "and"</h3>
+<div class="prose">
+<p>In <code>PaymentsAPI.handle</code>, the policy line reads <code>if info["acr"] != ACR_MFA or age &gt; PAYMENT_MAX_AGE:</code>. Change <code>or</code> to <code>and</code>.</p>
+</div>
+<fieldset><legend>Which of the three challenged payments, checks 52, 56 and 57, still get a challenge?</legend>
+<label><input type="radio" name="aoa-x4" value="a"> All three.</label>
+<label><input type="radio" name="aoa-x4" value="b"> Checks 52 and 56. Only the fresh password sign-in gets through.</label>
+<label><input type="radio" name="aoa-x4" value="c" data-correct="true"> Check 52 only.</label>
+<label><input type="radio" name="aoa-x4" value="d"> None of them.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">With <code>and</code>, a token is challenged only when it is both weak and old. Two of the three fail on one count only.</li>
+<li data-option="b">Check 56 is a second-factor sign-in from 30 minutes ago. Its <code>acr</code> is the required one, so the first half of the condition is false and the whole condition is false.</li>
+<li data-option="c">Correct. Exit 1, two failures: checks 56 and 57 both go from the <code>insufficient_user_authentication</code> challenge to <code>201 paid 45.00 EUR to acct-exampleair</code>. Check 52, a password sign-in two hours old, fails on both counts and is still challenged. A test with only that one token would pass on the broken policy, which is why check <code>aoa-07</code> in the <a href="#reference">Reference</a> layer asks for a token that is old but strong and one that is fresh but weak.</li>
+<li data-option="d">Check 52 is weak and old, so even the loosened condition is true for it.</li>
+</ul>
+</details>
+</article>
+</section>
+
+<p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your published-module progress.</p>
+<span class="layer" id="reference" style="margin-top:3rem">Reference</span>
+<h2 style="border-top:none;margin-top:.5rem">Controls</h2>
+<p class="prose meta"><span class="label std">Standard</span> backed by a cited specification. <span class="label base">Baseline</span> this project's default, with reasoning above. <span class="label opt">Option</span> valid depending on the threat model.</p>
+<ul class="controls">
+<li><span class="label std">Standard</span>RFC 9700 section 2.5 recommends asymmetric cryptography for client authentication, such as mutual TLS (RFC 8705) or signed JWTs (<code>private_key_jwt</code>), and says authorization servers should enforce client authentication where issuing and protecting client credentials is feasible.</li>
+<li><span class="label std">Standard</span>The client must not use more than one authentication method in a request. RFC 6749 section 2.3. The server must not rely on public client authentication to identify the client. Same section.</li>
+<li><span class="label std">Standard</span>A JWT used for client authentication must contain <code>iss</code>, <code>sub</code> equal to the <code>client_id</code>, an <code>aud</code> that identifies the authorization server, and <code>exp</code>, and must be signed or carry a MAC. The server must reject one with an invalid signature or MAC, one that does not name it as audience, and one that has expired. RFC 7523 section 3. Failures are reported as <code>invalid_client</code>. RFC 7523 section 3.2.</li>
+<li><span class="label std">Standard</span>RFC 7523 section 3 allows, and does not require, a <code>jti</code> claim and replay tracking. OpenID Connect Core 1.0 incorporating errata set 2, section 9, requires <code>jti</code> for <code>private_key_jwt</code> and <code>client_secret_jwt</code> and requires that the assertion be used only once unless the parties negotiated otherwise.</li>
+<li><span class="label std">Standard</span>For JWT client authentication the client should use the authorization server's issuer identifier as the audience, and the server must accept its issuer identifier, its token endpoint URL or its PAR endpoint URL. RFC 9126 section 2.</li>
+<li><span class="label std">Standard</span>The PAR endpoint must authenticate the client as the token endpoint does, must reject a pushed request that contains <code>request_uri</code>, and must validate the request as it would an authorization request. RFC 9126 section 2.1.</li>
+<li><span class="label std">Standard</span>The <code>request_uri</code> must contain a part generated with a cryptographically strong pseudorandom algorithm so that guessing a valid value is computationally infeasible, and must be bound to the client that posted the request. RFC 9126 section 2.2.</li>
+<li><span class="label std">Standard</span>An expired <code>request_uri</code> must be rejected. The server should treat <code>request_uri</code> values as one-time use and may allow a duplicate caused by a reload. The client must use a value only once. RFC 9126 section 4.</li>
+<li><span class="label std">Standard</span>Server policy may make PAR the only way to pass authorization request data, globally or per client, signalled by <code>require_pushed_authorization_requests</code>. The server then refuses other authorization requests with <code>invalid_request</code>. RFC 9126 sections 4, 5 and 6.</li>
+<li><span class="label std">Standard</span>The server must accept new redirect URIs in a pushed request only from authenticated clients. RFC 9126 section 7.2. Clients should use PKCE, a unique <code>state</code> or the OpenID Connect <code>nonce</code> against request URI swapping. RFC 9126 section 7.5.</li>
+<li><span class="label std">Standard</span>Each <code>authorization_details</code> object requires a <code>type</code>. The server must refuse an unknown type, unknown fields, fields of the wrong type, invalid values and missing required fields, with <code>invalid_authorization_details</code>. RFC 9396 sections 2 and 5.</li>
+<li><span class="label std">Standard</span>The token response must return the <code>authorization_details</code> as granted, and the authorization server must make them available to the resource server. RFC 9396 sections 7 and 9.</li>
+<li><span class="label std">Standard</span>If the integrity of <code>authorization_details</code> is a concern, clients must protect them against tampering and swapping, with a signed request object or with PAR. The server must sanitize the data to prevent injection. RFC 9396 section 12.</li>
+<li><span class="label std">Standard</span>A resource server signals that the authentication behind a token is not sufficient with the error code <code>insufficient_user_authentication</code>, and may state the requirement with <code>acr_values</code>, <code>max_age</code> or both. RFC 9470 section 3. The client should use those values in a new authorization request. RFC 9470 section 4.</li>
+<li><span class="label std">Standard</span>The authorization server should treat a requested <code>acr</code> as necessary when issuing the access token, and fail the request if it cannot be met. RFC 9470 section 5. RFC 9470 must not be used to position OAuth as an authentication protocol. RFC 9470 section 9.</li>
+<li><span class="label std">Standard</span>The resource owner password credentials grant must not be used. RFC 9700 section 2.4. Clients should not use the implicit grant or other response types that return an access token in the authorization response, unless access token injection is prevented and the leakage vectors that section names are mitigated. RFC 9700 section 2.1.2.</li>
+<li><span class="label std">Standard</span>A client that can interact with more than one authorization server is required to have a defense against mix-up attacks, and should use the <code>iss</code> parameter of RFC 9207 or an equivalent issuer value in the response. RFC 9700 section 2.1. A client that supports RFC 9207 must compare <code>iss</code> with the issuer of the server the request was sent to and reject a mismatch. RFC 9207 section 2.4.</li>
+<li><span class="label std">Standard</span>Under the FAPI 2.0 Security Profile, authorization servers shall authenticate clients with mutual TLS or <code>private_key_jwt</code>, shall reject authorization requests sent without PAR, shall require PKCE with S256, shall return <code>iss</code>, shall issue only sender-constrained access tokens, and shall reject the password grant. FAPI 2.0 Security Profile sections 5.3.2.1 and 5.3.2.2. Resource servers shall verify the token and that the authorization it represents is sufficient. Section 5.3.4.</li>
+<li><span class="label base">Baseline</span>Register <code>private_key_jwt</code> for every confidential client. Accept one audience, the issuer identifier. Cap the assertion lifetime and record each <code>jti</code> until <code>exp</code>, after the signature and claims have passed.</li>
+<li><span class="label base">Baseline</span>Take the assertion's algorithm and key from the client's registration, never from the JWT header.</li>
+<li><span class="label base">Baseline</span>Require PAR for every client whose request parameters matter. Use only what was pushed, and ignore anything else on the authorization URL.</li>
+<li><span class="label base">Baseline</span>Put anything with an amount, a payee or a named object in <code>authorization_details</code>. At the API, compare every field of the granted object with the request. Build the consent text from the same object.</li>
+<li><span class="label base">Baseline</span>Validate the token before applying the step-up policy, so that an invalid token is not told what the policy is.</li>
+<li><span class="label base">Baseline</span>Treat a profile claim as a list to verify row by row, and test object-level authorization separately.</li>
+<li><span class="label opt">Option</span>Mutual TLS client authentication (<code>tls_client_auth</code> or <code>self_signed_tls_client_auth</code>, RFC 8705 section 2) where client certificates are already managed.</li>
+<li><span class="label opt">Option</span>A signed request object (RFC 9101), pushed through PAR, where the client must be able to prove afterwards what it requested.</li>
+<li><span class="label opt">Option</span>Adopt the FAPI 2.0 Security Profile whole, with a certified implementation, where an ecosystem or a regulator requires it.</li>
+</ul>
+
+<h2>Review checklist items</h2>
+<p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
+<ul class="checks">
+<li data-check="aoa-01" data-severity="Critical"><strong>Confidential clients authenticate with a key the server cannot use</strong> <span>The registered method is private_key_jwt or a mutual TLS method. Any client still on a shared secret is listed with what it can reach.</span></li>
+<li data-check="aoa-02" data-severity="High"><strong>Client assertions are checked for signature, issuer, subject, one audience, expiry and single use</strong> <span>Test an assertion made for another server, an expired one, one with a far exp, and the same one twice. The algorithm comes from the registration.</span></li>
+<li data-check="aoa-03" data-severity="High"><strong>Pushed authorization requests are required, not just supported</strong> <span>require_pushed_authorization_requests is set for the server or the client, and an authorization request with parameters on the URL is refused.</span></li>
+<li data-check="aoa-04" data-severity="High"><strong>A request_uri is single use, short lived, unguessable and bound to its client</strong> <span>Test a second use, a use after expires_in, a made-up value and a use with another client_id. Confirm the rightful client can still use it after the last one.</span></li>
+<li data-check="aoa-05" data-severity="Critical"><strong>Transaction parameters are in authorization_details and the API enforces every field</strong> <span>Test a payment that differs from the granted object in payee, in amount and in currency, one at a time. Each must be refused.</span></li>
+<li data-check="aoa-06" data-severity="High"><strong>The authorization server refuses details it does not define or the client may not use</strong> <span>Unknown types, unknown fields and missing fields get invalid_authorization_details. The client compares the token response with what it asked for.</span></li>
+<li data-check="aoa-07" data-severity="High"><strong>Consequential operations check acr and auth_time and challenge when either falls short</strong> <span>Test a token that is old but strong and one that is fresh but weak. Both get insufficient_user_authentication with the required acr_values and max_age.</span></li>
+<li data-check="aoa-08" data-severity="High"><strong>No implicit or password grant is reachable, including by default</strong> <span>Read grant_types_supported and each client's grant_types and response_types. Metadata that omits grant_types_supported defaults to including implicit.</span></li>
+<li data-check="aoa-09" data-severity="Medium"><strong>Clients check the iss parameter of the authorization response</strong> <span>A response whose iss is not the issuer the request went to is dropped before the code is redeemed. RFC 9700 requires a mix-up defense of any client that uses more than one authorization server.</span></li>
+<li data-check="aoa-10" data-severity="Critical"><strong>A profile claim is not accepted as evidence of authorization</strong> <span>With every control above in place, request an object that belongs to another customer. No control in the profile makes that check for the API. The API must refuse.</span></li>
+</ul>
+
+<h2>Sources</h2>
+<ul class="prose">
+<li><a href="https://www.rfc-editor.org/rfc/rfc6749">RFC 6749: The OAuth 2.0 Authorization Framework</a>, October 2012. Updated by RFC 8252, RFC 8996 and RFC 9700. Sections 2.1, 2.3, 2.3.1, 4.2, 4.3, 10.7.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc6750">RFC 6750: The OAuth 2.0 Authorization Framework: Bearer Token Usage</a>, October 2012. Updated by RFC 8996 and RFC 9700. Section 3.1.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc7521">RFC 7521: Assertion Framework for OAuth 2.0 Client Authentication and Authorization Grants</a>, May 2015. Sections 4.2, 5.2, 8.2.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc7523">RFC 7523: JSON Web Token (JWT) Profile for OAuth 2.0 Client Authentication and Authorization Grants</a>, May 2015. Sections 1, 2.2, 3, 3.2, 6.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc7591">RFC 7591: OAuth 2.0 Dynamic Client Registration Protocol</a>, July 2015. Section 2, for <code>token_endpoint_auth_method</code>, <code>grant_types</code> and <code>response_types</code>.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc8414">RFC 8414: OAuth 2.0 Authorization Server Metadata</a>, June 2018. Section 2.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc8705">RFC 8705: OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens</a>, February 2020. Sections 2, 2.1, 2.1.1, 2.2, 2.2.1.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9101">RFC 9101: The OAuth 2.0 Authorization Framework: JWT-Secured Authorization Request (JAR)</a>, August 2021. Sections 2.1, 5, 10.2.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9126">RFC 9126: OAuth 2.0 Pushed Authorization Requests</a>, September 2021. Sections 1, 2, 2.1, 2.2, 3, 4, 5, 6, 7.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9207">RFC 9207: OAuth 2.0 Authorization Server Issuer Identification</a>, March 2022. Sections 2, 2.4.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9396">RFC 9396: OAuth 2.0 Rich Authorization Requests</a>, May 2023. Sections 1, 2, 2.1, 2.2, 3, 3.1, 5, 6.1, 7, 7.1, 9, 12, 13.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9470">RFC 9470: OAuth 2.0 Step Up Authentication Challenge Protocol</a>, September 2023. Sections 2, 3, 4, 5, 6.1, 6.2, 9.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9700">RFC 9700: Best Current Practice for OAuth 2.0 Security</a>, Best Current Practice, January 2025. Sections 2.1, 2.1.2, 2.4, 2.5, 3.</li>
+<li><a href="https://openid.net/specs/openid-connect-core-1_0.html">OpenID Connect Core 1.0 incorporating errata set 2</a>, OpenID Foundation, Final, 15 December 2023. Section 2 for <code>acr</code> and <code>auth_time</code>, section 3.1.2.1 for <code>acr_values</code> and <code>max_age</code>, section 9 for the client authentication methods.</li>
+<li><a href="https://openid.net/specs/fapi-security-profile-2_0-final.html">FAPI 2.0 Security Profile</a>, OpenID Foundation, Final, 22 February 2025. Sections 1, 5.1.1, 5.1.2, 5.2.1, 5.3.2.1, 5.3.2.2, 5.3.3.1, 5.3.3.2, 5.3.4, 5.4.1, 5.5, 6.2, 6.4, 6.5, 7. The FAPI 2.0 Attacker Model it refers to is a separate document and was not read for this lesson.</li>
+<li><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-16">The OAuth 2.1 Authorization Framework</a>, Internet-Draft draft-ietf-oauth-v2-1-16, 3 September 2026. A draft, not a standard. Sections 10 and 10.1, cited only for what the draft omits, and section 2.4, cited only for its pointer to another draft.</li>
+<li><a href="https://docs.python.org/3.14/using/windows.html">Python 3.14 documentation: Using Python on Windows</a>. Python install manager, Basic use: how the <code>py</code> command picks a runtime when a virtual environment is active.</li>
+</ul>
+</main>
+<footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>
+</body>
+</html>
