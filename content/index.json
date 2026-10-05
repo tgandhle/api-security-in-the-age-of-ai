@@ -1,5 +1,5 @@
 {
-  "total": 35,
+  "total": 36,
   "lessons": [
     {
       "slug": "security-foundations",
@@ -210,6 +210,12 @@
       "lesson_number": 35,
       "module": 34,
       "title": "Testing API security"
+    },
+    {
+      "slug": "openid-connect",
+      "lesson_number": 36,
+      "module": 35,
+      "title": "OpenID Connect and ID tokens"
     }
   ]
 }

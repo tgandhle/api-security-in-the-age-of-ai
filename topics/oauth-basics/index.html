@@ -18,7 +18,7 @@
 <p><strong>Objective.</strong> After this module you can explain what an OAuth <a href="../../glossary/index.html#access-token">access token</a> does and does not prove, name the two grants you should use and the two you should not, describe what <a href="../../glossary/index.html#pkce">PKCE</a> adds and why S256 matters, and test an <a href="../../glossary/index.html#authorization-server">authorization server</a> against the checks that stop a stolen code.</p>
 <p><strong>Before you start.</strong> You should know the difference between <a href="../../glossary/index.html#authentication">authentication</a> and <a href="../../glossary/index.html#authorization">authorization</a>, and why a <a href="../../glossary/index.html#bearer-credential">bearer credential</a> is risky. Modules 1 and 2 cover <a href="../../glossary/index.html#api-key">API keys</a> and request signing.</p>
 </div>
-<section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 5 of 35</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
+<section class="lesson-status" aria-label="Lesson progress"><div><strong>Published lesson 5 of 36</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
 
 <span class="layer" id="learn">Learn</span>
 
@@ -139,7 +139,7 @@ Back channel, server to server over TLS:
 <div class="prose">
 <p><strong>Proves:</strong> that a resource owner granted this scope to this client, and, with PKCE, that the party redeeming the code is the party that started the flow.</p>
 <p><strong>Doesn't prove:</strong> who the user is, that the user is still present, or that the operation is permitted. It proves nothing about the holder of the resulting token, which is a bearer credential like any other.</p>
-<div class="callout warn"><strong>An access token is not an identity.</strong> OAuth authorizes a client; it does not authenticate a user to that client. If your application signs a user in on the strength of an access token, any client that can obtain a token for the same user can impersonate them. Standardized user authentication is OpenID Connect, which adds a separate <a href="../../glossary/index.html#id-token">ID token</a> with its own validation rules. Do not send an ID token to a resource server, and do not treat an access token as a login.</div>
+<div class="callout warn"><strong>An access token is not an identity.</strong> OAuth authorizes a client; it does not authenticate a user to that client. If your application signs a user in on the strength of an access token, any client that can obtain a token for the same user can impersonate them. Standardized user authentication is OpenID Connect (<a href="../openid-connect/index.html">module 35</a>), which adds a separate <a href="../../glossary/index.html#id-token">ID token</a> with its own validation rules. Do not send an ID token to a resource server, and do not treat an access token as a login.</div>
 </div>
 
 <h2>6. Prove it</h2>
@@ -340,7 +340,7 @@ all lab checks passed</code></pre>
 <li><span class="label base">Baseline</span>Error responses name the RFC 6749 error code and nothing about which check failed.</li>
 <li><span class="label opt">Option</span>Sender-constrain access tokens with mTLS (RFC 8705) or DPoP (RFC 9449) where token theft is a material risk. RFC 9700 section 2.2.1 recommends this rather than requiring it. Module 7.</li>
 <li><span class="label opt">Option</span>Use a backend for frontend so a browser application's tokens are held server side and never reach page scripts.</li>
-<li><span class="label opt">Option</span>Add OpenID Connect when the client needs standardized user authentication rather than delegated access.</li>
+<li><span class="label opt">Option</span>Add OpenID Connect when the client needs standardized user authentication rather than delegated access. Module 35.</li>
 </ul>
 
 <h2>Review checklist items</h2>

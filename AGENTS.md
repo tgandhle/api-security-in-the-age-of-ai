@@ -167,6 +167,17 @@ when the reason it gives has stopped being true, and say so in the commit.
   cannot be run outside GitHub. Adding it was an owner decision; changing it
   is still a stop-and-ask item. To go back, set Pages to deploy from the
   `main` branch root again; nothing else has to change.
+- **2026-10-05, Part 6, "Identity protocols in depth", holds modules 35 and
+  36.** An outside review compared the course with an older protocol
+  reference and found that OpenID Connect had no lesson, and that client
+  authentication methods, pushed authorization requests, rich authorization
+  requests, step-up authentication and FAPI 2.0 were not taught. Module 35
+  covers the first and module 36 the rest. They are a new part, not more of
+  Part 5, because they are not about hardening or operations, and they go at
+  the end for the reason the entry below gives. The same review led to two
+  additions inside existing lessons: NIST SP 800-228 and the four inventory
+  lists in module 18, and the OWASP Agent Control Standard in module 31.
+  SAML is deliberately not covered; `coverage/index.html` says so.
 - **2026-10-04, new modules are appended as Part 5, after the capstone.** A
   gap check against the three OWASP lists found two API Top 10 2023 entries
   and three agentic entries that no lesson cited, and no lesson on browser
@@ -283,7 +294,7 @@ Work on one module per task unless told otherwise.
 - [ ] `python3 tools/check_site.py` prints `all checks passed`.
 - [ ] `python3 tools/extract_lessons.py --check` prints `content/ matches the published pages`.
 - [ ] `python3 tools/render_site.py` prints `the template reproduces every published page byte for byte`.
-- [ ] `python3 tools/check_transcripts.py` prints `all 35 published lab transcripts match a live run`. If it reports any as skipped, install the package the lab names and run it again, or say in your report which ones were not checked and why.
+- [ ] `python3 tools/check_transcripts.py` prints `all 36 published lab transcripts match a live run`. If it reports any as skipped, install the package the lab names and run it again, or say in your report which ones were not checked and why.
 - [ ] `python3 tools/build_lab_bundles.py --check` prints `every lab bundle matches its .py file`.
 - [ ] `python3 tools/extract_pages.py --check` prints `content/pages.json matches the published pages`.
 - [ ] `python3 tools/build_search_index.py --check` prints `the search index matches content/`.
@@ -363,6 +374,9 @@ All of these modules are now published. The list is kept as the record of intent
 32. **Model and artifact supply chain** (OWASP LLM04:2026, added after the first five because module 25 teaches only the data side). Attacks: a model file that runs code on load, a model resolved by a name an attacker re-registered, a backdoored artifact signed by the expected pipeline, an invented package name. Lab: a restricted loader and a data-only format, digest pinning, a signed manifest and its limit, a promotion gate with a behavioural evaluation, hash-checked installs and an inventory. The pickle payload calls only a function defined in the lab.
 33. **GraphQL, gRPC and WebSocket APIs.** Not a re-teaching of earlier controls: for each protocol, which earlier control stops applying by default and what replaces it. Attacks: aliased and batched login guesses counted as one request, a deep query, a customer calling an admin gRPC method, cross-site WebSocket hijacking, a revoked session that keeps its socket. Lab: plain-Python models of the three protocols, no protocol library. GraphQL over HTTP is a working draft and gRPC has no RFC: cite them as that.
 34. **Testing API security.** The last module. "Attack": an API that ships with a passing functional suite and a broken control. Lab: a test harness and a target with six planted flaws; an authorization matrix, schema-derived negative inputs, inventory probes, a logic flaw the harness cannot find, regression records. The lab asserts the harness finds exactly the planted flaws. Recommends no tool.
+
+**Part 6: Identity protocols in depth** (added 2026-10-05; see Decisions)
+35. **OpenID Connect and ID tokens.** Attacks: an ID token sent to an API, an access token used as a login, an ID token for another client or from another issuer, a replayed code caught by the nonce. Lab: an OpenID provider, two clients and an API, with a naive and a correct validator for each. Standard library only: ID tokens are signed with HS256, which the page states.
 
 Labs for Part 4 must not call real model APIs. Use local stubs that simulate model behavior.
 
