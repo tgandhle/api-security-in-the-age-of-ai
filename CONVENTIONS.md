@@ -21,7 +21,7 @@ Each page has two layers, in this order.
 
 **Reference** (anchor `#reference`)
 - Controls, each labeled Standard, Baseline, or Option.
-- Review checklist items as `<li data-check="id" data-severity="Critical|High|Medium">` with a `<strong>` title and a `<span>` detail.
+- Review checklist items as `<li data-check="id" data-severity="Critical|High|Medium">` with a `<strong>` title and a `<span>` detail. The severity is the item's default: how serious it usually is when the control is missing. It is not the severity of a finding, which depends on what the API exposes, who can reach it and what else stands in the way. The checklist page says so to the reader.
 - Sources: primary sources only, with pinned revisions where a spec is versioned.
 
 ## Claim labels

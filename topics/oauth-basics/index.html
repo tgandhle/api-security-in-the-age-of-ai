@@ -12,7 +12,7 @@
 <main>
 <p class="kicker">Part 1: Proving who is calling &middot; Module 4</p>
 <h1>OAuth basics</h1>
-<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<p class="meta">Last reviewed 2026-10-05 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 
 <div class="prose">
 <p><strong>Objective.</strong> After this module you can explain what an OAuth <a href="../../glossary/index.html#access-token">access token</a> does and does not prove, name the two grants you should use and the two you should not, describe what <a href="../../glossary/index.html#pkce">PKCE</a> adds and why S256 matters, and test an <a href="../../glossary/index.html#authorization-server">authorization server</a> against the checks that stop a stolen code.</p>
@@ -46,7 +46,7 @@
 <li><strong>"The redirect is private."</strong> It is not. A redirect is a URL handled by a browser, an operating system, and everything in between. Treat every value in it as published.</li>
 <li><strong>"Only my app can receive the code."</strong> Only if the <a href="../../glossary/index.html#redirect-uri">redirect URI</a> is matched exactly against a registered value. Prefix or wildcard matching lets an attacker choose where the code goes.</li>
 <li><strong>"A valid code means a valid client."</strong> Without PKCE it means only possession. A <a href="../../glossary/index.html#public-client">public client</a> has no secret to prove anything else with, which is exactly why PKCE exists.</li>
-<li><strong>"A token proves who the user is."</strong> An OAuth access token is an authorization artifact. It says the resource owner granted this <a href="../../glossary/index.html#scope">scope</a> to this client. It is not an identity assertion, and it is not permission for every operation the scope touches.</li>
+<li><strong>"A token proves who the user is."</strong> An OAuth access token is an authorization artifact. It says the resource owner granted this <a href="../../glossary/index.html#scope">scope</a> to this client. With the client credentials grant the client is its own resource owner: RFC 6749 section 1.3.4 describes the client as "acting on its own behalf (the client is also the resource owner)". It is not an identity assertion, and it is not permission for every operation the scope touches.</li>
 </ul>
 <p>PKCE closes the third gap with a value that never crosses the front channel. The client generates a random <a href="../../glossary/index.html#code-verifier">code verifier</a>, sends only its SHA-256 <a href="../../glossary/index.html#hash">hash</a> as the <a href="../../glossary/index.html#code-challenge">code challenge</a>, and presents the verifier later on the back channel. An attacker who captures the code has the hash at best, and cannot work backwards to the verifier.</p>
 <p>That is why the method matters. With <code>plain</code>, the challenge is the verifier, so anyone who sees the authorization request can redeem the code. RFC 7636 section 7.2 says <code>plain</code> "SHOULD NOT be used and exists only for compatibility with deployed implementations".</p>
