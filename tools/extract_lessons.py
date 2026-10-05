@@ -204,7 +204,7 @@ def extract(path):
 
     status = doc.first("section", **{"class": "lesson-status"})
     record["lesson_status_html"] = doc.outer(status) if status else ""
-    counted = re.search(r"Published lesson (\d+) of (\d+)",
+    counted = re.search(r"<strong>Lesson (\d+) of (\d+)</strong>",
                         record["lesson_status_html"])
     record["lesson_number"] = int(counted.group(1)) if counted else 0
     record["lesson_total"] = int(counted.group(2)) if counted else 0

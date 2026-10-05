@@ -20,7 +20,7 @@ function LessonStatus({ number, total }) {
   return (
     <section className="lesson-status" aria-label="Lesson progress">
       <div>
-        <strong>Published lesson {number} of {total}</strong>
+        <strong>Lesson {number} of {total}</strong>
         <span>Complete the lesson and quick check, then record your progress.</span>
       </div>
       <button className="button" type="button" data-mark-complete aria-pressed="false">

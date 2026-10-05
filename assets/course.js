@@ -48,7 +48,7 @@
     });
 
     document.querySelectorAll("[data-course-progress]").forEach((element) => {
-      element.textContent = `${completeCount} of ${available.length} published lessons complete`;
+      element.textContent = `${completeCount} of ${available.length} lessons complete`;
     });
     document.querySelectorAll("[data-course-progress-bar]").forEach((element) => {
       element.style.width = `${percent}%`;
@@ -57,7 +57,7 @@
       if (meter) meter.setAttribute("aria-valuenow", String(percent));
     });
     document.querySelectorAll("[data-course-assessment-progress]").forEach((element) => {
-      element.textContent = `${passedQuizCount} of ${quizIds.length} published quick checks passed`;
+      element.textContent = `${passedQuizCount} of ${quizIds.length} quick checks passed`;
     });
 
     const lesson = document.body.dataset.courseLesson;
