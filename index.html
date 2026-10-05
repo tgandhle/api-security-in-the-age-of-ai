@@ -37,12 +37,28 @@
 <li>Run the published Python labs and interpret their accept and reject outcomes.</li>
 <li>Use the published checklist items during a basic API security design review.</li>
 </ul>
+<h3>A path for machine-to-machine integrations</h3>
+<p class="prose">If your work is one service calling another, with no person at a browser, these existing modules cover it. Read them in this order. Each is a full lesson with its lab, and nothing here is new material.</p>
+<ol class="prose">
+<li><a href="topics/api-keys/index.html">Module 1, API keys</a>: the simplest credential a service can hold, and where it leaks.</li>
+<li><a href="topics/hmac-request-signing/index.html">Module 2, HMAC request signing</a>: proving a request was not changed or replayed, with a shared key.</li>
+<li><a href="topics/asymmetric-request-signing/index.html">Module 3, Asymmetric request signing</a>: the same proof when the receiver must not be able to sign.</li>
+<li><a href="topics/oauth-basics/index.html">Module 4, OAuth basics</a>: the client credentials grant, for a service acting as itself.</li>
+<li><a href="topics/jwt-validation/index.html">Module 5, JWT validation</a>: what the receiving service must check in a token.</li>
+<li><a href="topics/jwks-and-revocation/index.html">Module 6, JWKS, revocation and introspection</a>: finding the signing keys and ending a token early.</li>
+<li><a href="topics/sender-constrained-tokens/index.html">Module 7, Sender-constrained tokens: mTLS and DPoP</a>: making a stolen token useless to the thief.</li>
+<li><a href="topics/credential-lifecycle/index.html">Module 8, Workload and agent identity lifecycle</a>: issuing, rotating and retiring what a service holds.</li>
+<li><a href="topics/gateway-enforcement/index.html">Module 12, Gateway enforcement</a>: what a gateway can check for the services behind it, and what it cannot.</li>
+<li><a href="topics/webhooks/index.html">Module 16, Webhooks</a>: calls that arrive from a partner's service.</li>
+<li><a href="topics/delegation-and-token-exchange/index.html">Module 19, Delegation and token exchange</a>: one service calling the next on behalf of a caller.</li>
+<li><a href="topics/advanced-oauth/index.html">Module 36, Client authentication, PAR and high-assurance OAuth</a>: replacing a shared client secret with a private key the authorization server never holds.</li>
+</ol>
 <h3>Assessment and completion</h3>
 <p class="prose">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>
 <p class="meta">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>
 </section>
 <h2 id="path">Modules</h2>
-<p class="meta">Every module is published: the primer, all of Parts 1 and 2, all seven modules of Part 3, all seven of Part 4, the capstone, all eight of Part 5, and all three modules of Part 6. Each one carries its lesson, a runnable lab with its real output, primary sources, and review checklist items. The <a href="coverage/index.html">coverage page</a> lists each entry of three OWASP lists with the lessons that cite it, and says what the course leaves out.</p>
+<p class="meta">Every module is published: the primer, all of Parts 1 and 2, all seven modules of Part 3, all seven of Part 4, the design review, all eight of Part 5, and all three modules of Part 6. Each one carries its lesson, a runnable lab with its real output, primary sources, and review checklist items. The <a href="coverage/index.html">coverage page</a> lists each entry of three OWASP lists with the lessons that cite it, and says what the course leaves out.</p>
 <h3>Primer</h3>
 <ul class="path"><li data-course-lesson="security-foundations" data-course-quiz="security-foundations-check"><span class="num">0</span><span><a href="topics/security-foundations/index.html">Security concepts for the course</a><span class="course-state" data-course-state>Ready</span><span class="course-state" data-course-assessment>Quick check required</span></span></li></ul>
 <h3>Part 1: Proving who is calling</h3>
@@ -82,7 +98,7 @@
 <li data-course-lesson="data-in-model-context" data-course-quiz="data-in-model-context-check"><span class="num">24</span><span><a href="topics/data-in-model-context/index.html">Data in model context</a><span class="course-state" data-course-state>Ready</span><span class="course-state" data-course-assessment>Quick check required</span></span></li>
 <li data-course-lesson="supply-chain-retrieval-and-memory" data-course-quiz="supply-chain-retrieval-and-memory-check"><span class="num">25</span><span><a href="topics/supply-chain-retrieval-and-memory/index.html">Supply chain, retrieval, and memory</a><span class="course-state" data-course-state>Ready</span><span class="course-state" data-course-assessment>Quick check required</span></span></li>
 </ul>
-<h3>Capstone</h3>
+<h3>Design review</h3>
 <ul class="path"><li data-course-lesson="design-review" data-course-quiz="design-review-check"><span class="num">26</span><span><a href="topics/design-review/index.html">Design review of a sample architecture using the checklist</a><span class="course-state" data-course-state>Ready</span><span class="course-state" data-course-assessment>Quick check required</span></span></li></ul>
 
 <h3>Part 5: Hardening and operations</h3>

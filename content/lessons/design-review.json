@@ -11,7 +11,7 @@
       "attrs": {
         "class": "kicker"
       },
-      "html": "\n<p class=\"kicker\">Capstone &middot; Module 26</p>"
+      "html": "\n<p class=\"kicker\">Design review &middot; Module 26</p>"
     },
     {
       "tag": "h1",
@@ -343,7 +343,7 @@
   "page_title": "Design review | API Security in the Age of AI",
   "lesson_key": "design-review",
   "title": "Design review",
-  "kicker": "Capstone &middot; Module 26",
+  "kicker": "Design review &middot; Module 26",
   "reviewed": "2026-10-02",
   "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 27 of 38</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
   "lesson_number": 27,

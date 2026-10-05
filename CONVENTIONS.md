@@ -17,7 +17,7 @@ Each page has two layers, in this order.
 8. Check your understanding, in three parts:
    - Three or four questions with answers in a bare `<details>`.
    - One quick check, a single multiple-choice question in `<section class="course-quiz" data-quiz>`. This is the only assessment the course dashboard counts.
-   - Two to four exercises in `<section class="course-exercises" data-exercises>`, each an `<article data-exercise>` that changes one thing in the lab and asks what the run prints.
+   - Two to five exercises in `<section class="course-exercises" data-exercises>`, each an `<article data-exercise>` that changes one thing in the lab and asks what the run prints.
 
 **Reference** (anchor `#reference`)
 - Controls, each labeled Standard, Baseline, or Option.

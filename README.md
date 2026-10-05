@@ -2,7 +2,7 @@
 
 ## Start learning
 
-Work through the published modules in order. Each lesson includes an attack example, controls, a runnable lab, and questions with answers.
+Work through the published modules in order. Each lesson includes an attack example, controls, a runnable lab, and questions with answers. The 38 modules are a primer (module 0), Parts 1 to 4 (modules 1 to 25), a design review (module 26), and Parts 5 and 6 (modules 27 to 37).
 
 | Module | Lesson | Python lab |
 |---|---|---|
@@ -41,6 +41,9 @@ Work through the published modules in order. Each lesson includes an attack exam
 | 32 | [Model and artifact supply chain](topics/model-supply-chain/index.html) | [`model_supply_chain_lab.py`](labs/model_supply_chain_lab.py) |
 | 33 | [GraphQL, gRPC and WebSocket APIs](topics/graphql-grpc-and-websocket/index.html) | [`protocols_lab.py`](labs/protocols_lab.py) |
 | 34 | [Testing API security](topics/security-testing/index.html) | [`security_testing_lab.py`](labs/security_testing_lab.py) |
+| 35 | [OpenID Connect and ID tokens](topics/openid-connect/index.html) | [`oidc_lab.py`](labs/oidc_lab.py) |
+| 36 | [Client authentication, PAR and high-assurance OAuth](topics/advanced-oauth/index.html) | [`advanced_oauth_lab.py`](labs/advanced_oauth_lab.py) |
+| 37 | [SAML assertions and where they meet APIs](topics/saml/index.html) | [`saml_lab.py`](labs/saml_lab.py) |
 
 [Full module plan](index.html#path) · [Glossary](glossary/index.html) · [Review checklist](checklist/index.html) · [OWASP coverage](coverage/index.html)
 

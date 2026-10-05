@@ -167,6 +167,14 @@ when the reason it gives has stopped being true, and say so in the commit.
   cannot be run outside GitHub. Adding it was an owner decision; changing it
   is still a stop-and-ask item. To go back, set Pages to deploy from the
   `main` branch root again; nothing else has to change.
+- **2026-10-05, the part that holds module 26 is called "Design review", not
+  "Capstone".** Eleven modules now follow it, so "capstone" no longer
+  described where it sits. Module 26 keeps its title, number and address. The
+  dated entries below still say "the capstone": they are left as written.
+  Two smaller decisions the same day. An exercise section holds two to five
+  exercises, because module 15 has a measured fifth one and cutting it to fit
+  a count would lose it. The home page gained a machine-to-machine path: an
+  ordered list of existing modules, not new content.
 - **2026-10-05, SAML is covered after all: module 37.** This reverses the last
   sentence of the entry below, on the owner's decision the same day. The
   module is written for this course's reader, who meets SAML at the edge of
@@ -373,9 +381,9 @@ All of these modules are now published. The list is kept as the record of intent
 24. **Data in model context.** Attack: secrets and personal data leaking through prompts and logs.
 25. **Supply chain, retrieval, and memory.** Attacks: poisoned documents, cross-tenant vector matches.
 
-**Capstone.** A design review of a sample architecture using the checklist.
+**Design review.** Module 26: a design review of a sample architecture using the checklist. This part was called "Capstone" until 2026-10-05 (see Decisions).
 
-**Part 5: Hardening and operations** (added 2026-10-04, after the capstone; see Decisions)
+**Part 5: Hardening and operations** (added 2026-10-04, after the design review; see Decisions)
 27. **Attacks on authentication endpoints** (OWASP API2:2023). Attacks: credential stuffing, brute force and spraying, account enumeration, weak reset tokens. Lab: a login service attacked, then throttled, with uniform responses, a second factor and bound single-use reset tokens.
 28. **Browser sessions, cookies and CSRF.** Attack: a cross-site request that the browser sends with the session cookie. Lab: a browser cookie jar modelled on the rfc6265bis Internet-Draft, SameSite, CSRF tokens, Origin and Fetch Metadata checks, session fixation.
 29. **Security misconfiguration** (OWASP API8:2023). Attack: a default install that leaks errors, serves debug routes and a default account, and accepts old TLS. Lab: the same code audited under a default and a hardened configuration, plus drift between environments.
