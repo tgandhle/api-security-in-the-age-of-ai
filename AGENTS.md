@@ -171,6 +171,13 @@ when the reason it gives has stopped being true, and say so in the commit.
   cannot be run outside GitHub. Adding it was an owner decision; changing it
   is still a stop-and-ask item. To go back, set Pages to deploy from the
   `main` branch root again; nothing else has to change.
+- **2026-10-05, one more measurement for the entry below.** An independent
+  review of the module 13 change measured a 1 MB stack as well. There
+  CPython 3.13.16 does not raise: the process is killed by a segmentation
+  fault, with nothing on standard error. CPython 3.14.6 at 1 MB raises
+  `RecursionError`. So "raises it at every stack size tried" below is true
+  of 8 MB and above only. The lesson gives the 1 MB result, because it is the
+  one case measured where the parser takes the process down.
 - **2026-10-05, no lab may depend on the size of the stack, and every lab
   now runs in the browser.** The first run of the release workflow failed one
   check: `contracts_lab.py` exited 1 on the GitHub runner. Its check 11

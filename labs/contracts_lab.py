@@ -12,15 +12,17 @@ that the contract did not anticipate. Part C is shapes that cost you before
 any validator runs. Part D is why a schema cannot fix Part C, or Part A.
 
 Every parser result here is real behaviour of Python's own json module,
-observed on the machine you run it on, not a simulation. The first-wins parser
-and the two limits are the lab's own code. Where behaviour could differ between
-Python versions, the checks compare categories rather than messages.
+observed on the machine you run it on, not a simulation. The first-wins parser,
+the recursive walker and the two limits are the lab's own code. Where behaviour
+could differ between Python versions, the checks compare categories rather than
+messages.
 
 One input is never given to the parser: the body nested 100000 levels deep.
 What json.loads does with it is not a property of the body. Measured for this
-course on 2026-10-05: CPython 3.13.16 raised RecursionError at every stack
-size tried. CPython 3.14.6 raised RecursionError with an 8 MB or a 16 MB stack
-and returned the parsed object with a 64 MB or an unlimited one. Pyodide
+course on 2026-10-05: CPython 3.13.16 raised RecursionError with an 8 MB, a
+16 MB, a 64 MB or an unlimited stack, and died of a segmentation fault with a
+1 MB one. CPython 3.14.6 raised RecursionError with a 1 MB, an 8 MB or a 16 MB
+stack and returned the parsed object with a 64 MB or an unlimited one. Pyodide
 314.0.7 overflowed the JavaScript call stack, which no Python code can catch.
 A check that printed any one of those would be true on some machines and false
 on others. So Part C measures that body's depth from its text, and shows the
