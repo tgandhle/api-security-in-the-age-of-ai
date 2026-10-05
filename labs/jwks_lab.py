@@ -12,6 +12,9 @@ and replace what you hold, and which are retrieval failures that must not.
 Part C: revocation. A self-contained token stays verifiable after the grant is
 withdrawn, and an introspection cache extends that window further.
 
+Part D: background refresh. The same cache, refreshed on its schedule by a task
+that runs whether or not a request arrives, on an API with no traffic.
+
 The issuer's key endpoint and the introspection endpoint are stubs in this
 process. No sockets are opened. The clock is a variable, so every run prints the
 same thing.
@@ -136,6 +139,14 @@ class KeyCache:
     is that an outage of the key endpoint longer than max_stale becomes an
     outage of this API for every caller.
 
+    Requests are not the only thing that can refresh the set. tick() is the
+    background task: the same scheduled refresh, with the same back-off, run
+    with no request. On a quiet API it keeps the last successful load no more
+    than max_age old, so when an outage starts the set can still be served for
+    max_stale less that age. Without it, a set that no request has refreshed
+    for max_stale is rejected at the first failed fetch. Here the lab calls
+    tick() as it moves the clock. No thread or timer is started.
+
     Project baseline, stated because the specifications this lesson cites do
     not settle it:
       - A successful, well-formed set is authoritative. It replaces what we
@@ -147,6 +158,9 @@ class KeyCache:
       - A set whose last successful load is max_stale old is not served.
         This fails closed: a removed key gets an upper bound, and a long
         outage of the key endpoint rejects every caller.
+      - The scheduled refresh also runs in the background, with no request.
+        That costs the issuer one fetch per max_age from each verifier, however
+        little traffic there is.
     """
 
     max_age = 600
@@ -204,6 +218,12 @@ class KeyCache:
         self._absorb(document)
         self.failed_at = None
         return "ok"
+
+    def tick(self):
+        """The background task. Call it at any interval, with no request."""
+        if self.loaded and self.clock[0] - self.loaded_at < self.max_age:
+            return "fresh"
+        return self._refresh(scheduled=True)
 
     def resolve(self, kid):
         """Return (jwk, reason). Exactly one is None."""
@@ -498,6 +518,83 @@ def main():
     check("revoked, but inside the cache window", "accept", cached.call(token_a))
     clock[0] += 300
     check("the same token once the cache expires", "reject: token not active", cached.call(token_a))
+
+    print()
+    print("Part D: background refresh.")
+
+    # An API with no traffic. Every time below is written out in seconds after
+    # the first load, not read from max_age, backoff or max_stale, so these
+    # checks pin those numbers. Each cache is loaded by one request at 0.
+    def at(seconds):
+        clock[0] = NOW + seconds
+
+    def wake_until(cache, seconds):
+        # The background task: it wakes every 10 seconds and calls tick().
+        while clock[0] + 10 <= NOW + seconds:
+            clock[0] += 10
+            cache.tick()
+
+    # No background refresh. Nothing refreshes the set for an hour, and the
+    # endpoint goes down one second before the first request.
+    at(0)
+    quiet = KeyEndpoint()
+    quiet.serve({"keys": [jwk_a, jwk_b]})
+    quiet_verifier = Verifier(KeyCache(quiet, clock))
+    quiet_verifier.verify(fresh(key_b, "hotel-b"), clock)
+    at(3599)
+    quiet.script = [TimeoutError("connect timed out")]
+    at(3600)
+    check("quiet API, outage at 3599 s, first request", "reject: key set too stale",
+          quiet_verifier.verify(fresh(key_b, "hotel-b"), clock))
+
+    # The same timeline with the background task running.
+    at(0)
+    bg = KeyEndpoint()
+    bg.serve({"keys": [jwk_a, jwk_b]})
+    bg_cache = KeyCache(bg, clock)
+    bg_verifier = Verifier(bg_cache)
+    bg_verifier.verify(fresh(key_b, "hotel-b"), clock)
+    before = bg.fetches
+    wake_until(bg_cache, 3590)
+    check("background, 3590 quiet s, 359 wake-ups", "fetches: 5", "fetches: %d" % (bg.fetches - before))
+    at(3599)
+    bg.script = [TimeoutError("connect timed out")]
+    at(3600)
+    before = bg.fetches
+    bg_cache.tick()
+    check("same outage, background on, first request", "accept",
+          bg_verifier.verify(fresh(key_b, "hotel-b"), clock))
+    wake_until(bg_cache, 4190)
+    check("background, 600 s of outage, 60 wake-ups", "fetches: 10", "fetches: %d" % (bg.fetches - before))
+    # One request a second from here, with one token signed now, so that token
+    # expiry plays no part. The background task keeps waking every 10 seconds.
+    steady = make_token(key_b, "hotel-b", iat=clock[0] - 30, exp=NOW + 9000)
+    last = None
+    while clock[0] < NOW + 8000:
+        clock[0] += 1
+        if (clock[0] - NOW) % 10 == 0:
+            bg_cache.tick()
+        if bg_verifier.verify(steady, clock) != "accept":
+            break
+        last = clock[0] - NOW
+    check("outage goes on, the stale set is served to", "last accept: 6599 s",
+          "last accept: none" if last is None else "last accept: %d s" % last)
+
+    # The issuer removes key a. No request arrives. The background task learns
+    # of it at 600 seconds, and the endpoint goes down one second later.
+    at(0)
+    gone = KeyEndpoint()
+    gone.serve({"keys": [jwk_a, jwk_b]})
+    gone_cache = KeyCache(gone, clock)
+    gone_verifier = Verifier(gone_cache)
+    gone_verifier.verify(fresh(key_a, "hotel-a"), clock)
+    gone.script = [{"keys": [jwk_b]}]
+    wake_until(gone_cache, 600)
+    at(601)
+    gone.script = [TimeoutError("connect timed out")]
+    at(610)
+    check("key removed, learned with no request", "reject: unknown kid",
+          gone_verifier.verify(fresh(key_a, "hotel-a"), clock))
 
     # Exact comparison. A prefix match would let a check pass for the wrong
     # reason, which is the bug this lab is about.
