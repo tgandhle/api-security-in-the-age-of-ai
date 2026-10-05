@@ -87,6 +87,17 @@ These apply to every change. If a task seems to require breaking one, stop and a
 Recorded so a later session does not reopen them by accident. Change one only
 when the reason it gives has stopped being true, and say so in the commit.
 
+- **2026-10-05, the browser lab runner loads the packages a lab imports.**
+  The 2026-10-02 entry below checked that the four `cryptography` labs give
+  the same output on Pyodide's 47.0.0, but `assets/course.js` never asked
+  Pyodide to load the package, so those four labs failed in the browser with
+  `ModuleNotFoundError`. The runner now calls `loadPackagesFromImports` on
+  the lab source before running it. That fetches `cryptography` and the three
+  packages it depends on, about 2.4 MB, from the same CDN, only for a lab
+  that imports it, and fetches nothing for a standard-library lab. No new
+  dependency: the package is part of the approved Pyodide release. Checked on
+  the hosted site in Chromium: all four labs exit 0 and match their published
+  transcripts.
 - **2026-10-04, the hosted site has its own look: dark and light themes with
   a blue accent, following the system setting until the reader chooses.**
   Owner decision. It applies to the React build only; the static pages and
