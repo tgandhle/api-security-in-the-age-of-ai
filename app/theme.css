@@ -487,10 +487,12 @@ body[data-course-lesson] main>div>p.meta:has(.jump) a{font-size:inherit}
 .course-quiz h2{font-size:21px;margin:.4rem 0 1rem}
 .course-quiz legend{font-weight:640;max-width:70ch;margin-bottom:.85rem;padding:0}
 .course-quiz fieldset{min-width:0}
-.course-quiz label{display:flex;align-items:flex-start;gap:.7rem;padding:.7rem .9rem;margin:.5rem 0;border:1px solid var(--edge);
+/* Not flex: an option is a radio followed by running text with inline code
+   in it, and a flex row would lay each run of text out as its own column. */
+.course-quiz label{display:block;position:relative;padding:.7rem .9rem .7rem 2.6rem;margin:.5rem 0;border:1px solid var(--edge);
   border-radius:8px;background:var(--bg);transition:border-color .12s ease,background-color .12s ease}
 .course-quiz label:hover{border-color:var(--line)}
-.course-quiz input[type="radio"]{flex:none;margin:.3em 0 0;width:1rem;height:1rem;accent-color:var(--accent)}
+.course-quiz input[type="radio"]{position:absolute;left:.9rem;top:.7rem;margin:.3em 0 0;width:1rem;height:1rem;accent-color:var(--accent)}
 .course-quiz label:has(input:checked){border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
 .course-quiz label:has(input:focus-visible){outline:2px solid var(--focus);outline-offset:2px}
 .course-quiz input:focus-visible{outline:none}
@@ -525,7 +527,10 @@ body[data-course-lesson] main>div>p.meta:has(.jump) a{font-size:inherit}
 
 .lab-run{margin:.75rem 0 1.5rem}
 .lab-run .meta{max-width:66ch;margin-top:.6rem}
-.lab-output{margin-top:.9rem;border:1px solid var(--edge);border-left-width:3px;padding:46px 18px 16px;white-space:pre-wrap;overflow-wrap:anywhere}
+.lab-output{margin-top:.9rem;border:1px solid var(--edge);border-left-width:3px;padding:46px 18px 16px}
+/* A failed run is a message in prose with a long URL, so it wraps. A run
+   that worked is a transcript in columns, so it scrolls like the published one. */
+.lab-output[data-state="bad"]{white-space:pre-wrap;overflow-wrap:anywhere}
 .lab-output[data-state="ok"]{border-color:var(--h-stroke)}
 .lab-output[data-state="bad"]{border-color:var(--r-stroke)}
 
