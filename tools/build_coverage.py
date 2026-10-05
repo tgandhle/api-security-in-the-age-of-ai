@@ -60,7 +60,8 @@ LISTS = [
         "title": "OWASP GenAI LLM Top 10 2026",
         "href": "https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/",
         "edition": "Version 2026, August 2026. The title page of the document "
-                   "reads \"OWASP Top 10 for LLM Applications 2026\".",
+                   "reads \"OWASP Top 10 for LLM Applications 2026\" and still "
+                   "prints \"[Publication date to be set]\".",
         "pattern": r"\b%s:2026\b",
         "entries": [
             ("LLM01", "LLM01:2026", "Prompt Injection"),

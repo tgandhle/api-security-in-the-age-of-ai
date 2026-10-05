@@ -23,7 +23,7 @@
       "attrs": {
         "class": "meta"
       },
-      "html": "\n<p class=\"meta\">Last reviewed 2026-10-02 &middot; <a class=\"jump\" href=\"#reference\">Jump to reference</a></p>"
+      "html": "\n<p class=\"meta\">Last reviewed 2026-10-04 &middot; <a class=\"jump\" href=\"#reference\">Jump to reference</a></p>"
     },
     {
       "tag": "div",
@@ -293,7 +293,7 @@
       "attrs": {
         "class": "prose"
       },
-      "html": "\n<ul class=\"prose\">\n<li id=\"source-fetch\"><a href=\"https://fetch.spec.whatwg.org/commit-snapshots/357bd98924d94b81fbe8608192a2ee1f123b82f4/\">Fetch Standard</a>, WHATWG Living Standard, commit snapshot 357bd98, Last Updated 21 September 2026. Section 2.2.1 for the safelisted methods, 2.2.2 for the header safelist and the 128 and 1024 byte limits, 3.2 for the <code>Origin</code> header, 3.3 for the CORS protocol and its header definitions, 3.3.4 for the header ABNF, 3.3.5 for the credentials table, 3.3.7 for the content type exceptions, 4.1 for the condition that sends a preflight, 4.8 for CORS-preflight fetch, 4.9 for the preflight cache, 4.10 for the CORS check, and Basic safe CORS protocol setup, under Background reading, which the standard marks as informative only. CORS has no RFC; this is the specification.</li>\n<li id=\"source-origin\"><a href=\"https://www.rfc-editor.org/rfc/rfc6454\">RFC 6454: The Web Origin Concept</a>, Standards Track, December 2011. Sections 3.2 and 7 for the concept of an origin and the original <code>Origin</code> header. Cited for the concept only: the Fetch Standard section 3.2 states that its own definition supplants this one.</li>\n</ul>"
+      "html": "\n<ul class=\"prose\">\n<li id=\"source-fetch\"><a href=\"https://fetch.spec.whatwg.org/\">Fetch Standard</a>, WHATWG Living Standard. The text checked is <a href=\"https://fetch.spec.whatwg.org/commit-snapshots/357bd98924d94b81fbe8608192a2ee1f123b82f4/\">commit snapshot 357bd98</a>, Last Updated 21 September 2026, which was still the current text on 4 October 2026. The snapshot page says not to reference it as authoritative, so the living standard is the reference and the snapshot records what was read. Section 2.2.1 for the safelisted methods, 2.2.2 for the header safelist and the 128 and 1024 byte limits, 3.2 for the <code>Origin</code> header, 3.3 for the CORS protocol and its header definitions, 3.3.4 for the header ABNF, 3.3.5 for the credentials table, 3.3.7 for the content type exceptions, 4.1 for the condition that sends a preflight, 4.8 for CORS-preflight fetch, 4.9 for the preflight cache, 4.10 for the CORS check, and Basic safe CORS protocol setup, under Background reading, which the standard marks as informative only. CORS has no RFC; this is the specification.</li>\n<li id=\"source-origin\"><a href=\"https://www.rfc-editor.org/rfc/rfc6454\">RFC 6454: The Web Origin Concept</a>, Standards Track, December 2011. Sections 3.2 and 7 for the concept of an origin and the original <code>Origin</code> header. Cited for the concept only: the Fetch Standard section 3.2 states that its own definition supplants this one.</li>\n</ul>"
     }
   ],
   "main_close": "\n</main>",
@@ -303,7 +303,7 @@
   "lesson_key": "cors",
   "title": "CORS",
   "kicker": "Part 3: Edges and boundaries &middot; Module 17",
-  "reviewed": "2026-10-02",
+  "reviewed": "2026-10-04",
   "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 18 of 35</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
   "lesson_number": 18,
   "lesson_total": 35,
@@ -375,7 +375,7 @@
     {
       "heading": "Sources",
       "heading_text": "Sources",
-      "html": "<ul class=\"prose\">\n<li id=\"source-fetch\"><a href=\"https://fetch.spec.whatwg.org/commit-snapshots/357bd98924d94b81fbe8608192a2ee1f123b82f4/\">Fetch Standard</a>, WHATWG Living Standard, commit snapshot 357bd98, Last Updated 21 September 2026. Section 2.2.1 for the safelisted methods, 2.2.2 for the header safelist and the 128 and 1024 byte limits, 3.2 for the <code>Origin</code> header, 3.3 for the CORS protocol and its header definitions, 3.3.4 for the header ABNF, 3.3.5 for the credentials table, 3.3.7 for the content type exceptions, 4.1 for the condition that sends a preflight, 4.8 for CORS-preflight fetch, 4.9 for the preflight cache, 4.10 for the CORS check, and Basic safe CORS protocol setup, under Background reading, which the standard marks as informative only. CORS has no RFC; this is the specification.</li>\n<li id=\"source-origin\"><a href=\"https://www.rfc-editor.org/rfc/rfc6454\">RFC 6454: The Web Origin Concept</a>, Standards Track, December 2011. Sections 3.2 and 7 for the concept of an origin and the original <code>Origin</code> header. Cited for the concept only: the Fetch Standard section 3.2 states that its own definition supplants this one.</li>\n</ul>\n</main>"
+      "html": "<ul class=\"prose\">\n<li id=\"source-fetch\"><a href=\"https://fetch.spec.whatwg.org/\">Fetch Standard</a>, WHATWG Living Standard. The text checked is <a href=\"https://fetch.spec.whatwg.org/commit-snapshots/357bd98924d94b81fbe8608192a2ee1f123b82f4/\">commit snapshot 357bd98</a>, Last Updated 21 September 2026, which was still the current text on 4 October 2026. The snapshot page says not to reference it as authoritative, so the living standard is the reference and the snapshot records what was read. Section 2.2.1 for the safelisted methods, 2.2.2 for the header safelist and the 128 and 1024 byte limits, 3.2 for the <code>Origin</code> header, 3.3 for the CORS protocol and its header definitions, 3.3.4 for the header ABNF, 3.3.5 for the credentials table, 3.3.7 for the content type exceptions, 4.1 for the condition that sends a preflight, 4.8 for CORS-preflight fetch, 4.9 for the preflight cache, 4.10 for the CORS check, and Basic safe CORS protocol setup, under Background reading, which the standard marks as informative only. CORS has no RFC; this is the specification.</li>\n<li id=\"source-origin\"><a href=\"https://www.rfc-editor.org/rfc/rfc6454\">RFC 6454: The Web Origin Concept</a>, Standards Track, December 2011. Sections 3.2 and 7 for the concept of an origin and the original <code>Origin</code> header. Cited for the concept only: the Fetch Standard section 3.2 states that its own definition supplants this one.</li>\n</ul>\n</main>"
     }
   ],
   "layers": [
@@ -492,9 +492,9 @@
   "sources": [
     {
       "id": "source-fetch",
-      "href": "https://fetch.spec.whatwg.org/commit-snapshots/357bd98924d94b81fbe8608192a2ee1f123b82f4/",
+      "href": "https://fetch.spec.whatwg.org/",
       "title": "Fetch Standard",
-      "html": "<a href=\"https://fetch.spec.whatwg.org/commit-snapshots/357bd98924d94b81fbe8608192a2ee1f123b82f4/\">Fetch Standard</a>, WHATWG Living Standard, commit snapshot 357bd98, Last Updated 21 September 2026. Section 2.2.1 for the safelisted methods, 2.2.2 for the header safelist and the 128 and 1024 byte limits, 3.2 for the <code>Origin</code> header, 3.3 for the CORS protocol and its header definitions, 3.3.4 for the header ABNF, 3.3.5 for the credentials table, 3.3.7 for the content type exceptions, 4.1 for the condition that sends a preflight, 4.8 for CORS-preflight fetch, 4.9 for the preflight cache, 4.10 for the CORS check, and Basic safe CORS protocol setup, under Background reading, which the standard marks as informative only. CORS has no RFC; this is the specification."
+      "html": "<a href=\"https://fetch.spec.whatwg.org/\">Fetch Standard</a>, WHATWG Living Standard. The text checked is <a href=\"https://fetch.spec.whatwg.org/commit-snapshots/357bd98924d94b81fbe8608192a2ee1f123b82f4/\">commit snapshot 357bd98</a>, Last Updated 21 September 2026, which was still the current text on 4 October 2026. The snapshot page says not to reference it as authoritative, so the living standard is the reference and the snapshot records what was read. Section 2.2.1 for the safelisted methods, 2.2.2 for the header safelist and the 128 and 1024 byte limits, 3.2 for the <code>Origin</code> header, 3.3 for the CORS protocol and its header definitions, 3.3.4 for the header ABNF, 3.3.5 for the credentials table, 3.3.7 for the content type exceptions, 4.1 for the condition that sends a preflight, 4.8 for CORS-preflight fetch, 4.9 for the preflight cache, 4.10 for the CORS check, and Basic safe CORS protocol setup, under Background reading, which the standard marks as informative only. CORS has no RFC; this is the specification."
     },
     {
       "id": "source-origin",
