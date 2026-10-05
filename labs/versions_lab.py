@@ -9,11 +9,13 @@ exist to say so.
 Part A is what an announcement is made of, and what a version actually emits.
 Part B is the ordering constraint RFC 9745 places on the two dates. Part C
 computes v2's state at five points on the calendar, and v0-beta's today. Part D
-reconciles the documented inventory against what is reachable and what is
-receiving traffic. Part E is what a header never does.
+reconciles the documentation against what is reachable and what is
+receiving traffic. Part E is what a header never does. Part F puts four lists
+side by side, the documentation, the inventory, what answers and what receives
+traffic, and names the versions that are on one list and not on another.
 
-Dates are real date arithmetic. Reachability and traffic are inventory data,
-so the lab opens no sockets.
+Dates are real date arithmetic. Reachability and traffic are values written
+into VERSIONS, so the lab opens no sockets.
 
 Needs nothing beyond Python 3.
 
@@ -51,6 +53,10 @@ VERSIONS = {
 }
 
 DOCUMENTED = {"v3", "v2", "v1"}      # what the API documentation lists
+
+# What the organisation's own inventory has a record for. It still holds a
+# record for v1-internal, marked retired. It has never heard of v0-beta.
+INVENTORY = {"v3", "v2", "v1", "v1-internal"}
 
 RANK = {"Critical": 0, "High": 1, "Medium": 2}
 
@@ -100,6 +106,21 @@ def state(version, today):
         return "deprecated, %d day%s left" % (left, "" if left == 1 else "s")
     over = (today - version["sunset"]).days
     return "past sunset by %d day%s" % (over, "" if over == 1 else "s")
+
+
+def shadow(versions):
+    """Answering, and absent from the inventory."""
+    return sorted(n for n, v in versions.items()
+                  if v["reachable"] and n not in INVENTORY)
+
+
+def zombie(versions, today=TODAY):
+    """Answering, although it is recorded as retired or its sunset date has
+    passed. This is the lab's rule, and it is narrower than the wider use of
+    the word for any superseded version that has not been removed."""
+    return sorted(n for n, v in versions.items()
+                  if v["reachable"] and (v["role"].startswith("retired")
+                                         or (v["sunset"] and today > v["sunset"])))
 
 
 RESULTS = []
@@ -196,6 +217,27 @@ def main():
           worst("v1", announced["v1"]))
     check("  requests it still received in 30 days", "9400",
           str(announced["v1"]["requests_30d"]))
+
+    print()
+    print("Part F: four lists that should be one list.")
+
+    # "reachable" stands for the gateway's route table and requests_30d for
+    # observed traffic. Neither is measured here: both are values in VERSIONS.
+    with_traffic = {n for n in reachable if VERSIONS[n]["requests_30d"] > 0}
+    for label, names in (("documented", DOCUMENTED), ("in the inventory", INVENTORY),
+                         ("answering", reachable), ("receiving traffic", with_traffic)):
+        print("  %-18s %d  %s" % (label, len(names), " ".join(sorted(names))))
+    print()
+    check("in the inventory, not in the documentation", "['v1-internal']",
+          str(sorted(INVENTORY - DOCUMENTED)))
+    check("shadow: answering, absent from the inventory", "['v0-beta']",
+          str(shadow(VERSIONS)))
+    check("zombie: answering, retired or past its sunset", "['v1', 'v1-internal']",
+          str(zombie(VERSIONS)))
+    check("answering with no traffic in 30 days", "[]",
+          str(sorted(reachable - with_traffic)))
+    check("shadow and zombie after withdrawing the three", "[] and []",
+          "%s and %s" % (shadow(withdrawn), zombie(withdrawn)))
 
     failures = [r for r in RESULTS if r[2] != r[1]]
     print()

@@ -12,7 +12,7 @@
 <main>
 <p class="kicker">Part 3: Edges and boundaries &middot; Module 18</p>
 <h1>Versioning and deprecation</h1>
-<p class="meta">Last reviewed 2026-10-02 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
+<p class="meta">Last reviewed 2026-10-05 &middot; <a class="jump" href="#reference">Jump to reference</a></p>
 
 <div class="prose">
 <p><strong>Objective.</strong> After this module you can announce a deprecation in a way machines can act on, set the two dates in the order the specification requires, tell what a client can work out at any point on that timeline, and say why announcing perfectly changes nothing on its own.</p>
@@ -36,7 +36,7 @@
 <tr><td>An old rate limit</td><td class="no">Current</td><td class="yes">Whatever it was</td></tr>
 <tr><td>An endpoint that was removed</td><td class="no">Gone</td><td class="yes">Still there</td></tr>
 <tr><td>Somewhere nobody is watching</td><td class="no">Monitored</td><td class="yes">Nobody owns the dashboard</td></tr>
-<tr><td>A version nobody documented</td><td class="no">Not applicable</td><td class="yes">Not in the inventory at all</td></tr>
+<tr><td>A version nobody documented</td><td class="no">Not applicable</td><td class="yes">Not in the <a href="../../glossary/index.html#api-inventory">inventory</a> at all</td></tr>
 <tr><td>A version whose sunset date has passed</td><td class="no">Not applicable</td><td class="yes">Still answering, and someone believes it is gone</td></tr>
 </tbody></table></div>
 <p class="prose">The last two rows are the ones this module is really about, because they are not decisions anybody made. They are what remains when a plan was announced and never finished.</p>
@@ -56,6 +56,31 @@
 <p>A deprecation has four steps and most teams do the first one: announce it, stop new callers, move the existing ones, withdraw it. The gap between the third and the fourth is where the exposure lives, and it is usually held open by the same fact: nobody knows who is still calling.</p>
 <p>That is why the lab treats "still receiving traffic from callers nobody can name" as a finding in its own right. A version with traffic and identified callers is a migration. A version with traffic and no identified callers is a version you cannot withdraw, because the decision to break somebody has no one to notify, and so it never gets made.</p>
 <p>This is also where <a href="../gateway-enforcement/index.html">module 12</a> comes back. The question is not which versions you documented, it is which ones answer. The lab's Part D is that comparison, and the two versions it finds are the ones nobody would have thought to look for.</p>
+</div>
+
+<h3>Four lists that should be one list</h3>
+<div class="prose">
+<p>"Which versions do we run?" has four answers, and each one comes from a different place.</p>
+<ul>
+<li><strong>Documented:</strong> what the published contract describes.</li>
+<li><strong>In the inventory:</strong> what the organisation holds a record for, with an owner.</li>
+<li><strong>Reachable:</strong> what answers a request. The route table of the gateway or router is the nearest thing to a written copy of it.</li>
+<li><strong>Receiving traffic:</strong> what callers use, read from access logs or gateway metrics.</li>
+</ul>
+<p>When the four agree, there is one list. Every name that is on one list and missing from another is a finding, and two of those findings have names.</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>On this list</th><th>Missing from, or contradicted by, this one</th><th>What the difference means</th></tr></thead>
+<tbody>
+<tr><td>Reachable</td><td>The inventory</td><td>A <a href="../../glossary/index.html#shadow-api">shadow API</a>. Nobody reviews, patches or retires a thing that has no record. In the lab: <code>v0-beta</code>.</td></tr>
+<tr><td>Reachable</td><td>A record that says it is retired, or a sunset date that has passed</td><td>A <a href="../../glossary/index.html#zombie-api">zombie API</a>. Somebody believes it is gone. In the lab: <code>v1</code> and <code>v1-internal</code>.</td></tr>
+<tr><td>The inventory</td><td>The documentation</td><td>Someone holds a record and no caller can read the contract. In the lab: <code>v1-internal</code>.</td></tr>
+<tr><td>The documentation</td><td>Reachable</td><td>The contract describes something that no longer answers. Callers break, and you learn the documentation is not produced from what runs.</td></tr>
+<tr><td>Reachable</td><td>Receiving traffic</td><td>Exposure that serves nobody. Withdrawing it breaks no caller. The lab has none: all five versions that answer have traffic.</td></tr>
+</tbody></table></div>
+<div class="prose">
+<p>Both names are in NIST SP 800-228. Its section 2.1 lists "Rogue or shadow APIs", which "may not be appropriately documented and often bypass standard security review practices", and "Zombie or deprecated APIs", which "may have been replaced or superseded by newer systems but have not yet been entirely removed" and "risk falling behind the latest security policies and protections". OWASP API9:2023 describes the same gap and uses neither word. NIST describes a shadow API by how it comes about and gives no test for one. The test this module uses, answering and absent from the inventory, is this course's; it follows the title of NIST's section 2.1, "Lack of Visibility of APIs in the Enterprise Inventory". NIST's wording for a zombie API covers any superseded API that is still there, which would include v2. This module uses zombie more narrowly, for a version that is recorded as retired or is past its sunset date and still answers, because that is the one somebody believes is gone.</p>
+<p>You find the differences by comparing, not by asking. Export the route table from the gateway or router. Take the versions and paths that appear in a month of access logs. Set both beside the documented contract and the inventory. This course calls a difference between the contract and what runs drift, and <a href="../security-testing/index.html">module 34</a> tests for it. NIST SP 800-228 recommends a comparison of this kind under REC-API-8: reconciliation between declared specifications and live traffic, to "identify differences between what is deployed and what should be deployed in production, including shadow, orphan, and zombie API endpoints". Part F of the lab does it for the five deployments.</p>
 </div>
 
 <h3>The whole system</h3>
@@ -93,6 +118,26 @@
 <li><strong>Withdraw it on the date.</strong> This is the only step that changes anything, and the previous five exist to make it possible rather than to replace it.</li>
 <li><strong>Verify afterwards</strong> that it stopped answering, from the network, the way you verified it was reachable in the first place.</li>
 </ol>
+<h3>Where NIST puts these steps</h3>
+<div class="prose">
+<p>NIST SP 800-228, "Guidelines for API Protection for Cloud-Native Systems" (June 2025, with updates as of March 13, 2026), sorts its recommended controls by when they apply. It is guidance: it recommends, and nothing in it binds you. Its section 1.2 gives an API a life cycle with two groups of phases: "Plan, Develop, Build, Test, Release", which it calls pre-runtime, and "Deploy, Operate, Monitor, Feedback", which it calls runtime. Section 3 says pre-runtime protections "should be applied during design, development, and testing" and runtime protections "should be applied to each request and response to the API at runtime". It splits each group into basic and advanced, and says: "All organizations should move immediately to act on basic controls, while advanced controls should be evaluated by the organization and applied to APIs based on risk profile."</p>
+<p>Three of its recommendations are this module's subject. It lists all three among its pre-runtime protections, in section 3.1.</p>
+<ul>
+<li><strong>Inventory.</strong> REC-API-4.2: "Organizational API inventory of all internal (including shadow and Zombie APIs) and external APIs should be maintained." It says the inventory should include each API's specification, ownership information, and runtime information such as traffic volume and "the status of policy enforcement". REC-API-4.3 adds discovery: "Use tools to improve visibility, such as API discovery tools and scheduled automated scans to detect all running APIs."</li>
+<li><strong>Reconciliation.</strong> REC-API-8, an advanced control, is to include runtime information in the inventory. Its text says "API discovery tools must be deployed during runtime and reconciliation between declared specifications, and live traffic must be performed as part of maintaining an accurate API inventory". The word is "must", in a guideline: read it as how strongly NIST advises it, not as a rule that binds you. NIST lists this control under Pre-Runtime although it needs live traffic to carry out, so the stage a control is listed under is not always the moment it runs.</li>
+<li><strong>Retirement.</strong> REC-API-4.4: "Establish strategies regarding API versioning, deprecation, and sunsetting, including a focus on secure migration paths." That sentence is all the publication recommends about retiring an API. It names no header and gives no rule for dates, and it has no stage for retirement: its Appendix E has two stages, Pre-Runtime and Runtime. The detail in this module comes from RFC 9745, RFC 8594 and OWASP API9:2023.</li>
+</ul>
+<p>Update 1 of the publication added Appendix E, which lists every recommended control by API lifecycle stage. The table sets those stages beside the modules of this course. The stage names, sub-categories and control numbers are NIST's. The choice of modules is this course's.</p>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>API lifecycle stage</th><th>Sub-category</th><th>What NIST lists there</th><th>Modules that teach it</th></tr></thead>
+<tbody>
+<tr><td>Pre-Runtime</td><td>Basic</td><td>REC-API-1 to REC-API-3: a specification for every API, in an interface definition language, with request and response schemas. REC-API-4: a governance framework, which holds the inventory (4.2), discovery tools (4.3) and the strategies for versioning, deprecation and sunsetting (4.4).</td><td><a href="../request-and-response-contracts/index.html">13 Request and response contracts</a>, <a href="../security-testing/index.html">34 Testing API security</a>, <a href="../gateway-enforcement/index.html">12 Gateway enforcement</a>, and 18 Versioning and deprecation (this module)</td></tr>
+<tr><td>Pre-Runtime</td><td>Advanced</td><td>REC-API-5: validation rules in the schema. REC-API-6 and REC-API-7: annotate each field as public or internal, with the permission it needs and its semantic type. REC-API-8: runtime information in the inventory.</td><td><a href="../request-and-response-contracts/index.html">13 Request and response contracts</a>, <a href="../property-and-function-authorization/index.html">10 Property and function authorization</a>, and 18 Versioning and deprecation (this module, Part F of the lab)</td></tr>
+<tr><td>Runtime</td><td>Basic</td><td>REC-API-9: encrypt all runtime communication. REC-API-11: authentication. REC-API-12: authorization. REC-API-13 and REC-API-14: validate each request and response against the schema, after authenticating and authorizing. REC-API-15 and REC-API-16: limits on use, and rate limiting. REC-API-18: monitoring.</td><td><a href="../security-foundations/index.html">0 Security concepts for the course</a>, <a href="../security-misconfiguration/index.html">29 Security misconfiguration</a>, <a href="../api-keys/index.html">1 API keys</a>, <a href="../oauth-basics/index.html">4 OAuth basics</a>, <a href="../jwt-validation/index.html">5 JWT validation</a>, <a href="../authentication-endpoints/index.html">27 Attacks on authentication endpoints</a>, <a href="../object-level-authorization/index.html">9 Object-level authorization</a>, <a href="../property-and-function-authorization/index.html">10 Property and function authorization</a>, <a href="../request-and-response-contracts/index.html">13 Request and response contracts</a>, <a href="../rate-limiting-and-cost/index.html">15 Rate limiting and cost controls</a>, <a href="../logging-and-detection/index.html">30 Logging, detection and response</a></td></tr>
+<tr><td>Runtime</td><td>Advanced</td><td>REC-API-19: field-level validation. REC-API-20: authorization and filtering for each caller, with the gateway as the enforcement point. REC-API-25: masking sensitive data in responses and logs. REC-API-23 and REC-API-24: error codes that do not allow resource enumeration, and blocking enumeration with rate limiting.</td><td><a href="../request-and-response-contracts/index.html">13 Request and response contracts</a>, <a href="../object-level-authorization/index.html">9 Object-level authorization</a>, <a href="../property-and-function-authorization/index.html">10 Property and function authorization</a>, <a href="../gateway-enforcement/index.html">12 Gateway enforcement</a>, <a href="../data-in-model-context/index.html">24 Data in model context</a>, <a href="../logging-and-detection/index.html">30 Logging, detection and response</a>, <a href="../authentication-endpoints/index.html">27 Attacks on authentication endpoints</a>, <a href="../rate-limiting-and-cost/index.html">15 Rate limiting and cost controls</a></td></tr>
+</tbody></table></div>
+<p class="prose">The table does not place REC-API-10, REC-API-17, REC-API-21, REC-API-22 or REC-API-26, because no module takes any of them as its subject. REC-API-22 is payload scanning for generative AI APIs that does not rely on signatures; module 24 teaches a field allowlist and redaction by pattern, which is not that. In two rows the module and the recommendation differ. Module 10 teaches field lists written in code, where REC-API-6 and REC-API-7 recommend annotations in the schema. Module 12 teaches that a gateway cannot decide object authorization, because it has not loaded the object, and module 9 puts that check in the service. REC-API-20 makes the gateway the enforcement point and has it ask an authorization system for the decision.</p>
 
 <h2>4. Defaults and when to change them</h2>
 <div class="wrap"><table>
@@ -112,6 +157,7 @@
 <div class="prose">
 <p><strong>Proves:</strong> that every version you know about has an announced end, that the announcement reaches machines, and that the dates are in an order the specification permits.</p>
 <p><strong>Doesn't prove:</strong> that anybody acted on it. Both RFCs describe their header as a hint, so a client that ignores it is not misbehaving, and the only measurement that matters is traffic. It also proves nothing about versions that were never in the inventory, which is the case the lab's Part D is built around.</p>
+<p><strong>What four matching lists prove:</strong> that the documentation, the inventory, the route table and the traffic agreed on the day you compared them. They do not prove that any version on them is safe. They also miss a deployment that can be reached without passing the gateway, because it is in no route table and in none of the gateway's logs. <a href="../gateway-enforcement/index.html">Module 12</a> is about finding those. And the comparison is only as fresh as its date. NIST SP 800-228 recommends "scheduled automated scans" (REC-API-4.3), which is a repeated check and not one audit.</p>
 <div class="callout warn"><strong>Announcing is not deprecating.</strong> A version with perfect headers, a clear migration guide, a date that has passed, and a live deployment is exactly as exposed as one with none of those things. Part E of the lab gives v1 a flawless announcement and a fresh sunset date, and the finding that survives is the 9,400 requests a month from callers nobody can name.</div>
 </div>
 
@@ -120,6 +166,7 @@
 <ul>
 <li>A list of every version that answers, produced from the network and dated.</li>
 <li>Every entry on that list appears in the documentation, or has a finding against it.</li>
+<li>A dated comparison of the documentation, the inventory, the route table and observed traffic, with a finding for every name that is on one and not on another.</li>
 <li>Every superseded version has a deprecation date and a sunset date, in that order.</li>
 <li>Every deprecated version emits <code>Deprecation</code>, <code>Sunset</code> and a <code>Link</code>, verified against a live response rather than a design document.</li>
 <li>For each version with remaining traffic, a named list of callers.</li>
@@ -136,7 +183,7 @@
 <pre><code>Windows              macOS and Linux
 py -3 labs/versions_lab.py    python3 labs/versions_lab.py</code></pre>
 <div class="prose">
-<p>On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>. The dates are real date arithmetic against a fixed today. Reachability and traffic are inventory data, so nothing connects to anything.</p>
+<p>On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>. The dates are real date arithmetic against a fixed today. Reachability and traffic are values written into the lab, so nothing connects to anything.</p>
 </div>
 <pre><code>$ python3 labs/versions_lab.py
 today is 2026-09-30; five deployments answer on the booking API
@@ -177,17 +224,31 @@ Part E: what the headers do not do.
 20. v1 with a perfect announcement and a new sunset date High: still receiving traffic from callers nobody can name
 21.   requests it still received in 30 days            9400
 
+Part F: four lists that should be one list.
+  documented         3  v1 v2 v3
+  in the inventory   4  v1 v1-internal v2 v3
+  answering          5  v0-beta v1 v1-internal v2 v3
+  receiving traffic  5  v0-beta v1 v1-internal v2 v3
+
+22. in the inventory, not in the documentation         ['v1-internal']
+23. shadow: answering, absent from the inventory       ['v0-beta']
+24. zombie: answering, retired or past its sunset      ['v1', 'v1-internal']
+25. answering with no traffic in 30 days               []
+26. shadow and zombie after withdrawing the three      [] and []
+
 all lab checks passed</code></pre>
 <div class="prose">
 <p>v2 is what this is supposed to look like: dates in order, both headers emitted, a link to the guide, and a client able to compute how long it has. Checks 1 and 5 are the only clean lines in the exercise.</p>
 <p>Checks 6 to 10 are the same version read at five points on the calendar, and they are worth running because the states are the ones a client library has to handle. A date in the future means the deprecation has not happened yet. A date in the past with no sunset would read <code>deprecated, no end date</code>; no version in the lab is in that state, so no check prints it. And check 11 is the version that said nothing at all, where there is no signal for a client to act on, ever.</p>
 <p>Check 17 is the finding that is hardest to defend in a review. <code>v1-internal</code> is recorded as retired, and it answered 2,300 requests in the last thirty days. Somebody believes that deployment is gone. Somebody else is calling it.</p>
 <p>Part E is the point of the module. Check 19 withdraws the three offending deployments and every finding disappears, because withdrawal is what removes exposure. Check 20 does the opposite experiment: v1 gets a flawless announcement, both headers, and a new sunset date nine months out, and the finding that survives is that 9,400 requests a month come from callers nobody can name. That version is not going to be withdrawn on its new date either, for exactly the same reason it was not withdrawn on its old one.</p>
+<p>Part F asks the Part D question four ways at once. The four lines above check 22 are the four lists: three versions documented, four in the inventory, five answering and five receiving traffic. Check 23 names the shadow API, <code>v0-beta</code>, which answers and has no record in the inventory. Check 24 names the two zombie APIs: <code>v1</code> is past its sunset date and <code>v1-internal</code> is recorded as retired. Check 25 prints an empty list, and that is worth reading too: every version that answers has callers, so nothing here can be withdrawn without breaking someone. Check 26 repeats the comparison after the three withdrawals, and both lists are empty. In the lab the <code>reachable</code> flag stands for the gateway's route table and <code>requests_30d</code> for observed traffic.</p>
 <p><strong>Try next:</strong></p>
 <ul>
 <li>Set <code>v1</code>'s <code>callers_known</code> to <code>True</code> and rerun. v1 goes from three findings to two, and the one that goes is the one that was blocking the decision. Checks 2, 3 and 18 print as before. Check 20 prints <code>clean</code>, and the run exits 1 with one check not matching, because the lab expected the unnamed callers to be the finding left.</li>
-<li>Move <code>TODAY</code> to 2027-01-15 and rerun. The run exits 1 with five checks not matching, and each one is v2 crossing its own sunset date and joining the others: checks 1 and 5 print <code>Critical: past its sunset date and still answering</code>, check 8 prints <code>past sunset by 15 days</code>, check 4 prints the same Critical line because its sunset date of 2027-01-01 has passed as well, and check 19 prints <code>1</code>, because v2 is not one of the three it withdraws.</li>
+<li>Move <code>TODAY</code> to 2027-01-15 and rerun. The run exits 1 with seven checks not matching, and each one is v2 crossing its own sunset date and joining the others: checks 1 and 5 print <code>Critical: past its sunset date and still answering</code>, check 8 prints <code>past sunset by 15 days</code>, check 4 prints the same Critical line because its sunset date of 2027-01-01 has passed as well, and check 19 prints <code>1</code>, because v2 is not one of the three it withdraws. Check 24 lists v2 as a third zombie, and check 26 prints <code>[] and ['v2']</code> for the same reason as check 19.</li>
 <li>Add a sixth deployment that is reachable, undocumented and has zero traffic: in <code>VERSIONS</code>, copy the <code>v0-beta</code> entry, name the copy <code>v4-shadow</code> and set its <code>requests_30d</code> to 0. Rerun. Check 13 prints 6, check 14 lists three names, and checks 15 to 17 print as before. The first line still says five, because that count is typed into the print rather than computed. Then the run stops with <code>KeyError: 'v4-shadow'</code> before check 18, because the lab has no expected answer for a version it does not know. Decide whether zero traffic makes it safe or makes it easier to remove.</li>
+<li>Add <code>"v0-beta"</code> to <code>INVENTORY</code> and rerun. The run exits 1 with two checks not matching: check 22 prints <code>['v0-beta', 'v1-internal']</code> and check 23 prints <code>[]</code>. The version has stopped being a shadow API, and nothing about its exposure has changed: check 16 still prints <code>Critical: no deprecation date has ever been announced</code>. A record is where the work starts, not the fix.</li>
 <li>Write the same table for an API you work on: every version that answers, its two dates, and who still calls it. The column you cannot fill is this module's finding.</li>
 </ul>
 </div>
@@ -271,7 +332,7 @@ all lab checks passed</code></pre>
 <label><input type="radio" name="ver-x3" value="a"> Check 3, v1's header finding, disappears.</label>
 <label><input type="radio" name="ver-x3" value="b"> Check 1 changes, because v2 emits three headers.</label>
 <label><input type="radio" name="ver-x3" value="c"> Check 20 becomes <code>High: deprecated, but emits no Deprecation header</code>.</label>
-<label><input type="radio" name="ver-x3" value="d" data-correct="true"> Nothing. All 21 checks pass.</label>
+<label><input type="radio" name="ver-x3" value="d" data-correct="true"> Nothing. All 26 checks pass.</label>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button>
 <p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
@@ -280,7 +341,7 @@ all lab checks passed</code></pre>
 <li data-option="a">v1 emits nothing, so it fails the looser test as well. Check 3 still prints <code>deprecated, but emits no Deprecation header</code>.</li>
 <li data-option="b">v2 emits <code>Deprecation</code>, <code>Sunset</code> and <code>Link</code>, which satisfies both versions of the test. Check 1 prints <code>clean</code> either way.</li>
 <li data-option="c">Check 20 gives v1 all three headers before it asks, so neither test raises the header finding. It still prints <code>High: still receiving traffic from callers nobody can name</code>.</li>
-<li data-option="d">Correct. Exit 0, 39 of 39 lines identical. Every deployment in the lab emits either all three headers or none, so the two tests never disagree. Measured on a deployment the lab does not contain, v2 as published except that it emits <code>Sunset</code> and no <code>Deprecation</code>: as published the audit answers <code>High: deprecated, but emits no Deprecation header</code>, and with the looser test it answers <code>clean</code>. A client reading that response learns an end date and is never told the version is deprecated. Check <code>ver-05</code> in the <a href="#reference">Reference</a> layer names each header, because "it emits something" is not the same test.</li>
+<li data-option="d">Correct. Exit 0, 51 of 51 lines identical. Every deployment in the lab emits either all three headers or none, so the two tests never disagree. Measured on a deployment the lab does not contain, v2 as published except that it emits <code>Sunset</code> and no <code>Deprecation</code>: as published the audit answers <code>High: deprecated, but emits no Deprecation header</code>, and with the looser test it answers <code>clean</code>. A client reading that response learns an end date and is never told the version is deprecated. Check <code>ver-05</code> in the <a href="#reference">Reference</a> layer names each header, because "it emits something" is not the same test.</li>
 </ul>
 </details>
 </article>
@@ -321,7 +382,10 @@ all lab checks passed</code></pre>
 <li><span class="label std">Standard</span>Both specifications treat the field as a hint rather than a guarantee, in their security considerations: RFC 9745 section 7 and RFC 8594 section 8.</li>
 <li><span class="label std">Standard</span>RFC 9745 section 3 defines the <code>deprecation</code> link relation type: a server can use a <code>Link</code> header with it to point at the documentation. It does not require one. RFC 8594 section 6 defines a <code>sunset</code> relation type, for linking to information about how a resource or service will be retired.</li>
 <li><span class="label std">Standard</span>OWASP recommends using external protection measures "for all exposed versions of your APIs, not just for the current production version", and an inventory that records for each host its environment, who should have network access to it, and which version it runs. OWASP API9:2023, How To Prevent.</li>
+<li><span class="label std">Standard</span>NIST SP 800-228 (June 2025, with updates as of March 13, 2026) recommends an inventory: "Organizational API inventory of all internal (including shadow and Zombie APIs) and external APIs should be maintained" (REC-API-4.2, section 3.1.1), holding each API's specification, ownership information and runtime information. REC-API-4.3 recommends tools "such as API discovery tools and scheduled automated scans to detect all running APIs". REC-API-8 (section 3.1.2) adds reconciliation between declared specifications and live traffic, to "identify differences between what is deployed and what should be deployed in production, including shadow, orphan, and zombie API endpoints". It is guidance, not a requirement.</li>
+<li><span class="label std">Standard</span>NIST SP 800-228 REC-API-4.4 (section 3.1.1) recommends that organizations "Establish strategies regarding API versioning, deprecation, and sunsetting, including a focus on secure migration paths". Appendix E lists it, and the inventory controls, under the Pre-Runtime stage. The publication recommends nothing more specific about retiring an API.</li>
 <li><span class="label base">Baseline</span>Produce the version list from the network, not the documentation, and date it.</li>
+<li><span class="label base">Baseline</span>Compare the documentation, the inventory, the gateway's route table and observed traffic on a schedule, and treat every name that is on one list and not on another as a finding.</li>
 <li><span class="label base">Baseline</span>Set both dates at the moment the successor ships, in the required order, and check that order in the build.</li>
 <li><span class="label base">Baseline</span>Emit both headers plus a <code>Link</code>, and verify them against a live response.</li>
 <li><span class="label base">Baseline</span>Treat a version with traffic and unidentified callers as a finding, because it cannot be withdrawn until they are named.</li>
@@ -342,6 +406,8 @@ all lab checks passed</code></pre>
 <li data-check="ver-06" data-severity="High"><strong>Remaining callers are named for every version with traffic</strong> <span>A version with traffic and no identified callers cannot be withdrawn, which is why it never is.</span></li>
 <li data-check="ver-07" data-severity="Medium"><strong>Internal and non-production versions are in the same inventory</strong> <span>These are the ones missing from the documentation, which is why they last longest.</span></li>
 <li data-check="ver-08" data-severity="Medium"><strong>Withdrawal is verified from the network afterwards</strong> <span>The same way reachability was established in the first place.</span></li>
+<li data-check="ver-09" data-severity="High"><strong>The documentation, the inventory, the route table and observed traffic are compared on a schedule</strong> <span>Every version on one list and not on another has a finding: answering with no record (a shadow API), or answering after it was recorded as retired or passed its sunset date (a zombie API).</span></li>
+<li data-check="ver-10" data-severity="Medium"><strong>Every inventory entry names an owner and points at the version's specification</strong> <span>NIST SP 800-228 recommends that the inventory hold each API's specification, ownership information and runtime information. An entry with no owner is a version nobody will withdraw.</span></li>
 </ul>
 
 <h2>Sources</h2>
@@ -350,6 +416,7 @@ all lab checks passed</code></pre>
 <li><a href="https://www.rfc-editor.org/rfc/rfc8594">RFC 8594: The Sunset HTTP Header Field</a>, May 2019. Sections 1, 3, 6 and 8.</li>
 <li><a href="https://www.rfc-editor.org/rfc/rfc9110">RFC 9110: HTTP Semantics</a>, June 2022. Sections 15.5.5 and 15.5.11.</li>
 <li><a href="https://api-security.owasp.org/editions/2023/en/0xa9-improper-inventory-management/">OWASP API Security Top 10 2023, API9:2023 Improper Inventory Management</a>.</li>
+<li><a href="https://doi.org/10.6028/NIST.SP.800-228-upd1">NIST SP 800-228: Guidelines for API Protection for Cloud-Native Systems</a>, June 2025, includes updates as of March 13, 2026. Sections 1.2, 2.1, 3, 3.1.1 (REC-API-4) and 3.1.2 (REC-API-8), sections 3.2.1 and 3.2.2 for the runtime controls in the table, and Appendix E. Update 1 added Appendix D (API risks by risk category) and Appendix E (recommended controls by API lifecycle stage). NIST guidance: it recommends, it does not require.</li>
 </ul>
 </main>
 <footer>Part of API Security in the Age of AI. Examples use fictional companies and the reserved <code>.example</code> domain. No real keys appear on this site.</footer>

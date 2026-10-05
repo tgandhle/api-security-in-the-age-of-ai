@@ -84,6 +84,11 @@
         "definition": "A component every request is meant to pass through, applying checks that need only the request. It is a control while it is the only path to the service, which is a property of the network rather than of the gateway."
       },
       {
+        "id": "api-inventory",
+        "term": "API inventory",
+        "definition": "The record an organisation keeps of the APIs and versions it runs, with an owner for each. It is one of four lists that can differ: what is documented, what is in the inventory, what is reachable and what receives traffic. NIST SP 800-228 recommends that it hold each API's specification, ownership information and runtime information."
+      },
+      {
         "id": "api-key",
         "term": "API key",
         "definition": "A credential issued to an application for API access. In this course, it is a secret bearer value checked against a server-side record."
@@ -789,6 +794,11 @@
         "definition": "A random value a server stores in a cookie to find the state it keeps for one browser. It has no meaning by itself. After login, whoever presents it is treated as that user, so it is a <a href=\"#bearer-credential\">bearer credential</a>."
       },
       {
+        "id": "shadow-api",
+        "term": "Shadow API",
+        "definition": "An API or version that is running and is missing from the inventory. That test is this course's. NIST SP 800-228 section 2.1 describes \"Rogue or shadow APIs\" as APIs defined for internal use, such as debugging and testing, that \"may not be appropriately documented and often bypass standard security review practices\"."
+      },
+      {
         "id": "shared-secret",
         "term": "Shared secret",
         "definition": "A key known to both parties. Either party can create a valid signature, which is why a shared secret can't prove which one did."
@@ -902,6 +912,11 @@
         "id": "zero-trust",
         "term": "Zero trust",
         "definition": "A security model in which network location alone earns no trust. NIST SP 800-207 section 2.1 lists it as a tenet: \"All communication is secured regardless of network location\", and \"Network location alone does not imply trust\"."
+      },
+      {
+        "id": "zombie-api",
+        "term": "Zombie API",
+        "definition": "An API or version that has been replaced and still answers. NIST SP 800-228 section 2.1 says \"Zombie or deprecated APIs\" \"may have been replaced or superseded by newer systems but have not yet been entirely removed\", and that they \"risk falling behind the latest security policies and protections\". Module 18 uses the word more narrowly, for a version that is recorded as retired or is past its sunset date and still answers."
       }
     ]
   },
