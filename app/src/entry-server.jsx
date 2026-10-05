@@ -11,11 +11,34 @@ import Coverage from "./Coverage.jsx";
 import { course, lessons } from "./content.js";
 import { home, glossary, roadmap } from "./pages.js";
 
+// The numbers on the home page. Counted here, at build time, from the same
+// records the pages are rendered from, so none of them is typed by hand.
+// A lab is a distinct labs/<name>.py file that some lesson links to.
+export function courseStats() {
+  const labs = new Set();
+  let checks = 0;
+  for (const lesson of lessons) {
+    checks += lesson.record.checks.length;
+    for (const block of lesson.record.blocks) {
+      for (const hit of block.html.matchAll(/href="[^"]*labs\/(\w+\.py)"/g)) {
+        labs.add(hit[1]);
+      }
+    }
+  }
+  return [
+    { label: "Lessons", value: lessons.length },
+    { label: "Labs", value: labs.size },
+    { label: "Review checklist items", value: checks },
+    { label: "Glossary terms", value: glossary.terms.length }
+  ];
+}
+
 export function sitePages() {
   return [
     { path: "index.html", up: "", title:
         "API Security in the Age of AI",
-      render: (up) => <Home blocks={home.blocks} lessons={lessons} up={up} /> },
+      render: (up) => <Home blocks={home.blocks} lessons={lessons} up={up}
+                            stats={courseStats()} /> },
     { path: "glossary/index.html", up: "../", title:
         "Glossary | API Security in the Age of AI",
       render: () => <Glossary intro={glossary.intro} terms={glossary.terms} /> },

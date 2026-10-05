@@ -1,0 +1,624 @@
+/* theme.css: the look of the hosted site.
+
+   Used only by the React build. prerender.js copies it into dist/assets/ and
+   links it after site.css on every prerendered page, so it restyles the same
+   class names and wins where both files set a property. The static pages
+   never load it and look as they always did.
+
+   Which theme a reader gets, in order:
+     1. The choice they made with the switch in the header. It is stored in
+        localStorage under "course-theme" and put on <html> as
+        data-theme="light" or data-theme="dark" before first paint.
+     2. With no stored choice, the system setting: a system set to light gets
+        the light theme, anything else gets dark.
+   Step 2 is CSS alone, so it also holds with JavaScript off.
+
+   Every colour is a custom property, including the ones site.css uses for
+   diagrams. The dark set is defined once, on :root. The light set is written
+   once, between the two marker comments below, for data-theme="light".
+   prerender.js repeats that block inside
+     @media (prefers-color-scheme:light){ :root:not([data-theme="dark"]) }
+   when it copies this file, so the "system is light" case and the "reader
+   chose light" case are generated from the same lines and cannot drift.
+   Do not write a second light block by hand, and keep the markers.
+
+   The one accent is blue.
+
+   No web font, no image, no icon set. System font stacks only. */
+
+/* ------------------------------------------------------------------ tokens */
+
+:root{
+  color-scheme:dark;
+  /* surfaces, from the page up */
+  --bg:#0a0e13;
+  --surface-1:#10151c;
+  --surface-2:#161c25;
+  --surface-3:#1e2631;
+  /* lines */
+  --hair:#232c38;
+  --line:#7f8b9b;
+  --edge:#33404f;
+  /* text */
+  --ink:#e6ebf2;
+  --ink-soft:#c5cdd8;
+  --muted:#9ba8b9;
+  /* the one accent */
+  --accent:#5b93ff;
+  --accent-ink:#04122b;
+  --accent-soft:rgba(91,147,255,.13);
+  --accent-edge:rgba(91,147,255,.5);
+  --link:#8ab4ff;
+  --focus:#a9c8ff;
+  /* names site.css already uses */
+  --panel:var(--surface-1);
+  --code:#1a212b;
+  --on-accent:var(--accent-ink);
+  /* semantic sets, shared with the inline SVG diagrams:
+     p blue (a party), h green (safe, correct, standard), s amber (caution),
+     r red (attack, incorrect, critical), g grey (neutral) */
+  --p-fill:#14233d;--p-stroke:#84adf7;--p-text:#dde8ff;
+  --h-fill:#0f2c24;--h-stroke:#52cf9f;--h-text:#d6f5e8;
+  --s-fill:#32260c;--s-stroke:#e5b454;--s-text:#fbecc9;
+  --r-fill:#3a181b;--r-stroke:#f59090;--r-text:#fde1e1;
+  --g-fill:#1d242e;--g-stroke:#98a4b4;--g-text:#e3e8ef;
+  /* terminal panels */
+  --term-bg:#070a0e;
+  --term-bar:#12181f;
+  --term-ink:#d3dbe6;
+  --term-dot:#2c3643;
+  --shadow:0 18px 50px rgba(0,0,0,.55);
+  --header-bg:rgba(10,14,19,.82);
+  --grid-line:rgba(120,150,180,.07);
+}
+
+/* light-tokens:start (prerender.js copies this block; see the top of the file) */
+:root[data-theme="light"]{
+  color-scheme:light;
+  --bg:#ffffff;
+  --surface-1:#f6f8fa;
+  --surface-2:#eef1f5;
+  --surface-3:#e4e8ee;
+  --hair:#dce1e8;
+  --line:#6b7584;
+  --edge:#b9c2ce;
+  --ink:#121923;
+  --ink-soft:#2a3441;
+  --muted:#535e6d;
+  --accent:#1d4ed8;
+  --accent-ink:#ffffff;
+  --accent-soft:rgba(29,78,216,.08);
+  --accent-edge:rgba(29,78,216,.42);
+  --link:#1d4ed8;
+  --focus:#1d4ed8;
+  --panel:var(--surface-1);
+  --code:#eaeef3;
+  --on-accent:var(--accent-ink);
+  --p-fill:#e8eefb;--p-stroke:#3d5a9e;--p-text:#1f3569;
+  --h-fill:#e3f3ec;--h-stroke:#1a6e4e;--h-text:#0f4a34;
+  --s-fill:#fbf1dc;--s-stroke:#8a5d0c;--s-text:#5f4108;
+  --r-fill:#fbe7e7;--r-stroke:#a83232;--r-text:#6e1b1b;
+  --g-fill:#eef0f3;--g-stroke:#5d6573;--g-text:#2e3440;
+  --term-bg:#f4f6f9;
+  --term-bar:#e7ebf0;
+  --term-ink:#1a2330;
+  --term-dot:#c3cbd6;
+  --shadow:0 14px 40px rgba(20,30,45,.16);
+  --header-bg:rgba(255,255,255,.86);
+  --grid-line:rgba(40,70,100,.07);
+}
+/* light-tokens:end */
+
+:root{
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono","Cascadia Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --header-h:57px;
+  --r-sm:6px;
+  --r-md:10px;
+  --r-lg:14px;
+  --measure:74ch;
+}
+
+/* -------------------------------------------------------------------- base */
+
+html{scroll-padding-top:calc(var(--header-h) + 1rem);-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.65;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+::selection{background:var(--accent);color:var(--accent-ink)}
+*{scrollbar-width:thin;scrollbar-color:var(--edge) transparent}
+
+/* Blue on near-black or near-white text is not far enough from the body text
+   to carry a link on colour alone, so links in prose keep a clear underline. */
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:.18em;
+  text-decoration-color:var(--accent-edge);text-decoration-color:color-mix(in srgb,currentColor 72%,transparent)}
+a:hover{text-decoration-color:currentColor}
+
+a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,
+[tabindex]:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+
+.skip-link{position:absolute;left:-999px;top:0;z-index:100;padding:.55rem .9rem;border-radius:var(--r-sm);
+  background:var(--accent);color:var(--accent-ink);font-weight:650;text-decoration:none}
+.skip-link:focus{left:.75rem;top:.75rem}
+
+main{max-width:1120px;padding:2.75rem 1.5rem 4.5rem}
+.prose{max-width:var(--measure)}
+
+h1,h2,h3{color:var(--ink);letter-spacing:-.015em;text-wrap:balance}
+h1{font-size:clamp(30px,3.4vw,40px);line-height:1.12;font-weight:700;letter-spacing:-.025em;margin:.35rem 0 1rem}
+h2{font-size:24px;line-height:1.25;font-weight:680;margin:3.5rem 0 1rem;padding-top:1.75rem;border-top:1px solid var(--hair)}
+h3{font-size:17.5px;line-height:1.35;font-weight:660;margin:2.1rem 0 .6rem}
+p{margin:.9rem 0}
+strong{font-weight:660}
+
+.kicker{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:0}
+.meta{font-size:14px;color:var(--muted)}
+.jump{font-size:14px}
+
+.layer{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  padding:4px 10px 4px 22px;border-radius:999px;border:1px solid var(--accent-edge);background:var(--accent-soft);
+  color:var(--accent);position:relative;margin-bottom:0}
+.layer::before{content:"";position:absolute;left:9px;top:50%;width:6px;height:6px;margin-top:-3px;border-radius:50%;background:var(--accent)}
+
+/* Each lesson block sits in its own wrapper, so these reach the heading that
+   follows a layer chip through the wrappers. */
+main>div:has(>.layer)+div>h2{border-top:0;padding-top:0;margin-top:1rem}
+main>div:has(>#reference){margin-top:4rem;border-top:1px solid var(--edge)}
+main>div>#reference{margin-top:2rem!important}
+
+/* ----------------------------------------------------------- code, tables */
+
+code{font-family:var(--mono);font-size:.875em}
+p code,li code,td code,dd code,summary code,legend code,label code,h3 code,dt code{background:var(--code);
+  border:1px solid var(--hair);padding:.08em .38em;border-radius:5px;color:var(--ink);overflow-wrap:anywhere}
+a code{color:inherit}
+
+/* A terminal panel. The bar and its three dots are background layers on the
+   <pre> itself, so they stay put while a long line scrolls sideways. */
+pre{position:relative;margin:1.1rem 0;padding:46px 18px 16px;border:1px solid var(--hair);border-radius:var(--r-md);
+  background-color:var(--term-bg);color:var(--term-ink);font-size:13px;line-height:1.6;overflow-x:auto;tab-size:4;
+  background-image:
+    radial-gradient(circle at 18px 15px,var(--term-dot) 0 4px,transparent 4.6px),
+    radial-gradient(circle at 34px 15px,var(--term-dot) 0 4px,transparent 4.6px),
+    radial-gradient(circle at 50px 15px,var(--term-dot) 0 4px,transparent 4.6px),
+    linear-gradient(var(--hair),var(--hair)),
+    linear-gradient(var(--term-bar),var(--term-bar));
+  background-size:auto,auto,auto,100% 1px,100% 30px;
+  background-position:0 0,0 0,0 0,0 30px,0 0;
+  background-repeat:no-repeat}
+pre code{font-size:inherit;background:none;border:0;padding:0;color:inherit}
+
+.wrap{overflow-x:auto;margin:1.1rem 0;border:1px solid var(--hair);border-radius:var(--r-md);background:var(--surface-1)}
+table{font-size:14px;line-height:1.5;margin:0;border-collapse:separate;border-spacing:0}
+.wrap table:has(th:nth-child(3)){min-width:34rem}
+.wrap table:has(th:nth-child(4)){min-width:42rem}
+.wrap table:has(th:nth-child(6)){min-width:52rem}
+th,td{padding:10px 14px;border-bottom:1px solid var(--hair)}
+th{background:var(--surface-2);color:var(--ink-soft);font-size:12.5px;font-weight:650;letter-spacing:.01em;
+  border-bottom:1px solid var(--edge);white-space:normal}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--accent-soft)}
+td:first-child{color:var(--ink)}
+.yes,.no{font-weight:650;white-space:nowrap}
+.yes{color:var(--r-stroke)}
+.no{color:var(--h-stroke)}
+.yes::before,.no::before{content:"";display:inline-block;width:7px;height:7px;margin-right:7px;border-radius:2px;
+  background:currentColor;vertical-align:1px}
+.no::before{border-radius:50%}
+
+/* ---------------------------------------------------------------- pieces */
+
+.callout{border:1px solid var(--hair);border-left:3px solid var(--p-stroke);border-radius:var(--r-sm);
+  background:var(--surface-1);padding:14px 18px;margin:1.25rem 0}
+.callout.warn{border-left-color:var(--s-stroke);background:linear-gradient(90deg,var(--s-fill),var(--surface-1) 55%)}
+
+.label,.sev{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:650;letter-spacing:.06em;
+  text-transform:uppercase;line-height:1.5;padding:1px 7px;border-radius:5px;border:1px solid transparent;white-space:nowrap}
+.label{margin-right:8px;vertical-align:1px}
+.label.std{background:var(--h-fill);color:var(--h-text);border-color:color-mix(in srgb,var(--h-stroke) 45%,transparent)}
+.label.base{background:var(--p-fill);color:var(--p-text);border-color:color-mix(in srgb,var(--p-stroke) 45%,transparent)}
+.label.opt{background:var(--g-fill);color:var(--g-text);border-color:color-mix(in srgb,var(--g-stroke) 45%,transparent)}
+.sev{margin-left:8px;vertical-align:1px;background:var(--g-fill);color:var(--g-text);border-color:color-mix(in srgb,var(--g-stroke) 45%,transparent)}
+.sev.Critical{background:var(--r-fill);color:var(--r-text);border-color:color-mix(in srgb,var(--r-stroke) 50%,transparent)}
+.sev.High{background:var(--s-fill);color:var(--s-text);border-color:color-mix(in srgb,var(--s-stroke) 50%,transparent)}
+
+ol.steps{padding-left:1.4rem}
+ol.steps li{margin:.5rem 0;padding-left:.25rem}
+ol.steps li::marker{font-family:var(--mono);font-size:.85em;color:var(--accent);font-weight:600}
+.prose ul{padding-left:1.25rem}
+.prose ul li{margin:.4rem 0}
+.prose ul li::marker{color:var(--edge)}
+
+details{border:1px solid var(--hair);border-radius:var(--r-md);padding:0;margin:.65rem 0;background:var(--surface-1);max-width:var(--measure)}
+summary{list-style:none;position:relative;padding:13px 16px 13px 42px;font-weight:620;border-radius:var(--r-md);cursor:pointer}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"";position:absolute;left:17px;top:1.28em;width:7px;height:7px;border-right:1.6px solid var(--accent);
+  border-bottom:1.6px solid var(--accent);transform:rotate(-45deg);transition:transform .15s ease}
+details[open]>summary::before{transform:rotate(45deg);top:1.15em}
+summary:hover{background:var(--surface-2)}
+details[open]>summary{border-bottom:1px solid var(--hair);border-radius:var(--r-md) var(--r-md) 0 0}
+details>p{margin:0;padding:14px 16px 16px 42px;color:var(--ink-soft)}
+details>p+p{padding-top:0}
+
+.diagram{border:1px solid var(--hair);border-radius:var(--r-lg);padding:7px;margin:1.25rem 0;background:var(--surface-1)}
+.legend{gap:8px 20px;font-size:13px;margin:8px 10px 6px;padding-top:12px;border-top:1px solid var(--hair)}
+svg text{font-family:var(--sans)}
+svg .lab{fill:var(--muted)}
+svg .zone{stroke:var(--edge)}
+
+/* ---------------------------------------------------------------- buttons */
+
+.button{border:1px solid var(--accent);border-radius:8px;padding:.6rem 1rem;background:var(--accent);color:var(--accent-ink);
+  font:inherit;font-size:14.5px;font-weight:660;line-height:1.25;transition:background-color .12s ease,border-color .12s ease,color .12s ease}
+.button:hover{filter:none;background:color-mix(in srgb,var(--accent) 86%,var(--ink))}
+.button.secondary{background:var(--surface-2);color:var(--ink);border-color:var(--edge)}
+.button.secondary:hover{background:var(--surface-3);border-color:var(--accent-edge)}
+.button:disabled{opacity:.6;cursor:progress}
+.button[data-mark-complete][aria-pressed="true"]{background:var(--h-fill);color:var(--h-text);border-color:var(--h-stroke)}
+
+/* ----------------------------------------------------------------- header */
+
+.site-nav{position:sticky;top:0;z-index:50;border-bottom:1px solid var(--hair);background:var(--header-bg);
+  -webkit-backdrop-filter:saturate(1.4) blur(12px);backdrop-filter:saturate(1.4) blur(12px)}
+.nav-inner{display:flex;align-items:center;gap:.25rem 1.5rem;max-width:1120px;min-height:56px;margin:0 auto;padding:.5rem 1.5rem;font-size:14px}
+body[data-course-lesson] .nav-inner{max-width:1400px}
+.site-nav a{text-decoration:none}
+.site-nav .home{display:inline-flex;align-items:center;gap:.6rem;margin-right:.5rem;color:var(--ink);font-weight:680;letter-spacing:-.01em;white-space:nowrap}
+.site-nav .mark{color:var(--accent);flex:none}
+.nav-links{display:flex;align-items:center;gap:.15rem}
+.nav-links a{padding:.35rem .65rem;border-radius:var(--r-sm);color:var(--muted);font-weight:520;white-space:nowrap;transition:color .12s ease,background-color .12s ease}
+.nav-links a:hover{color:var(--ink);background:var(--surface-2)}
+.nav-tools{display:flex;align-items:center;gap:.75rem;margin-left:auto;min-height:34px}
+
+/* site.css styles every div inside the nav as the nav's inner row. These two
+   are the search component's own divs, so that is undone for them here. */
+.site-nav .site-search{display:block;position:relative;max-width:none;margin:0;padding:0;font-size:inherit}
+.site-nav .search-results{display:block;max-width:none;margin:0;padding:.4rem;font-size:inherit}
+
+.search-field{position:relative;display:block}
+.search-field svg{position:absolute;left:.7rem;top:50%;margin-top:-7px;color:var(--muted);pointer-events:none}
+.site-search input{width:19rem;min-width:0;height:34px;padding:0 .7rem 0 2.1rem;font-family:var(--mono);font-size:12.5px;
+  color:var(--ink);background:var(--surface-1);border:1px solid var(--edge);border-radius:8px;
+  transition:border-color .12s ease,background-color .12s ease}
+.site-search input::placeholder{color:var(--muted);opacity:1}
+.site-search input:hover{border-color:var(--line)}
+.site-search input:focus-visible{outline:2px solid var(--focus);outline-offset:1px;border-radius:8px;background:var(--bg)}
+.site-search input::-webkit-search-cancel-button{filter:grayscale(1)}
+.search-results{right:0;top:calc(100% + .5rem);width:min(34rem,calc(100vw - 2rem));max-height:min(70vh,34rem);
+  background:var(--surface-2);border:1px solid var(--edge);border-radius:var(--r-md);box-shadow:var(--shadow);padding:.4rem}
+.search-results a{display:grid;gap:.1rem;padding:.5rem .7rem;border-radius:var(--r-sm);color:var(--ink);border-left:2px solid transparent}
+.search-results a:hover,.search-results a.active{background:var(--surface-3);border-left-color:var(--accent)}
+.search-results .hit-title{font-size:14px;font-weight:540;line-height:1.4;overflow-wrap:anywhere}
+.search-results .hit-where{font-family:var(--mono);font-size:11.5px;color:var(--muted);overflow-wrap:anywhere}
+.search-results .meta{margin:.6rem .7rem;font-size:13px}
+
+.theme-switch{display:inline-flex;align-items:center;gap:2px;height:34px;padding:3px;border:1px solid var(--edge);border-radius:999px;
+  background:var(--surface-1);color:var(--muted);cursor:pointer;font:inherit}
+.theme-switch:hover{border-color:var(--line)}
+.theme-switch:focus-visible{border-radius:999px}
+.theme-opt{display:grid;place-items:center;width:28px;height:26px;border-radius:999px;transition:background-color .12s ease,color .12s ease}
+.theme-switch[aria-pressed="false"] .theme-opt-dark,
+.theme-switch[aria-pressed="true"] .theme-opt-light{background:var(--surface-3);color:var(--accent)}
+
+@media (max-width:1010px){
+  .site-search input{width:13rem}
+  .nav-inner{gap:.25rem .75rem}
+}
+@media (max-width:860px){
+  .site-nav{position:static;-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--bg)}
+  .nav-inner{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"home theme" "search search" "links links";
+    gap:.55rem .75rem;padding:.7rem 1rem .5rem}
+  .site-nav .home{grid-area:home;width:auto;margin:0;min-width:0;white-space:normal;line-height:1.25}
+  .nav-tools{display:contents}
+  #theme-mount{grid-area:theme;justify-self:end;min-height:34px}
+  #search-mount{grid-area:search}
+  #search-mount:empty{display:none}
+  .site-search{width:100%}
+  .site-search input{width:100%;font-family:var(--sans);font-size:16px;height:40px}
+  .nav-links{grid-area:links;justify-content:flex-start;gap:.25rem;margin:0 -.4rem;padding:0 0 .15rem;overflow-x:auto;scrollbar-width:none}
+  .nav-links a{padding:.35rem .4rem;font-size:13.5px}
+  .nav-links::-webkit-scrollbar{display:none}
+  .search-results{left:0;right:0;width:auto}
+}
+
+/* ----------------------------------------------------------------- footer */
+
+footer{max-width:1120px;padding:1.5rem 1.5rem 3rem;font-size:13px;color:var(--muted);border-top:1px solid var(--hair)}
+body[data-course-lesson] footer{max-width:1400px}
+
+/* ------------------------------------------------------------------- home */
+
+.course-hero{position:relative;overflow:hidden;border:1px solid var(--hair);border-radius:var(--r-lg) var(--r-lg) 0 0;
+  padding:clamp(1.5rem,4vw,3.25rem);margin:0;
+  background:
+    radial-gradient(60rem 26rem at 88% -20%,var(--accent-soft),transparent 60%),
+    linear-gradient(var(--grid-line) 1px,transparent 1px) 0 0/100% 32px,
+    linear-gradient(90deg,var(--grid-line) 1px,transparent 1px) 0 0/32px 100%,
+    var(--surface-1)}
+.course-hero .kicker{display:inline-flex;align-items:center;gap:.55rem}
+.course-hero .kicker::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.course-hero h1{font-size:clamp(34px,5.6vw,60px);line-height:1.04;letter-spacing:-.035em;max-width:15ch;margin:.9rem 0 1.25rem}
+.course-hero .prose{max-width:62ch}
+.course-hero .prose>p:first-child{font-size:clamp(16.5px,1.5vw,18.5px);line-height:1.6;color:var(--ink-soft)}
+.course-progress{max-width:560px;margin:1.75rem 0 0;padding:1rem 1.1rem;border:1px solid var(--hair);border-radius:var(--r-md);background:var(--bg)}
+.course-progress p{margin:0 0 .6rem;font-size:14.5px;font-weight:620}
+.course-progress p.meta{margin:.6rem 0 0;font-size:13px;font-weight:500}
+.progress-track{height:8px;background:var(--surface-3);border-radius:999px}
+.progress-track span{background:var(--accent);min-width:0;transition:width .2s ease}
+.course-actions{gap:.75rem;margin-top:1.5rem}
+.course-actions .button{padding:.7rem 1.15rem;font-size:15px}
+
+@media (min-width:980px){
+  .course-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,23rem);column-gap:3.5rem;align-items:start}
+  .course-hero>*{grid-column:1}
+  .course-hero>.course-progress{grid-column:2;grid-row:1 / span 4;align-self:end;margin:0;max-width:none}
+}
+
+.course-stats{margin:0 0 3.5rem;border:1px solid var(--hair);border-top:0;border-radius:0 0 var(--r-lg) var(--r-lg);background:var(--surface-2)}
+.course-stats dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:0}
+.course-stats dl>div{display:flex;flex-direction:column-reverse;justify-content:flex-end;gap:.15rem;padding:1.1rem clamp(1rem,2.5vw,1.75rem);border-left:1px solid var(--hair)}
+.course-stats dl>div:first-child{border-left:0}
+.course-stats dt{font-size:13px;color:var(--muted);line-height:1.35}
+.course-stats dd{margin:0;font-family:var(--mono);font-size:clamp(24px,3vw,32px);font-weight:600;line-height:1.1;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;color:var(--ink)}
+
+.course-brief{margin:0 0 3.5rem}
+.course-brief h2,.home h2{border-top:0;padding-top:0;margin:.4rem 0 1.25rem;font-size:28px;letter-spacing:-.02em}
+.home h2#path{margin-top:0;scroll-margin-top:calc(var(--header-h) + 1.5rem)}
+.home h2#path::before{content:"Course path";display:block;font-family:var(--mono);font-size:12px;font-weight:400;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:.4rem}
+.home-block>p.meta{max-width:var(--measure);font-size:15px;margin-top:0}
+.course-brief-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:.85rem}
+.course-brief-grid article{border:1px solid var(--hair);border-radius:var(--r-md);padding:1.1rem 1.15rem 1.2rem;background:var(--surface-1)}
+.course-brief-grid h3{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.course-brief-grid p{margin:.6rem 0 0;font-size:15px;line-height:1.55;color:var(--ink)}
+.course-brief>h3{margin-top:2.25rem}
+.course-outcomes{list-style:none;padding:0;margin:.75rem 0 0;max-width:var(--measure)}
+.course-outcomes li{position:relative;margin:.55rem 0;padding-left:1.6rem}
+.course-outcomes li::before{content:"";position:absolute;left:.15rem;top:.5em;width:9px;height:5px;border-left:1.8px solid var(--accent);
+  border-bottom:1.8px solid var(--accent);transform:rotate(-45deg)}
+
+.part{margin:2.25rem 0 0}
+.part-head{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;padding-bottom:.6rem;margin-bottom:.9rem;border-bottom:1px solid var(--hair)}
+.part-head h3{margin:0;font-size:17px}
+.part-count{margin:0;font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.path{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:.75rem}
+.path li,.path li[data-course-lesson]{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:.6rem;min-height:128px;
+  padding:1rem 1.05rem 1rem;border:1px solid var(--hair);border-radius:var(--r-md);background:var(--surface-1);
+  transition:border-color .12s ease,background-color .12s ease}
+.path li:hover{border-color:var(--accent-edge);background:var(--surface-2)}
+.path li:focus-within{border-color:var(--accent-edge)}
+.path .num{min-width:0;font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--muted);font-variant-numeric:tabular-nums}
+.path .num::before{content:"Module ";text-transform:uppercase;letter-spacing:.08em}
+.path li>span:last-child{display:flex;flex-wrap:wrap;align-content:space-between;gap:.4rem;flex:1}
+.path a{flex:1 0 100%;margin-bottom:.5rem;color:var(--ink);font-size:16px;font-weight:640;line-height:1.3;letter-spacing:-.01em;text-decoration:none}
+.path a::after{content:"";position:absolute;inset:0;border-radius:var(--r-md)}
+.path a:focus-visible{outline:none}
+.path a:focus-visible::after{outline:2px solid var(--focus);outline-offset:2px}
+.path li:hover a{color:var(--link)}
+.course-state{margin:0;padding:1px 8px;border-radius:999px;border:1px solid var(--hair);font-size:11.5px;font-weight:560;line-height:1.6;
+  background:var(--surface-3);color:var(--muted)}
+.path li.is-complete{border-left:1px solid var(--h-stroke);padding-left:1.05rem;background:var(--surface-1);border-color:color-mix(in srgb,var(--h-stroke) 55%,transparent)}
+.is-complete .course-state[data-course-state]{background:var(--h-fill);color:var(--h-text);border-color:transparent}
+/* site.css turns both badges green on a completed lesson. Only the first one
+   says the lesson is complete; the quick check badge keeps its own look. */
+.is-complete .course-state[data-course-assessment]{background:var(--surface-3);color:var(--muted)}
+
+/* ---------------------------------------------------------- lesson layout */
+
+.course-layout{max-width:1400px}
+.course-rail{border-bottom:1px solid var(--hair);padding:.85rem 1rem;background:var(--surface-1)}
+.rail-title{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.1em;color:var(--muted);margin:0 0 .5rem}
+.rail-list{max-height:11.5rem;overflow-y:auto;overscroll-behavior:contain}
+.course-rail ol{max-height:none;overflow:visible;gap:1px}
+.rail-group+.rail-group{margin-top:.9rem}
+.rail-part{margin:0 0 .3rem;padding:0 .6rem;font-size:11.5px;font-weight:650;letter-spacing:.02em;color:var(--muted)}
+.course-rail a{grid-template-columns:1.6rem minmax(0,1fr) auto;gap:.6rem;padding:.38rem .6rem;border-radius:var(--r-sm);
+  color:var(--ink-soft);font-size:13.5px;line-height:1.4;transition:background-color .12s ease,color .12s ease}
+.course-rail a:hover{background:var(--surface-2);color:var(--ink)}
+.course-rail .here a{background:var(--accent-soft);color:var(--ink);font-weight:640;box-shadow:inset 2px 0 0 var(--accent)}
+.course-rail .here a::before{content:none}
+.rail-num{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
+.course-rail .here .rail-num{color:var(--accent)}
+.rail-done{display:inline-grid;place-items:center;align-self:center;color:var(--h-stroke);font-size:0;letter-spacing:0}
+.course-rail .is-done:not(.here) .rail-name{color:var(--muted)}
+
+.rail-toggle{display:none;width:100%;align-items:center;gap:.75rem;padding:.6rem .8rem;border:1px solid var(--edge);border-radius:8px;
+  background:var(--surface-2);color:var(--ink);font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.rail-toggle-label{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.rail-toggle-here{flex:1;min-width:0;display:flex;gap:.6rem;align-items:baseline;font-weight:620;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.rail-toggle-here .rail-num{color:var(--accent)}
+.rail-toggle svg{flex:none;color:var(--muted);transition:transform .15s ease}
+.rail-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}
+
+@media (max-width:1079px){
+  .js .rail-toggle{display:flex}
+  .js .rail-title{display:none}
+  .js .rail-list{max-height:min(60vh,26rem);margin-top:.75rem}
+  .js .rail-list[data-open="false"]{display:none}
+}
+
+.course-main main{padding-top:2.25rem}
+.lesson-nav{gap:1rem;padding:0 1.5rem 4rem}
+.lesson-nav a{position:relative;padding:1.1rem 1.25rem;border:1px solid var(--hair);border-radius:var(--r-md);background:var(--surface-1);
+  transition:border-color .12s ease,background-color .12s ease}
+.lesson-nav a:hover{border-color:var(--accent-edge);background:var(--surface-2)}
+.lesson-nav a span{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;color:var(--muted)}
+.lesson-nav a strong{margin-top:.35rem;color:var(--ink);font-size:16.5px;font-weight:650;line-height:1.3;letter-spacing:-.01em}
+.lesson-nav a:hover strong{color:var(--link)}
+.lesson-nav .prev{padding-left:2.9rem}
+.lesson-nav .next{padding-right:2.9rem}
+.lesson-nav .prev::before,.lesson-nav .next::after{content:"";position:absolute;top:50%;width:8px;height:8px;margin-top:-4px;
+  border-left:1.8px solid var(--accent);border-bottom:1.8px solid var(--accent)}
+.lesson-nav .prev::before{left:1.3rem;transform:rotate(45deg)}
+.lesson-nav .next::after{right:1.3rem;transform:rotate(-135deg)}
+
+@media (min-width:1080px){
+  .course-layout{grid-template-columns:280px minmax(0,1fr)}
+  /* The rail's wrapper has to be as tall as the lesson, or the sticky rail
+     inside it has nothing to stick along. */
+  #rail{align-self:stretch}
+  .course-rail{top:var(--header-h);max-height:calc(100vh - var(--header-h));padding:1.5rem .9rem 2rem 1.1rem;
+    border-right:1px solid var(--hair);background:transparent}
+  .rail-list{max-height:none;overflow:visible}
+  .rail-title{padding:0 .6rem;margin-bottom:.9rem}
+  /* Wide enough that a 900 px diagram fits without scrolling at 1280. */
+  .course-main main{max-width:1000px;padding:2.75rem 2rem 3.5rem}
+  .lesson-nav{max-width:1000px;padding:0 2rem 4.5rem}
+}
+@media (min-width:1360px){
+  .course-main main{max-width:1040px;padding-left:3rem;padding-right:3rem}
+  .lesson-nav{max-width:1040px;padding-left:3rem;padding-right:3rem}
+}
+
+/* ------------------------------------------------------------ lesson body */
+
+body[data-course-lesson] h1{font-size:clamp(30px,3.6vw,42px);margin:.6rem 0 .85rem}
+body[data-course-lesson] h1+p.meta,body[data-course-lesson] main>div>p.meta:has(.jump){margin:0 0 1.5rem;padding-bottom:1.5rem;
+  border-bottom:1px solid var(--hair);font-family:var(--mono);font-size:12.5px;max-width:none}
+body[data-course-lesson] main>div>p.meta:has(.jump) a{font-size:inherit}
+
+.lesson-status{gap:1.25rem;border:1px solid var(--hair);border-radius:var(--r-md);padding:1rem 1.15rem;margin:1.75rem 0 2.25rem;
+  background:var(--surface-1);box-shadow:inset 3px 0 0 var(--accent)}
+.lesson-status strong{font-size:15px}
+.lesson-status span{font-size:13.5px}
+.lesson-status .button{white-space:nowrap}
+
+.course-quiz{border:1px solid var(--hair);border-radius:var(--r-lg);padding:1.5rem;margin:2.5rem 0;background:var(--surface-1)}
+.course-quiz h2{font-size:21px;margin:.4rem 0 1rem}
+.course-quiz legend{font-weight:640;max-width:70ch;margin-bottom:.85rem;padding:0}
+.course-quiz fieldset{min-width:0}
+.course-quiz label{display:flex;align-items:flex-start;gap:.7rem;padding:.7rem .9rem;margin:.5rem 0;border:1px solid var(--edge);
+  border-radius:8px;background:var(--bg);transition:border-color .12s ease,background-color .12s ease}
+.course-quiz label:hover{border-color:var(--line)}
+.course-quiz input[type="radio"]{flex:none;margin:.3em 0 0;width:1rem;height:1rem;accent-color:var(--accent)}
+.course-quiz label:has(input:checked){border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+.course-quiz label:has(input:focus-visible){outline:2px solid var(--focus);outline-offset:2px}
+.course-quiz input:focus-visible{outline:none}
+/* Once an answer has been checked, the chosen option takes the colour of the
+   verdict. The feedback line is a later sibling of the fieldset. */
+.course-quiz fieldset:has(~ .quiz-feedback.is-correct) label:has(input[data-correct="true"]:checked){
+  border-color:var(--h-stroke);background:var(--h-fill);color:var(--h-text);box-shadow:inset 3px 0 0 var(--h-stroke)}
+.course-quiz fieldset:has(~ .quiz-feedback.is-incorrect) label:has(input:not([data-correct]):checked){
+  border-color:var(--r-stroke);background:var(--r-fill);color:var(--r-text);box-shadow:inset 3px 0 0 var(--r-stroke)}
+.course-quiz .button{margin-top:.6rem}
+.quiz-feedback{min-height:0;margin:.9rem 0 0;font-weight:560}
+.quiz-feedback:empty{display:none}
+.quiz-feedback.is-correct,.quiz-feedback.is-incorrect{position:relative;padding:.8rem 1rem .8rem 2.7rem;border-radius:8px;border:1px solid;font-weight:520}
+.quiz-feedback.is-correct{color:var(--h-text);background:var(--h-fill);border-color:var(--h-stroke)}
+.quiz-feedback.is-incorrect{color:var(--r-text);background:var(--r-fill);border-color:var(--r-stroke)}
+.quiz-feedback.is-correct::before{content:"";position:absolute;left:1rem;top:1.15em;width:11px;height:6px;
+  border-left:2px solid var(--h-stroke);border-bottom:2px solid var(--h-stroke);transform:rotate(-45deg)}
+.quiz-feedback.is-incorrect::before,.quiz-feedback.is-incorrect::after{content:"";position:absolute;left:1.35rem;top:1em;width:2px;height:14px;
+  background:var(--r-stroke);border-radius:1px;transform:rotate(45deg)}
+.quiz-feedback.is-incorrect::after{transform:rotate(-45deg)}
+.quiz-feedback code{background:transparent;border-color:currentColor;color:inherit}
+.quiz-feedback a{color:inherit}
+
+.course-exercises .exercise{border-top:1px solid var(--hair);margin-top:1.75rem;padding-top:1.5rem}
+.course-exercises .exercise h3{font-size:17px}
+.exercise-answers{margin-top:1rem;font-size:15px;background:var(--bg);max-width:none}
+.exercise-answers ul{margin:0;padding:14px 18px 16px 2.4rem;gap:.6rem}
+.exercise-answers li::marker{color:var(--edge)}
+
+.course-next{padding:1rem 1.15rem;border:1px solid var(--hair);border-left:3px solid var(--accent);border-radius:var(--r-sm);
+  background:var(--surface-1);max-width:var(--measure);font-size:15px}
+
+.lab-run{margin:.75rem 0 1.5rem}
+.lab-run .meta{max-width:66ch;margin-top:.6rem}
+.lab-output{margin-top:.9rem;border:1px solid var(--edge);border-left-width:3px;padding:46px 18px 16px;white-space:pre-wrap;overflow-wrap:anywhere}
+.lab-output[data-state="ok"]{border-color:var(--h-stroke)}
+.lab-output[data-state="bad"]{border-color:var(--r-stroke)}
+
+/* Reference layer */
+ul.controls{margin:1rem 0;border:1px solid var(--hair);border-radius:var(--r-md);background:var(--surface-1);overflow:hidden}
+ul.controls li{position:relative;padding:.85rem 1.1rem .85rem 7.4rem;border-bottom:1px solid var(--hair);font-size:15px;line-height:1.6}
+ul.controls li:last-child{border-bottom:0}
+ul.controls li>.label:first-child{position:absolute;left:1.1rem;top:1.05rem;margin:0}
+
+.checks{margin:1rem 0;border:1px solid var(--hair);border-radius:var(--r-md);background:var(--surface-1);overflow:hidden}
+.checks li{padding:.9rem 1.1rem;border-bottom:1px solid var(--hair)}
+.checks li:last-child{border-bottom:0}
+/* On a lesson page a check carries its id and severity as attributes only.
+   Both are shown here; the words come from the page, not from this file. */
+.checks li[data-check]{display:grid;grid-template-columns:5.6rem minmax(0,1fr) auto;column-gap:1rem;row-gap:.15rem;align-items:start;font-size:15px}
+.checks li[data-check]::before{content:attr(data-severity);grid-column:1;grid-row:1 / span 2;justify-self:start;margin-top:.2rem;
+  font-family:var(--mono);font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;line-height:1.5;padding:1px 7px;
+  border-radius:5px;border:1px solid color-mix(in srgb,var(--g-stroke) 45%,transparent);background:var(--g-fill);color:var(--g-text)}
+.checks li[data-severity="Critical"]::before{background:var(--r-fill);color:var(--r-text);border-color:color-mix(in srgb,var(--r-stroke) 50%,transparent)}
+.checks li[data-severity="High"]::before{background:var(--s-fill);color:var(--s-text);border-color:color-mix(in srgb,var(--s-stroke) 50%,transparent)}
+.checks li[data-check]::after{content:attr(data-check);grid-column:3;grid-row:1;font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:.2rem}
+.checks li[data-check]>strong{grid-column:2;grid-row:1}
+.checks li[data-check]>span{grid-column:2;grid-row:2;color:var(--muted);font-size:14.5px}
+
+/* The checklist page: one tickable row per item. */
+.checks label{gap:.9rem;align-items:flex-start}
+.checks label:hover strong{color:var(--link)}
+.checks input[type="checkbox"]{flex:none;width:1.05rem;height:1.05rem;margin:.28rem 0 0;accent-color:var(--accent)}
+.checks label>span{min-width:0}
+.checks label .meta{display:inline-block;margin-top:.25rem;line-height:1.55}
+.checks li:has(input:checked){background:var(--accent-soft)}
+.checks li:has(input:checked) strong{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--edge)}
+
+/* Sources: the last list of a lesson, links out to primary documents. */
+body[data-course-lesson] main>div:last-child>ul.prose{list-style:none;padding:0;border-top:1px solid var(--hair)}
+body[data-course-lesson] main>div:last-child>ul.prose>li{margin:0;padding:.75rem 0 .75rem 1.5rem;border-bottom:1px solid var(--hair);
+  position:relative;font-size:14.5px;color:var(--ink-soft)}
+body[data-course-lesson] main>div:last-child>ul.prose>li::before{content:"";position:absolute;left:.25rem;top:1.42em;width:6px;height:6px;
+  border-radius:1.5px;background:var(--accent)}
+
+/* ------------------------------------------------------------ other pages */
+
+dl.gloss{margin:1.75rem 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.85rem}
+dl.gloss>div{margin:0;padding:1rem 1.15rem 1.1rem;border:1px solid var(--hair);border-radius:var(--r-md);background:var(--surface-1)}
+dl.gloss dt{margin:0;font-size:16px;font-weight:660;letter-spacing:-.01em;scroll-margin-top:calc(var(--header-h) + 2rem)}
+dl.gloss dd{margin:.4rem 0 0;max-width:none;font-size:14.5px;line-height:1.6;color:var(--ink-soft)}
+dl.gloss>div:has(dt:target){border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent);background:var(--accent-soft)}
+
+.roadmap-note{font-size:19px;line-height:1.5;color:var(--ink-soft)}
+.roadmap-list{gap:.85rem}
+.roadmap-item{border:1px solid var(--hair);border-radius:var(--r-md);padding:1.1rem 1.2rem;background:var(--surface-1)}
+
+/* ------------------------------------------------------------ small screens */
+
+@media (max-width:900px){
+  .course-brief-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:430px){
+  .nav-links{justify-content:space-between;gap:0}
+}
+@media (max-width:620px){
+  main{padding:1.75rem 1rem 3.5rem}
+  footer{padding:1.25rem 1rem 2.5rem}
+  h2{font-size:21.5px;margin-top:2.75rem;padding-top:1.4rem}
+  .course-hero{padding:1.35rem 1.15rem 1.5rem}
+  .course-stats dl{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .course-stats dl>div:nth-child(odd){border-left:0}
+  .course-stats dl>div:nth-child(n+3){border-top:1px solid var(--hair)}
+  .course-brief-grid{grid-template-columns:1fr}
+  .course-actions .button{flex:1 1 auto}
+  .path{grid-template-columns:1fr}
+  .path li,.path li[data-course-lesson]{min-height:0}
+  .course-quiz{padding:1.1rem 1rem}
+  .lesson-nav{grid-template-columns:1fr;padding:0 1rem 3rem}
+  .lesson-nav .next{text-align:left}
+  .lesson-nav>span{display:none}
+  ul.controls li{padding:.85rem 1rem}
+  ul.controls li>.label:first-child{position:static;display:table;margin:0 0 .4rem}
+  .checks li[data-check]{grid-template-columns:auto minmax(0,1fr);row-gap:.35rem}
+  .checks li[data-check]::before{grid-row:1;margin-top:0}
+  .checks li[data-check]::after{grid-column:2;justify-self:end;margin-top:.1rem}
+  .checks li[data-check]>strong{grid-column:1 / -1;grid-row:2}
+  .checks li[data-check]>span{grid-column:1 / -1;grid-row:3}
+  dl.gloss{grid-template-columns:1fr}
+  pre{font-size:12.5px;padding:44px 14px 14px}
+  details>p{padding-left:16px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+}
+
+@media print{
+  .site-nav{position:static}
+  .course-rail,.lesson-nav,.nav-tools{display:none}
+}

@@ -20,6 +20,13 @@ Then:
     python3 tools/check_a11y.py --app    the React build in app/dist, which is
                                          what the hosted site serves
 
+The build has its own theme. A choice the reader made with the switch is kept
+in localStorage and wins; with no stored choice the page follows the system
+setting. With --app each mode stores the matching theme before the page loads,
+and the emulated system setting is the same one, so the two light modes check
+the light theme as a reader who chose it gets it, and the two dark modes the
+dark theme.
+
 --app needs `npm run build` in app/ first and exits 1 if app/dist is missing.
 It serves app/dist from 127.0.0.1 on a free port for the length of the run,
 because the build's module script does not load from a file:// page, and
@@ -45,6 +52,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SKIP_DIRS = {".git", ".venv", "venv", "env", "__pycache__", "node_modules", "dist", "react-poc"}
 TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"]
 MODES = [("light", 1280), ("dark", 1280), ("light", 390), ("dark", 390)]
+THEME_KEY = "course-theme"  # the key app/src/ThemeToggle.jsx stores the theme under
 INSTALL_HINT = "see the install commands at the top of tools/check_a11y.py"
 
 
@@ -111,9 +119,24 @@ def main():
         for scheme, width in MODES:
             context = browser.new_context(viewport={"width": width, "height": 900},
                                           color_scheme=scheme)
+            if app:
+                # A stored choice wins over the system setting on the build:
+                # app/prerender.js writes a script into <head> that reads this
+                # key before first paint. Setting it here, before any page
+                # script runs, tests the explicit theme. The emulated system
+                # setting above is the same scheme, so the two never disagree.
+                context.add_init_script(
+                    "try { window.localStorage.setItem(%r, %r); } catch (e) {}"
+                    % (THEME_KEY, scheme))
             page = context.new_page()
             for target in targets:
                 page.goto(address(target), wait_until="networkidle" if app else "load")
+                if app:
+                    applied = page.evaluate("document.documentElement.getAttribute('data-theme')")
+                    if applied != scheme:
+                        violations.append("%s @%dpx %s: the page applied the %s theme, so this mode was not tested" % (
+                            label(target), width, scheme, applied))
+                        continue
                 page.add_script_tag(content=source)
                 result = page.evaluate(
                     "async (tags) => await axe.run(document, {runOnly: {type: 'tag', values: tags}})",
