@@ -38,7 +38,7 @@
         "class": "lesson-status",
         "aria-label": "Lesson progress"
       },
-      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 26 of 33</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
+      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 26 of 34</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
     },
     {
       "tag": "span",
@@ -345,9 +345,9 @@
   "title": "Supply chain, retrieval, and memory",
   "kicker": "Part 4: AI and agents &middot; Module 25",
   "reviewed": "2026-10-04",
-  "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 26 of 33</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
+  "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 26 of 34</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
   "lesson_number": 26,
-  "lesson_total": 33,
+  "lesson_total": 34,
   "module": 25,
   "intro_prose": [
     "<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can explain why filtering a retrieval result is not the same as filtering the corpus, say what a result count discloses about documents a caller cannot read, show why ranking hygiene is not a security control, and keep <a href=\"../../glossary/index.html#provenance\">provenance</a> on anything an agent writes down.</p>\n<p><strong>Before you start.</strong> Retrieval makes a document store part of your <a href=\"../../glossary/index.html#authorization\">authorization</a> surface. Whoever can put a document into the index, and whoever can get one out of it, are security-relevant roles, and in most systems both are treated as plumbing.</p>\n</div>"

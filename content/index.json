@@ -1,5 +1,5 @@
 {
-  "total": 33,
+  "total": 34,
   "lessons": [
     {
       "slug": "security-foundations",
@@ -198,6 +198,12 @@
       "lesson_number": 33,
       "module": 32,
       "title": "Model and artifact supply chain"
+    },
+    {
+      "slug": "graphql-grpc-and-websocket",
+      "lesson_number": 34,
+      "module": 33,
+      "title": "GraphQL, gRPC and WebSocket APIs"
     }
   ]
 }

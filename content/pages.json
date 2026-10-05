@@ -8,7 +8,7 @@
           "id": "course",
           "data-course-dashboard": null
         },
-        "html": "<section class=\"course-hero\" id=\"course\" data-course-dashboard>\n<p class=\"kicker\">Interactive learning course</p>\n<h1>API Security in the Age of AI</h1>\n<div class=\"prose\">\n<p>For new security engineers. Each module starts with a real attack, shows why it works, teaches the control that stops it, and ends with a test you can run. The second half of each page is a reference you can use in design reviews.</p>\n<p class=\"meta\">Self-paced. Work through the modules in order. Each one assumes the ones before it. Labs need Python 3. The labs for modules 3, 5, 6 and 7 also need one package, <code>cryptography</code>. Progress is stored only in this browser.</p>\n</div>\n<div class=\"course-progress\" aria-label=\"Course progress\"><p data-course-progress>0 of 33 published lessons complete</p><div class=\"progress-track\" role=\"progressbar\" aria-label=\"Published lesson progress\" aria-valuemin=\"0\" aria-valuemax=\"100\"><span data-course-progress-bar></span></div><p class=\"meta\" data-course-assessment-progress>0 of 33 published quick checks passed</p></div>\n<div class=\"course-actions\"><a class=\"button\" href=\"topics/security-foundations/index.html\">Start with the primer</a><button class=\"button secondary\" type=\"button\" data-reset-progress>Reset progress</button></div>\n</section>"
+        "html": "<section class=\"course-hero\" id=\"course\" data-course-dashboard>\n<p class=\"kicker\">Interactive learning course</p>\n<h1>API Security in the Age of AI</h1>\n<div class=\"prose\">\n<p>For new security engineers. Each module starts with a real attack, shows why it works, teaches the control that stops it, and ends with a test you can run. The second half of each page is a reference you can use in design reviews.</p>\n<p class=\"meta\">Self-paced. Work through the modules in order. Each one assumes the ones before it. Labs need Python 3. The labs for modules 3, 5, 6 and 7 also need one package, <code>cryptography</code>. Progress is stored only in this browser.</p>\n</div>\n<div class=\"course-progress\" aria-label=\"Course progress\"><p data-course-progress>0 of 34 published lessons complete</p><div class=\"progress-track\" role=\"progressbar\" aria-label=\"Published lesson progress\" aria-valuemin=\"0\" aria-valuemax=\"100\"><span data-course-progress-bar></span></div><p class=\"meta\" data-course-assessment-progress>0 of 34 published quick checks passed</p></div>\n<div class=\"course-actions\"><a class=\"button\" href=\"topics/security-foundations/index.html\">Start with the primer</a><button class=\"button secondary\" type=\"button\" data-reset-progress>Reset progress</button></div>\n</section>"
       },
       {
         "tag": "section",
@@ -17,7 +17,7 @@
           "id": "overview",
           "aria-labelledby": "course-overview"
         },
-        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>New security engineers who can read Python and HTTP requests.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. Four labs also need the <code>cryptography</code> package. No account or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 33 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Examples of learning outcomes</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
+        "html": "<section class=\"course-brief\" id=\"overview\" aria-labelledby=\"course-overview\">\n<p class=\"kicker\">Course overview</p>\n<h2 id=\"course-overview\">Course briefing</h2>\n<div class=\"course-brief-grid\">\n<article><h3>Audience</h3><p>New security engineers who can read Python and HTTP requests.</p></article>\n<article><h3>Prerequisites</h3><p>A browser and Python 3. Four labs also need the <code>cryptography</code> package. No account or production credentials are required.</p></article>\n<article><h3>Current release</h3><p>All 34 planned lesson pages are published.</p></article>\n<article><h3>Delivery</h3><p>Self-paced reading, runnable local labs, and short knowledge checks.</p></article>\n</div>\n<h3>Examples of learning outcomes</h3>\n<ul class=\"course-outcomes\">\n<li>Identify API credentials exposed in URLs and logs, and move authentication to an appropriate request header.</li>\n<li>Explain what an HMAC request signature proves, what it cannot prove, and how timestamp and nonce checks limit replay.</li>\n<li>Run the published Python labs and interpret their accept and reject outcomes.</li>\n<li>Use the published checklist items during a basic API security design review.</li>\n</ul>\n<h3>Assessment and completion</h3>\n<p class=\"prose\">For the current release, completion means marking each published lesson complete and passing its quick check. The browser records those actions only on this device. Quick checks give immediate feedback, but they are not proctored and do not issue a certificate, manager report, or authoritative training record.</p>\n<p class=\"meta\">The site uses semantic headings, descriptive links, and a visible keyboard focus indicator. It has not received a formal accessibility or LMS conformance audit.</p>\n</section>"
       },
       {
         "tag": "h2",
@@ -31,7 +31,7 @@
         "attrs": {
           "class": "meta"
         },
-        "html": "<p class=\"meta\">Every module is published: the primer, all of Parts 1 and 2, all seven modules of Part 3, all seven of Part 4, the capstone, and all six of Part 5. Each one carries its lesson, a runnable lab with its real output, primary sources, and review checklist items. The <a href=\"coverage/index.html\">coverage page</a> lists each entry of three OWASP lists with the lessons that cite it, and says what the course leaves out.</p>"
+        "html": "<p class=\"meta\">Every module is published: the primer, all of Parts 1 and 2, all seven modules of Part 3, all seven of Part 4, the capstone, and all seven of Part 5. Each one carries its lesson, a runnable lab with its real output, primary sources, and review checklist items. The <a href=\"coverage/index.html\">coverage page</a> lists each entry of three OWASP lists with the lessons that cite it, and says what the course leaves out.</p>"
       }
     ]
   },
@@ -259,6 +259,11 @@
         "definition": "Replaying username and password pairs taken from another site's breach, on the bet that people reuse passwords. A reused password is right on the first try, so limits on failed attempts slow the attack without stopping it."
       },
       {
+        "id": "cross-site-websocket-hijacking",
+        "term": "Cross-site WebSocket hijacking",
+        "definition": "A page on another site opens a WebSocket to an application from a logged-in user's browser. The browser attaches the application's cookies to the handshake, so a server that checks only the cookie gives that page a live connection as the user. Unlike <a href=\"#csrf\">CSRF</a>, the page can read what comes back. The control is to check the handshake's <code>Origin</code> header against an <a href=\"#allowlist\">allowlist</a>."
+      },
+      {
         "id": "cryptoperiod",
         "term": "Cryptoperiod",
         "definition": "\"The time span during which a specific key is authorized for use or in which the keys for a given system or application may remain in effect\" (NIST SP 800-57 Part 1 Rev. 5). The specifications give you the concept; the length is your judgment to make and defend."
@@ -272,6 +277,11 @@
         "id": "data-minimisation",
         "term": "Data minimisation",
         "definition": "Putting only the fields a task needs into a prompt, chosen from an allowlist. It removes copies rather than filtering them, so it acts on every sink at once: logs, traces, caches, the provider and the answer."
+      },
+      {
+        "id": "deadline",
+        "term": "Deadline",
+        "definition": "In gRPC, the point in time after which a client will not wait for a response. The gRPC documentation says no deadline is set by default. It travels to the server as the <code>grpc-timeout</code> header, and the server application has to stop its own work once the call is cancelled."
       },
       {
         "id": "delegation",
@@ -342,6 +352,11 @@
         "id": "front-channel",
         "term": "Front channel",
         "definition": "A request or response that travels through the user's browser, usually as a redirect. Anything in a front-channel URL may reach browser history, referrer headers, proxy logs, and other apps on the device."
+      },
+      {
+        "id": "graphql-introspection",
+        "term": "GraphQL introspection",
+        "definition": "Asking a GraphQL service to describe its own types, fields and arguments, through the fields <code>__schema</code> and <code>__type</code> that the GraphQL specification defines. It is not the token <a href=\"#introspection\">introspection</a> of OAuth, which asks whether a token is active."
       },
       {
         "id": "hardening",
@@ -417,6 +432,11 @@
         "id": "insufficient-coverage",
         "term": "Insufficient coverage",
         "definition": "A signature or approval that protects some of a message and not the rest, so the uncovered parts can change without invalidating it. RFC 9421 section 7.2.1 names it for HTTP signatures; the same reasoning decides which fields an approval must cover."
+      },
+      {
+        "id": "interceptor",
+        "term": "Interceptor",
+        "definition": "In gRPC, code that is called for every call on a server or channel, in front of the method's own handler. The gRPC documentation lists server-side authentication and authorization among its uses. Other frameworks call the same idea a filter or middleware."
       },
       {
         "id": "introspection",
@@ -534,6 +554,11 @@
         "definition": "Trying one common password against many accounts, then the next password, so that no single account collects enough failures to lock."
       },
       {
+        "id": "persisted-operation",
+        "term": "Persisted operation",
+        "definition": "A GraphQL operation the server already holds, so that a client sends an identifier for it and not the query text. A server that accepts only the identifiers it knows has an <a href=\"#allowlist\">allowlist</a> of operations. The GraphQL over HTTP project describes it in a proposal and, by that proposal's own note, in an appendix to its working draft. Neither is a released standard."
+      },
+      {
         "id": "pinning",
         "term": "Pinning",
         "definition": "Naming a dependency by something that cannot change: a digest for a model, an exact version and a hash for a package. What loads tomorrow is then what was reviewed. A tag such as <code>latest</code> is the opposite, because its owner can point it somewhere else."
@@ -629,6 +654,11 @@
         "definition": "The secret a service sends to an address it already holds so the owner can set a new password. It works as a temporary password, so it has to be random, tied to one account, short-lived and usable once."
       },
       {
+        "id": "resolver",
+        "term": "Resolver",
+        "definition": "The function a GraphQL server runs to produce the value of one field. One query can select many fields and so run many resolvers, which is why an authorization check belongs in each resolver that returns protected data and not only at the endpoint."
+      },
+      {
         "id": "resource-indicator",
         "term": "Resource indicator",
         "definition": "The <code>resource</code> request parameter, which names the service a token is being requested for so the authorization server can bind the token's audience to it. RFC 8707."
@@ -702,6 +732,11 @@
         "id": "serialization",
         "term": "Serialization",
         "definition": "Turning an object in memory into bytes that can be stored or sent. Deserialization is the reverse. Some formats, such as Python pickle, can name functions to call during loading, so loading the file runs code. A data-only format cannot."
+      },
+      {
+        "id": "server-reflection",
+        "term": "Server reflection",
+        "definition": "An optional gRPC service that tells a client which methods a server exports and what their messages look like. Debugging tools use it to build requests. It tells an attacker the same things, and the OWASP gRPC Security Cheat Sheet recommends disabling it in production."
       },
       {
         "id": "session-fixation",
@@ -804,6 +839,11 @@
         "definition": "The rules an application declares before verifying any token: allowed algorithms, token type, expected issuer and audience, required claims, key source and clock leeway. Nothing in it is read from the token."
       },
       {
+        "id": "trailer",
+        "term": "Trailer",
+        "definition": "A header sent after the body of a message. gRPC reports the outcome of every call in a trailer named <code>grpc-status</code> while the HTTP status of the response is 200, so a tool that reads only the HTTP status sees every call as a success."
+      },
+      {
         "id": "trust-boundary",
         "term": "Trust boundary",
         "definition": "Any point where a request or a value moves from somewhere you do not control to somewhere you do. Checks belong on the boundary, and a check is only a control if every path to the handler crosses it."
@@ -851,7 +891,7 @@
         "attrs": {
           "class": "meta"
         },
-        "html": "<p class=\"meta\">All 33 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written. What the course does not cover is listed on the <a href=\"../coverage/index.html\">coverage page</a>.</p>"
+        "html": "<p class=\"meta\">All 34 lesson pages are available now. Nothing on this page is outstanding. New work will appear here as a planned entry before it is written. What the course does not cover is listed on the <a href=\"../coverage/index.html\">coverage page</a>.</p>"
       },
       {
         "tag": "section",
@@ -900,7 +940,7 @@
         "attrs": {
           "aria-labelledby": "part-5"
         },
-        "html": "<section aria-labelledby=\"part-5\">\n<h2 id=\"part-5\">Part 5: Hardening and operations</h2>\n<p class=\"prose\">All six modules of Part 5 are published. They are listed on the <a href=\"../index.html#path\">modules page</a>. Part 5 was added after the capstone so that the numbers of the earlier modules did not change.</p>\n</section>"
+        "html": "<section aria-labelledby=\"part-5\">\n<h2 id=\"part-5\">Part 5: Hardening and operations</h2>\n<p class=\"prose\">All seven modules of Part 5 are published. They are listed on the <a href=\"../index.html#path\">modules page</a>. Part 5 was added after the capstone so that the numbers of the earlier modules did not change.</p>\n</section>"
       }
     ]
   }

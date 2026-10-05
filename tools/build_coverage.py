@@ -23,8 +23,7 @@ The rules --check enforces, beyond freshness:
   - every entry is cited by at least one lesson, or is listed in NOT_COVERED
     with the reason;
   - an entry listed in NOT_COVERED is cited by no lesson, so the reason is
-    removed when a lesson starts to cite it;
-  - no lesson uses a term listed in OUT_OF_SCOPE, so that list stays true.
+    removed when a lesson starts to cite it.
 """
 import html
 import json
@@ -114,13 +113,6 @@ NOTES = {
                   "in module 32 and not taught.",
 }
 
-# Topics no lesson mentions at all. --check fails if a lesson starts to.
-OUT_OF_SCOPE = [
-    ("GraphQL", r"\bGraphQL\b"),
-    ("gRPC", r"\bgRPC\b"),
-    ("WebSocket", r"\bWebSockets?\b"),
-]
-
 LESSON = re.compile(
     r'<li data-course-lesson="([^"]+)"[^>]*><span class="num">(\d+)</span>'
     r'<span><a href="([^"]+)">(.*?)</a>')
@@ -165,15 +157,7 @@ def collect():
         lists.append({"key": spec["key"], "title": spec["title"],
                       "href": spec["href"], "edition": spec["edition"],
                       "entries": rows})
-    for label, pattern in OUT_OF_SCOPE:
-        users = [l["title"] for l in course if re.search(pattern, l["text"])]
-        if users:
-            problems.append(
-                "%s is listed as out of scope but appears in: %s"
-                % (label, ", ".join(users)))
-    return {"lists": lists,
-            "out_of_scope": [label for label, _ in OUT_OF_SCOPE],
-            "lesson_count": len(course)}, problems
+    return {"lists": lists, "lesson_count": len(course)}, problems
 
 
 def render(data):
@@ -202,7 +186,6 @@ def render(data):
             % (group["key"], group["key"], e(group["title"]),
                e(group["href"]), e(group["title"]), e(group["edition"]),
                "\n".join(rows)))
-    scope = ", ".join(data["out_of_scope"][:-1]) + " or " + data["out_of_scope"][-1]
     return """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -223,7 +206,7 @@ def render(data):
 <h2 id="not-covered">What the course does not cover</h2>
 <ul class="prose">
 <li>The entries marked above as not covered or partly covered.</li>
-<li>Anything specific to %s. No lesson mentions them. The lessons use HTTP APIs that exchange JSON.</li>
+<li>GraphQL, gRPC and WebSocket beyond module 33. That module shows where the controls of earlier modules stop applying under each protocol. It leaves out GraphQL subscriptions, gRPC-Web, attacks on HTTP/2 itself, and injection through these protocols as a subject of its own.</li>
 <li>How to test an API's security from the outside. The lessons list the negative tests their own controls must pass. No lesson teaches a testing method or a tool.</li>
 </ul>
 </section>
@@ -231,7 +214,7 @@ def render(data):
 <footer>Part of API Security in the Age of AI.</footer>
 </body>
 </html>
-""" % (data["lesson_count"], "\n".join(sections), e(scope))
+""" % (data["lesson_count"], "\n".join(sections))
 
 
 def serialize(data):

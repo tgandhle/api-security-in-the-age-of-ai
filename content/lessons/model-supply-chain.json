@@ -38,7 +38,7 @@
         "class": "lesson-status",
         "aria-label": "Lesson progress"
       },
-      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 33 of 33</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
+      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 33 of 34</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
     },
     {
       "tag": "span",
@@ -311,9 +311,9 @@
   "title": "Model and artifact supply chain",
   "kicker": "Part 5: Hardening and operations &middot; Module 32",
   "reviewed": "2026-10-04",
-  "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 33 of 33</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
+  "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 33 of 34</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
   "lesson_number": 33,
-  "lesson_total": 33,
+  "lesson_total": 34,
   "module": 32,
   "intro_prose": [
     "<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can explain why loading a model file can run code, resolve a model by its digest and not by its name, say what a hash, a signature and a <a href=\"../../glossary/index.html#provenance\">provenance</a> record each prove and what none of them proves, put one gate in front of every model, adapter and converted file, install packages so that a changed or invented package is refused, and keep an inventory that matches what is loaded.</p>\n<p><strong>Before you start.</strong> You should know what a <a href=\"../../glossary/index.html#hash\">hash</a> is and how a <a href=\"../../glossary/index.html#signature\">signature</a> differs from one. The primer, <a href=\"../security-foundations/index.html\">Security concepts for the course</a>, covers both. Module 25, <a href=\"../supply-chain-retrieval-and-memory/index.html\">Supply chain, retrieval, and memory</a>, is the data side of this subject: who can put a document into a retrieval index or a memory store. This module is the other side: the models, adapters, datasets and packages an API team takes in from outside.</p>\n</div>"

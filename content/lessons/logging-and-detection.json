@@ -38,7 +38,7 @@
         "class": "lesson-status",
         "aria-label": "Lesson progress"
       },
-      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 31 of 33</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
+      "html": "\n<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 31 of 34</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>"
     },
     {
       "tag": "span",
@@ -376,9 +376,9 @@
   "title": "Logging, detection and response",
   "kicker": "Part 5: Hardening and operations &middot; Module 30",
   "reviewed": "2026-10-04",
-  "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 31 of 33</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
+  "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Published lesson 31 of 34</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
   "lesson_number": 31,
-  "lesson_total": 33,
+  "lesson_total": 34,
   "module": 30,
   "intro_prose": [
     "<div class=\"prose\">\n<p><strong>Objective.</strong> After this module you can say which API events to record and which fields each one needs, keep credentials and attacker-supplied line breaks out of a log, write a detection rule over the events and state what it misses, and describe what happens after an alert in the terms NIST SP 800-61r3 uses.</p>\n<p><strong>Before you start.</strong> You should know the difference between <a href=\"../../glossary/index.html#authentication\">authentication</a> and <a href=\"../../glossary/index.html#authorization\">authorization</a>. The running example is the booking API from <a href=\"../object-level-authorization/index.html\">module 9, Object-level authorization</a>, with its ownership check in place. Every other module in this course prevents an attack. This one is about noticing the attacks that prevention did not stop, and about being able to say afterwards what happened.</p>\n</div>"
