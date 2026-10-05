@@ -7,7 +7,7 @@ Instructions for coding agents working in this repository. Read this file, `CONV
 A static learning site that teaches API security to new security engineers. Each topic page teaches one attack and the controls that stop it, with a runnable lab, then gives a reference section for design reviews.
 
 - Audience: new security engineers. Assume they can read Python and HTTP. Do not assume they know the vocabulary.
-- Format: hand-written HTML and one shared stylesheet, `assets/site.css`. No site generator, no framework, no JavaScript build. This applies to every published page and to `assets/`.
+- Format: hand-written HTML and one shared stylesheet, `assets/site.css`. No site generator, no framework, no JavaScript build. This applies to every lesson page in the repository and to `assets/`: they are the source of truth and must still open from a downloaded folder. The hosted site is a build of those pages, made by `app/` (see Decisions, 2026-10-04).
 - Exception, `react-poc/`: an isolated Vite and React experiment from before the course was finished. The question it was asking has been answered: see Decisions. It is not published, not deployed, and not checked by `tools/check_site.py`. It is not the source of truth for any lesson. Never author or correct lesson content there first, and never copy content out of it into a published page. If its copy of a lesson drifts from the HTML, delete the copy rather than reconcile it.
 - Labs: Python 3, standard library only. Commands are written as `python3`, which is correct on macOS and Linux; Windows readers are told once per page to use `py -3` instead. Modules 3, 5, 6 and 7 may also use `cryptography==50.0.1`, because Python has no asymmetric primitives. Those labs must exit with a clear message rather than a traceback when it is absent, and their page must say a package is needed. Under Pyodide 314.0.7 `hashlib` has neither `pbkdf2_hmac` nor `scrypt` (measured 2026-10-04), so a lab that needs a password hash carries its own fallback, as `labs/auth_endpoints_lab.py` does.
 - The site must work when opened from local files (`file://`) as well as on GitHub Pages. Use relative links only.
@@ -32,7 +32,7 @@ These do not change:
 | `tools/build_checklist.py` | Regenerates the checklist from topic pages. `--check` exits 1 if stale. |
 | `tools/check_site.py` | Links, anchors, dashes, secrets, checklist freshness. Skips `react-poc/`. |
 | `tools/build_coverage.py` | Regenerates `coverage/index.html` and `content/coverage.json`. Which lessons cite an entry is read from the lesson pages, not written in the tool. `--check` exits 1 if either file is stale, if an entry is cited by no lesson and has no stated reason, or if a lesson cites an entry or mentions a topic the page says is not covered. |
-| `tools/check_a11y.py` | axe-core against every page, light and dark, desktop and mobile. Author tool. Skips cleanly if not installed. |
+| `tools/check_a11y.py` | axe-core against every page, light and dark, desktop and mobile. Author tool. Skips cleanly if not installed. With `--app` it serves `app/dist` on 127.0.0.1 and checks the React build, which is what the hosted site serves; that mode exits 1 if `app/dist` is missing. |
 | `tools/extract_lessons.py` | Extracts the published pages into `content/` as structured JSON. `--check` rebuilds each page from its record, compares it byte for byte, checks the lesson numbering against `index.html`, and exits 1 if `content/` is stale. |
 | `tools/render_site.py` | Renders the lesson pages from `content/` through `tools/page_template.tmpl`. Compares by default; `--write` overwrites the pages. |
 | `tools/check_transcripts.py` | Runs every lab whose output is published and compares it to the page byte for byte. Reports a lab that needs a missing package as skipped, not failed. Also flags a lab command written in any form other than `python3 labs/<lab>.py`. |
@@ -40,10 +40,11 @@ These do not change:
 | `tools/extract_pages.py` | Extracts three of the five pages that are not lessons into `content/pages.json`: the home prose, the glossary terms, the roadmap. `--check` exits 1 if it is stale. The checklist and the coverage page are deliberately not captured; `tools/build_checklist.py` and `tools/build_coverage.py` own them. |
 | `tools/build_search_index.py` | Builds `assets/search-index.js` from `content/`. Six kinds of document: lesson, section, check, term, control, code. `--check` exits 1 if it is stale. |
 | `assets/search-index.js` | Generated. Never edit by hand. A `.js` file, not `.json`, because a page opened from `file://` cannot fetch a sibling file. Only the `app/` build loads it (`app/src/Search.jsx`), on the first search, never on page load. The static pages have no search and never load it. |
-| `app/` | The React app that will replace the static site. See Decisions. `npm install` then `npm run build` in that directory; the output is `app/dist/`, which is not tracked. It reads `content/` and renders it; it is not a second copy of any lesson. |
+| `app/` | The React app that the hosted site serves since the changeover recorded under Decisions on 2026-10-04. The static pages remain the source of truth. `npm install` then `npm run build` in that directory; the output is `app/dist/`, which is not tracked. It reads `content/` and renders it; it is not a second copy of any lesson. |
 | `content/` | Generated by `tools/extract_lessons.py` and `tools/extract_pages.py`. Never edit by hand. The published HTML is the source of truth. |
 | `tools/page_template.tmpl`, `tools/lesson_status_template.tmpl` | The page skeleton and the lesson-status line, one copy each. Not `.html`, because both site checkers glob for that and would treat them as pages. |
 | `.gitattributes` | Marks `content/`, `checklist/index.html`, `coverage/index.html`, `labs/*.lab.js` and `assets/search-index.js` as generated so they collapse in review. |
+| `.github/workflows/pages.yml` | Runs the standard-library checks, builds `app/` and publishes `app/dist` to GitHub Pages on every push to `main`. Every action is pinned to a commit. Changing it is a CI change: stop and ask. |
 | `react-poc/` | Out of scope. See Format above. |
 
 ## Hard rules
@@ -85,6 +86,27 @@ These apply to every change. If a task seems to require breaking one, stop and a
 Recorded so a later session does not reopen them by accident. Change one only
 when the reason it gives has stopped being true, and say so in the commit.
 
+- **2026-10-04, the hosted site is the React build. This completes the
+  2026-10-02 decision below by answering its four open questions.**
+  (1) Where it publishes from: `.github/workflows/pages.yml` builds `app/` and
+  deploys `app/dist` with GitHub Pages set to deploy from GitHub Actions. The
+  build output is not committed. (2) The README's two promises: kept, and
+  reworded. The static pages stay in the repository, open from a downloaded
+  ZIP and need no build; what changed is that the hosted site is a build of
+  them. (3) `extract_lessons.py --check` and `render_site.py`: not retired.
+  The static HTML is still the source and `content/` is still extracted from
+  it, so both checks still guard something. (4) What `check_a11y.py` runs
+  against: both. Without a flag it checks the static pages from disk; with
+  `--app` it serves `app/dist` on 127.0.0.1 and checks the build. Measured
+  before the change: the build crawled under the Pages subpath gives 40 pages,
+  no failed request, no console error and no link that leaves the subpath;
+  560 exercise option clicks give 0 mismatches on each build; axe-core reports
+  no violations on 40 pages in 4 modes on each. Progress saved in a reader's
+  browser carries over, because the build loads the same `assets/course.js`
+  from the same origin. The workflow was not run before it was committed: it
+  cannot be run outside GitHub. Adding it was an owner decision; changing it
+  is still a stop-and-ask item. To go back, set Pages to deploy from the
+  `main` branch root again; nothing else has to change.
 - **2026-10-04, new modules are appended as Part 5, after the capstone.** A
   gap check against the three OWASP lists found two API Top 10 2023 entries
   and three agentic entries that no lesson cited, and no lesson on browser
@@ -207,6 +229,7 @@ Work on one module per task unless told otherwise.
 - [ ] `python3 tools/build_search_index.py --check` prints `the search index matches content/`.
 - [ ] `python3 tools/build_coverage.py --check` prints `the coverage page matches the lesson pages`.
 - [ ] `python3 tools/check_a11y.py` prints `no accessibility violations`, or your report says it was skipped and why.
+- [ ] `npm run build` in `app/` prints the lesson count you expect, and `python3 tools/check_a11y.py --app` prints `no accessibility violations`, or your report says it was skipped and why.
 - [ ] The lab runs, and the page shows its real output.
 - [ ] Every Standard label has a primary source that you opened.
 - [ ] Every Sources entry is a primary source with a pinned revision if the spec is versioned.

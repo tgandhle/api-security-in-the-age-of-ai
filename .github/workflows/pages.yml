@@ -1,0 +1,77 @@
+# Builds the React app in app/ and publishes app/dist to GitHub Pages.
+#
+# The static pages in the repository stay the source of truth. This workflow
+# first runs the checks that need only Python's standard library, so a page
+# that is stale or broken stops the deployment and the site that is already
+# live stays up.
+#
+# Every action is pinned to a commit, with its release tag in the comment.
+# Module 32 of the course says why: a tag can be moved, a commit cannot.
+name: Publish the site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check the pages and the generated files
+        run: |
+          python3 tools/check_site.py
+          python3 tools/extract_lessons.py --check
+          python3 tools/render_site.py
+          python3 tools/extract_pages.py --check
+          python3 tools/build_search_index.py --check
+          python3 tools/build_lab_bundles.py --check
+          python3 tools/build_checklist.py --check
+          python3 tools/build_coverage.py --check
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Build the app
+        working-directory: app
+        run: |
+          npm ci
+          npm run build
+
+      - name: Configure Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - name: Upload the built site
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: app/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

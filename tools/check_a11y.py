@@ -16,7 +16,14 @@ Install once, from the project root:
 On Windows use py -3 in place of python3.
 
 Then:
-    python3 tools/check_a11y.py
+    python3 tools/check_a11y.py          the static pages, opened from disk
+    python3 tools/check_a11y.py --app    the React build in app/dist, which is
+                                         what the hosted site serves
+
+--app needs `npm run build` in app/ first and exits 1 if app/dist is missing.
+It serves app/dist from 127.0.0.1 on a free port for the length of the run,
+because the build's module script does not load from a file:// page, and
+checking it without its script would check something no reader gets.
 
 If the tooling is not installed the script says so and exits 0, so it never
 blocks someone who only wants to read or edit a page. The definition of done in
@@ -27,9 +34,12 @@ What this does not cover: screen reader behavior, zoom to 400 percent, reflow,
 and anything needing human judgment. Automated rules catch a minority of real
 accessibility problems. Passing this is a floor, not a conformance claim.
 """
+import functools
+import http.server
 import os
 import pathlib
 import sys
+import threading
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SKIP_DIRS = {".git", ".venv", "venv", "env", "__pycache__", "node_modules", "dist", "react-poc"}
@@ -57,7 +67,23 @@ def pages():
             yield path
 
 
+def serve(directory):
+    """Serve a folder on 127.0.0.1, on a port the system picks. Quietly."""
+    class Quiet(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, *args):
+            pass
+    handler = functools.partial(Quiet, directory=str(directory))
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server
+
+
 def main():
+    app = "--app" in sys.argv
+    dist = ROOT / "app" / "dist"
+    if app and not (dist / "index.html").is_file():
+        print("check_a11y --app: app/dist is missing. Run npm run build in app/ first.")
+        return 1
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
@@ -68,7 +94,17 @@ def main():
         print("check_a11y: axe-core was not found, skipped. " + INSTALL_HINT)
         return 0
 
-    targets = list(pages())
+    if app:
+        server = serve(dist)
+        base = "http://127.0.0.1:%d/" % server.server_address[1]
+        targets = sorted(dist.rglob("*.html"))
+        address = lambda t: base + t.relative_to(dist).as_posix()
+        label = lambda t: "app/dist/" + t.relative_to(dist).as_posix()
+    else:
+        server = None
+        targets = list(pages())
+        address = lambda t: t.as_uri()
+        label = lambda t: t.relative_to(ROOT).as_posix()
     violations = []
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
@@ -77,7 +113,7 @@ def main():
                                           color_scheme=scheme)
             page = context.new_page()
             for target in targets:
-                page.goto(target.as_uri(), wait_until="load")
+                page.goto(address(target), wait_until="networkidle" if app else "load")
                 page.add_script_tag(content=source)
                 result = page.evaluate(
                     "async (tags) => await axe.run(document, {runOnly: {type: 'tag', values: tags}})",
@@ -85,13 +121,17 @@ def main():
                 for violation in result["violations"]:
                     selectors = [node["target"][0] for node in violation["nodes"]][:3]
                     violations.append("%s @%dpx %s: %s [%s] %d node(s) %s" % (
-                        target.relative_to(ROOT).as_posix(), width, scheme,
+                        label(target), width, scheme,
                         violation["id"], violation["impact"], len(violation["nodes"]),
                         ", ".join(selectors)))
             context.close()
         browser.close()
+    if server:
+        server.shutdown()
 
-    print("checked %d pages in %d modes using %s" % (len(targets), len(MODES), source_path))
+    print("checked %d %s in %d modes using %s" % (
+        len(targets), "pages of the React build" if app else "pages",
+        len(MODES), source_path))
     if violations:
         print("%d violation(s):" % len(violations))
         for line in violations:

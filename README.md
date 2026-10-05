@@ -44,7 +44,7 @@ Work through the published modules in order. Each lesson includes an attack exam
 
 [Full module plan](index.html#path) · [Glossary](glossary/index.html) · [Review checklist](checklist/index.html) · [OWASP coverage](coverage/index.html)
 
-**Reading the lessons:** Open the [hosted learning site](https://tgandhle.github.io/api-security-in-the-age-of-ai/) in a browser. You can also choose **Code > Download ZIP**, extract the archive, and open `index.html` locally. Reading the lessons needs no installation or build.
+**Reading the lessons:** Open the [hosted learning site](https://tgandhle.github.io/api-security-in-the-age-of-ai/) in a browser. The hosted site is the React build in `app/`: the same lessons, with a lesson rail and site-wide search. You can also choose **Code > Download ZIP**, extract the archive, and open `index.html` locally. That opens the static pages the build is made from, and reading them needs no installation or build.
 
 The lab links open Python source files. Download the project and run a lab with Python as described below.
 
@@ -84,7 +84,7 @@ The lesson pages share one skeleton, `tools/page_template.tmpl`, and `tools/rend
 
 See `CONVENTIONS.md` for the page template and writing rules.
 
-`app/` is a React build of the same content, in progress and not yet published. It reads `content/`, prerenders all 31 pages so the HTML is the same text a crawler reads today, and adds a lesson rail and site-wide search. `cd app`, `npm install`, `npm run build`. Until the changeover is decided the static site is what is published, and both have to pass their checks. The open questions are listed under Decisions in `AGENTS.md`.
+`app/` is the React build that the hosted site serves. It reads `content/`, prerenders every lesson and the five other pages so the HTML is the same text a crawler read before, and adds a lesson rail and site-wide search. `cd app`, `npm ci`, `npm run build`; the output is `app/dist/`, which is not tracked. `.github/workflows/pages.yml` runs the standard-library checks, builds the app and publishes `app/dist` on every push to `main`. The static pages stay in the repository as the source of truth, and both have to pass their checks. The reasons are under Decisions in `AGENTS.md`.
 
 Before committing:
 
@@ -97,6 +97,7 @@ python3 tools/extract_pages.py --check   # content/pages.json matches the home, 
 python3 tools/build_search_index.py --check  # assets/search-index.js matches content/
 python3 tools/check_transcripts.py       # runs every lab and compares its output to the page
 python3 tools/check_a11y.py              # axe-core, light and dark, desktop and mobile
+python3 tools/check_a11y.py --app        # the same against app/dist, after npm run build in app/
 ```
 
 All eight exit 0 when the site is clean, and 1 with a named reason otherwise.
