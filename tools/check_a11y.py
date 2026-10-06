@@ -19,6 +19,10 @@ Then:
     python3 tools/check_a11y.py          the static pages, opened from disk
     python3 tools/check_a11y.py --app    the React build in app/dist, which is
                                          what the hosted site serves
+    python3 tools/check_a11y.py --browser firefox
+                                         use Firefox or webkit in place of
+                                         Chromium, which is the default; after
+                                         python3 -m playwright install firefox
 
 The build has its own theme. A choice the reader made with the switch is kept
 in localStorage and wins; with no stored choice the page follows the system
@@ -39,6 +43,10 @@ checked nothing must not pass. The definition of done in
 AGENTS.md requires the author to run it and paste the real output, so a skip is
 visible in the report rather than silent.
 
+The rule is the same in every browser: no violations. Engines compute some
+things differently, so axe may examine a different number of nodes from one
+to the next, and two runs are not expected to agree on anything but that.
+
 What this does not cover: screen reader behavior, zoom to 400 percent, reflow,
 and anything needing human judgment. Automated rules catch a minority of real
 accessibility problems. Passing this is a floor, not a conformance claim.
@@ -56,6 +64,8 @@ TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"]
 MODES = [("light", 1280), ("dark", 1280), ("light", 390), ("dark", 390)]
 THEME_KEY = "course-theme"  # the key app/src/ThemeToggle.jsx stores the theme under
 INSTALL_HINT = "see the install commands at the top of tools/check_a11y.py"
+# The engines Playwright can drive, and the name each is reported under.
+BROWSERS = {"chromium": "Chromium", "firefox": "Firefox", "webkit": "WebKit"}
 
 
 def axe_source():
@@ -90,6 +100,13 @@ def serve(directory):
 
 def main():
     app = "--app" in sys.argv
+    engine = "chromium"
+    if "--browser" in sys.argv:
+        at = sys.argv.index("--browser") + 1
+        engine = sys.argv[at] if at < len(sys.argv) else ""
+        if engine not in BROWSERS:
+            print("check_a11y: --browser takes one of %s" % ", ".join(BROWSERS))
+            return 2
     dist = ROOT / "app" / "dist"
     if app and not (dist / "index.html").is_file():
         print("check_a11y --app: app/dist is missing. Run npm run build in app/ first.")
@@ -117,7 +134,17 @@ def main():
         label = lambda t: t.relative_to(ROOT).as_posix()
     violations = []
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch()
+        try:
+            browser = getattr(playwright, engine).launch()
+        except Exception as error:
+            if "Executable doesn't exist" not in str(error):
+                raise
+            if server:
+                server.shutdown()
+            print("check_a11y: Playwright has no %s installed, skipped. "
+                  "Run python3 -m playwright install %s" % (BROWSERS[engine], engine))
+            return 1 if "--require" in sys.argv else 0
+        browser_name = "%s %s" % (BROWSERS[engine], browser.version)
         for scheme, width in MODES:
             context = browser.new_context(viewport={"width": width, "height": 900},
                                           color_scheme=scheme)
@@ -154,9 +181,9 @@ def main():
     if server:
         server.shutdown()
 
-    print("checked %d %s in %d modes using %s" % (
+    print("checked %d %s in %d modes in %s using %s" % (
         len(targets), "pages of the React build" if app else "pages",
-        len(MODES), source_path))
+        len(MODES), browser_name, source_path))
     if violations:
         print("%d violation(s):" % len(violations))
         for line in violations:

@@ -1,0 +1,166 @@
+# Browser compatibility run. Started by hand only, and nothing depends on it.
+#
+# The release gate (release.yml) tests in Chromium. This runs the three
+# checks that drive a browser in Firefox and in WebKit, so there is evidence
+# about those engines before anyone decides whether they belong in the gate:
+#
+#   - every lab through the "Run this lab in your browser" button,
+#   - the accessibility rules on the static pages,
+#   - the accessibility rules on the built site.
+#
+# The lab run is the one that matters most. It loads the Python runtime from
+# its CDN, loads a package for five labs, presses the real button and compares
+# the output with the published transcript.
+#
+# It is not a gate. It never runs on a push or a tag, it creates no release,
+# and a red result here blocks nothing. Read it as a finding to look into: a
+# failure can be a fault in the course, a difference in the Python runtime
+# under that engine, or a quirk of Playwright's build of the engine.
+#
+# Playwright's Firefox and WebKit are its own builds. A pass in WebKit is
+# evidence about the engine Safari uses. It is not a test of Safari.
+#
+# Start it from the Actions tab or with `gh workflow run browser-compat.yml`.
+#
+# Every action is pinned to a commit, with its release tag in the comment.
+# The Python packages and the axe-core tarball are pinned exactly as they are
+# in release.yml. Keep the two files in step when either pin moves.
+name: Browser compatibility
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-compat-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AXE_CORE_VERSION: "4.13.0"
+  AXE_CORE_INTEGRITY: "sha512-UzGt8zg7Ny8djbYMhxl2zuEevVa7r2gJjYY5Lwr1xM7+XU2nd6CkIWFTVcCIbAP63vSz71NaVyyuSk9lHKcy0A=="
+
+jobs:
+  compat:
+    name: ${{ matrix.browser }}
+    # The same named release as release.yml, for the same reason: the browser
+    # install needs system packages Playwright 1.56.0 knows for it.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      # One engine failing says nothing about the other. Let both finish.
+      fail-fast: false
+      matrix:
+        browser: [firefox, webkit]
+    env:
+      BROWSER: ${{ matrix.browser }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install the Python packages, pinned by hash
+        run: python3 -m pip install --require-hashes -r tools/requirements-release.txt
+
+      - name: Install the browser this job drives
+        run: python3 -m playwright install --with-deps "$BROWSER"
+
+      - name: Fetch axe-core and check it is the file that was pinned
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/axe"
+          cd "$RUNNER_TEMP/axe"
+          npm pack "axe-core@${AXE_CORE_VERSION}" --silent
+          got="sha512-$(openssl dgst -sha512 -binary "axe-core-${AXE_CORE_VERSION}.tgz" | base64 -w0)"
+          if [ "$got" != "$AXE_CORE_INTEGRITY" ]; then
+            echo "axe-core tarball does not match the pinned integrity value"
+            echo "expected $AXE_CORE_INTEGRITY"
+            echo "got      $got"
+            exit 1
+          fi
+          tar -xzf "axe-core-${AXE_CORE_VERSION}.tgz"
+          echo "AXE_CORE_PATH=$RUNNER_TEMP/axe/package/axe.min.js" >> "$GITHUB_ENV"
+
+      - name: Build the app
+        id: build
+        working-directory: app
+        run: |
+          npm ci
+          npm run build
+
+      # Each check runs even if the one before it failed, so one run reports
+      # on all three. The job is red if any of them is.
+      - name: Run every lab in the browser
+        id: labs
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          set -o pipefail
+          mkdir -p compat
+          python3 tools/check_labs_browser.py --browser "$BROWSER" --require \
+            --json "compat/labs-browser-$BROWSER.json" | tee "compat/labs-browser-$BROWSER.txt"
+
+      - name: Accessibility, static pages
+        id: a11y_static
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          set -o pipefail
+          mkdir -p compat
+          python3 tools/check_a11y.py --browser "$BROWSER" --require \
+            | tee "compat/a11y-static-$BROWSER.txt"
+
+      - name: Accessibility, built site
+        id: a11y_app
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          set -o pipefail
+          mkdir -p compat
+          python3 tools/check_a11y.py --app --browser "$BROWSER" --require \
+            | tee "compat/a11y-app-$BROWSER.txt"
+
+      - name: Show what each check said
+        if: ${{ !cancelled() }}
+        env:
+          LABS: ${{ steps.labs.outcome }}
+          A11Y_STATIC: ${{ steps.a11y_static.outcome }}
+          A11Y_APP: ${{ steps.a11y_app.outcome }}
+        run: |
+          {
+            echo "## $BROWSER at $GITHUB_SHA"
+            echo
+            echo "| Check | Result |"
+            echo "|---|---|"
+            echo "| Labs run in the browser | $LABS |"
+            echo "| Accessibility, static pages | $A11Y_STATIC |"
+            echo "| Accessibility, built site | $A11Y_APP |"
+            for f in compat/*.txt; do
+              [ -f "$f" ] || continue
+              echo
+              echo "### $(basename "$f")"
+              echo
+              echo '```'
+              tail -n 60 "$f"
+              echo '```'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the output
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: browser-compat-${{ matrix.browser }}
+          path: compat/
+          if-no-files-found: warn

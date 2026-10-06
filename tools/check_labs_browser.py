@@ -25,6 +25,10 @@ Usage:
     python3 tools/check_labs_browser.py --require  exit 1 instead of skipping
                                                    when the tooling is absent
     python3 tools/check_labs_browser.py --json F   also write the results to F
+    python3 tools/check_labs_browser.py --browser firefox
+                                                   use Firefox or webkit in
+                                                   place of Chromium, which
+                                                   is the default
 
 Needs playwright (see the install commands at the top of tools/check_a11y.py)
 and, without --base, `npm run build` in app/ first. The page downloads the
@@ -32,8 +36,10 @@ Python runtime from the CDN named in assets/course.js, so the machine needs
 network access to it; a run with no network fails every lab, which is the
 truth about that run.
 
-What this does not cover: any browser but the Chromium that Playwright
-installs, and a slow or metered connection.
+What this does not cover: any browser but the one a run names, and a slow or
+metered connection. Playwright's Firefox and WebKit are its own builds of
+those engines. A pass in WebKit is evidence about the engine Safari uses. It
+is not a test of Safari.
 """
 import functools
 import http.server
@@ -47,6 +53,17 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 DIST = ROOT / "app" / "dist"
 COURSE_JS = ROOT / "assets" / "course.js"
 PER_LAB_SECONDS = 240
+# The engines Playwright can drive, and the name each is reported under.
+BROWSERS = {"chromium": "Chromium", "firefox": "Firefox", "webkit": "WebKit"}
+
+
+def chosen_browser(args):
+    """The engine named after --browser, or chromium. None if the name is unknown."""
+    if "--browser" not in args:
+        return "chromium"
+    at = args.index("--browser") + 1
+    name = args[at] if at < len(args) else ""
+    return name if name in BROWSERS else None
 
 
 def serve(directory):
@@ -84,13 +101,22 @@ def lessons():
     return out
 
 
-def run(base, on_context=None):
-    """Press every button. Returns (rows, browser_version)."""
+def run(base, on_context=None, engine="chromium"):
+    """Press every button. Returns (rows, browser_version).
+
+    browser_version is None when Playwright has no build of that engine
+    installed, and then rows is empty.
+    """
     from playwright.sync_api import sync_playwright
     skip = not_in_browser()
     rows = []
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch()
+        try:
+            browser = getattr(playwright, engine).launch()
+        except Exception as error:
+            if "Executable doesn't exist" in str(error):
+                return [], None
+            raise
         version = browser.version
         context = browser.new_context(viewport={"width": 1280, "height": 900})
         if on_context:
@@ -154,6 +180,10 @@ def main():
     require = "--require" in args
     base = args[args.index("--base") + 1] if "--base" in args else None
     out = args[args.index("--json") + 1] if "--json" in args else None
+    engine = chosen_browser(args)
+    if engine is None:
+        print("check_labs_browser: --browser takes one of %s" % ", ".join(BROWSERS))
+        return 2
     try:
         import playwright  # noqa: F401
     except ImportError:
@@ -170,16 +200,21 @@ def main():
         where = "app/dist"
     else:
         where = base
-    rows, browser_version = run(base)
+    rows, browser_version = run(base, engine=engine)
     if server:
         server.shutdown()
+    if browser_version is None:
+        print("check_labs_browser: Playwright has no %s installed, skipped. "
+              "Run python3 -m playwright install %s" % (BROWSERS[engine], engine))
+        return 1 if require else 0
+    browser_name = "%s %s" % (BROWSERS[engine], browser_version)
 
     ran = [r for r in rows if r["result"] == "ran"]
     off = [r for r in rows if r["result"] == "not offered"]
     bad = [r for r in rows if r["result"] == "failed"]
     print("check_labs_browser")
     print("  site                        %s" % where)
-    print("  browser                     Chromium %s" % browser_version)
+    print("  browser                     %s" % browser_name)
     print("  Python runtime              Pyodide %s" % runtime_version())
     print("  lessons                     %d" % len(rows))
     print("  ran and matched             %d" % len(ran))
@@ -191,7 +226,7 @@ def main():
         print("  FAILED: %s (%s): %s" % (row["lab"], row["lesson"], row["detail"]))
     if out:
         pathlib.Path(out).write_text(json.dumps({
-            "site": where, "browser": "Chromium " + browser_version,
+            "site": where, "browser": browser_name,
             "runtime": "Pyodide " + runtime_version(), "lessons": len(rows),
             "ran": len(ran), "not_offered": len(off), "failed": len(bad),
             "rows": rows}, indent=2) + "\n", encoding="utf-8")

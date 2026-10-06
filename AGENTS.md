@@ -33,11 +33,12 @@ These do not change:
 | `data/severity-rubric-summary.json` | Authored, not generated. The short explanation of what a severity means that readers see on the checklist page. `tools/build_checklist.py` and `app/src/Checklist.jsx` both read it. The full rubric is in `CONVENTIONS.md`. |
 | `tools/check_site.py` | Links, anchors, dashes, secrets, checklist freshness. Skips `react-poc/`. |
 | `tools/build_coverage.py` | Regenerates `coverage/index.html` and `content/coverage.json`. Which lessons cite an entry is read from the lesson pages, not written in the tool. `--check` exits 1 if either file is stale, if an entry is cited by no lesson and has no stated reason, or if a lesson cites an entry or mentions a topic the page says is not covered. |
-| `tools/check_a11y.py` | axe-core against every page, light and dark, desktop and mobile. Author tool. Skips cleanly if not installed. With `--app` it serves `app/dist` on 127.0.0.1 and checks the React build, which is what the hosted site serves; that mode exits 1 if `app/dist` is missing. In that mode it stores the matching theme before each page loads and emulates the same system setting, so each mode tests the theme a reader who chose it gets. A stored choice wins over the system setting on the build. |
-| `tools/check_labs_browser.py` | Presses "Run this lab in your browser" on every lesson of `app/dist` (or of a served site, with `--base`). A lab must run and match its transcript, or be one `assets/course.js` lists in `NOT_IN_BROWSER`. Author tool: needs Playwright and network access to the Pyodide CDN. Skips cleanly without Playwright unless `--require` is given. |
+| `tools/check_a11y.py` | axe-core against every page, light and dark, desktop and mobile. Author tool. Skips cleanly if not installed. With `--app` it serves `app/dist` on 127.0.0.1 and checks the React build, which is what the hosted site serves; that mode exits 1 if `app/dist` is missing. In that mode it stores the matching theme before each page loads and emulates the same system setting, so each mode tests the theme a reader who chose it gets. A stored choice wins over the system setting on the build. `--browser firefox` or `--browser webkit` uses that engine in place of Chromium, which is the default. |
+| `tools/check_labs_browser.py` | Presses "Run this lab in your browser" on every lesson of `app/dist` (or of a served site, with `--base`). A lab must run and match its transcript, or be one `assets/course.js` lists in `NOT_IN_BROWSER`. Author tool: needs Playwright and network access to the Pyodide CDN. Skips cleanly without Playwright unless `--require` is given. `--browser firefox` or `--browser webkit` uses that engine in place of Chromium, which is the default. |
 | `tools/release_evidence.py` | Release tool. Runs every check with nothing allowed to skip and writes `evidence/evidence.json` and `evidence/evidence.md`: the commit, the system, the versions, the counts and what each check said. `evidence/` is not tracked. The record describes one run, not a certification. |
 | `tools/requirements-ci.txt`, `tools/requirements-release.txt` | The Python packages the two workflows install, each pinned by version and by the hash of every Linux wheel PyPI publishes for it. Regenerate both from PyPI's file list when a pinned version changes; never add a hash by hand from anywhere else. |
 | `.github/workflows/pages.yml`, `.github/workflows/release.yml` | Publishing on every push to `main`, and the release gate on a `v` tag. Changing either is a stop-and-ask item. See Decisions, 2026-10-05. |
+| `.github/workflows/browser-compat.yml` | Started by hand only. Runs the lab check and both accessibility checks in Firefox and in WebKit. Nothing depends on it and it is not part of the release gate. Changing it, or making it a gate, is a stop-and-ask item. See Decisions, 2026-10-06. |
 | `tools/extract_lessons.py` | Extracts the published pages into `content/` as structured JSON. `--check` rebuilds each page from its record, compares it byte for byte, checks the lesson numbering against `index.html`, and exits 1 if `content/` is stale. |
 | `tools/render_site.py` | Renders the lesson pages from `content/` through `tools/page_template.tmpl`. Compares by default; `--write` overwrites the pages. |
 | `tools/check_transcripts.py` | Runs every lab whose output is published and compares it to the page byte for byte. Reports a lab that needs a missing package as skipped, not failed. Also flags a lab command written in any form other than `python3 labs/<lab>.py`. |
@@ -93,6 +94,29 @@ These apply to every change. If a task seems to require breaking one, stop and a
 Recorded so a later session does not reopen them by accident. Change one only
 when the reason it gives has stopped being true, and say so in the commit.
 
+- **2026-10-06, Firefox and WebKit can be tested by hand, and are not a
+  gate.** Owner decision. v1.0.0 was tested in Chromium only and says so.
+  `tools/check_labs_browser.py` and `tools/check_a11y.py` take
+  `--browser chromium`, `firefox` or `webkit`; Chromium stays the default,
+  so every existing command and both existing workflows run as they did.
+  `.github/workflows/browser-compat.yml` runs the three browser checks in
+  Firefox and in WebKit when someone starts it, on GitHub's runners, which
+  can reach the CDN the Python runtime loads from. It never runs on a push
+  or a tag and nothing depends on it. It was not made part of the release
+  gate, on purpose: decide that from results. Both engines clean and quick,
+  consider adding them to the release evidence. Clean but slow, keep it on
+  demand. A failure in one engine, find out whether it is a fault in the
+  course, a difference in the Python runtime, or a quirk of Playwright's
+  build before deciding anything. Do not make a third-party CDN a release
+  blocker only to claim three browsers. The lab run is the more valuable of
+  the checks, because it loads the runtime and a package, presses the real
+  button and compares the output. For accessibility the rule is "no
+  violations" in each engine, not the same axe internals in each.
+  Playwright's WebKit is its own build of the engine: a pass there is not a
+  test of Safari. The workflow was not run before it was committed, and
+  neither tool was run in Firefox or WebKit before it was committed, because
+  the machine it was written on has only Chromium. The first run on GitHub
+  is the first test of both.
 - **2026-10-06, the severity summary readers see has one source.** After
   v1.0.0 the two paragraphs on the checklist page that say what a severity
   means were written twice, in `tools/build_checklist.py` for the static page
