@@ -31,7 +31,7 @@ Each page has two layers, in this order.
 
 ## Severity rubric
 
-Version 3.1, frozen 2026-10-05. Every checklist item's default severity comes from this rubric. Rate a new item with it before the item is published. Do not change the rubric to fit one item: a change to the rubric means every item is rated again.
+Version 3.1, frozen 2026-10-05. Every checklist item's default severity comes from this rubric. Rate a new item with it before the item is published. Do not change the rubric to fit one item: a change to the rubric means every item is rated again. The short form readers see on the checklist page is `data/severity-rubric-summary.json`. When the version here changes, update that file and its `rubric_version`; `tools/build_checklist.py` fails until the two agree.
 
 The default answers one question: what is the consequence of losing the security decision or property this item itself provides, giving no credit to any other independent control that makes the same decision or provides the same property?
 

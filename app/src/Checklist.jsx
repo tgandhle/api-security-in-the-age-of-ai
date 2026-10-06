@@ -1,3 +1,9 @@
+import { Fragment } from "react";
+
+// What a severity means. One authored file, which tools/build_checklist.py
+// reads too, so this page and the static page cannot say different things.
+import summary from "../../data/severity-rubric-summary.json";
+
 const ORDER = { Critical: 0, High: 1, Medium: 2 };
 
 // Built from the same data tools/build_checklist.py reads, and laid out the
@@ -22,33 +28,18 @@ export default function Checklist({ lessons, up }) {
         Generated from the reference section of each lesson. {items.length} items,
         sorted by severity. Ticks are not saved.
       </p>
-      {/* The next two paragraphs repeat the ones tools/build_checklist.py
-          writes on the static page. Change both together. */}
       <p className="prose meta">
-        Each item carries a default severity: Critical, High or Medium. The
-        default answers one question: what does losing this one control allow,
-        with no credit for any other control that makes the same decision?{" "}
-        <strong>Critical:</strong> one request, or one piece of content an
-        attacker supplies, directly reads or changes another party's data,
-        takes over an identity or a credential, runs code or reaches a network
-        it should not, or causes a consequential action nobody authorized.{" "}
-        <strong>High:</strong> the same outcome needs exactly one thing first
-        (a stolen credential, a position on the network path or inside the
-        deployment, a victim's action, a trusted party, or an ordinary fault),
-        or needs only repeated attempts, or the missing control allows
-        unbounded cost or loss of availability. <strong>Medium:</strong>{" "}
-        anything lower that still has a security effect. An item that detects
-        or recovers is High when no other item does that job for a
-        Critical-class event, and Medium otherwise. A test, review or record is
-        rated one level below the control it assures. The full rubric is in{" "}
-        <code>CONVENTIONS.md</code> in the repository.
+        {summary.question}{" "}
+        {summary.levels.map((level) => (
+          <Fragment key={level.name}>
+            <strong>{level.name}:</strong> {level.rule}{" "}
+          </Fragment>
+        ))}
+        {summary.detecting_recovering} {summary.assuring}{" "}
+        {summary.full_rubric.before} <code>{summary.full_rubric.file}</code>{" "}
+        {summary.full_rubric.after}
       </p>
-      <p className="prose meta">
-        The default is a starting point and not the severity of a finding. Rate
-        a finding in your own review by what the API exposes, who can reach it
-        and what else stands in the way. An item that does not apply to your
-        design is not a finding.
-      </p>
+      <p className="prose meta">{summary.not_a_finding}</p>
       <ul className="checks">
         {items.map(({ check, slug, source }) => (
           <li key={check.id}>
