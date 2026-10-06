@@ -34,7 +34,7 @@ Each page has two layers, in this order.
 - Every code sample and lab is run before publishing, and the page shows the real output.
 - An exercise's correct answer is the measured output of that variant of the lab, run before publishing, not a reading of the code. Do not write an exercise you have not run both ways.
 - Every exercise option carries a reason, published as `<li data-option="value">` inside one `<details class="exercise-answers">` in that exercise, so a reader with JavaScript off sees all of them and nothing is written twice. `tools/extract_lessons.py --check` requires exactly one correct option per exercise and a reason for every option offered.
-- An exercise names the checklist item it covers with `data-covers`. Never `data-check`: that attribute means "this element is a checklist item" to `tools/build_checklist.py` and to the extractor's audit.
+- An exercise names the checklist item it covers with `data-covers`. Never `data-check`: that attribute means "this element is a checklist item" to `tools/build_checklist.py` and to the extractor's audit. An exercise that teaches protocol or conformance behaviour with no checklist item carries no `data-covers`; three do (`cors-x2`, `cors-x3`, `a2a-x1`).
 - Fictional companies only, with the reserved `.example` domain.
 - Link a glossary term the first time a page uses it.
 - After editing any checklist item, run `python3 tools/build_checklist.py`.

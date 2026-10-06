@@ -272,7 +272,7 @@ all 71 lab checks passed</code></pre>
 </details>
 </article>
 
-<article class="exercise" data-exercise data-exercise-id="cors-x2" data-covers="cors-02">
+<article class="exercise" data-exercise data-exercise-id="cors-x2">
 <h3>2. The reflecting server sends a wildcard instead</h3>
 <div class="prose">
 <p>Someone reads that echoing the origin is unsafe and changes <code>reflecting_server</code> to stop echoing. In the pair it returns for <code>Access-Control-Allow-Origin</code>, replace <code>request_origin</code> with the string <code>"*"</code>. The <code>Access-Control-Allow-Credentials</code> pair stays <code>"true"</code>.</p>
@@ -295,7 +295,7 @@ all 71 lab checks passed</code></pre>
 </details>
 </article>
 
-<article class="exercise" data-exercise data-exercise-id="cors-x3" data-covers="cors-07">
+<article class="exercise" data-exercise data-exercise-id="cors-x3">
 <h3>3. The non-wildcard name rule is removed from the preflight</h3>
 <div class="prose">
 <p>In <code>preflight_fetch</code>, delete the whole <code>for name, _ in headers:</code> loop, the one that returns <code>is a non-wildcard name and was not listed</code>. The loop after it, over <code>unsafe_request_header_names(headers)</code>, stays.</p>
@@ -370,12 +370,10 @@ all 71 lab checks passed</code></pre>
 <p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
 <ul class="checks">
 <li data-check="cors-01" data-severity="Critical"><strong>The allowed origin is never taken from the request</strong> <span>Test a disallowed origin and a lookalike such as an allowed host with an extra suffix. Both must come back with no Access-Control-Allow-Origin header.</span></li>
-<li data-check="cors-02" data-severity="Critical"><strong>No credentialed response allows a wildcard origin</strong> <span>Access-Control-Allow-Origin cannot be * when credentials are included. Assert it on every endpoint that allows credentials, not just the ones you remember.</span></li>
 <li data-check="cors-03" data-severity="Critical"><strong>State-changing endpoints are protected independently of CORS</strong> <span>A safelisted cross-origin POST is sent with no preflight and the server does the work. Anti-forgery tokens and SameSite cookies are what stop it.</span></li>
 <li data-check="cors-04" data-severity="High"><strong>Origin comparison is on the serialised form</strong> <span>Byte for byte, no trailing slash, scheme and port included. Test the same host over http and with a trailing slash.</span></li>
 <li data-check="cors-05" data-severity="High"><strong>Vary: Origin is sent wherever the response depends on the origin</strong> <span>Otherwise a shared cache can serve one origin's allowed response to another.</span></li>
 <li data-check="cors-06" data-severity="High"><strong>The Origin header is never used as an authorisation decision</strong> <span>A non-browser client sets it freely. It is attacker input outside a browser.</span></li>
-<li data-check="cors-07" data-severity="Medium"><strong>Authorization is named in the preflight response</strong> <span>It is the one non-wildcard request-header name, so Access-Control-Allow-Headers: * does not cover it and neither does a cached * entry.</span></li>
 <li data-check="cors-08" data-severity="Medium"><strong>Access-Control-Max-Age is set deliberately and bounded</strong> <span>It defaults to 5 seconds and browsers clamp it. The value is how long a tightened policy keeps being ignored.</span></li>
 <li data-check="cors-09" data-severity="Medium"><strong>Preflight responses are asserted in tests, not confirmed by hand</strong> <span>Include a method the endpoint does not support, a request carrying Authorization, and a preflight answered with a redirect.</span></li>
 </ul>

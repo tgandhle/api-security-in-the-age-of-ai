@@ -262,7 +262,7 @@ all lab checks passed</code></pre>
 <p>Each exercise edits one place in <a href="../../labs/a2a_lab.py"><code>labs/a2a_lab.py</code></a> and asks what the run prints. The answers are the real output of each variant. One variant changes nothing, and its answer carries the measurement from a notification the lab does not send.</p>
 </div>
 
-<article class="exercise" data-exercise data-exercise-id="a2a-x1" data-covers="a2a-05">
+<article class="exercise" data-exercise data-exercise-id="a2a-x1">
 <h3>1. The canonical form stops sorting keys</h3>
 <div class="prose">
 <p>In <code>canonical</code>, delete <code>sort_keys=True,</code> from the <code>json.dumps</code> call. The signer and the verifier both call this function, so both change together.</p>
@@ -391,7 +391,6 @@ all lab checks passed</code></pre>
 <li data-check="a2a-02" data-severity="Critical"><strong>Credentials never travel inside a task conversation</strong> <span>Section 7.6.1 has agents receive credentials out of band unless an in-band mechanism was negotiated beforehand. With none negotiated, a request to deliver one in-band is a finding.</span></li>
 <li data-check="a2a-03" data-severity="Critical"><strong>Client-supplied webhook URLs are allowlisted and address-checked</strong> <span>A name check and an address check are different checks. The A2A documentation says servers should not POST blindly to any URL a client provides.</span></li>
 <li data-check="a2a-04" data-severity="Critical"><strong>Inbound notifications are verified on signature, freshness and task token</strong> <span>And on the task id: section 4.3.3 says clients MUST validate that it matches an expected task. And on an identifier, so a replay is handled once. The webhook URL should be treated as public.</span></li>
-<li data-check="a2a-05" data-severity="High"><strong>Card signing canonicalizes with JCS and excludes the signatures field</strong> <span>Both are stated in section 8. Including the field makes the card unverifiable rather than weakly signed.</span></li>
 <li data-check="a2a-06" data-severity="High"><strong>A card's interface URL is on the origin that served the card</strong> <span>Or the split is a recorded decision. A signature check alone does not catch an off-origin interface.</span></li>
 <li data-check="a2a-07" data-severity="High"><strong>Credentials your agent may obtain are a pre-agreed list</strong> <span>With the out-of-band path for each, so a mid-task request is matched rather than assessed on its wording.</span></li>
 <li data-check="a2a-08" data-severity="Medium"><strong>Declared skills are compared with the skills the endpoint answers</strong> <span>The undeclared one is the one with no review behind it.</span></li>
