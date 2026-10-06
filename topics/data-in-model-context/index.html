@@ -378,14 +378,14 @@ all lab checks passed</code></pre>
 <p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
 <ul class="checks">
 <li data-check="ctx-01" data-severity="Critical"><strong>No credential appears in any system prompt</strong> <span>The system prompt is part of the request payload and reaches every sink. OWASP says to externalize credentials to systems the model does not directly access.</span></li>
-<li data-check="ctx-02" data-severity="Critical"><strong>Prompt context is built from a per-task field allowlist</strong> <span>Not from a serialised record. A field that never entered the context cannot reach a log, a cache, a provider or the answer.</span></li>
+<li data-check="ctx-02" data-severity="High"><strong>Prompt context is built from a per-task field allowlist</strong> <span>Not from a serialised record. A field that never entered the context cannot reach a log, a cache, a provider or the answer.</span></li>
 <li data-check="ctx-03" data-severity="Critical"><strong>Responses are filtered by role before returning</strong> <span>Deny by default. The model repeats what it was given.</span></li>
-<li data-check="ctx-04" data-severity="High"><strong>The sinks a prompt reaches are enumerated</strong> <span>Request, logs, traces, caches, provider. Marked with which are yours and which have redaction before writing.</span></li>
+<li data-check="ctx-04" data-severity="Medium"><strong>The sinks a prompt reaches are enumerated</strong> <span>Request, logs, traces, caches, provider. Marked with which are yours and which have redaction before writing.</span></li>
 <li data-check="ctx-05" data-severity="High"><strong>Redaction patterns are validated and tested both ways</strong> <span>With a check digit where one exists, a true positive, a false positive and an alternative format per pattern.</span></li>
 <li data-check="ctx-06" data-severity="High"><strong>Prompt caching is treated as a data store</strong> <span>A cache that compares prompts stores prompts, with whatever was in them.</span></li>
-<li data-check="ctx-07" data-severity="Medium"><strong>Prompt and response logging is deliberate, with a retention period</strong> <span>On for a stated reason rather than because the SDK defaulted to it.</span></li>
+<li data-check="ctx-07" data-severity="High"><strong>Prompt and response logging is deliberate, with a retention period</strong> <span>On for a stated reason rather than because the SDK defaulted to it.</span></li>
 <li data-check="ctx-08" data-severity="Medium"><strong>Provider retention and training terms are recorded and dated</strong> <span>A contractual fact that changes, not a property of your code.</span></li>
-<li data-check="ctx-09" data-severity="Medium"><strong>No system prompt is load-bearing for a security decision</strong> <span>OWASP LLM08:2026: hidden context should not be considered a secret or solely relied upon as a security boundary, and privilege separation must not be delegated to the LLM.</span></li>
+<li data-check="ctx-09" data-severity="Critical"><strong>No system prompt is load-bearing for a security decision</strong> <span>OWASP LLM08:2026: hidden context should not be considered a secret or solely relied upon as a security boundary, and privilege separation must not be delegated to the LLM.</span></li>
 </ul>
 
 <h2>Sources</h2>

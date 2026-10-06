@@ -369,11 +369,11 @@ all 71 lab checks passed</code></pre>
 <h2>Review checklist items</h2>
 <p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
 <ul class="checks">
-<li data-check="cors-01" data-severity="Critical"><strong>The allowed origin is never taken from the request</strong> <span>Test a disallowed origin and a lookalike such as an allowed host with an extra suffix. Both must come back with no Access-Control-Allow-Origin header.</span></li>
-<li data-check="cors-03" data-severity="Critical"><strong>State-changing endpoints are protected independently of CORS</strong> <span>A safelisted cross-origin POST is sent with no preflight and the server does the work. Anti-forgery tokens and SameSite cookies are what stop it.</span></li>
-<li data-check="cors-04" data-severity="High"><strong>Origin comparison is on the serialised form</strong> <span>Byte for byte, no trailing slash, scheme and port included. Test the same host over http and with a trailing slash.</span></li>
-<li data-check="cors-05" data-severity="High"><strong>Vary: Origin is sent wherever the response depends on the origin</strong> <span>Otherwise a shared cache can serve one origin's allowed response to another.</span></li>
-<li data-check="cors-06" data-severity="High"><strong>The Origin header is never used as an authorisation decision</strong> <span>A non-browser client sets it freely. It is attacker input outside a browser.</span></li>
+<li data-check="cors-01" data-severity="High"><strong>The allowed origin is never taken from the request</strong> <span>Test a disallowed origin and a lookalike such as an allowed host with an extra suffix. Both must come back with no Access-Control-Allow-Origin header.</span></li>
+<li data-check="cors-03" data-severity="High"><strong>State-changing endpoints are protected independently of CORS</strong> <span>A safelisted cross-origin POST is sent with no preflight and the server does the work. Anti-forgery tokens and SameSite cookies are what stop it.</span></li>
+<li data-check="cors-04" data-severity="Medium"><strong>Origin comparison is on the serialised form</strong> <span>Byte for byte, no trailing slash, scheme and port included. Test the same host over http and with a trailing slash.</span></li>
+<li data-check="cors-05" data-severity="Medium"><strong>Vary: Origin is sent wherever the response depends on the origin</strong> <span>Otherwise a shared cache can serve one origin's allowed response to another.</span></li>
+<li data-check="cors-06" data-severity="Critical"><strong>The Origin header is never used as an authorisation decision</strong> <span>A non-browser client sets it freely. It is attacker input outside a browser.</span></li>
 <li data-check="cors-08" data-severity="Medium"><strong>Access-Control-Max-Age is set deliberately and bounded</strong> <span>It defaults to 5 seconds and browsers clamp it. The value is how long a tightened policy keeps being ignored.</span></li>
 <li data-check="cors-09" data-severity="Medium"><strong>Preflight responses are asserted in tests, not confirmed by hand</strong> <span>Include a method the endpoint does not support, a request carrying Authorization, and a preflight answered with a redirect.</span></li>
 </ul>

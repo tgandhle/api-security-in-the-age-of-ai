@@ -342,11 +342,11 @@ all lab checks passed</code></pre>
 <p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
 <ul class="checks">
 <li data-check="ctr-01" data-severity="Critical"><strong>Repeated names are rejected, not resolved</strong> <span>Test a body with one name twice. Any silent resolution is a resolution another parser makes differently.</span></li>
-<li data-check="ctr-02" data-severity="Critical"><strong>Limits run before the parser</strong> <span>Size, decoded size and nesting depth. A schema runs on an object, and these inputs cost you while the object is built, or stop it existing.</span></li>
-<li data-check="ctr-03" data-severity="Critical"><strong>Decoded size is bounded during decompression</strong> <span>Measured on the bytes produced, with the decoder stopped at the limit. A limit on the bytes received is not this.</span></li>
-<li data-check="ctr-04" data-severity="High"><strong>The parser refuses NaN and Infinity</strong> <span>Neither is valid JSON. Python's json module accepts them by default. Check your library's default and use its strict setting.</span></li>
-<li data-check="ctr-05" data-severity="High"><strong>Every numeric field has an explicit range</strong> <span>The grammar bounds neither magnitude nor digit count. Test a value that becomes infinity.</span></li>
-<li data-check="ctr-06" data-severity="High"><strong>Either one component parses the request, or they demonstrably agree</strong> <span>Gateway and service, validator and handler, or two languages. Test the same body through each.</span></li>
+<li data-check="ctr-02" data-severity="High"><strong>Limits run before the parser</strong> <span>Size, decoded size and nesting depth. A schema runs on an object, and these inputs cost you while the object is built, or stop it existing.</span></li>
+<li data-check="ctr-03" data-severity="High"><strong>Decoded size is bounded during decompression</strong> <span>Measured on the bytes produced, with the decoder stopped at the limit. A limit on the bytes received is not this.</span></li>
+<li data-check="ctr-04" data-severity="Medium"><strong>The parser refuses NaN and Infinity</strong> <span>Neither is valid JSON. Python's json module accepts them by default. Check your library's default and use its strict setting.</span></li>
+<li data-check="ctr-05" data-severity="Critical"><strong>Every numeric field has an explicit range</strong> <span>The grammar bounds neither magnitude nor digit count. Test a value that becomes infinity.</span></li>
+<li data-check="ctr-06" data-severity="Critical"><strong>Either one component parses the request, or they demonstrably agree</strong> <span>Gateway and service, validator and handler, or two languages. Test the same body through each.</span></li>
 <li data-check="ctr-07" data-severity="Medium"><strong>String and array fields have per-field maximum lengths</strong> <span>A single global limit sized for the largest field is no limit for the rest.</span></li>
 <li data-check="ctr-08" data-severity="Medium"><strong>Rejections name the rule and do not echo the value</strong> <span>One status, one error shape, no attacker-controlled bytes in logs or responses.</span></li>
 </ul>

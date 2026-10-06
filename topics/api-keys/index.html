@@ -240,7 +240,7 @@ all lab checks passed</code></pre>
 <p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
 <ul class="checks">
 <li data-check="api-keys-01" data-severity="High"><strong>Credentials stay out of URLs and telemetry</strong> <span>Reject query credentials and test every logging layer with generated test values, including failure paths.</span></li>
-<li data-check="api-keys-02" data-severity="High"><strong>Exposed keys can be revoked everywhere</strong> <span>Measure the revocation bound across caches and confirm the old key fails while its replacement works.</span></li>
+<li data-check="api-keys-02" data-severity="Medium"><strong>Exposed keys can be revoked everywhere</strong> <span>Measure the revocation bound across caches and confirm the old key fails while its replacement works.</span></li>
 <li data-check="api-keys-03" data-severity="Critical"><strong>Key validation is followed by permission checks</strong> <span>Test denied actions and cross-caller resources with an otherwise valid credential.</span></li>
 <li data-check="api-keys-04" data-severity="High"><strong>Keys have secure generation, storage, ownership, and expiry</strong> <span>Keep separate records per caller and environment; the caller retrieves the secret from a secrets manager.</span></li>
 <li data-check="api-keys-05" data-severity="High"><strong>Transport and credential parsing are tested end to end</strong> <span>Require HTTPS, certificate validation, and consistent rejection of missing or ambiguous credentials.</span></li>

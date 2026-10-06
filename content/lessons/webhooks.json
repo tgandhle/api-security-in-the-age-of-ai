@@ -310,7 +310,7 @@
       "attrs": {
         "class": "checks"
       },
-      "html": "\n<ul class=\"checks\">\n<li data-check=\"hook-01\" data-severity=\"Critical\"><strong>The signature covers the timestamp as well as the body</strong> <span>Test a replay with the original timestamp and a replay with a fresh one. Both must be refused, for different reasons.</span></li>\n<li data-check=\"hook-02\" data-severity=\"Critical\"><strong>The covered timestamp is compared against a clock</strong> <span>Covering it and checking it are two separate lines. Test an event outside the window.</span></li>\n<li data-check=\"hook-03\" data-severity=\"Critical\"><strong>Event identifiers are claimed before processing, in a shared store</strong> <span>Test two concurrent copies against two instances, not two sequential requests.</span></li>\n<li data-check=\"hook-04\" data-severity=\"High\"><strong>A duplicate gets the same response as the original</strong> <span>RFC 8935 requires it. A different response breaks honest retries and reveals which identifiers exist.</span></li>\n<li data-check=\"hook-05\" data-severity=\"High\"><strong>Size limits and parsing limits apply before the signature check</strong> <span>The endpoint is unauthenticated until the signature verifies, so the parser meets attacker input first.</span></li>\n<li data-check=\"hook-06\" data-severity=\"High\"><strong>One secret per sender, rotatable with an overlap</strong> <span>A shared secret lets any sender forge as another.</span></li>\n<li data-check=\"hook-07\" data-severity=\"Medium\"><strong>Handlers tolerate out-of-order delivery</strong> <span>Or the design states why order is guaranteed. Delivery is at least once and unordered.</span></li>\n<li data-check=\"hook-08\" data-severity=\"Medium\"><strong>The endpoint URL is not treated as a secret</strong> <span>And the event contents are treated as untrusted input, including any URL inside them.</span></li>\n</ul>"
+      "html": "\n<ul class=\"checks\">\n<li data-check=\"hook-01\" data-severity=\"High\"><strong>The signature covers the timestamp as well as the body</strong> <span>Test a replay with the original timestamp and a replay with a fresh one. Both must be refused, for different reasons.</span></li>\n<li data-check=\"hook-02\" data-severity=\"High\"><strong>The covered timestamp is compared against a clock</strong> <span>Covering it and checking it are two separate lines. Test an event outside the window.</span></li>\n<li data-check=\"hook-03\" data-severity=\"High\"><strong>Event identifiers are claimed before processing, in a shared store</strong> <span>Test two concurrent copies against two instances, not two sequential requests.</span></li>\n<li data-check=\"hook-04\" data-severity=\"Medium\"><strong>A duplicate gets the same response as the original</strong> <span>RFC 8935 requires it. A different response breaks honest retries and reveals which identifiers exist.</span></li>\n<li data-check=\"hook-05\" data-severity=\"High\"><strong>Size limits and parsing limits apply before the signature check</strong> <span>The endpoint is unauthenticated until the signature verifies, so the parser meets attacker input first.</span></li>\n<li data-check=\"hook-06\" data-severity=\"High\"><strong>One secret per sender, rotatable with an overlap</strong> <span>A shared secret lets any sender forge as another.</span></li>\n<li data-check=\"hook-07\" data-severity=\"Medium\"><strong>Handlers tolerate out-of-order delivery</strong> <span>Or the design states why order is guaranteed. Delivery is at least once and unordered.</span></li>\n<li data-check=\"hook-08\" data-severity=\"High\"><strong>The endpoint URL is not treated as a secret</strong> <span>And the event contents are treated as untrusted input, including any URL inside them.</span></li>\n</ul>"
     },
     {
       "tag": "h2",
@@ -399,7 +399,7 @@
     {
       "heading": "Review checklist items",
       "heading_text": "Review checklist items",
-      "html": "<p class=\"prose meta\">These are collected into the <a href=\"../../checklist/index.html\">site checklist</a>.</p>\n<ul class=\"checks\">\n<li data-check=\"hook-01\" data-severity=\"Critical\"><strong>The signature covers the timestamp as well as the body</strong> <span>Test a replay with the original timestamp and a replay with a fresh one. Both must be refused, for different reasons.</span></li>\n<li data-check=\"hook-02\" data-severity=\"Critical\"><strong>The covered timestamp is compared against a clock</strong> <span>Covering it and checking it are two separate lines. Test an event outside the window.</span></li>\n<li data-check=\"hook-03\" data-severity=\"Critical\"><strong>Event identifiers are claimed before processing, in a shared store</strong> <span>Test two concurrent copies against two instances, not two sequential requests.</span></li>\n<li data-check=\"hook-04\" data-severity=\"High\"><strong>A duplicate gets the same response as the original</strong> <span>RFC 8935 requires it. A different response breaks honest retries and reveals which identifiers exist.</span></li>\n<li data-check=\"hook-05\" data-severity=\"High\"><strong>Size limits and parsing limits apply before the signature check</strong> <span>The endpoint is unauthenticated until the signature verifies, so the parser meets attacker input first.</span></li>\n<li data-check=\"hook-06\" data-severity=\"High\"><strong>One secret per sender, rotatable with an overlap</strong> <span>A shared secret lets any sender forge as another.</span></li>\n<li data-check=\"hook-07\" data-severity=\"Medium\"><strong>Handlers tolerate out-of-order delivery</strong> <span>Or the design states why order is guaranteed. Delivery is at least once and unordered.</span></li>\n<li data-check=\"hook-08\" data-severity=\"Medium\"><strong>The endpoint URL is not treated as a secret</strong> <span>And the event contents are treated as untrusted input, including any URL inside them.</span></li>\n</ul>"
+      "html": "<p class=\"prose meta\">These are collected into the <a href=\"../../checklist/index.html\">site checklist</a>.</p>\n<ul class=\"checks\">\n<li data-check=\"hook-01\" data-severity=\"High\"><strong>The signature covers the timestamp as well as the body</strong> <span>Test a replay with the original timestamp and a replay with a fresh one. Both must be refused, for different reasons.</span></li>\n<li data-check=\"hook-02\" data-severity=\"High\"><strong>The covered timestamp is compared against a clock</strong> <span>Covering it and checking it are two separate lines. Test an event outside the window.</span></li>\n<li data-check=\"hook-03\" data-severity=\"High\"><strong>Event identifiers are claimed before processing, in a shared store</strong> <span>Test two concurrent copies against two instances, not two sequential requests.</span></li>\n<li data-check=\"hook-04\" data-severity=\"Medium\"><strong>A duplicate gets the same response as the original</strong> <span>RFC 8935 requires it. A different response breaks honest retries and reveals which identifiers exist.</span></li>\n<li data-check=\"hook-05\" data-severity=\"High\"><strong>Size limits and parsing limits apply before the signature check</strong> <span>The endpoint is unauthenticated until the signature verifies, so the parser meets attacker input first.</span></li>\n<li data-check=\"hook-06\" data-severity=\"High\"><strong>One secret per sender, rotatable with an overlap</strong> <span>A shared secret lets any sender forge as another.</span></li>\n<li data-check=\"hook-07\" data-severity=\"Medium\"><strong>Handlers tolerate out-of-order delivery</strong> <span>Or the design states why order is guaranteed. Delivery is at least once and unordered.</span></li>\n<li data-check=\"hook-08\" data-severity=\"High\"><strong>The endpoint URL is not treated as a secret</strong> <span>And the event contents are treated as untrusted input, including any URL inside them.</span></li>\n</ul>"
     },
     {
       "heading": "Sources",
@@ -474,25 +474,25 @@
   "checks": [
     {
       "id": "hook-01",
-      "severity": "Critical",
+      "severity": "High",
       "title": "The signature covers the timestamp as well as the body",
       "detail": "Test a replay with the original timestamp and a replay with a fresh one. Both must be refused, for different reasons."
     },
     {
       "id": "hook-02",
-      "severity": "Critical",
+      "severity": "High",
       "title": "The covered timestamp is compared against a clock",
       "detail": "Covering it and checking it are two separate lines. Test an event outside the window."
     },
     {
       "id": "hook-03",
-      "severity": "Critical",
+      "severity": "High",
       "title": "Event identifiers are claimed before processing, in a shared store",
       "detail": "Test two concurrent copies against two instances, not two sequential requests."
     },
     {
       "id": "hook-04",
-      "severity": "High",
+      "severity": "Medium",
       "title": "A duplicate gets the same response as the original",
       "detail": "RFC 8935 requires it. A different response breaks honest retries and reveals which identifiers exist."
     },
@@ -516,7 +516,7 @@
     },
     {
       "id": "hook-08",
-      "severity": "Medium",
+      "severity": "High",
       "title": "The endpoint URL is not treated as a secret",
       "detail": "And the event contents are treated as untrusted input, including any URL inside them."
     }

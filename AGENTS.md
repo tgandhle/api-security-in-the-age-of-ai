@@ -82,6 +82,7 @@ These apply to every change. If a task seems to require breaking one, stop and a
 - Reopening any entry under Decisions below.
 - Deleting or renaming any file.
 - Changing the page template structure or the claim-label scheme.
+- Changing the severity rubric in `CONVENTIONS.md`. A change means every checklist item is rated again.
 - Any git history rewrite or force push.
 - Adding CI configuration.
 - Publishing claims about a spec you could not open and read.
@@ -91,6 +92,33 @@ These apply to every change. If a task seems to require breaking one, stop and a
 Recorded so a later session does not reopen them by accident. Change one only
 when the reason it gives has stopped being true, and say so in the commit.
 
+- **2026-10-05, checklist severities come from a written rubric, and three
+  items were removed.** Owner decision after an outside review said the
+  levels had no stated method. The rubric is in `CONVENTIONS.md`, version
+  3.1. Every item was rated again against it by two raters who could not see
+  the published levels, in three runs. Run 1 used a model in which every
+  other control was assumed present; it failed the 85% agreement bar on
+  severity (81.7%) and rated a control lower the more layers the course
+  taught around it, so it was dropped. Run 2 assumed no other control stops
+  the same attack; it passed (93.3%) but let one restated clause, or a
+  supporting layer, take the rating of a boundary control. Run 3 rates the
+  decision or property the item itself provides; it passed (class agreement
+  98.2%, severity agreement 92.4%) and was frozen with one amendment, the
+  explicit-scope rule. Of the 328 items, 295 took the level both run 3
+  raters gave, 27 were adjudicated in writing, 3 followed from the amendment
+  (`gw-01`, `fnd-05`, `gw-02`), and 3 were set by the owner against the
+  raters or the adjudication (`life-04`, `apv-08`, `hook-07`). Three items
+  were found to have no security effect and were removed from the checklist
+  (`cors-02`, `cors-07`, `a2a-05`); their lessons still teach them and their
+  ids are not reused. The checklist went from 116 Critical, 137 High and 75
+  Medium to 68, 165 and 92, 325 items. Limits to state whenever this is
+  cited: both raters in every run were the same language model, so the
+  agreement figures overstate what independent human reviewers would reach;
+  the owner reviewed a 33-item sample between runs 2 and 3, not all 325. The
+  class of each item (enforcing, detecting, recovering, assuring) is not
+  stored on the page. Rate a new item with the rubric before publishing it.
+  The labs in modules 8, 12 and 18 print severities for their own worked
+  findings; those are findings, not checklist defaults, and did not change.
 - **2026-10-05, one lab is not offered in the browser, and a lab whose
   `main()` returns nothing counts as exit 0.** Every lab was run through the
   button on the hosted site. Two did not report success. `contracts_lab.py`
@@ -341,7 +369,7 @@ Work on one module per task unless told otherwise.
    ```html
    <li data-check="jwt-01" data-severity="Critical"><strong>Title</strong> <span>Detail sentence.</span></li>
    ```
-   Severity is one of `Critical`, `High`, `Medium`.
+   Severity is one of `Critical`, `High`, `Medium`, and is set with the severity rubric in `CONVENTIONS.md`, not by feel.
 6. **Link the module** from `index.html`. Replace its `<span class="planned">` with a link.
 7. **Regenerate and verify:**
    ```sh

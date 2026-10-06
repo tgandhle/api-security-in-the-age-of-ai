@@ -322,7 +322,7 @@
       "attrs": {
         "class": "checks"
       },
-      "html": "\n<ul class=\"checks\">\n<li data-check=\"apv-01\" data-severity=\"Critical\"><strong>Approvals bind the parameters, not a proposal identifier</strong> <span>Otherwise the executor's second read of a mutable store decides what runs, and the approval is for an id that still exists.</span></li>\n<li data-check=\"apv-02\" data-severity=\"Critical\"><strong>Every field that changes the outcome is inside the coverage</strong> <span>Proven by changing each field in turn and confirming the approval stops verifying. The destination is the one most often left out.</span></li>\n<li data-check=\"apv-03\" data-severity=\"Critical\"><strong>The approver's summary is derived from the covered fields</strong> <span>A summary built separately can stay identical while a field outside it changes where the money goes.</span></li>\n<li data-check=\"apv-04\" data-severity=\"High\"><strong>Approvals are single use</strong> <span>A nonce spent on execution. An approved action happens once.</span></li>\n<li data-check=\"apv-05\" data-severity=\"High\"><strong>Approvals expire</strong> <span>Short enough that the approval does not outlive the context that justified it.</span></li>\n<li data-check=\"apv-06\" data-severity=\"High\"><strong>Downstream services authorize independently of the approval</strong> <span>OWASP LLM03:2026 says not to rely on an LLM to decide if an action is allowed. An approval records that a human agreed, not that the caller is entitled.</span></li>\n<li data-check=\"apv-07\" data-severity=\"Medium\"><strong>Session-wide approvals are recorded with the fields they constrain</strong> <span>Zero is a legitimate answer and a legitimate finding.</span></li>\n<li data-check=\"apv-08\" data-severity=\"Medium\"><strong>The list of actions requiring approval is written down</strong> <span>Derived from what each action does rather than from how often it happens.</span></li>\n<li data-check=\"apv-09\" data-severity=\"Medium\"><strong>Approved and executed parameters are both logged</strong> <span>So an incident can answer whether they were the same without rebuilding the state.</span></li>\n</ul>"
+      "html": "\n<ul class=\"checks\">\n<li data-check=\"apv-01\" data-severity=\"High\"><strong>Approvals bind the parameters, not a proposal identifier</strong> <span>Otherwise the executor's second read of a mutable store decides what runs, and the approval is for an id that still exists.</span></li>\n<li data-check=\"apv-02\" data-severity=\"High\"><strong>Every field that changes the outcome is inside the coverage</strong> <span>Proven by changing each field in turn and confirming the approval stops verifying. The destination is the one most often left out.</span></li>\n<li data-check=\"apv-03\" data-severity=\"High\"><strong>The approver's summary is derived from the covered fields</strong> <span>A summary built separately can stay identical while a field outside it changes where the money goes.</span></li>\n<li data-check=\"apv-04\" data-severity=\"High\"><strong>Approvals are single use</strong> <span>A nonce spent on execution. An approved action happens once.</span></li>\n<li data-check=\"apv-05\" data-severity=\"High\"><strong>Approvals expire</strong> <span>Short enough that the approval does not outlive the context that justified it.</span></li>\n<li data-check=\"apv-06\" data-severity=\"Critical\"><strong>Downstream services authorize independently of the approval</strong> <span>OWASP LLM03:2026 says not to rely on an LLM to decide if an action is allowed. An approval records that a human agreed, not that the caller is entitled.</span></li>\n<li data-check=\"apv-07\" data-severity=\"Medium\"><strong>Session-wide approvals are recorded with the fields they constrain</strong> <span>Zero is a legitimate answer and a legitimate finding.</span></li>\n<li data-check=\"apv-08\" data-severity=\"High\"><strong>The list of actions requiring approval is written down</strong> <span>Derived from what each action does rather than from how often it happens.</span></li>\n<li data-check=\"apv-09\" data-severity=\"High\"><strong>Approved and executed parameters are both logged</strong> <span>So an incident can answer whether they were the same without rebuilding the state.</span></li>\n</ul>"
     },
     {
       "tag": "h2",
@@ -411,7 +411,7 @@
     {
       "heading": "Review checklist items",
       "heading_text": "Review checklist items",
-      "html": "<p class=\"prose meta\">These are collected into the <a href=\"../../checklist/index.html\">site checklist</a>.</p>\n<ul class=\"checks\">\n<li data-check=\"apv-01\" data-severity=\"Critical\"><strong>Approvals bind the parameters, not a proposal identifier</strong> <span>Otherwise the executor's second read of a mutable store decides what runs, and the approval is for an id that still exists.</span></li>\n<li data-check=\"apv-02\" data-severity=\"Critical\"><strong>Every field that changes the outcome is inside the coverage</strong> <span>Proven by changing each field in turn and confirming the approval stops verifying. The destination is the one most often left out.</span></li>\n<li data-check=\"apv-03\" data-severity=\"Critical\"><strong>The approver's summary is derived from the covered fields</strong> <span>A summary built separately can stay identical while a field outside it changes where the money goes.</span></li>\n<li data-check=\"apv-04\" data-severity=\"High\"><strong>Approvals are single use</strong> <span>A nonce spent on execution. An approved action happens once.</span></li>\n<li data-check=\"apv-05\" data-severity=\"High\"><strong>Approvals expire</strong> <span>Short enough that the approval does not outlive the context that justified it.</span></li>\n<li data-check=\"apv-06\" data-severity=\"High\"><strong>Downstream services authorize independently of the approval</strong> <span>OWASP LLM03:2026 says not to rely on an LLM to decide if an action is allowed. An approval records that a human agreed, not that the caller is entitled.</span></li>\n<li data-check=\"apv-07\" data-severity=\"Medium\"><strong>Session-wide approvals are recorded with the fields they constrain</strong> <span>Zero is a legitimate answer and a legitimate finding.</span></li>\n<li data-check=\"apv-08\" data-severity=\"Medium\"><strong>The list of actions requiring approval is written down</strong> <span>Derived from what each action does rather than from how often it happens.</span></li>\n<li data-check=\"apv-09\" data-severity=\"Medium\"><strong>Approved and executed parameters are both logged</strong> <span>So an incident can answer whether they were the same without rebuilding the state.</span></li>\n</ul>"
+      "html": "<p class=\"prose meta\">These are collected into the <a href=\"../../checklist/index.html\">site checklist</a>.</p>\n<ul class=\"checks\">\n<li data-check=\"apv-01\" data-severity=\"High\"><strong>Approvals bind the parameters, not a proposal identifier</strong> <span>Otherwise the executor's second read of a mutable store decides what runs, and the approval is for an id that still exists.</span></li>\n<li data-check=\"apv-02\" data-severity=\"High\"><strong>Every field that changes the outcome is inside the coverage</strong> <span>Proven by changing each field in turn and confirming the approval stops verifying. The destination is the one most often left out.</span></li>\n<li data-check=\"apv-03\" data-severity=\"High\"><strong>The approver's summary is derived from the covered fields</strong> <span>A summary built separately can stay identical while a field outside it changes where the money goes.</span></li>\n<li data-check=\"apv-04\" data-severity=\"High\"><strong>Approvals are single use</strong> <span>A nonce spent on execution. An approved action happens once.</span></li>\n<li data-check=\"apv-05\" data-severity=\"High\"><strong>Approvals expire</strong> <span>Short enough that the approval does not outlive the context that justified it.</span></li>\n<li data-check=\"apv-06\" data-severity=\"Critical\"><strong>Downstream services authorize independently of the approval</strong> <span>OWASP LLM03:2026 says not to rely on an LLM to decide if an action is allowed. An approval records that a human agreed, not that the caller is entitled.</span></li>\n<li data-check=\"apv-07\" data-severity=\"Medium\"><strong>Session-wide approvals are recorded with the fields they constrain</strong> <span>Zero is a legitimate answer and a legitimate finding.</span></li>\n<li data-check=\"apv-08\" data-severity=\"High\"><strong>The list of actions requiring approval is written down</strong> <span>Derived from what each action does rather than from how often it happens.</span></li>\n<li data-check=\"apv-09\" data-severity=\"High\"><strong>Approved and executed parameters are both logged</strong> <span>So an incident can answer whether they were the same without rebuilding the state.</span></li>\n</ul>"
     },
     {
       "heading": "Sources",
@@ -479,19 +479,19 @@
   "checks": [
     {
       "id": "apv-01",
-      "severity": "Critical",
+      "severity": "High",
       "title": "Approvals bind the parameters, not a proposal identifier",
       "detail": "Otherwise the executor's second read of a mutable store decides what runs, and the approval is for an id that still exists."
     },
     {
       "id": "apv-02",
-      "severity": "Critical",
+      "severity": "High",
       "title": "Every field that changes the outcome is inside the coverage",
       "detail": "Proven by changing each field in turn and confirming the approval stops verifying. The destination is the one most often left out."
     },
     {
       "id": "apv-03",
-      "severity": "Critical",
+      "severity": "High",
       "title": "The approver's summary is derived from the covered fields",
       "detail": "A summary built separately can stay identical while a field outside it changes where the money goes."
     },
@@ -509,7 +509,7 @@
     },
     {
       "id": "apv-06",
-      "severity": "High",
+      "severity": "Critical",
       "title": "Downstream services authorize independently of the approval",
       "detail": "OWASP LLM03:2026 says not to rely on an LLM to decide if an action is allowed. An approval records that a human agreed, not that the caller is entitled."
     },
@@ -521,13 +521,13 @@
     },
     {
       "id": "apv-08",
-      "severity": "Medium",
+      "severity": "High",
       "title": "The list of actions requiring approval is written down",
       "detail": "Derived from what each action does rather than from how often it happens."
     },
     {
       "id": "apv-09",
-      "severity": "Medium",
+      "severity": "High",
       "title": "Approved and executed parameters are both logged",
       "detail": "So an incident can answer whether they were the same without rebuilding the state."
     }

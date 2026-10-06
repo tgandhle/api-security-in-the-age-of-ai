@@ -424,15 +424,15 @@ all 63 lab checks passed</code></pre>
 <h2>Review checklist items</h2>
 <p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
 <ul class="checks">
-<li data-check="msc-01" data-severity="Critical"><strong>No model, adapter or dataset file from outside is loaded by a loader that can run code from the file</strong> <span>Production accepts data-only formats, and a pickle is refused at the gate or converted once inside a sandbox.</span></li>
-<li data-check="msc-02" data-severity="Critical"><strong>Every model, adapter and dataset is resolved by digest</strong> <span>No pipeline resolves a name or a tag at deploy time, and the pinned bytes are held in an internal store keyed by digest.</span></li>
+<li data-check="msc-01" data-severity="High"><strong>No model, adapter or dataset file from outside is loaded by a loader that can run code from the file</strong> <span>Production accepts data-only formats, and a pickle is refused at the gate or converted once inside a sandbox.</span></li>
+<li data-check="msc-02" data-severity="High"><strong>Every model, adapter and dataset is resolved by digest</strong> <span>No pipeline resolves a name or a tag at deploy time, and the pinned bytes are held in an internal store keyed by digest.</span></li>
 <li data-check="msc-03" data-severity="High"><strong>A signature over a manifest of every file is verified against one expected signer</strong> <span>A valid signature from any other identity is refused, and a changed, added or removed file fails verification.</span></li>
 <li data-check="msc-04" data-severity="High"><strong>Provenance is checked against expectations</strong> <span>The record is about this artifact's digest and names the expected builder and the expected source repository.</span></li>
-<li data-check="msc-05" data-severity="Critical"><strong>The gate judges the artifact that deploys</strong> <span>The output of an adapter, a merge, a conversion or quantization gets its own digest, signature, provenance and evaluation.</span></li>
+<li data-check="msc-05" data-severity="High"><strong>The gate judges the artifact that deploys</strong> <span>The output of an adapter, a merge, a conversion or quantization gets its own digest, signature, provenance and evaluation.</span></li>
 <li data-check="msc-06" data-severity="High"><strong>A behavioural evaluation runs before promotion and is not reported as proof</strong> <span>It covers the use cases in scope and adversarial cases, and scanners and safe-loading flags are counted as layers.</span></li>
 <li data-check="msc-07" data-severity="High"><strong>Every package is pinned with a version and a hash, from a curated index</strong> <span>The install runs in hash-checking mode, the hashes are in the requirements file, and an AI-suggested name is verified before it is added.</span></li>
-<li data-check="msc-08" data-severity="High"><strong>One inventory lists every model, adapter, dataset and package that is loaded</strong> <span>Each entry has a digest or version and a licence, and the list is compared with what is running.</span></li>
-<li data-check="msc-09" data-severity="Critical"><strong>The pipeline that builds and signs models is protected like production</strong> <span>No single person can change it and promote the result, and a signature from it is never the only check on a release.</span></li>
+<li data-check="msc-08" data-severity="Medium"><strong>One inventory lists every model, adapter, dataset and package that is loaded</strong> <span>Each entry has a digest or version and a licence, and the list is compared with what is running.</span></li>
+<li data-check="msc-09" data-severity="High"><strong>The pipeline that builds and signs models is protected like production</strong> <span>No single person can change it and promote the result, and a signature from it is never the only check on a release.</span></li>
 <li data-check="msc-10" data-severity="Medium"><strong>Supplier terms, privacy policies and licences are reviewed before adoption</strong> <span>The review is repeated when the supplier's terms or security posture change.</span></li>
 </ul>
 

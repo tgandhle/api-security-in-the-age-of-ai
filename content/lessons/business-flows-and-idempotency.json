@@ -334,7 +334,7 @@
       "attrs": {
         "class": "checks"
       },
-      "html": "\n<ul class=\"checks\">\n<li data-check=\"flow-01\" data-severity=\"Critical\"><strong>Every non-idempotent operation with a real effect accepts an idempotency key</strong> <span>Payments, credits, orders, messages, anything with a cost. Test that the same request twice applies once.</span></li>\n<li data-check=\"flow-02\" data-severity=\"Critical\"><strong>The key is reserved before the work, not recorded after it</strong> <span>Test two copies arriving before the first completes. The second is refused, not executed.</span></li>\n<li data-check=\"flow-03\" data-severity=\"Critical\"><strong>Sensitive business flows have a written rate and quantity limit</strong> <span>Produced by someone who knows what the flow costs, enforced across every endpoint that advances it, and proven by a test that ran past it.</span></li>\n<li data-check=\"flow-04\" data-severity=\"High\"><strong>Keys are bound to the payload and scoped to the caller</strong> <span>A changed payload is refused. A key from another caller is unrelated. Test both.</span></li>\n<li data-check=\"flow-05\" data-severity=\"High\"><strong>The stored response is replayed, including failures</strong> <span>Not recomputed. A failed operation replays as the failure it was.</span></li>\n<li data-check=\"flow-06\" data-severity=\"Medium\"><strong>Key retention is documented and matches the published retry schedule</strong> <span>After the retention window a retry is a new operation, so the two numbers have to agree.</span></li>\n<li data-check=\"flow-07\" data-severity=\"Medium\"><strong>The idempotency key is logged with each request</strong> <span>Repeats of one key and many distinct keys are different defects. Logging the key makes that a query.</span></li>\n</ul>"
+      "html": "\n<ul class=\"checks\">\n<li data-check=\"flow-01\" data-severity=\"High\"><strong>Every non-idempotent operation with a real effect accepts an idempotency key</strong> <span>Payments, credits, orders, messages, anything with a cost. Test that the same request twice applies once.</span></li>\n<li data-check=\"flow-02\" data-severity=\"High\"><strong>The key is reserved before the work, not recorded after it</strong> <span>Test two copies arriving before the first completes. The second is refused, not executed.</span></li>\n<li data-check=\"flow-03\" data-severity=\"High\"><strong>Sensitive business flows have a written rate and quantity limit</strong> <span>Produced by someone who knows what the flow costs, enforced across every endpoint that advances it, and proven by a test that ran past it.</span></li>\n<li data-check=\"flow-04\" data-severity=\"High\"><strong>Keys are bound to the payload and scoped to the caller</strong> <span>A changed payload is refused. A key from another caller is unrelated. Test both.</span></li>\n<li data-check=\"flow-05\" data-severity=\"Medium\"><strong>The stored response is replayed, including failures</strong> <span>Not recomputed. A failed operation replays as the failure it was.</span></li>\n<li data-check=\"flow-06\" data-severity=\"High\"><strong>Key retention is documented and matches the published retry schedule</strong> <span>After the retention window a retry is a new operation, so the two numbers have to agree.</span></li>\n<li data-check=\"flow-07\" data-severity=\"High\"><strong>The idempotency key is logged with each request</strong> <span>Repeats of one key and many distinct keys are different defects. Logging the key makes that a query.</span></li>\n</ul>"
     },
     {
       "tag": "h2",
@@ -423,7 +423,7 @@
     {
       "heading": "Review checklist items",
       "heading_text": "Review checklist items",
-      "html": "<p class=\"prose meta\">These are collected into the <a href=\"../../checklist/index.html\">site checklist</a>.</p>\n<ul class=\"checks\">\n<li data-check=\"flow-01\" data-severity=\"Critical\"><strong>Every non-idempotent operation with a real effect accepts an idempotency key</strong> <span>Payments, credits, orders, messages, anything with a cost. Test that the same request twice applies once.</span></li>\n<li data-check=\"flow-02\" data-severity=\"Critical\"><strong>The key is reserved before the work, not recorded after it</strong> <span>Test two copies arriving before the first completes. The second is refused, not executed.</span></li>\n<li data-check=\"flow-03\" data-severity=\"Critical\"><strong>Sensitive business flows have a written rate and quantity limit</strong> <span>Produced by someone who knows what the flow costs, enforced across every endpoint that advances it, and proven by a test that ran past it.</span></li>\n<li data-check=\"flow-04\" data-severity=\"High\"><strong>Keys are bound to the payload and scoped to the caller</strong> <span>A changed payload is refused. A key from another caller is unrelated. Test both.</span></li>\n<li data-check=\"flow-05\" data-severity=\"High\"><strong>The stored response is replayed, including failures</strong> <span>Not recomputed. A failed operation replays as the failure it was.</span></li>\n<li data-check=\"flow-06\" data-severity=\"Medium\"><strong>Key retention is documented and matches the published retry schedule</strong> <span>After the retention window a retry is a new operation, so the two numbers have to agree.</span></li>\n<li data-check=\"flow-07\" data-severity=\"Medium\"><strong>The idempotency key is logged with each request</strong> <span>Repeats of one key and many distinct keys are different defects. Logging the key makes that a query.</span></li>\n</ul>"
+      "html": "<p class=\"prose meta\">These are collected into the <a href=\"../../checklist/index.html\">site checklist</a>.</p>\n<ul class=\"checks\">\n<li data-check=\"flow-01\" data-severity=\"High\"><strong>Every non-idempotent operation with a real effect accepts an idempotency key</strong> <span>Payments, credits, orders, messages, anything with a cost. Test that the same request twice applies once.</span></li>\n<li data-check=\"flow-02\" data-severity=\"High\"><strong>The key is reserved before the work, not recorded after it</strong> <span>Test two copies arriving before the first completes. The second is refused, not executed.</span></li>\n<li data-check=\"flow-03\" data-severity=\"High\"><strong>Sensitive business flows have a written rate and quantity limit</strong> <span>Produced by someone who knows what the flow costs, enforced across every endpoint that advances it, and proven by a test that ran past it.</span></li>\n<li data-check=\"flow-04\" data-severity=\"High\"><strong>Keys are bound to the payload and scoped to the caller</strong> <span>A changed payload is refused. A key from another caller is unrelated. Test both.</span></li>\n<li data-check=\"flow-05\" data-severity=\"Medium\"><strong>The stored response is replayed, including failures</strong> <span>Not recomputed. A failed operation replays as the failure it was.</span></li>\n<li data-check=\"flow-06\" data-severity=\"High\"><strong>Key retention is documented and matches the published retry schedule</strong> <span>After the retention window a retry is a new operation, so the two numbers have to agree.</span></li>\n<li data-check=\"flow-07\" data-severity=\"High\"><strong>The idempotency key is logged with each request</strong> <span>Repeats of one key and many distinct keys are different defects. Logging the key makes that a query.</span></li>\n</ul>"
     },
     {
       "heading": "Sources",
@@ -467,19 +467,19 @@
   "checks": [
     {
       "id": "flow-01",
-      "severity": "Critical",
+      "severity": "High",
       "title": "Every non-idempotent operation with a real effect accepts an idempotency key",
       "detail": "Payments, credits, orders, messages, anything with a cost. Test that the same request twice applies once."
     },
     {
       "id": "flow-02",
-      "severity": "Critical",
+      "severity": "High",
       "title": "The key is reserved before the work, not recorded after it",
       "detail": "Test two copies arriving before the first completes. The second is refused, not executed."
     },
     {
       "id": "flow-03",
-      "severity": "Critical",
+      "severity": "High",
       "title": "Sensitive business flows have a written rate and quantity limit",
       "detail": "Produced by someone who knows what the flow costs, enforced across every endpoint that advances it, and proven by a test that ran past it."
     },
@@ -491,19 +491,19 @@
     },
     {
       "id": "flow-05",
-      "severity": "High",
+      "severity": "Medium",
       "title": "The stored response is replayed, including failures",
       "detail": "Not recomputed. A failed operation replays as the failure it was."
     },
     {
       "id": "flow-06",
-      "severity": "Medium",
+      "severity": "High",
       "title": "Key retention is documented and matches the published retry schedule",
       "detail": "After the retention window a retry is a new operation, so the two numbers have to agree."
     },
     {
       "id": "flow-07",
-      "severity": "Medium",
+      "severity": "High",
       "title": "The idempotency key is logged with each request",
       "detail": "Repeats of one key and many distinct keys are different defects. Logging the key makes that a query."
     }

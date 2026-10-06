@@ -342,13 +342,13 @@ all lab checks passed</code></pre>
 <p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
 <ul class="checks">
 <li data-check="jwt-01" data-severity="Critical"><strong>The verifier selects the algorithm from its own allowlist, never from the token header</strong> <span>Test a token with <code>alg</code> set to <code>none</code> and one downgraded to HS256 and signed with the issuer's public key. Both must be rejected.</span></li>
-<li data-check="jwt-02" data-severity="Critical"><strong>The audience is validated against this service's own identifier</strong> <span>A genuine token issued for a sibling service in the same estate is rejected. A missing <code>aud</code> is rejected.</span></li>
+<li data-check="jwt-02" data-severity="High"><strong>The audience is validated against this service's own identifier</strong> <span>A genuine token issued for a sibling service in the same estate is rejected. A missing <code>aud</code> is rejected.</span></li>
 <li data-check="jwt-03" data-severity="Critical"><strong>The signing key comes from the issuer's published key set, selected by <code>kid</code></strong> <span>The verifier never fetches a key named by <code>jku</code> or <code>x5u</code> in the token header. An unknown <code>kid</code> is rejected.</span></li>
 <li data-check="jwt-04" data-severity="High"><strong>The token profile is declared, and every required claim is checked for presence before use</strong> <span>Name the profile, such as RFC 9068 for OAuth access tokens. A token missing any required claim is rejected rather than defaulted.</span></li>
 <li data-check="jwt-05" data-severity="High"><strong>Different kinds of JWT from the same issuer have mutually exclusive validation rules</strong> <span>An ID token is rejected where an access token is expected, and the reverse. Token type or an equivalent claim is checked.</span></li>
 <li data-check="jwt-06" data-severity="High"><strong>Issuer and time claims are validated with a documented leeway</strong> <span><code>iss</code> matches exactly, the key belongs to that issuer, and <code>exp</code>, <code>nbf</code> and <code>iat</code> are checked against server time.</span></li>
 <li data-check="jwt-07" data-severity="Medium"><strong>Rejection responses do not say which check failed</strong> <span>Callers get 401. The specific reason is logged internally with a correlation ID.</span></li>
-<li data-check="jwt-08" data-severity="Medium"><strong>Library defaults have been read, not assumed</strong> <span>Confirm what your JWT library validates by default, and configure algorithms, audience and issuer explicitly. Test the negative cases against your own configuration.</span></li>
+<li data-check="jwt-08" data-severity="High"><strong>Library defaults have been read, not assumed</strong> <span>Confirm what your JWT library validates by default, and configure algorithms, audience and issuer explicitly. Test the negative cases against your own configuration.</span></li>
 </ul>
 
 <h2>Sources</h2>

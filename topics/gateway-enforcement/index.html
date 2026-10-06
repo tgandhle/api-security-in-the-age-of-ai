@@ -367,14 +367,14 @@ all lab checks passed</code></pre>
 <h2>Review checklist items</h2>
 <p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
 <ul class="checks">
-<li data-check="gw-01" data-severity="Critical"><strong>Every service authenticates for itself, on every path</strong> <span>Tested from a path that does not cross the gateway. A service that only works because the gateway checked is unauthenticated on every other route.</span></li>
-<li data-check="gw-02" data-severity="Critical"><strong>The path list comes from the network and is dated</strong> <span>Connection logs, mesh telemetry or firewall rules. A diagram is the claim being tested, not the evidence.</span></li>
-<li data-check="gw-03" data-severity="Critical"><strong>No gateway-injected identity header is trusted without an authenticated connection</strong> <span>List every path that can set it. If any path that reaches the service can, the header is caller-supplied.</span></li>
-<li data-check="gw-04" data-severity="High"><strong>Non-production deployments hold no production data and are not publicly reachable</strong> <span>Or they carry production controls, which OWASP states as the alternative.</span></li>
-<li data-check="gw-05" data-severity="High"><strong>Every reachable non-current version has a retirement date</strong> <span>Reachability is the test, not whether the gateway routes to it.</span></li>
+<li data-check="gw-01" data-severity="High"><strong>Every service authenticates for itself, on every path</strong> <span>Tested from a path that does not cross the gateway. A service that only works because the gateway checked is unauthenticated on every other route.</span></li>
+<li data-check="gw-02" data-severity="Medium"><strong>The path list comes from the network and is dated</strong> <span>Connection logs, mesh telemetry or firewall rules. A diagram is the claim being tested, not the evidence.</span></li>
+<li data-check="gw-03" data-severity="High"><strong>No gateway-injected identity header is trusted without an authenticated connection</strong> <span>List every path that can set it. If any path that reaches the service can, the header is caller-supplied.</span></li>
+<li data-check="gw-04" data-severity="Critical"><strong>Non-production deployments hold no production data and are not publicly reachable</strong> <span>Or they carry production controls, which OWASP states as the alternative.</span></li>
+<li data-check="gw-05" data-severity="Medium"><strong>Every reachable non-current version has a retirement date</strong> <span>Reachability is the test, not whether the gateway routes to it.</span></li>
 <li data-check="gw-06" data-severity="High"><strong>Service-to-service calls, batch jobs and operator tooling carry their own credentials</strong> <span>Network position is not a credential.</span></li>
 <li data-check="gw-07" data-severity="Medium"><strong>Each gateway control is recorded as present or absent per path</strong> <span>Schema validation, size limits, rate limits and logging are absent on any path that skips the gateway. Say so explicitly.</span></li>
-<li data-check="gw-08" data-severity="Medium"><strong>Services log requests themselves</strong> <span>Otherwise the traffic that bypassed the gateway is also the traffic that left no record.</span></li>
+<li data-check="gw-08" data-severity="High"><strong>Services log requests themselves</strong> <span>Otherwise the traffic that bypassed the gateway is also the traffic that left no record.</span></li>
 </ul>
 
 <h2>Sources</h2>

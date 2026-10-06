@@ -454,7 +454,7 @@ all 72 lab checks passed</code></pre>
 <h2>Review checklist items</h2>
 <p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
 <ul class="checks">
-<li data-check="prot-01" data-severity="Critical"><strong>Limits count operations, not HTTP requests</strong> <span>Aliased fields, batch entries, stream messages and socket messages are counted where they run, and a sensitive field such as login is limited per request and per account.</span></li>
+<li data-check="prot-01" data-severity="High"><strong>Limits count operations, not HTTP requests</strong> <span>Aliased fields, batch entries, stream messages and socket messages are counted where they run, and a sensitive field such as login is limited per request and per account.</span></li>
 <li data-check="prot-02" data-severity="Critical"><strong>Every GraphQL resolver that returns protected data checks the caller</strong> <span>The check is on the type, so it runs for a root field and for every nested path, and a test names each path to another customer's object.</span></li>
 <li data-check="prot-03" data-severity="High"><strong>GraphQL documents are bounded before execution</strong> <span>Batch size, depth, list page size and estimated cost each have a limit that refuses the document with no resolver called, and a timeout backs them up.</span></li>
 <li data-check="prot-04" data-severity="High"><strong>GraphQL mutations are accepted only by POST with application/json</strong> <span>A mutation by GET returns 405 and another request media type returns 415, and the CSRF controls for a cookie session are still in place.</span></li>
@@ -463,7 +463,7 @@ all 72 lab checks passed</code></pre>
 <li data-check="prot-07" data-severity="High"><strong>Calls have deadlines and messages have size limits that run before the data is held</strong> <span>The gRPC server enforces a maximum deadline and handlers stop on cancellation. gRPC and WebSocket messages have size, count and decoded-size limits.</span></li>
 <li data-check="prot-08" data-severity="Critical"><strong>The WebSocket handshake checks Origin against an allowlist and authenticates</strong> <span>The match is exact, a missing or lookalike origin gets 403, the socket is served over wss only, and the session cookie is SameSite.</span></li>
 <li data-check="prot-09" data-severity="Critical"><strong>Every WebSocket message is authorized, and a revoked session loses its sockets</strong> <span>Object and function checks run per message. The session is re-checked per message or on a stated interval, and logout closes open connections.</span></li>
-<li data-check="prot-10" data-severity="High"><strong>Monitoring reads the protocol's own outcome</strong> <span>Alerts use grpc-status, GraphQL errors and per-message events, not the HTTP status, and each service logs refusals with the caller and the operation.</span></li>
+<li data-check="prot-10" data-severity="Medium"><strong>Monitoring reads the protocol's own outcome</strong> <span>Alerts use grpc-status, GraphQL errors and per-message events, not the HTTP status, and each service logs refusals with the caller and the operation.</span></li>
 </ul>
 
 <h2>Sources</h2>

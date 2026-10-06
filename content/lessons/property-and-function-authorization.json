@@ -300,7 +300,7 @@
       "attrs": {
         "class": "checks"
       },
-      "html": "\n<ul class=\"checks\">\n<li data-check=\"prop-01\" data-severity=\"Critical\"><strong>Updates copy an allowlist of writable fields, never bind the body</strong> <span>Send a body containing every field of the record and confirm only the writable ones changed, including <code>is_staff</code> or its equivalent.</span></li>\n<li data-check=\"prop-02\" data-severity=\"Critical\"><strong>Every operation has a rule keyed by method and path, and unlisted routes are refused</strong> <span>Deny by default. Test an unlisted route and a second verb on a route you do allow.</span></li>\n<li data-check=\"prop-03\" data-severity=\"Critical\"><strong>Administrative functions are identified by what they do, not by their path</strong> <span>List them and check each one's rule. A prefix rule is not an authorization mechanism.</span></li>\n<li data-check=\"prop-04\" data-severity=\"High\"><strong>Responses are built from a declared field list</strong> <span>No generic serialiser. Adding a column to the table changes no response, and a test proves it.</span></li>\n<li data-check=\"prop-05\" data-severity=\"High\"><strong>Readable and writable are two separate lists</strong> <span>Confirm the endpoint has both and that neither is derived from the other.</span></li>\n<li data-check=\"prop-06\" data-severity=\"High\"><strong>The object check is still present on these requests</strong> <span>A writable field on another customer's record is refused. Property authorization does not look at owners.</span></li>\n<li data-check=\"prop-07\" data-severity=\"Medium\"><strong>Ignored fields are counted and logged by name</strong> <span>Names only, never values. A body setting a non-writable field is a signal worth alerting on.</span></li>\n<li data-check=\"prop-08\" data-severity=\"Medium\"><strong>Somebody has read the route table against what each operation does</strong> <span>Deny by default does not catch a rule written with the wrong role.</span></li>\n</ul>"
+      "html": "\n<ul class=\"checks\">\n<li data-check=\"prop-01\" data-severity=\"Critical\"><strong>Updates copy an allowlist of writable fields, never bind the body</strong> <span>Send a body containing every field of the record and confirm only the writable ones changed, including <code>is_staff</code> or its equivalent.</span></li>\n<li data-check=\"prop-02\" data-severity=\"Critical\"><strong>Every operation has a rule keyed by method and path, and unlisted routes are refused</strong> <span>Deny by default. Test an unlisted route and a second verb on a route you do allow.</span></li>\n<li data-check=\"prop-03\" data-severity=\"Critical\"><strong>Administrative functions are identified by what they do, not by their path</strong> <span>List them and check each one's rule. A prefix rule is not an authorization mechanism.</span></li>\n<li data-check=\"prop-04\" data-severity=\"Critical\"><strong>Responses are built from a declared field list</strong> <span>No generic serialiser. Adding a column to the table changes no response, and a test proves it.</span></li>\n<li data-check=\"prop-05\" data-severity=\"Critical\"><strong>Readable and writable are two separate lists</strong> <span>Confirm the endpoint has both and that neither is derived from the other.</span></li>\n<li data-check=\"prop-06\" data-severity=\"Critical\"><strong>The object check is still present on these requests</strong> <span>A writable field on another customer's record is refused. Property authorization does not look at owners.</span></li>\n<li data-check=\"prop-07\" data-severity=\"High\"><strong>Ignored fields are counted and logged by name</strong> <span>Names only, never values. A body setting a non-writable field is a signal worth alerting on.</span></li>\n<li data-check=\"prop-08\" data-severity=\"High\"><strong>Somebody has read the route table against what each operation does</strong> <span>Deny by default does not catch a rule written with the wrong role.</span></li>\n</ul>"
     },
     {
       "tag": "h2",
@@ -389,7 +389,7 @@
     {
       "heading": "Review checklist items",
       "heading_text": "Review checklist items",
-      "html": "<p class=\"prose meta\">These are collected into the <a href=\"../../checklist/index.html\">site checklist</a>.</p>\n<ul class=\"checks\">\n<li data-check=\"prop-01\" data-severity=\"Critical\"><strong>Updates copy an allowlist of writable fields, never bind the body</strong> <span>Send a body containing every field of the record and confirm only the writable ones changed, including <code>is_staff</code> or its equivalent.</span></li>\n<li data-check=\"prop-02\" data-severity=\"Critical\"><strong>Every operation has a rule keyed by method and path, and unlisted routes are refused</strong> <span>Deny by default. Test an unlisted route and a second verb on a route you do allow.</span></li>\n<li data-check=\"prop-03\" data-severity=\"Critical\"><strong>Administrative functions are identified by what they do, not by their path</strong> <span>List them and check each one's rule. A prefix rule is not an authorization mechanism.</span></li>\n<li data-check=\"prop-04\" data-severity=\"High\"><strong>Responses are built from a declared field list</strong> <span>No generic serialiser. Adding a column to the table changes no response, and a test proves it.</span></li>\n<li data-check=\"prop-05\" data-severity=\"High\"><strong>Readable and writable are two separate lists</strong> <span>Confirm the endpoint has both and that neither is derived from the other.</span></li>\n<li data-check=\"prop-06\" data-severity=\"High\"><strong>The object check is still present on these requests</strong> <span>A writable field on another customer's record is refused. Property authorization does not look at owners.</span></li>\n<li data-check=\"prop-07\" data-severity=\"Medium\"><strong>Ignored fields are counted and logged by name</strong> <span>Names only, never values. A body setting a non-writable field is a signal worth alerting on.</span></li>\n<li data-check=\"prop-08\" data-severity=\"Medium\"><strong>Somebody has read the route table against what each operation does</strong> <span>Deny by default does not catch a rule written with the wrong role.</span></li>\n</ul>"
+      "html": "<p class=\"prose meta\">These are collected into the <a href=\"../../checklist/index.html\">site checklist</a>.</p>\n<ul class=\"checks\">\n<li data-check=\"prop-01\" data-severity=\"Critical\"><strong>Updates copy an allowlist of writable fields, never bind the body</strong> <span>Send a body containing every field of the record and confirm only the writable ones changed, including <code>is_staff</code> or its equivalent.</span></li>\n<li data-check=\"prop-02\" data-severity=\"Critical\"><strong>Every operation has a rule keyed by method and path, and unlisted routes are refused</strong> <span>Deny by default. Test an unlisted route and a second verb on a route you do allow.</span></li>\n<li data-check=\"prop-03\" data-severity=\"Critical\"><strong>Administrative functions are identified by what they do, not by their path</strong> <span>List them and check each one's rule. A prefix rule is not an authorization mechanism.</span></li>\n<li data-check=\"prop-04\" data-severity=\"Critical\"><strong>Responses are built from a declared field list</strong> <span>No generic serialiser. Adding a column to the table changes no response, and a test proves it.</span></li>\n<li data-check=\"prop-05\" data-severity=\"Critical\"><strong>Readable and writable are two separate lists</strong> <span>Confirm the endpoint has both and that neither is derived from the other.</span></li>\n<li data-check=\"prop-06\" data-severity=\"Critical\"><strong>The object check is still present on these requests</strong> <span>A writable field on another customer's record is refused. Property authorization does not look at owners.</span></li>\n<li data-check=\"prop-07\" data-severity=\"High\"><strong>Ignored fields are counted and logged by name</strong> <span>Names only, never values. A body setting a non-writable field is a signal worth alerting on.</span></li>\n<li data-check=\"prop-08\" data-severity=\"High\"><strong>Somebody has read the route table against what each operation does</strong> <span>Deny by default does not catch a rule written with the wrong role.</span></li>\n</ul>"
     },
     {
       "heading": "Sources",
@@ -468,31 +468,31 @@
     },
     {
       "id": "prop-04",
-      "severity": "High",
+      "severity": "Critical",
       "title": "Responses are built from a declared field list",
       "detail": "No generic serialiser. Adding a column to the table changes no response, and a test proves it."
     },
     {
       "id": "prop-05",
-      "severity": "High",
+      "severity": "Critical",
       "title": "Readable and writable are two separate lists",
       "detail": "Confirm the endpoint has both and that neither is derived from the other."
     },
     {
       "id": "prop-06",
-      "severity": "High",
+      "severity": "Critical",
       "title": "The object check is still present on these requests",
       "detail": "A writable field on another customer's record is refused. Property authorization does not look at owners."
     },
     {
       "id": "prop-07",
-      "severity": "Medium",
+      "severity": "High",
       "title": "Ignored fields are counted and logged by name",
       "detail": "Names only, never values. A body setting a non-writable field is a signal worth alerting on."
     },
     {
       "id": "prop-08",
-      "severity": "Medium",
+      "severity": "High",
       "title": "Somebody has read the route table against what each operation does",
       "detail": "Deny by default does not catch a rule written with the wrong role."
     }

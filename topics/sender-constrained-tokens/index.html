@@ -336,13 +336,13 @@ all lab checks passed</code></pre>
 <h2>Review checklist items</h2>
 <p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
 <ul class="checks">
-<li data-check="bind-01" data-severity="Critical"><strong>A bound token without its proof or certificate is rejected, never downgraded</strong> <span>No fall back to bearer behaviour when the binding material is missing, including when a proxy strips the client certificate.</span></li>
-<li data-check="bind-02" data-severity="Critical"><strong>The proof key thumbprint is compared with the token's <code>cnf</code> claim</strong> <span>A valid proof from any other key is rejected. For certificate binding, the certificate comes from the TLS layer, not a header, unless that header is proven unsettable.</span></li>
-<li data-check="bind-03" data-severity="Critical"><strong>Proof replay is prevented by recording <code>jti</code> across all instances</strong> <span>Recorded only after every other check passes. A shared store, not per-instance memory. Test replay against a second instance.</span></li>
+<li data-check="bind-01" data-severity="High"><strong>A bound token without its proof or certificate is rejected, never downgraded</strong> <span>No fall back to bearer behaviour when the binding material is missing, including when a proxy strips the client certificate.</span></li>
+<li data-check="bind-02" data-severity="High"><strong>The proof key thumbprint is compared with the token's <code>cnf</code> claim</strong> <span>A valid proof from any other key is rejected. For certificate binding, the certificate comes from the TLS layer, not a header, unless that header is proven unsettable.</span></li>
+<li data-check="bind-03" data-severity="High"><strong>Proof replay is prevented by recording <code>jti</code> across all instances</strong> <span>Recorded only after every other check passes. A shared store, not per-instance memory. Test replay against a second instance.</span></li>
 <li data-check="bind-04" data-severity="High"><strong>Proofs are bound to the request and the token</strong> <span><code>htm</code>, <code>htu</code> and <code>ath</code> are all checked. Test a proof from a different endpoint and a proof paired with a different token.</span></li>
 <li data-check="bind-05" data-severity="High"><strong>The proof time window is short and documented</strong> <span>Stated in seconds, enforced in both directions, and understood as the replay window for anything not recorded.</span></li>
 <li data-check="bind-06" data-severity="High"><strong>Client private keys are stored at least as well as the tokens they replace</strong> <span>Non-exportable or hardware-backed where the platform allows. Binding converts token theft into key theft.</span></li>
-<li data-check="bind-07" data-severity="Medium"><strong>Binding has not displaced any existing check</strong> <span>Audience, scope, expiry, issuer and object-level authorization are all still enforced on bound tokens.</span></li>
+<li data-check="bind-07" data-severity="Critical"><strong>Binding has not displaced any existing check</strong> <span>Audience, scope, expiry, issuer and object-level authorization are all still enforced on bound tokens.</span></li>
 <li data-check="bind-08" data-severity="Medium"><strong>The revocation bound is unchanged and still stated</strong> <span>A bound token remains valid until it expires unless active state is consulted. Module 6's sum still applies.</span></li>
 </ul>
 

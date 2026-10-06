@@ -369,14 +369,14 @@ all lab checks passed</code></pre>
 <h2>Review checklist items</h2>
 <p class="prose meta">These are collected into the <a href="../../checklist/index.html">site checklist</a>.</p>
 <ul class="checks">
-<li data-check="dlg-01" data-severity="Critical"><strong>No service forwards a user's token outside the audience it was issued for</strong> <span>Verified by reading the outbound calls. A forwarded token carries all of the user's authority and names no agent.</span></li>
+<li data-check="dlg-01" data-severity="High"><strong>No service forwards a user's token outside the audience it was issued for</strong> <span>Verified by reading the outbound calls. A forwarded token carries all of the user's authority and names no agent.</span></li>
 <li data-check="dlg-02" data-severity="Critical"><strong>Calls made on a user's behalf carry the user in the token, not in a parameter</strong> <span>Otherwise the object check compares against a user ID the caller supplied.</span></li>
-<li data-check="dlg-03" data-severity="Critical"><strong>Resource servers authorize on the current actor only</strong> <span>RFC 8693 section 4.1 states it as a MUST. Test that a prior actor in a nested chain does not grant access.</span></li>
+<li data-check="dlg-03" data-severity="High"><strong>Resource servers authorize on the current actor only</strong> <span>RFC 8693 section 4.1 states it as a MUST. Test that a prior actor in a nested chain does not grant access.</span></li>
 <li data-check="dlg-04" data-severity="High"><strong>Every exchange states audience and scope, and the server refuses without them</strong> <span>Both are OPTIONAL in the specification. Defaulting to the subject token's scope copies everything.</span></li>
 <li data-check="dlg-05" data-severity="High"><strong>may_act is enforced, matched on issuer and subject together</strong> <span>A sub is only guaranteed unique within its issuer. Include a same-sub, different-issuer case in the test.</span></li>
 <li data-check="dlg-06" data-severity="High"><strong>Issued lifetimes are capped at the subject token's remaining life</strong> <span>Nothing in RFC 8693 caps it. A revoked session cannot recall tokens already minted from it.</span></li>
 <li data-check="dlg-07" data-severity="Medium"><strong>Delegation chain depth is bounded</strong> <span>And the bound is small enough that exceeding it is a design question rather than an alert.</span></li>
-<li data-check="dlg-08" data-severity="Medium"><strong>Access logs record the subject and the current actor separately</strong> <span>An incident needs to suspend one agent without suspending the user.</span></li>
+<li data-check="dlg-08" data-severity="High"><strong>Access logs record the subject and the current actor separately</strong> <span>An incident needs to suspend one agent without suspending the user.</span></li>
 </ul>
 
 <h2>Sources</h2>

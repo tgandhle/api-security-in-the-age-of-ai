@@ -360,10 +360,10 @@ all lab checks passed</code></pre>
 <li data-check="fnd-01" data-severity="Critical"><strong>Authorization is a separate check that names the object</strong> <span>Quote the line. If the only check is that authentication passed, the system cannot refuse a real caller asking for someone else's data.</span></li>
 <li data-check="fnd-02" data-severity="Critical"><strong>Caller identity comes from a credential, never from the network position or the presence of TLS</strong> <span>TLS authenticates the server by default. A request arriving over TLS says nothing about who sent it.</span></li>
 <li data-check="fnd-03" data-severity="High"><strong>Body integrity is carried inside something keyed</strong> <span>A hash beside the data it describes is not integrity protection. It must be covered by a signature or carried in a token.</span></li>
-<li data-check="fnd-04" data-severity="High"><strong>The last TLS termination before the service is named, and what crosses it is stated</strong> <span>Anything past it is a separate trust relationship whether or not it was designed as one.</span></li>
+<li data-check="fnd-04" data-severity="Medium"><strong>The last TLS termination before the service is named, and what crosses it is stated</strong> <span>Anything past it is a separate trust relationship whether or not it was designed as one.</span></li>
 <li data-check="fnd-05" data-severity="High"><strong>Every check sits on the boundary it is relied on for</strong> <span>Enumerate the paths that reach the handler and confirm each one crosses it. A gateway check with a second path around it is not a control.</span></li>
 <li data-check="fnd-06" data-severity="Medium"><strong>For each value in a request, who can produce it and who can check it is written down</strong> <span>Where the two sets are the same, the design records that the receiver can forge and that this was accepted.</span></li>
-<li data-check="fnd-07" data-severity="Medium"><strong>Secrets and tags are compared in constant time</strong> <span>Library functions built for the purpose, not string equality. Functional tests pass either way.</span></li>
+<li data-check="fnd-07" data-severity="High"><strong>Secrets and tags are compared in constant time</strong> <span>Library functions built for the purpose, not string equality. Functional tests pass either way.</span></li>
 </ul>
 
 <h2>Sources</h2>

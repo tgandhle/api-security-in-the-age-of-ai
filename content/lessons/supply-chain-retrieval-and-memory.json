@@ -322,7 +322,7 @@
       "attrs": {
         "class": "checks"
       },
-      "html": "\n<ul class=\"checks\">\n<li data-check=\"ret-01\" data-severity=\"Critical\"><strong>The permission filter is applied to the corpus, not the result</strong> <span>Post-filtering returns fewer results than requested, which discloses removals, and lets other tenants outrank the caller's own documents.</span></li>\n<li data-check=\"ret-02\" data-severity=\"Critical\"><strong>Every number in a retrieval response is computed after the filter</strong> <span>A total computed before it confirms that documents the caller may not read exist.</span></li>\n<li data-check=\"ret-03\" data-severity=\"Critical\"><strong>Decision-bearing retrieval excludes untrusted origins</strong> <span>Ranking adjustments do not displace a document written to win. Origin does.</span></li>\n<li data-check=\"ret-04\" data-severity=\"High\"><strong>Every document carries an origin recorded at ingestion</strong> <span>It cannot be recovered later, and the other controls depend on it.</span></li>\n<li data-check=\"ret-05\" data-severity=\"High\"><strong>Every memory write records its source document and origin</strong> <span>A memory without provenance cannot be judged, found or cleaned up.</span></li>\n<li data-check=\"ret-06\" data-severity=\"High\"><strong>Withdrawing a document triggers a memory sweep</strong> <span>The claim leaves the index before the document does. Deletion alone is not remediation.</span></li>\n<li data-check=\"ret-07\" data-severity=\"High\"><strong>Every write route into the index is enumerated and reviewed</strong> <span>An upload form that feeds retrieval is an authorization decision.</span></li>\n<li data-check=\"ret-08\" data-severity=\"Medium\"><strong>Retrieval activity is logged with a stated retention</strong> <span>OWASP LLM09:2026 recommends immutable logs of retrieval activity.</span></li>\n<li data-check=\"ret-09\" data-severity=\"Medium\"><strong>No ranking adjustment is reported as a security control</strong> <span>State the margin it changes. In the lab it was 0.08 to 0.06, with the order unchanged.</span></li>\n</ul>"
+      "html": "\n<ul class=\"checks\">\n<li data-check=\"ret-01\" data-severity=\"Medium\"><strong>The permission filter is applied to the corpus, not the result</strong> <span>Post-filtering returns fewer results than requested, which discloses removals, and lets other tenants outrank the caller's own documents.</span></li>\n<li data-check=\"ret-02\" data-severity=\"Medium\"><strong>Every number in a retrieval response is computed after the filter</strong> <span>A total computed before it confirms that documents the caller may not read exist.</span></li>\n<li data-check=\"ret-03\" data-severity=\"Critical\"><strong>Decision-bearing retrieval excludes untrusted origins</strong> <span>Ranking adjustments do not displace a document written to win. Origin does.</span></li>\n<li data-check=\"ret-04\" data-severity=\"Critical\"><strong>Every document carries an origin recorded at ingestion</strong> <span>It cannot be recovered later, and the other controls depend on it.</span></li>\n<li data-check=\"ret-05\" data-severity=\"High\"><strong>Every memory write records its source document and origin</strong> <span>A memory without provenance cannot be judged, found or cleaned up.</span></li>\n<li data-check=\"ret-06\" data-severity=\"High\"><strong>Withdrawing a document triggers a memory sweep</strong> <span>The claim leaves the index before the document does. Deletion alone is not remediation.</span></li>\n<li data-check=\"ret-07\" data-severity=\"High\"><strong>Every write route into the index is enumerated and reviewed</strong> <span>An upload form that feeds retrieval is an authorization decision.</span></li>\n<li data-check=\"ret-08\" data-severity=\"High\"><strong>Retrieval activity is logged with a stated retention</strong> <span>OWASP LLM09:2026 recommends immutable logs of retrieval activity.</span></li>\n<li data-check=\"ret-09\" data-severity=\"Medium\"><strong>No ranking adjustment is reported as a security control</strong> <span>State the margin it changes. In the lab it was 0.08 to 0.06, with the order unchanged.</span></li>\n</ul>"
     },
     {
       "tag": "h2",
@@ -411,7 +411,7 @@
     {
       "heading": "Review checklist items",
       "heading_text": "Review checklist items",
-      "html": "<p class=\"prose meta\">These are collected into the <a href=\"../../checklist/index.html\">site checklist</a>.</p>\n<ul class=\"checks\">\n<li data-check=\"ret-01\" data-severity=\"Critical\"><strong>The permission filter is applied to the corpus, not the result</strong> <span>Post-filtering returns fewer results than requested, which discloses removals, and lets other tenants outrank the caller's own documents.</span></li>\n<li data-check=\"ret-02\" data-severity=\"Critical\"><strong>Every number in a retrieval response is computed after the filter</strong> <span>A total computed before it confirms that documents the caller may not read exist.</span></li>\n<li data-check=\"ret-03\" data-severity=\"Critical\"><strong>Decision-bearing retrieval excludes untrusted origins</strong> <span>Ranking adjustments do not displace a document written to win. Origin does.</span></li>\n<li data-check=\"ret-04\" data-severity=\"High\"><strong>Every document carries an origin recorded at ingestion</strong> <span>It cannot be recovered later, and the other controls depend on it.</span></li>\n<li data-check=\"ret-05\" data-severity=\"High\"><strong>Every memory write records its source document and origin</strong> <span>A memory without provenance cannot be judged, found or cleaned up.</span></li>\n<li data-check=\"ret-06\" data-severity=\"High\"><strong>Withdrawing a document triggers a memory sweep</strong> <span>The claim leaves the index before the document does. Deletion alone is not remediation.</span></li>\n<li data-check=\"ret-07\" data-severity=\"High\"><strong>Every write route into the index is enumerated and reviewed</strong> <span>An upload form that feeds retrieval is an authorization decision.</span></li>\n<li data-check=\"ret-08\" data-severity=\"Medium\"><strong>Retrieval activity is logged with a stated retention</strong> <span>OWASP LLM09:2026 recommends immutable logs of retrieval activity.</span></li>\n<li data-check=\"ret-09\" data-severity=\"Medium\"><strong>No ranking adjustment is reported as a security control</strong> <span>State the margin it changes. In the lab it was 0.08 to 0.06, with the order unchanged.</span></li>\n</ul>"
+      "html": "<p class=\"prose meta\">These are collected into the <a href=\"../../checklist/index.html\">site checklist</a>.</p>\n<ul class=\"checks\">\n<li data-check=\"ret-01\" data-severity=\"Medium\"><strong>The permission filter is applied to the corpus, not the result</strong> <span>Post-filtering returns fewer results than requested, which discloses removals, and lets other tenants outrank the caller's own documents.</span></li>\n<li data-check=\"ret-02\" data-severity=\"Medium\"><strong>Every number in a retrieval response is computed after the filter</strong> <span>A total computed before it confirms that documents the caller may not read exist.</span></li>\n<li data-check=\"ret-03\" data-severity=\"Critical\"><strong>Decision-bearing retrieval excludes untrusted origins</strong> <span>Ranking adjustments do not displace a document written to win. Origin does.</span></li>\n<li data-check=\"ret-04\" data-severity=\"Critical\"><strong>Every document carries an origin recorded at ingestion</strong> <span>It cannot be recovered later, and the other controls depend on it.</span></li>\n<li data-check=\"ret-05\" data-severity=\"High\"><strong>Every memory write records its source document and origin</strong> <span>A memory without provenance cannot be judged, found or cleaned up.</span></li>\n<li data-check=\"ret-06\" data-severity=\"High\"><strong>Withdrawing a document triggers a memory sweep</strong> <span>The claim leaves the index before the document does. Deletion alone is not remediation.</span></li>\n<li data-check=\"ret-07\" data-severity=\"High\"><strong>Every write route into the index is enumerated and reviewed</strong> <span>An upload form that feeds retrieval is an authorization decision.</span></li>\n<li data-check=\"ret-08\" data-severity=\"High\"><strong>Retrieval activity is logged with a stated retention</strong> <span>OWASP LLM09:2026 recommends immutable logs of retrieval activity.</span></li>\n<li data-check=\"ret-09\" data-severity=\"Medium\"><strong>No ranking adjustment is reported as a security control</strong> <span>State the margin it changes. In the lab it was 0.08 to 0.06, with the order unchanged.</span></li>\n</ul>"
     },
     {
       "heading": "Sources",
@@ -461,13 +461,13 @@
   "checks": [
     {
       "id": "ret-01",
-      "severity": "Critical",
+      "severity": "Medium",
       "title": "The permission filter is applied to the corpus, not the result",
       "detail": "Post-filtering returns fewer results than requested, which discloses removals, and lets other tenants outrank the caller's own documents."
     },
     {
       "id": "ret-02",
-      "severity": "Critical",
+      "severity": "Medium",
       "title": "Every number in a retrieval response is computed after the filter",
       "detail": "A total computed before it confirms that documents the caller may not read exist."
     },
@@ -479,7 +479,7 @@
     },
     {
       "id": "ret-04",
-      "severity": "High",
+      "severity": "Critical",
       "title": "Every document carries an origin recorded at ingestion",
       "detail": "It cannot be recovered later, and the other controls depend on it."
     },
@@ -503,7 +503,7 @@
     },
     {
       "id": "ret-08",
-      "severity": "Medium",
+      "severity": "High",
       "title": "Retrieval activity is logged with a stated retention",
       "detail": "OWASP LLM09:2026 recommends immutable logs of retrieval activity."
     },
