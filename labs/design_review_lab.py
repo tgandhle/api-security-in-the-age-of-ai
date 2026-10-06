@@ -70,47 +70,47 @@ RULES = [
     ("api-keys-04", "High", 1, "key_storage",
      lambda d: d["key_storage"] != "secrets-manager",
      "Callers do not retrieve their API keys from a secrets manager"),
-    ("jwt-02", "Critical", 5, "token_audience_checked",
+    ("jwt-02", "High", 5, "token_audience_checked",
      lambda d: not d["token_audience_checked"],
      "The audience is not validated against this service's own identifier"),
-    ("life-01", "Critical", 8, "credential_inventory",
+    ("life-01", "Medium", 8, "credential_inventory",
      lambda d: not d["credential_inventory"],
      "The credential register has not been reconciled against the systems"),
     ("bola-01", "Critical", 9, "object_check",
      lambda d: d["object_check"] != "after-load",
      "Handlers do not compare the caller with the owner on the loaded object"),
-    ("prop-04", "High", 10, "response_fields",
+    ("prop-04", "Critical", 10, "response_fields",
      lambda d: d["response_fields"] != "declared-list",
      "Responses are not built from a declared field list"),
-    ("flow-01", "Critical", 11, "idempotency",
+    ("flow-01", "High", 11, "idempotency",
      lambda d: d["idempotency"] == "none",
      "Non-idempotent operations accept no idempotency key"),
-    ("gw-01", "Critical", 12, "services_authenticate_themselves",
+    ("gw-01", "High", 12, "services_authenticate_themselves",
      lambda d: not d["services_authenticate_themselves"],
      "Services do not authenticate for themselves on every path"),
-    ("ctr-02", "Critical", 13, "limits_before_parser",
+    ("ctr-02", "High", 13, "limits_before_parser",
      lambda d: not d["limits_before_parser"],
      "Request limits do not run before the parser"),
-    ("out-06", "High", 14, "egress_allowlist",
+    ("out-06", "Critical", 14, "egress_allowlist",
      lambda d: not d["egress_allowlist"],
      "Outbound schemes and hosts are not allowlisted by exact match"),
-    ("rate-01", "Critical", 15, "rate_limit_store",
+    ("rate-01", "Medium", 15, "rate_limit_store",
      lambda d: d["rate_limit_store"] != "shared",
      "Rate limit counters are not held in a store every instance shares"),
-    ("hook-01", "Critical", 16, "webhook_verification",
+    ("hook-01", "High", 16, "webhook_verification",
      lambda d: "timestamp" not in str(d["webhook_verification"]),
      "The webhook signature does not cover the timestamp"),
-    ("ver-01", "Critical", 18, "versions_reachable",
+    ("ver-01", "Medium", 18, "versions_reachable",
      lambda d: d["versions_reachable"] > d["versions_documented"],
      "More versions answer than the documentation lists, so the list did not "
      "come from the network"),
-    ("dlg-01", "Critical", 19, "agent_calls_downstream",
+    ("dlg-01", "High", 19, "agent_calls_downstream",
      lambda d: d["agent_calls_downstream"] == "passthrough",
      "A service forwards a user's token outside the audience it was issued for"),
-    ("mcp-01", "Critical", 20, "mcp_audience_validation",
+    ("mcp-01", "High", 20, "mcp_audience_validation",
      lambda d: not d["mcp_audience_validation"],
      "The MCP server does not validate that each token's audience is itself"),
-    ("a2a-01", "Critical", 21, "a2a_card_trust",
+    ("a2a-01", "High", 21, "a2a_card_trust",
      lambda d: d["a2a_card_trust"] != "pinned-key",
      "Agent cards are not verified against an out-of-band key per counterparty"),
     ("inj-01", "Critical", 22, "tool_dispatch",
@@ -119,22 +119,22 @@ RULES = [
     ("inj-02", "Critical", 22, "model_holds_credential",
      lambda d: d["model_holds_credential"],
      "Tool credentials are held by the model, not the application"),
-    ("apv-01", "Critical", 23, "approval_binds",
+    ("apv-01", "High", 23, "approval_binds",
      lambda d: d["approval_binds"] != "parameters",
      "Approvals bind a proposal identifier rather than the parameters"),
     ("ctx-01", "Critical", 24, "system_prompt_has_credential",
      lambda d: d["system_prompt_has_credential"],
      "A credential appears in a system prompt"),
-    ("ctx-02", "Critical", 24, "prompt_context",
+    ("ctx-02", "High", 24, "prompt_context",
      lambda d: d["prompt_context"] != "allowlist",
      "Prompt context is not built from a per-task field allowlist"),
-    ("ret-01", "Critical", 25, "retrieval_filter",
+    ("ret-01", "Medium", 25, "retrieval_filter",
      lambda d: d["retrieval_filter"] != "pre",
      "The permission filter is applied to the result, not the corpus"),
     ("ret-05", "High", 25, "memory_provenance",
      lambda d: not d["memory_provenance"],
      "Memory writes do not record their source document and origin"),
-    ("ret-08", "Medium", 25, "retrieval_logging",
+    ("ret-08", "High", 25, "retrieval_logging",
      lambda d: not d["retrieval_logging"],
      "Retrieval activity is not logged with a stated retention"),
 ]
@@ -217,41 +217,40 @@ def main():
     print("Part B: findings, worst first.")
     check("findings raised", "14", str(len(findings)))
     counts = by_severity(findings)
-    check("  critical", "12", str(counts.get("Critical", 0)))
-    check("  high", "2", str(counts.get("High", 0)))
-    check("  medium", "0", str(counts.get("Medium", 0)))
-    check("the first finding", "a2a-01",
+    check("  critical", "3", str(counts.get("Critical", 0)))
+    check("  high", "8", str(counts.get("High", 0)))
+    check("  medium", "3", str(counts.get("Medium", 0)))
+    check("the first finding", "ctx-01",
           findings[0][0] if findings else "none raised")
     order = [RANK[f[1]] for f in findings]
     check("  findings are ordered worst first", "yes",
           "yes" if order == sorted(order) else "no")
-    check("  the last finding's severity", "High",
+    check("  the last finding's severity", "Medium",
           findings[-1][1] if findings else "none raised")
     check("  what the first finding says",
-          "Agent cards are not verified against an out-of-band key per "
-          "counterparty", findings[0][3] if findings else "none raised")
+          "A credential appears in a system prompt",
+          findings[0][3] if findings else "none raised")
     criticals = [f[0] for f in findings if f[1] == "Critical"]
     check("critical check ids, in order",
-          "['a2a-01', 'apv-01', 'ctx-01', 'ctx-02', 'dlg-01', 'flow-01', "
-          "'inj-02', 'jwt-02', 'mcp-01', 'rate-01', 'ret-01', 'ver-01']",
-          str(criticals))
-    check("  of which come from Part 4", "8",
-          str(len([f for f in findings
-                   if f[1] == "Critical" and f[2] >= 19])))
-    check("  and from Parts 1 to 3", "4",
-          str(len([f for f in findings
-                   if f[1] == "Critical" and f[2] < 19])))
+          "['ctx-01', 'inj-02', 'out-06']", str(criticals))
+    # The grouping is counted over Critical and High together. Three
+    # Criticals are too few to show where the findings cluster.
+    serious = [f for f in findings if f[1] in ("Critical", "High")]
+    check("critical or high findings from Part 4", "8",
+          str(len([f for f in serious if f[2] >= 19])))
+    check("  and from Parts 1 to 3", "3",
+          str(len([f for f in serious if f[2] < 19])))
 
     print()
     print("Part C: the questions the design does not answer.")
     check("unanswered questions", "4", str(len(unanswered)))
-    check("  their check ids", "['ctr-02', 'gw-01', 'life-01', 'ret-08']",
+    check("  their check ids", "['ctr-02', 'gw-01', 'ret-08', 'life-01']",
           str([u[0] for u in unanswered]))
     check("  the facts they needed",
           "['limits_before_parser', 'services_authenticate_themselves', "
-          "'credential_inventory', 'retrieval_logging']",
+          "'retrieval_logging', 'credential_inventory']",
           str([u[3] for u in unanswered]))
-    check("  severity of the worst one", "Critical",
+    check("  severity of the worst one", "High",
           unanswered[0][1] if unanswered else "none recorded")
     check("if they were counted as passes, findings would read", "14",
           str(len(findings)))
@@ -271,25 +270,24 @@ def main():
                  retrieval_filter="pre")
     after, still_unanswered = review(fixed)
     check("findings after six changes", "8", str(len(after)))
-    check("  critical remaining", "6",
+    check("  critical remaining", "1",
           str(by_severity(after).get("Critical", 0)))
     check("  removed by those changes", "6",
           str(len(findings) - len(after)))
-    check("critical ids remaining",
-          "['a2a-01', 'apv-01', 'dlg-01', 'flow-01', 'rate-01', 'ver-01']",
+    check("critical ids remaining", "['out-06']",
           str([f[0] for f in after if f[1] == "Critical"]))
     check("  unanswered questions, unchanged", "4", str(len(still_unanswered)))
-    # Every change above was a setting or a few lines. Each remaining
-    # critical needs a design decision: key distribution for agent cards,
-    # what an approval binds, a token exchange, an idempotency key, a shared
-    # rate limit store, and a version retirement. That is the difference
-    # worth reporting.
-    before_crit = len([f for f in findings if f[1] == "Critical"])
-    after_crit = len([f for f in after if f[1] == "Critical"])
-    check("criticals the six changes removed", "6",
-          str(before_crit - after_crit))
-    check("  criticals left, each needing a design change", "6",
-          str(after_crit))
+    # Every change above was a setting or a few lines, chosen by effort.
+    # Six of the eight findings left need a design decision: key
+    # distribution for agent cards, what an approval binds, a token
+    # exchange, an idempotency key, a shared rate limit store, and a version
+    # retirement. One Critical, out-06, is still open as well. A list
+    # ordered by effort is not a list ordered by severity, and that is the
+    # difference worth reporting.
+    after_serious = [f for f in after if f[1] in ("Critical", "High")]
+    check("critical or high the six changes removed", "5",
+          str(len(serious) - len(after_serious)))
+    check("  critical or high left", "6", str(len(after_serious)))
     check("  is ret-01 among them", "no",
           "yes" if "ret-01" in [f[0] for f in after] else "no")
 

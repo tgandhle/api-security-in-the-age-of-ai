@@ -119,6 +119,10 @@ when the reason it gives has stopped being true, and say so in the commit.
   stored on the page. Rate a new item with the rubric before publishing it.
   The labs in modules 8, 12 and 18 print severities for their own worked
   findings; those are findings, not checklist defaults, and did not change.
+  Module 26 is different: its lab applies checklist rules, so its rule table
+  carries the new levels. 17 of its 23 rules changed, and its worked result
+  went from 12 Critical and 2 High findings to 3 Critical, 8 High and 3
+  Medium. Its headline is now counted over Critical and High together.
 - **2026-10-05, one lab is not offered in the browser, and a lab whose
   `main()` returns nothing counts as exit 0.** Every lab was run through the
   button on the hosted site. Two did not report success. `contracts_lab.py`
