@@ -1,0 +1,2346 @@
+{
+  "model_version": "1",
+  "facts": [
+    {
+      "id": "api_keys",
+      "group": "Credentials and identity",
+      "question": "Does any caller authenticate by presenting a static key or other long-lived shared secret as it is?",
+      "implies": []
+    },
+    {
+      "id": "request_signing",
+      "group": "Credentials and identity",
+      "question": "Does any caller sign its requests, with a shared secret (HMAC) or a private key (HTTP message signatures)?",
+      "implies": []
+    },
+    {
+      "id": "oauth",
+      "group": "Credentials and identity",
+      "question": "Does the system issue, obtain or accept OAuth 2.0 access tokens, as an authorization server, a client or a resource server?",
+      "implies": []
+    },
+    {
+      "id": "jwt",
+      "group": "Credentials and identity",
+      "question": "Does the system verify any JSON Web Token: an access token, an ID token or an assertion?",
+      "implies": []
+    },
+    {
+      "id": "sender_constrained_tokens",
+      "group": "Credentials and identity",
+      "question": "Are any access tokens bound to a key the client must prove it holds (DPoP, or certificate-bound tokens with mutual TLS)?",
+      "implies": [
+        "oauth"
+      ]
+    },
+    {
+      "id": "oidc",
+      "group": "Credentials and identity",
+      "question": "Does the system sign people in with OpenID Connect, as a relying party or as a provider?",
+      "implies": [
+        "oauth",
+        "jwt"
+      ]
+    },
+    {
+      "id": "saml",
+      "group": "Credentials and identity",
+      "question": "Does the system accept or issue SAML assertions?",
+      "implies": []
+    },
+    {
+      "id": "user_auth_endpoints",
+      "group": "Credentials and identity",
+      "question": "Does the system itself expose authentication or account-recovery endpoints for people, such as login, registration, password reset or an MFA challenge?",
+      "implies": []
+    },
+    {
+      "id": "browser_client",
+      "group": "Application shape",
+      "question": "Is the API called from a web browser, by a page the team owns or by anyone else's?",
+      "implies": []
+    },
+    {
+      "id": "cookie_session",
+      "group": "Application shape",
+      "question": "Does a browser authenticate to the system with a cookie it attaches automatically?",
+      "implies": [
+        "browser_client"
+      ]
+    },
+    {
+      "id": "gateway",
+      "group": "Application shape",
+      "question": "Does any service rely on a separate gateway, proxy, load balancer or edge component for security or identity context used when handling requests?",
+      "implies": []
+    },
+    {
+      "id": "service_to_service",
+      "group": "Application shape",
+      "question": "Does one software service call another software service's API, whether the other service is internal or external to the system boundary?",
+      "implies": []
+    },
+    {
+      "id": "delegation",
+      "group": "Application shape",
+      "question": "Does a service call another service on behalf of a user, carrying or exchanging that user's authority?",
+      "implies": [
+        "service_to_service"
+      ]
+    },
+    {
+      "id": "webhook_receiver",
+      "group": "Application shape",
+      "question": "Does the system receive inbound webhook, callback, or push-notification deliveries from another party, including protocol features such as A2A push notifications?",
+      "implies": []
+    },
+    {
+      "id": "outbound_http",
+      "group": "Application shape",
+      "question": "Does the system make HTTP requests to other systems?",
+      "implies": []
+    },
+    {
+      "id": "caller_influenced_urls",
+      "group": "Application shape",
+      "question": "Can a caller, a tenant, or content the system processes influence the URL or host of a request the system makes?",
+      "implies": [
+        "outbound_http"
+      ]
+    },
+    {
+      "id": "multiple_versions",
+      "group": "Application shape",
+      "question": "Is more than one version of the API exposed, or has an older version ever been?",
+      "implies": []
+    },
+    {
+      "id": "graphql",
+      "group": "API protocols",
+      "question": "Does the system serve a GraphQL API?",
+      "implies": []
+    },
+    {
+      "id": "grpc",
+      "group": "API protocols",
+      "question": "Does the system serve a gRPC API?",
+      "implies": []
+    },
+    {
+      "id": "websocket",
+      "group": "API protocols",
+      "question": "Does the system accept WebSocket connections?",
+      "implies": []
+    },
+    {
+      "id": "llm",
+      "group": "AI and agents",
+      "question": "Does a language model process input anywhere in the system, whether hosted by a provider or run by the team?",
+      "implies": []
+    },
+    {
+      "id": "agent",
+      "group": "AI and agents",
+      "question": "Can a model's output cause an action: a tool call, an API call, a command, or a message to another agent?",
+      "implies": [
+        "llm"
+      ]
+    },
+    {
+      "id": "code_execution",
+      "group": "AI and agents",
+      "question": "Is code or a command that a model produced ever executed?",
+      "implies": [
+        "agent"
+      ]
+    },
+    {
+      "id": "retrieval_memory",
+      "group": "AI and agents",
+      "question": "Is a model given content taken from a store: a document index, a vector store, or memory written in an earlier session?",
+      "implies": [
+        "llm"
+      ]
+    },
+    {
+      "id": "mcp",
+      "group": "AI and agents",
+      "question": "Does the system run a Model Context Protocol server, or connect to one as a client?",
+      "implies": []
+    },
+    {
+      "id": "a2a",
+      "group": "AI and agents",
+      "question": "Does the system take part in the Agent2Agent protocol, as a server or a client?",
+      "implies": []
+    },
+    {
+      "id": "model_artifacts",
+      "group": "AI and agents",
+      "question": "Does the team load, deploy or build from externally obtained model-related artifacts, such as models, adapters, tokenizers, datasets or serialized model files, rather than only calling a hosted model API?",
+      "implies": []
+    }
+  ],
+  "items": {
+    "fnd-01": {
+      "condition": "always",
+      "reason": "Checking that a caller may act on a specific object is the authorization property every API needs, so no architecture fact can rule it out."
+    },
+    "fnd-02": {
+      "condition": "always",
+      "reason": "Every API has callers whose identity must come from a credential, and no fact describes a system where network position or TLS would be enough."
+    },
+    "fnd-03": {
+      "condition": "always",
+      "reason": "The failure this item catches is a bare hash relied on for integrity, which can exist in a system with no signing or tokens at all, so no fact can rule it out."
+    },
+    "fnd-04": {
+      "condition": "always",
+      "reason": "Every service receives its traffic past some TLS termination, even when that termination is the service itself, so naming it applies to every review."
+    },
+    "fnd-05": {
+      "condition": "always",
+      "reason": "Enumerating the paths to a handler and confirming each crosses the check is meaningful with or without a gateway, and it is how a path around a check is found."
+    },
+    "fnd-06": {
+      "condition": "always",
+      "reason": "Writing down who can produce and who can check each request value is a design review step that applies to any API, whatever credentials it uses."
+    },
+    "fnd-07": {
+      "condition": "always",
+      "reason": "Almost every API compares some secret, such as a key, a token, a reset code or a signature tag, and no single fact covers all of those cases."
+    },
+    "api-keys-01": {
+      "condition": "always",
+      "reason": "The item speaks of credentials in general, and any credential, whether a key, a token or a session identifier, can leak through a URL or a log."
+    },
+    "api-keys-02": {
+      "condition": {
+        "all_of": [
+          "api_keys"
+        ]
+      },
+      "reason": "Revoking an exposed key across caches and issuing a replacement only makes sense where callers authenticate with static keys."
+    },
+    "api-keys-03": {
+      "condition": "always",
+      "reason": "The substance is that a valid credential does not grant every action or every caller's resources, which is the authorization property treated as universal."
+    },
+    "api-keys-04": {
+      "condition": {
+        "all_of": [
+          "api_keys"
+        ]
+      },
+      "reason": "Generation, storage, ownership and expiry of keys are properties of static API keys, so the item needs a caller that authenticates with one."
+    },
+    "api-keys-05": {
+      "condition": "always",
+      "reason": "Requiring HTTPS with certificate validation and rejecting missing or ambiguous credentials applies to any API, whatever kind of credential it accepts."
+    },
+    "hmac-01": {
+      "condition": {
+        "all_of": [
+          "request_signing"
+        ]
+      },
+      "reason": "A list of components that a signature must cover only applies where callers sign their requests."
+    },
+    "hmac-02": {
+      "condition": {
+        "all_of": [
+          "request_signing"
+        ]
+      },
+      "reason": "Hashing the raw received body is a step in verifying a signed request, so it needs request signing."
+    },
+    "hmac-03": {
+      "condition": {
+        "all_of": [
+          "request_signing"
+        ]
+      },
+      "reason": "The timestamp window and nonce recorded after verification are parts of verifying a signed request."
+    },
+    "hmac-04": {
+      "condition": {
+        "all_of": [
+          "request_signing"
+        ]
+      },
+      "reason": "There is a signature to compare only where requests are signed."
+    },
+    "hmac-05": {
+      "condition": {
+        "all_of": [
+          "request_signing"
+        ]
+      },
+      "reason": "Per-partner signing keys of at least 32 bytes with a rotation overlap are the keys used for request signing."
+    },
+    "hmac-06": {
+      "condition": {
+        "all_of": [
+          "request_signing"
+        ]
+      },
+      "reason": "Signed components exist only where requests are signed, and the test is what shows whether an intermediary changes them."
+    },
+    "hmac-07": {
+      "condition": {
+        "all_of": [
+          "request_signing"
+        ]
+      },
+      "reason": "Accepting that the receiver of a shared secret can forge is a decision about request signing, and the item is how a reviewer learns whether the signing is symmetric."
+    },
+    "sign-01": {
+      "condition": {
+        "all_of": [
+          "request_signing"
+        ]
+      },
+      "reason": "A covered body digest is a component of an HTTP message signature, so the item needs signed requests."
+    },
+    "sign-02": {
+      "condition": {
+        "all_of": [
+          "request_signing"
+        ]
+      },
+      "reason": "keyid is a signature parameter, so resolving it applies only where requests are signed."
+    },
+    "sign-03": {
+      "condition": {
+        "all_of": [
+          "request_signing"
+        ]
+      },
+      "reason": "The algorithm and key being checked are those of a request signature."
+    },
+    "sign-04": {
+      "condition": {
+        "all_of": [
+          "request_signing"
+        ]
+      },
+      "reason": "Covered components are a request signing concept, so the item cannot be read without signed requests."
+    },
+    "sign-05": {
+      "condition": {
+        "all_of": [
+          "request_signing"
+        ]
+      },
+      "reason": "Rebuilding a signature base with a missing covered component only happens when verifying a signed request."
+    },
+    "sign-06": {
+      "condition": {
+        "all_of": [
+          "request_signing"
+        ]
+      },
+      "reason": "created, expires and nonce are signature parameters checked while verifying a signed request."
+    },
+    "sign-07": {
+      "condition": {
+        "all_of": [
+          "request_signing"
+        ]
+      },
+      "reason": "Rotating by keyid with an overlap concerns the keys used to sign and verify requests."
+    },
+    "sign-08": {
+      "condition": {
+        "all_of": [
+          "request_signing"
+        ]
+      },
+      "reason": "The choice between a shared secret and a key pair exists only where requests are signed."
+    },
+    "oauth-01": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "The authorization code grant and PKCE are OAuth mechanisms."
+    },
+    "oauth-02": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "Redirect URI matching is an OAuth authorization server behaviour."
+    },
+    "oauth-03": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "The implicit and password grants are OAuth grants, disabled at an OAuth authorization server."
+    },
+    "oauth-04": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "Authorization codes exist only in OAuth."
+    },
+    "oauth-05": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "Token audience and scope are checks an OAuth resource server makes on an access token."
+    },
+    "oauth-06": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "Client registrations, scopes and refresh tokens are OAuth objects, so the item needs OAuth."
+    },
+    "oauth-07": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "The item is about what an OAuth access token does and does not prove, so it needs OAuth."
+    },
+    "oauth-08": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "The token endpoint and its defined error codes belong to OAuth."
+    },
+    "jwt-01": {
+      "condition": {
+        "all_of": [
+          "jwt"
+        ]
+      },
+      "reason": "The alg header and the none and HS256 downgrade tests are specific to verifying a JWT."
+    },
+    "jwt-02": {
+      "condition": {
+        "all_of": [
+          "jwt"
+        ]
+      },
+      "reason": "The aud claim checked here is a JWT claim, in a lesson about JWT validation."
+    },
+    "jwt-03": {
+      "condition": {
+        "all_of": [
+          "jwt"
+        ]
+      },
+      "reason": "kid, jku and x5u are JWT header parameters, so the item needs JWT verification."
+    },
+    "jwt-04": {
+      "condition": {
+        "all_of": [
+          "jwt"
+        ]
+      },
+      "reason": "A declared token profile with required claims is a property of a JWT verifier."
+    },
+    "jwt-05": {
+      "condition": {
+        "all_of": [
+          "jwt"
+        ]
+      },
+      "reason": "The item is about telling kinds of JWT apart, so it needs a system that verifies JWTs."
+    },
+    "jwt-06": {
+      "condition": {
+        "all_of": [
+          "jwt"
+        ]
+      },
+      "reason": "iss, exp, nbf and iat are JWT claims."
+    },
+    "jwt-07": {
+      "condition": "always",
+      "reason": "Not telling a caller which authentication check failed is a readable requirement for any credential, so it stays visible whatever the system uses."
+    },
+    "jwt-08": {
+      "condition": {
+        "all_of": [
+          "jwt"
+        ]
+      },
+      "reason": "The item is about the defaults of a JWT library."
+    },
+    "jwks-01": {
+      "condition": {
+        "all_of": [
+          "jwt"
+        ]
+      },
+      "reason": "A published key set is refreshed in order to verify JWT signatures."
+    },
+    "jwks-02": {
+      "condition": {
+        "all_of": [
+          "jwt"
+        ]
+      },
+      "reason": "Dropping a key the issuer removed concerns the keys used to verify JWTs."
+    },
+    "jwks-03": {
+      "condition": {
+        "all_of": [
+          "jwt"
+        ]
+      },
+      "reason": "jku and x5u are JWT header parameters naming a key location."
+    },
+    "jwks-04": {
+      "condition": {
+        "all_of": [
+          "jwt"
+        ]
+      },
+      "reason": "A refresh triggered by an unknown kid happens only in a JWT verifier using a key set."
+    },
+    "jwks-05": {
+      "condition": {
+        "all_of": [
+          "jwt"
+        ]
+      },
+      "reason": "Selecting a verification key by kid from a key set is part of JWT verification."
+    },
+    "jwks-06": {
+      "condition": {
+        "all_of": [
+          {
+            "any_of": [
+              "jwt",
+              "oauth"
+            ]
+          }
+        ]
+      },
+      "reason": "The bound adds token lifetime and key cache age, which need verified JWTs, to introspection cache time, which needs OAuth tokens, so either is enough."
+    },
+    "jwks-07": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "Token introspection is an OAuth mechanism and does not need the token to be a JWT."
+    },
+    "jwks-08": {
+      "condition": {
+        "all_of": [
+          "jwt"
+        ]
+      },
+      "reason": "The key set is retrieved in order to verify JWTs."
+    },
+    "bind-01": {
+      "condition": {
+        "all_of": [
+          "sender_constrained_tokens"
+        ]
+      },
+      "reason": "A token can only be downgraded from bound to bearer if the system has key-bound access tokens in the first place."
+    },
+    "bind-02": {
+      "condition": {
+        "all_of": [
+          "sender_constrained_tokens"
+        ]
+      },
+      "reason": "The proof key thumbprint and the cnf claim exist only where access tokens are bound to a key or certificate."
+    },
+    "bind-03": {
+      "condition": {
+        "all_of": [
+          "sender_constrained_tokens"
+        ]
+      },
+      "reason": "A proof jti to record exists only where clients send possession proofs for key-bound tokens."
+    },
+    "bind-04": {
+      "condition": {
+        "all_of": [
+          "sender_constrained_tokens"
+        ]
+      },
+      "reason": "The htm, htu and ath claims belong to a possession proof, which exists only with key-bound tokens."
+    },
+    "bind-05": {
+      "condition": {
+        "all_of": [
+          "sender_constrained_tokens"
+        ]
+      },
+      "reason": "A proof time window exists only where clients send possession proofs for key-bound tokens."
+    },
+    "bind-06": {
+      "condition": {
+        "all_of": [
+          "sender_constrained_tokens"
+        ]
+      },
+      "reason": "The keys in question are the client keys that tokens are bound to, so there is nothing to store without key-bound tokens."
+    },
+    "bind-07": {
+      "condition": {
+        "all_of": [
+          "sender_constrained_tokens"
+        ]
+      },
+      "reason": "The item asks whether the ordinary token checks survived the introduction of binding, which presupposes bound tokens."
+    },
+    "bind-08": {
+      "condition": {
+        "all_of": [
+          "sender_constrained_tokens"
+        ]
+      },
+      "reason": "The item is about how long a bound token stays valid after withdrawal, which presupposes bound tokens."
+    },
+    "life-01": {
+      "condition": "always",
+      "reason": "Reconciling a credential register against the systems is an inventory step that applies whatever kinds of credential the system uses."
+    },
+    "life-02": {
+      "condition": "always",
+      "reason": "Any system that holds a service credential of any kind needs an owner for it, and no single fact covers every kind of credential."
+    },
+    "life-03": {
+      "condition": "always",
+      "reason": "Withdrawing a credential in the right order applies to every kind of credential, so no architecture fact rules it out."
+    },
+    "life-04": {
+      "condition": "always",
+      "reason": "Rotation applies to every long-lived credential a system holds, including kinds that no single fact names."
+    },
+    "life-05": {
+      "condition": "always",
+      "reason": "A tested way to revoke is needed for every kind of credential, so no architecture fact rules it out."
+    },
+    "life-06": {
+      "condition": "always",
+      "reason": "A recorded end condition is needed for every kind of credential, so no architecture fact rules it out."
+    },
+    "life-07": {
+      "condition": "always",
+      "reason": "Shared and unused credentials can exist with any credential type, so no architecture fact rules it out."
+    },
+    "life-08": {
+      "condition": "always",
+      "reason": "What the credential register holds is an inventory question that applies whatever kinds of credential exist."
+    },
+    "bola-01": {
+      "condition": "always",
+      "reason": "Almost every API holds objects that belong to different users or tenants, and that is deliberately not treated as a fact."
+    },
+    "bola-02": {
+      "condition": "always",
+      "reason": "Checking ownership on every verb and path applies to any API with objects owned by different callers, and older versions are only one of the paths listed."
+    },
+    "bola-03": {
+      "condition": "always",
+      "reason": "Filtering a list by caller is the object ownership property, which nearly every API has and which is deliberately not a fact."
+    },
+    "bola-04": {
+      "condition": "always",
+      "reason": "Checking related objects is part of object ownership, which nearly every API has and which is deliberately not a fact."
+    },
+    "bola-05": {
+      "condition": "always",
+      "reason": "A test that a second caller is refused applies to any API with objects owned by different callers."
+    },
+    "bola-06": {
+      "condition": "always",
+      "reason": "How a refusal is worded matters for any API with objects owned by different callers."
+    },
+    "bola-07": {
+      "condition": "always",
+      "reason": "Identifier choice and the ownership check behind it apply to any API with objects owned by different callers."
+    },
+    "prop-01": {
+      "condition": "always",
+      "reason": "Nearly every API has fields that not every caller may set, and that is deliberately not treated as a fact."
+    },
+    "prop-02": {
+      "condition": "always",
+      "reason": "Nearly every API has functions that not every caller may use, and that is deliberately not treated as a fact."
+    },
+    "prop-03": {
+      "condition": "always",
+      "reason": "Identifying privileged functions applies to nearly every API, and restricted functions are deliberately not a fact."
+    },
+    "prop-04": {
+      "condition": "always",
+      "reason": "Nearly every API has fields that not every caller may read, and that is deliberately not treated as a fact."
+    },
+    "prop-05": {
+      "condition": "always",
+      "reason": "Separate readable and writable field lists apply to any API with restricted fields, which is deliberately not a fact."
+    },
+    "prop-06": {
+      "condition": "always",
+      "reason": "The ownership check on a write is the object authorization property, which is deliberately not a fact."
+    },
+    "prop-07": {
+      "condition": "always",
+      "reason": "Logging attempts to set fields a caller may not set applies to any API with restricted fields."
+    },
+    "prop-08": {
+      "condition": "always",
+      "reason": "Reading the authorization rules against what each operation does is a review step for any API with restricted functions."
+    },
+    "flow-01": {
+      "condition": "always",
+      "reason": "Nearly every API has requests that change state, and that is deliberately not treated as a fact."
+    },
+    "flow-02": {
+      "condition": "always",
+      "reason": "Reserving the key before the work concerns state-changing requests, which nearly every API has."
+    },
+    "flow-03": {
+      "condition": "always",
+      "reason": "Limits on costly business flows concern state-changing requests, which nearly every API has."
+    },
+    "flow-04": {
+      "condition": "always",
+      "reason": "Binding and scoping idempotency keys concerns state-changing requests, which nearly every API has."
+    },
+    "flow-05": {
+      "condition": "always",
+      "reason": "Replaying the stored response concerns retried state-changing requests, which nearly every API has."
+    },
+    "flow-06": {
+      "condition": "always",
+      "reason": "Key retention concerns retried state-changing requests, which nearly every API has."
+    },
+    "flow-07": {
+      "condition": "always",
+      "reason": "Logging the idempotency key concerns state-changing requests, which nearly every API has."
+    },
+    "gw-01": {
+      "condition": "always",
+      "reason": "Every service must authenticate its callers whether or not a gateway sits in front, so no fact rules the title out."
+    },
+    "gw-02": {
+      "condition": "always",
+      "reason": "Listing every source that can connect to a service is an inventory step that makes sense with or without a gateway."
+    },
+    "gw-03": {
+      "condition": {
+        "all_of": [
+          "gateway"
+        ]
+      },
+      "reason": "There is no gateway-injected identity header to distrust unless some service takes identity context from a gateway or proxy."
+    },
+    "gw-04": {
+      "condition": "always",
+      "reason": "Any system can have a staging or test deployment, and no fact describes deployment environments."
+    },
+    "gw-05": {
+      "condition": {
+        "all_of": [
+          "multiple_versions"
+        ]
+      },
+      "reason": "A non-current version can only be reachable if an older version of the API has ever been exposed."
+    },
+    "gw-06": {
+      "condition": "always",
+      "reason": "The item also covers batch jobs and operator tooling, which can exist in a system where no service calls another."
+    },
+    "gw-07": {
+      "condition": {
+        "all_of": [
+          "gateway"
+        ]
+      },
+      "reason": "There are no gateway controls to record per path unless some service relies on a gateway or edge component for security."
+    },
+    "gw-08": {
+      "condition": "always",
+      "reason": "A service logging its own requests is a real check whether or not a gateway sits in front of it."
+    },
+    "ctr-01": {
+      "condition": "always",
+      "reason": "Any API that parses a request body can receive a repeated name, so no architecture fact rules this out."
+    },
+    "ctr-02": {
+      "condition": "always",
+      "reason": "Size and nesting limits ahead of the parser matter for any API that accepts a request body, whatever its architecture."
+    },
+    "ctr-03": {
+      "condition": "always",
+      "reason": "Whether compressed bodies are accepted is not one of the facts, and a decoded size limit is a check on any body-accepting API."
+    },
+    "ctr-04": {
+      "condition": "always",
+      "reason": "Any API that parses JSON can be handed NaN or Infinity, and no fact describes the body format."
+    },
+    "ctr-05": {
+      "condition": "always",
+      "reason": "Numeric fields exist in almost any API, and bounding them does not depend on any architecture fact."
+    },
+    "ctr-06": {
+      "condition": "always",
+      "reason": "The item names validator and handler and two languages as well as gateway and service, so it still applies with no gateway."
+    },
+    "ctr-07": {
+      "condition": "always",
+      "reason": "String and array fields exist in almost any API, and per-field length limits do not depend on any architecture fact."
+    },
+    "ctr-08": {
+      "condition": "always",
+      "reason": "Every API rejects some requests, so how a rejection is worded and logged applies everywhere."
+    },
+    "out-01": {
+      "condition": {
+        "all_of": [
+          "caller_influenced_urls"
+        ]
+      },
+      "reason": "Parsing a URL and checking only its host is validation of a URL that someone outside the service can influence."
+    },
+    "out-02": {
+      "condition": {
+        "all_of": [
+          "caller_influenced_urls"
+        ]
+      },
+      "reason": "Classifying the resolved address is a step of validating a destination that came from outside the service."
+    },
+    "out-03": {
+      "condition": {
+        "all_of": [
+          "caller_influenced_urls"
+        ]
+      },
+      "reason": "Connecting to the validated address presupposes validation of a destination that came from outside the service."
+    },
+    "out-04": {
+      "condition": {
+        "all_of": [
+          "outbound_http"
+        ]
+      },
+      "reason": "A redirect can send any outbound request to a destination nobody checked, whether or not the first URL was caller supplied."
+    },
+    "out-05": {
+      "condition": {
+        "all_of": [
+          "caller_influenced_urls"
+        ]
+      },
+      "reason": "Normalising the spellings of an address is validation of a host that someone outside the service can influence."
+    },
+    "out-06": {
+      "condition": {
+        "all_of": [
+          "caller_influenced_urls"
+        ]
+      },
+      "reason": "Allowlisting schemes and hosts is a check on a URL someone outside the service can influence; a fixed destination has nothing to allowlist."
+    },
+    "out-07": {
+      "condition": {
+        "all_of": [
+          "outbound_http"
+        ]
+      },
+      "reason": "Any response the service fetches is input, whoever chose the URL."
+    },
+    "out-08": {
+      "condition": {
+        "all_of": [
+          "outbound_http"
+        ]
+      },
+      "reason": "The item has two parts, and passing an upstream response back unchanged matters for any outbound request, including one to a fixed address."
+    },
+    "rate-01": {
+      "condition": "always",
+      "reason": "Where rate limit counters live is a question for any API with a limit, and no fact records how many instances run."
+    },
+    "rate-02": {
+      "condition": "always",
+      "reason": "Any API with a rate limit has a worst-case burst set by its algorithm, whatever the architecture."
+    },
+    "rate-03": {
+      "condition": "always",
+      "reason": "Operations that cost more than others exist with or without a model; the model sentence is one case of a general check."
+    },
+    "rate-04": {
+      "condition": "always",
+      "reason": "A quota beside the rate applies to any API that limits callers, whatever the architecture."
+    },
+    "rate-05": {
+      "condition": "always",
+      "reason": "A paid integration can be a cloud platform, a messaging provider or a model provider, and no single fact covers all of them."
+    },
+    "rate-06": {
+      "condition": "always",
+      "reason": "The item covers anything that sends a message or spends money, not only login and recovery endpoints, so no single fact rules it out."
+    },
+    "rate-07": {
+      "condition": "always",
+      "reason": "Memory, CPU, process and timeout limits apply to any deployed service."
+    },
+    "rate-08": {
+      "condition": "always",
+      "reason": "Any API that refuses on a rate limit sends 429 responses, whatever the architecture."
+    },
+    "rate-09": {
+      "condition": {
+        "all_of": [
+          "llm"
+        ]
+      },
+      "reason": "The item is about an endpoint backed by a language model and the model tokens it spends, which needs a model in the system."
+    },
+    "rate-10": {
+      "condition": {
+        "all_of": [
+          "llm"
+        ]
+      },
+      "reason": "A budget ceiling that stops calls to the model only makes sense where a language model does the work."
+    },
+    "hook-01": {
+      "condition": {
+        "all_of": [
+          "webhook_receiver"
+        ]
+      },
+      "reason": "The signature here is the one on an inbound webhook event, so the item needs the system to receive webhooks."
+    },
+    "hook-02": {
+      "condition": {
+        "all_of": [
+          "webhook_receiver"
+        ]
+      },
+      "reason": "The timestamp is the one covered by a webhook signature and the test uses an event, so the item needs inbound webhooks."
+    },
+    "hook-03": {
+      "condition": {
+        "all_of": [
+          "webhook_receiver"
+        ]
+      },
+      "reason": "Event identifiers are the ids of delivered webhook events, so the item needs the system to receive webhooks."
+    },
+    "hook-04": {
+      "condition": {
+        "all_of": [
+          "webhook_receiver"
+        ]
+      },
+      "reason": "Answering a duplicate event like the original is a rule for a receiver of pushed events, so it needs inbound webhooks."
+    },
+    "hook-05": {
+      "condition": {
+        "all_of": [
+          "webhook_receiver"
+        ]
+      },
+      "reason": "Limits ahead of the signature check concern an endpoint whose only authentication is the webhook signature, so it needs inbound webhooks."
+    },
+    "hook-06": {
+      "condition": {
+        "all_of": [
+          "webhook_receiver"
+        ]
+      },
+      "reason": "The secret is the one each webhook sender signs with, so the item needs the system to receive webhooks."
+    },
+    "hook-07": {
+      "condition": {
+        "all_of": [
+          "webhook_receiver"
+        ]
+      },
+      "reason": "Out-of-order delivery is a property of webhook events, so the item needs handlers that receive them."
+    },
+    "hook-08": {
+      "condition": {
+        "all_of": [
+          "webhook_receiver"
+        ]
+      },
+      "reason": "The endpoint URL and the event contents are those of a webhook receiver, so the item needs inbound webhooks."
+    },
+    "cors-01": {
+      "condition": {
+        "all_of": [
+          "browser_client"
+        ]
+      },
+      "reason": "Access-Control-Allow-Origin is a CORS response header, read only by browsers."
+    },
+    "cors-03": {
+      "condition": {
+        "all_of": [
+          "browser_client"
+        ]
+      },
+      "reason": "A cross-origin POST that arrives without a preflight is sent by a browser, so the item needs a browser caller."
+    },
+    "cors-04": {
+      "condition": {
+        "all_of": [
+          "browser_client"
+        ]
+      },
+      "reason": "Comparing the Origin of a request against an allowlist is a CORS decision, and CORS only has an effect when a browser calls the API."
+    },
+    "cors-05": {
+      "condition": {
+        "all_of": [
+          "browser_client"
+        ]
+      },
+      "reason": "Vary: Origin matters only where a response depends on the Origin of a CORS request, which presupposes browser callers."
+    },
+    "cors-06": {
+      "condition": "always",
+      "reason": "Using the Origin header as an authorization decision is a fault in any HTTP API, and the item's own text is about callers that are not browsers, so no fact can rule it out."
+    },
+    "cors-08": {
+      "condition": {
+        "all_of": [
+          "browser_client"
+        ]
+      },
+      "reason": "Access-Control-Max-Age is read only by a browser's preflight cache."
+    },
+    "cors-09": {
+      "condition": {
+        "all_of": [
+          "browser_client"
+        ]
+      },
+      "reason": "A test item, but its text limits it to preflight responses, which only browsers request."
+    },
+    "ver-01": {
+      "condition": "always",
+      "reason": "Producing the list of answering deployments from the network is how extra versions are found, so it cannot depend on already knowing there are any."
+    },
+    "ver-02": {
+      "condition": {
+        "all_of": [
+          "multiple_versions"
+        ]
+      },
+      "reason": "A sunset date belongs to a version that has been superseded, so the item needs more than one version to exist or to have existed."
+    },
+    "ver-03": {
+      "condition": {
+        "all_of": [
+          "multiple_versions"
+        ]
+      },
+      "reason": "Carrying fixes back to older exposed versions only arises when more than one version exists or has existed."
+    },
+    "ver-04": {
+      "condition": {
+        "all_of": [
+          "multiple_versions"
+        ]
+      },
+      "reason": "A superseded version exists only where more than one version does or did."
+    },
+    "ver-05": {
+      "condition": {
+        "all_of": [
+          "multiple_versions"
+        ]
+      },
+      "reason": "Deprecated versions, as the lesson uses the term, are superseded ones, so the item needs more than one version to exist or to have existed."
+    },
+    "ver-06": {
+      "condition": {
+        "all_of": [
+          "multiple_versions"
+        ]
+      },
+      "reason": "Naming remaining callers is what lets an old version be withdrawn, so the item needs more than one version to exist or to have existed."
+    },
+    "ver-07": {
+      "condition": "always",
+      "reason": "Internal and non-production deployments are the ones a team does not count as versions, so this inventory check has to be shown to everyone."
+    },
+    "ver-08": {
+      "condition": {
+        "all_of": [
+          "multiple_versions"
+        ]
+      },
+      "reason": "Checking that a withdrawn version stopped answering needs a version that was withdrawn, which means an older version has existed."
+    },
+    "ver-09": {
+      "condition": "always",
+      "reason": "Comparing the four lists is how undocumented and supposedly retired versions are found, so it cannot depend on knowing they exist."
+    },
+    "ver-10": {
+      "condition": "always",
+      "reason": "An inventory entry with an owner and a specification is needed even for an API with a single version."
+    },
+    "dlg-01": {
+      "condition": {
+        "all_of": [
+          "service_to_service"
+        ]
+      },
+      "reason": "The check reads one service's outbound calls to another service for a forwarded user token, so it needs a service calling a service and nothing more."
+    },
+    "dlg-02": {
+      "condition": {
+        "all_of": [
+          "service_to_service"
+        ]
+      },
+      "reason": "The failing case is a service calling another with its own credential and the user in a parameter, which a team may not count as delegation, so only a service-to-service call is required."
+    },
+    "dlg-03": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "The current actor and the nested chain are the act claim of OAuth token exchange, read by a resource server, so the item needs OAuth tokens."
+    },
+    "dlg-04": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "An exchange with audience and scope is the OAuth token exchange grant, so the item needs the system to use OAuth."
+    },
+    "dlg-05": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "may_act is a claim defined by OAuth token exchange and enforced by the authorization server, so the item needs OAuth."
+    },
+    "dlg-06": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "The subject token and the lifetime of the token issued from it are parts of OAuth token exchange, so the item needs OAuth."
+    },
+    "dlg-07": {
+      "condition": {
+        "all_of": [
+          "delegation"
+        ]
+      },
+      "reason": "A delegation chain exists only where services act for a user toward other services."
+    },
+    "dlg-08": {
+      "condition": {
+        "all_of": [
+          "delegation"
+        ]
+      },
+      "reason": "A subject and a separate current actor exist only on calls one service makes on a user's behalf."
+    },
+    "mcp-01": {
+      "condition": {
+        "all_of": [
+          "mcp"
+        ]
+      },
+      "reason": "The item is about an MCP server acting as a resource server, so it needs MCP in scope."
+    },
+    "mcp-02": {
+      "condition": {
+        "all_of": [
+          "mcp"
+        ]
+      },
+      "reason": "The server, the inbound token and the specification's MUST NOT are, read with the lesson, the MCP server and the MCP specification, so the item needs MCP in scope."
+    },
+    "mcp-03": {
+      "condition": {
+        "all_of": [
+          "mcp"
+        ]
+      },
+      "reason": "The item is about an MCP server on an HTTP transport and nothing else."
+    },
+    "mcp-04": {
+      "condition": {
+        "all_of": [
+          "mcp"
+        ]
+      },
+      "reason": "State handles are the MCP mechanism that replaced protocol sessions, received back as tool arguments."
+    },
+    "mcp-05": {
+      "condition": {
+        "all_of": [
+          "mcp"
+        ]
+      },
+      "reason": "The canonical URI of the server, and sending the parameter whether or not it is honoured, are MCP requirements on MCP clients."
+    },
+    "mcp-06": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "The iss authorization response parameter and the issuer recorded before the redirect are OAuth client objects (RFC 9207), so the item cannot apply without OAuth."
+    },
+    "mcp-07": {
+      "condition": {
+        "all_of": [
+          "mcp"
+        ]
+      },
+      "reason": "The harm in the detail depends on the MCP client's documented fallback of requesting everything in scopes_supported when a challenge carries no scope."
+    },
+    "mcp-08": {
+      "condition": {
+        "all_of": [
+          "mcp"
+        ]
+      },
+      "reason": "A process item, but its text limits it to recording the MCP revision, which has no meaning unless the system runs or connects to an MCP server."
+    },
+    "a2a-01": {
+      "condition": {
+        "all_of": [
+          "a2a"
+        ]
+      },
+      "reason": "Agent cards are A2A objects."
+    },
+    "a2a-02": {
+      "condition": {
+        "all_of": [
+          "a2a"
+        ]
+      },
+      "reason": "A task conversation and the section 7.6.1 rule on in-task credentials are A2A objects, so the item cannot be read without A2A."
+    },
+    "a2a-03": {
+      "condition": {
+        "all_of": [
+          "caller_influenced_urls"
+        ]
+      },
+      "reason": "The item is about URLs a client supplies and the system then POSTs to, which is exactly a caller influencing the destination of an outbound request."
+    },
+    "a2a-04": {
+      "condition": {
+        "all_of": [
+          "a2a",
+          "webhook_receiver"
+        ]
+      },
+      "reason": "The task token and task id are A2A push notification fields, and inbound notifications arrive only where the system receives webhook deliveries."
+    },
+    "a2a-06": {
+      "condition": {
+        "all_of": [
+          "a2a"
+        ]
+      },
+      "reason": "An agent card and its interface URL are A2A objects."
+    },
+    "a2a-07": {
+      "condition": {
+        "all_of": [
+          "a2a"
+        ]
+      },
+      "reason": "The mid-task credential request is the A2A interrupted task state, so the pre-agreed list is a control for an A2A participant."
+    },
+    "a2a-08": {
+      "condition": {
+        "all_of": [
+          "a2a"
+        ]
+      },
+      "reason": "Declared skills are the skills listed in an A2A agent card."
+    },
+    "a2a-09": {
+      "condition": {
+        "all_of": [
+          "a2a"
+        ]
+      },
+      "reason": "The public agent card exists only for an A2A server."
+    },
+    "a2a-10": {
+      "condition": {
+        "all_of": [
+          "a2a"
+        ]
+      },
+      "reason": "A process item, but its text limits it to recording the A2A protocol version, which has no meaning unless the system takes part in A2A."
+    },
+    "inj-01": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "A tool dispatch table only exists where a model's output can cause a tool call, so the item needs an agent."
+    },
+    "inj-02": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "Tool credentials and the question of whether the model holds them only arise where a model's output can trigger tool calls."
+    },
+    "inj-03": {
+      "condition": {
+        "all_of": [
+          "llm"
+        ]
+      },
+      "reason": "The item is about SQL built from model output, which needs a model in the system but not necessarily one that calls tools."
+    },
+    "inj-04": {
+      "condition": {
+        "all_of": [
+          "llm"
+        ]
+      },
+      "reason": "Encoding model output for each destination needs a model producing output and nothing more."
+    },
+    "inj-05": {
+      "condition": {
+        "all_of": [
+          "llm"
+        ]
+      },
+      "reason": "Fencing untrusted content inside a prompt needs a model that is given a prompt, whatever the source of that content."
+    },
+    "inj-06": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "Validating the arguments of a tool call applies only where a model's output can cause tool calls."
+    },
+    "inj-07": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "The item is about the authority an agent holds and what a successful injection could reach through it, so it needs an agent."
+    },
+    "inj-08": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "The privileged operations in question are ones a model proposes, so human approval of them needs an agent."
+    },
+    "inj-09": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "Logging provenance with the action needs a model-proposed action to log against."
+    },
+    "inj-10": {
+      "condition": {
+        "all_of": [
+          "llm"
+        ]
+      },
+      "reason": "An input filter against prompt injection, and how it is reported, only matters where a model processes input."
+    },
+    "apv-01": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "The approvals here are human approvals of actions an agent proposes, so the item needs an agent."
+    },
+    "apv-02": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "Coverage of an approval is a property of the human approval step for agent-proposed actions, so it needs an agent."
+    },
+    "apv-03": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "The approver's summary belongs to the human approval step for agent-proposed actions, so it needs an agent."
+    },
+    "apv-04": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "Single-use approvals are a property of the human approval step for agent-proposed actions, so the item needs an agent."
+    },
+    "apv-05": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "Approval expiry is a property of the human approval step for agent-proposed actions, so the item needs an agent."
+    },
+    "apv-06": {
+      "condition": "always",
+      "reason": "A service authorizing its caller for itself is the authorization property treated as near universal, so no architecture fact can rule it out."
+    },
+    "apv-07": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "Session-wide approvals are approvals of agent actions, so the item needs an agent."
+    },
+    "apv-08": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "The list is of agent actions that need a human approval, so the item needs an agent."
+    },
+    "apv-09": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "Logging approved against executed parameters needs the approval step for agent-proposed actions, so it needs an agent."
+    },
+    "ctx-01": {
+      "condition": {
+        "all_of": [
+          "llm"
+        ]
+      },
+      "reason": "A system prompt exists only where a model processes input."
+    },
+    "ctx-02": {
+      "condition": {
+        "all_of": [
+          "llm"
+        ]
+      },
+      "reason": "Prompt context is only built where a model processes input."
+    },
+    "ctx-03": {
+      "condition": "always",
+      "reason": "Filtering response fields by the caller's role is property-level authorization, which applies to almost every API with or without a model."
+    },
+    "ctx-04": {
+      "condition": {
+        "all_of": [
+          "llm"
+        ]
+      },
+      "reason": "The sinks a prompt reaches can only be listed where prompts are sent to a model."
+    },
+    "ctx-05": {
+      "condition": "always",
+      "reason": "The item names only redaction patterns and how they are tested, which reads as a real check for any log or trace redactor even with no model."
+    },
+    "ctx-06": {
+      "condition": {
+        "all_of": [
+          "llm"
+        ]
+      },
+      "reason": "A prompt cache exists only where prompts are sent to a model."
+    },
+    "ctx-07": {
+      "condition": {
+        "all_of": [
+          "llm"
+        ]
+      },
+      "reason": "Prompt and response logging here means model prompts and model responses, so it needs a model."
+    },
+    "ctx-08": {
+      "condition": {
+        "all_of": [
+          "llm"
+        ]
+      },
+      "reason": "Model provider retention and training terms matter only where a model processes the system's data."
+    },
+    "ctx-09": {
+      "condition": {
+        "all_of": [
+          "llm"
+        ]
+      },
+      "reason": "A system prompt can only be relied on for a security decision where a model is present."
+    },
+    "ret-01": {
+      "condition": "always",
+      "reason": "Filtering before ranking applies to any search over resources of different tenants, with or without a model, and multi-tenant resources are deliberately not a fact."
+    },
+    "ret-02": {
+      "condition": "always",
+      "reason": "A count that reveals documents the caller may not read is a cross-tenant authorization leak in any search response, not only in retrieval for a model."
+    },
+    "ret-03": {
+      "condition": {
+        "all_of": [
+          "retrieval_memory"
+        ]
+      },
+      "reason": "Keeping untrusted origins out of the content that informs a model's decision needs content from a store being given to a model."
+    },
+    "ret-04": {
+      "condition": {
+        "all_of": [
+          "retrieval_memory"
+        ]
+      },
+      "reason": "Document origin at ingestion is recorded for the store whose content is given to a model, so the item needs retrieval or memory."
+    },
+    "ret-05": {
+      "condition": {
+        "all_of": [
+          "retrieval_memory"
+        ]
+      },
+      "reason": "Memory writes exist only where a model is later given content from a memory store."
+    },
+    "ret-06": {
+      "condition": {
+        "all_of": [
+          "retrieval_memory"
+        ]
+      },
+      "reason": "A memory sweep after a document is withdrawn needs both an index and memory feeding a model, which this one fact covers."
+    },
+    "ret-07": {
+      "condition": "always",
+      "reason": "Who may write documents into a shared index is an authorization decision about a state-changing function, which applies to any search index and not only one read by a model."
+    },
+    "ret-08": {
+      "condition": {
+        "all_of": [
+          "retrieval_memory"
+        ]
+      },
+      "reason": "Retrieval activity can only be logged where content is retrieved from a store for a model."
+    },
+    "ret-09": {
+      "condition": {
+        "all_of": [
+          "retrieval_memory"
+        ]
+      },
+      "reason": "Ranking adjustments are a property of a retrieval index feeding a model, so the item needs retrieval."
+    },
+    "rev-01": {
+      "condition": "always",
+      "reason": "This is about how a review is run, so it applies to every review."
+    },
+    "rev-02": {
+      "condition": "always",
+      "reason": "This is about how review results are reported, so it applies to every review."
+    },
+    "rev-03": {
+      "condition": "always",
+      "reason": "A coverage statement belongs in every review report whatever the system looks like."
+    },
+    "rev-04": {
+      "condition": "always",
+      "reason": "Ordering and grouping findings is review method and applies to every review."
+    },
+    "rev-05": {
+      "condition": "always",
+      "reason": "Marking open items as a setting or a decision is review method and applies to every review."
+    },
+    "rev-06": {
+      "condition": "always",
+      "reason": "Keeping the rule table and review date under version control is review method and applies to every review."
+    },
+    "authn-01": {
+      "condition": {
+        "all_of": [
+          "user_auth_endpoints"
+        ]
+      },
+      "reason": "A second factor at sign-in is enforced on the login routes the system itself exposes, so the item needs the system to have them."
+    },
+    "authn-02": {
+      "condition": {
+        "all_of": [
+          "user_auth_endpoints"
+        ]
+      },
+      "reason": "Counting failed sign-in attempts needs a login endpoint that the system itself runs."
+    },
+    "authn-03": {
+      "condition": {
+        "all_of": [
+          "user_auth_endpoints"
+        ]
+      },
+      "reason": "Uniform answers from login, reset and registration need the system to expose those endpoints."
+    },
+    "authn-04": {
+      "condition": {
+        "all_of": [
+          "user_auth_endpoints"
+        ]
+      },
+      "reason": "Account lockout behaviour only exists where the system runs its own sign-in."
+    },
+    "authn-05": {
+      "condition": {
+        "all_of": [
+          "user_auth_endpoints"
+        ]
+      },
+      "reason": "Password reset tokens exist only where the system exposes its own account recovery."
+    },
+    "authn-06": {
+      "condition": {
+        "all_of": [
+          "user_auth_endpoints"
+        ]
+      },
+      "reason": "Changing a sign-in address, password or second factor is a function of a system that manages its own user credentials."
+    },
+    "authn-07": {
+      "condition": {
+        "all_of": [
+          "user_auth_endpoints"
+        ]
+      },
+      "reason": "Password storage applies only where the system itself accepts and verifies user passwords."
+    },
+    "authn-08": {
+      "condition": {
+        "all_of": [
+          "user_auth_endpoints"
+        ]
+      },
+      "reason": "Checks on new passwords apply only where the system itself lets people set a password."
+    },
+    "authn-09": {
+      "condition": {
+        "all_of": [
+          "user_auth_endpoints"
+        ]
+      },
+      "reason": "The failures, lockouts and resets to be logged come from the system's own sign-in and recovery endpoints."
+    },
+    "authn-10": {
+      "condition": "always",
+      "reason": "Taking an inventory of every way to sign in is how forgotten login routes are found, so it cannot be gated on the fact it establishes."
+    },
+    "csrf-01": {
+      "condition": {
+        "all_of": [
+          "cookie_session"
+        ]
+      },
+      "reason": "A CSRF token on requests in a cookie session only means something when a browser authenticates with a cookie it attaches automatically."
+    },
+    "csrf-02": {
+      "condition": "always",
+      "reason": "Every API has requests that change state, and keeping GET, HEAD and OPTIONS read-only is a general HTTP rule that holds whatever client calls the API."
+    },
+    "csrf-03": {
+      "condition": {
+        "all_of": [
+          "cookie_session"
+        ]
+      },
+      "reason": "The item checks the attributes of the session cookie, so it needs a browser session carried by a cookie."
+    },
+    "csrf-04": {
+      "condition": {
+        "all_of": [
+          "browser_client"
+        ]
+      },
+      "reason": "Sec-Fetch-Site and Origin only describe where a request came from when a browser sends it, so the check needs a browser client."
+    },
+    "csrf-05": {
+      "condition": {
+        "all_of": [
+          "cookie_session"
+        ]
+      },
+      "reason": "Replacing the session identifier at login and never accepting it from a URL is about the identifier a browser carries in its session cookie."
+    },
+    "csrf-06": {
+      "condition": "always",
+      "reason": "Any server-held session needs timeouts and a logout that deletes the record, whether the identifier travels in a cookie or in a header, so no fact can rule it out."
+    },
+    "csrf-07": {
+      "condition": "always",
+      "reason": "Any API endpoint can be sent a content type it does not parse, and refusing it is a general hardening layer that does not depend on the kind of client."
+    },
+    "csrf-08": {
+      "condition": {
+        "all_of": [
+          "browser_client"
+        ]
+      },
+      "reason": "Same-site trust between sibling hosts under one registrable domain is a browser concept, so the check needs a browser client."
+    },
+    "csrf-09": {
+      "condition": {
+        "all_of": [
+          "browser_client"
+        ]
+      },
+      "reason": "The decision is about where an application running in a browser keeps its tokens, so it needs a browser client."
+    },
+    "cfg-01": {
+      "condition": "always",
+      "reason": "Any API can raise an error, so what an error response reveals is checkable on every system."
+    },
+    "cfg-02": {
+      "condition": "always",
+      "reason": "Every API has authentication or authorization checks that can fail with an error, so failing closed applies everywhere."
+    },
+    "cfg-03": {
+      "condition": "always",
+      "reason": "Every API has a listener and connections between its components, so refusing plain HTTP and using TLS on every hop applies to all systems."
+    },
+    "cfg-04": {
+      "condition": "always",
+      "reason": "Every API terminates TLS somewhere, so the protocol versions and cipher suites it offers are always checkable."
+    },
+    "cfg-05": {
+      "condition": "always",
+      "reason": "Every API has routes and methods, so a method allowlist per route applies to all systems."
+    },
+    "cfg-06": {
+      "condition": "always",
+      "reason": "Any deployment can carry debug endpoints, sample content, default accounts or exposed management functions, so no architecture fact rules this out."
+    },
+    "cfg-07": {
+      "condition": "always",
+      "reason": "Every API returns responses, and cache, content type and version headers are checkable on all of them whoever the client is."
+    },
+    "cfg-08": {
+      "condition": "always",
+      "reason": "Any deployment can have more than one server handling a request, and no fact says there is only one, so nothing can rule out a parsing mismatch between them."
+    },
+    "cfg-09": {
+      "condition": "always",
+      "reason": "Every system is built from components that have versions and advisories, so patch level is always checkable."
+    },
+    "cfg-10": {
+      "condition": "always",
+      "reason": "Every system is deployed in at least one environment that can drift from its baseline, and the item describes how that is audited."
+    },
+    "log-01": {
+      "condition": "always",
+      "reason": "Every API refuses some requests, so whether refusals leave an event applies to all systems."
+    },
+    "log-02": {
+      "condition": "always",
+      "reason": "Every API can log events, and the fields an event needs do not depend on any architecture fact."
+    },
+    "log-03": {
+      "condition": "always",
+      "reason": "Every API handles some credential, token or session identifier that could end up in a log."
+    },
+    "log-04": {
+      "condition": "always",
+      "reason": "Any system that writes request values to a log can have an entry forged, whatever its architecture."
+    },
+    "log-05": {
+      "condition": "always",
+      "reason": "A shared event vocabulary is a property of how any system logs, and no architecture fact removes the need for it."
+    },
+    "log-06": {
+      "condition": "always",
+      "reason": "Detection rules over logged events and replay tests apply to any API that has accounts and business flows."
+    },
+    "log-07": {
+      "condition": "always",
+      "reason": "Slow and distributed attacks are possible against any API, so the long-window rule and the silent rate apply everywhere."
+    },
+    "log-08": {
+      "condition": "always",
+      "reason": "Every system that keeps logs must protect, restrict and retain them, whatever its architecture."
+    },
+    "log-09": {
+      "condition": "always",
+      "reason": "Every system that timestamps events depends on its clocks, so synchronisation applies everywhere."
+    },
+    "log-10": {
+      "condition": "always",
+      "reason": "How an alert reaches a person with a written procedure is an operations process that applies to every system."
+    },
+    "agt-01": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "The item covers code and commands an agent produces, and part of it is confirming that nothing evaluates model output as code, so it stays visible for any system where a model's output can cause an action."
+    },
+    "agt-02": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "Limiting file access to a working directory applies to any agent whose tools can read or write files, so it needs a model whose output can cause an action."
+    },
+    "agt-03": {
+      "condition": {
+        "all_of": [
+          "code_execution"
+        ]
+      },
+      "reason": "The item is about network egress from the environment where model-produced code or commands run, so it needs model output to be executed."
+    },
+    "agt-04": {
+      "condition": {
+        "all_of": [
+          "code_execution"
+        ]
+      },
+      "reason": "The item checks the environment and files visible from inside the sandbox where model-produced code runs, so it needs model output to be executed."
+    },
+    "agt-05": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "A step budget and spend ceiling on a run only make sense when a model's output drives a sequence of actions."
+    },
+    "agt-06": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "Checking a plan before it executes needs a model whose output is a plan of actions that will be carried out."
+    },
+    "agt-07": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "Validating output passed from one agent to the next needs a model whose output triggers an action, here a message to another agent."
+    },
+    "agt-08": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "A declared profile of tools and call limits checked before each action needs an agent that takes actions."
+    },
+    "agt-09": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "A kill switch that revokes the agent's credential needs an agent that acts with a credential."
+    },
+    "agt-10": {
+      "condition": {
+        "all_of": [
+          "agent"
+        ]
+      },
+      "reason": "Separate credentials per agent and reviewed return from quarantine need agents that act with credentials."
+    },
+    "msc-01": {
+      "condition": {
+        "all_of": [
+          "model_artifacts"
+        ]
+      },
+      "reason": "The item is about loading model, adapter or dataset files obtained from outside, which only happens when the team takes in such artifacts."
+    },
+    "msc-02": {
+      "condition": {
+        "all_of": [
+          "model_artifacts"
+        ]
+      },
+      "reason": "Resolving models, adapters and datasets by digest only applies when the team fetches such artifacts and does not just call a hosted model."
+    },
+    "msc-03": {
+      "condition": {
+        "all_of": [
+          "model_artifacts"
+        ]
+      },
+      "reason": "Verifying a signed manifest of a model's files needs model artifacts that the team takes in and loads."
+    },
+    "msc-04": {
+      "condition": {
+        "all_of": [
+          "model_artifacts"
+        ]
+      },
+      "reason": "Checking the provenance record of an artifact needs model artifacts that the team takes in."
+    },
+    "msc-05": {
+      "condition": {
+        "all_of": [
+          "model_artifacts"
+        ]
+      },
+      "reason": "Adapters, merges, conversions and quantization produce new model artifacts, so the item needs the team to handle model artifacts."
+    },
+    "msc-06": {
+      "condition": {
+        "all_of": [
+          "model_artifacts"
+        ]
+      },
+      "reason": "A behavioural evaluation before promotion, with scanners and safe-loading flags as layers, is a gate on model artifacts the team takes in."
+    },
+    "msc-07": {
+      "condition": "always",
+      "reason": "Every system installs software packages, so pinning and hashing them from a curated index applies whether or not any model is involved."
+    },
+    "msc-08": {
+      "condition": "always",
+      "reason": "The inventory includes packages, which every system loads, so it applies even where no model or dataset is present."
+    },
+    "msc-09": {
+      "condition": {
+        "all_of": [
+          "model_artifacts"
+        ]
+      },
+      "reason": "A pipeline that builds and signs models exists only where the team builds or deploys model artifacts."
+    },
+    "msc-10": {
+      "condition": "always",
+      "reason": "Suppliers, their terms and licences exist for hosted model providers, model hubs, datasets and ordinary packages alike, so no single fact can rule the review out."
+    },
+    "prot-01": {
+      "condition": {
+        "all_of": [
+          {
+            "any_of": [
+              "graphql",
+              "grpc",
+              "websocket"
+            ]
+          }
+        ]
+      },
+      "reason": "Aliased fields and batch entries are GraphQL, stream messages are gRPC and socket messages are WebSocket; the item applies if any of the three is served."
+    },
+    "prot-02": {
+      "condition": {
+        "all_of": [
+          "graphql"
+        ]
+      },
+      "reason": "A resolver is a GraphQL object, so the check on every nested path only exists where a GraphQL API is served."
+    },
+    "prot-03": {
+      "condition": {
+        "all_of": [
+          "graphql"
+        ]
+      },
+      "reason": "Document depth, batch size and estimated cost are properties of a GraphQL document, so there is nothing to bound without a GraphQL API."
+    },
+    "prot-04": {
+      "condition": {
+        "all_of": [
+          "graphql"
+        ]
+      },
+      "reason": "The item is about GraphQL mutations."
+    },
+    "prot-05": {
+      "condition": {
+        "all_of": [
+          {
+            "any_of": [
+              "graphql",
+              "grpc"
+            ]
+          }
+        ]
+      },
+      "reason": "Introspection and field suggestions belong to GraphQL and reflection belongs to gRPC, so the item applies when either protocol is served."
+    },
+    "prot-06": {
+      "condition": {
+        "all_of": [
+          "grpc"
+        ]
+      },
+      "reason": "Method rules, interceptors and method paths are gRPC objects, so the item needs a gRPC API."
+    },
+    "prot-07": {
+      "condition": {
+        "all_of": [
+          {
+            "any_of": [
+              "grpc",
+              "websocket"
+            ]
+          }
+        ]
+      },
+      "reason": "The detail is about gRPC deadlines and about gRPC and WebSocket message limits, so it applies when either protocol is served."
+    },
+    "prot-08": {
+      "condition": {
+        "all_of": [
+          "websocket"
+        ]
+      },
+      "reason": "The item is about the WebSocket handshake."
+    },
+    "prot-09": {
+      "condition": {
+        "all_of": [
+          "websocket"
+        ]
+      },
+      "reason": "Per-message checks and closing sockets on logout only make sense where the system accepts WebSocket connections."
+    },
+    "prot-10": {
+      "condition": {
+        "all_of": [
+          {
+            "any_of": [
+              "graphql",
+              "grpc",
+              "websocket"
+            ]
+          }
+        ]
+      },
+      "reason": "Outcomes carried outside the HTTP status exist only in these three protocols."
+    },
+    "test-01": {
+      "condition": "always",
+      "reason": "Permission and scope are needed before any security test of any system, whatever its architecture."
+    },
+    "test-02": {
+      "condition": "always",
+      "reason": "Where and how tests are run is a matter of test process that applies to every review."
+    },
+    "test-03": {
+      "condition": "always",
+      "reason": "Every API has operations with requests that must be refused, so negative tests apply to every system."
+    },
+    "test-04": {
+      "condition": "always",
+      "reason": "Every API has operations, roles and object owners, so the authorization matrix cannot be ruled out by any architecture fact."
+    },
+    "test-05": {
+      "condition": "always",
+      "reason": "Comparing what is deployed with what is described is an inventory step that applies to every API."
+    },
+    "test-06": {
+      "condition": "always",
+      "reason": "Every operation accepts input with some declared shape, so schema-derived inputs apply to every API."
+    },
+    "test-07": {
+      "condition": "always",
+      "reason": "Business rules and state-changing flows exist in almost every API, and this is a statement about how tests are written."
+    },
+    "test-08": {
+      "condition": "always",
+      "reason": "Checking a test run against logs and alerts is a test process step that applies to every review."
+    },
+    "test-09": {
+      "condition": "always",
+      "reason": "How findings are recorded and kept as regression tests applies to every review."
+    },
+    "test-10": {
+      "condition": "always",
+      "reason": "What the test report states applies to every test, whatever the system looks like."
+    },
+    "oidc-01": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "The first part, every API refusing an ID token as a bearer token, applies to any resource server taking OAuth access tokens, and that is the weakest of the parts."
+    },
+    "oidc-02": {
+      "condition": {
+        "all_of": [
+          "oidc"
+        ]
+      },
+      "reason": "An ID token and its iss, aud and azp checks only exist where the system signs people in with OpenID Connect."
+    },
+    "oidc-03": {
+      "condition": {
+        "all_of": [
+          "oidc"
+        ]
+      },
+      "reason": "The item is about verifying an ID token signature, which only exists with OpenID Connect sign-in."
+    },
+    "oidc-04": {
+      "condition": {
+        "all_of": [
+          "oidc"
+        ]
+      },
+      "reason": "The nonce is an OpenID Connect login parameter carried back in the ID token, so the item needs OpenID Connect sign-in."
+    },
+    "oidc-05": {
+      "condition": {
+        "all_of": [
+          "oidc"
+        ]
+      },
+      "reason": "The expiry and issue time being enforced are those of an ID token, which needs OpenID Connect sign-in."
+    },
+    "oidc-06": {
+      "condition": {
+        "all_of": [
+          "oidc"
+        ]
+      },
+      "reason": "Checking auth_time and acr in the ID token after max_age or acr_values needs OpenID Connect sign-in."
+    },
+    "oidc-07": {
+      "condition": {
+        "all_of": [
+          "oidc"
+        ]
+      },
+      "reason": "UserInfo and the ID token sub are OpenID Connect objects, so the item needs OpenID Connect sign-in."
+    },
+    "oidc-08": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "Disabling the implicit flow applies to any OAuth deployment, and the hybrid hash checks apply to OpenID Connect, which is always also OAuth, so the broader fact keeps both parts visible."
+    },
+    "oidc-09": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "An authorization server metadata document whose issuer must match the configured one exists for plain OAuth as well as OpenID Connect, so the broader fact is used."
+    },
+    "oidc-10": {
+      "condition": {
+        "all_of": [
+          "oidc"
+        ]
+      },
+      "reason": "The item is about what an ID token may be used for and how provider logout reaches the client session, which needs OpenID Connect sign-in."
+    },
+    "aoa-01": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "Client authentication methods such as private_key_jwt are registered for OAuth clients, so the item needs OAuth."
+    },
+    "aoa-02": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "A client assertion is the OAuth client authentication JWT, so checking it needs OAuth."
+    },
+    "aoa-03": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "Pushed authorization requests are an OAuth mechanism, so the item needs OAuth."
+    },
+    "aoa-04": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "A request_uri is the reference issued by an OAuth pushed authorization request, so the item needs OAuth."
+    },
+    "aoa-05": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "authorization_details is an OAuth parameter carried on an access token, so enforcing its fields needs OAuth."
+    },
+    "aoa-06": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "Refusing unknown authorization details is a duty of an OAuth authorization server, and comparing the token response is a duty of an OAuth client."
+    },
+    "aoa-07": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "Checking acr and auth_time of an access token and answering insufficient_user_authentication is the OAuth step-up challenge, so it needs OAuth."
+    },
+    "aoa-08": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "The implicit and password grants are OAuth grants, so the item needs OAuth."
+    },
+    "aoa-09": {
+      "condition": {
+        "all_of": [
+          "oauth"
+        ]
+      },
+      "reason": "The iss parameter of the authorization response is an OAuth object checked by an OAuth client."
+    },
+    "aoa-10": {
+      "condition": "always",
+      "reason": "The check is that the API refuses another customer's object, which is the ownership check every API needs whatever profile it claims."
+    },
+    "saml-01": {
+      "condition": {
+        "all_of": [
+          "saml"
+        ]
+      },
+      "reason": "Reading only the signed assertion is a SAML service provider check, so it needs SAML."
+    },
+    "saml-02": {
+      "condition": {
+        "all_of": [
+          "saml"
+        ]
+      },
+      "reason": "Requiring and verifying the signature on a SAML response with the identity provider's configured key needs SAML."
+    },
+    "saml-03": {
+      "condition": {
+        "all_of": [
+          "saml"
+        ]
+      },
+      "reason": "Audience and Recipient are elements of a SAML assertion, so the item needs SAML."
+    },
+    "saml-04": {
+      "condition": {
+        "all_of": [
+          "saml"
+        ]
+      },
+      "reason": "Accepting a bearer assertion once is about SAML assertion IDs, so the item needs SAML."
+    },
+    "saml-05": {
+      "condition": {
+        "all_of": [
+          "saml"
+        ]
+      },
+      "reason": "InResponseTo and unsolicited responses are SAML objects, so the item needs SAML."
+    },
+    "saml-06": {
+      "condition": {
+        "all_of": [
+          "saml"
+        ]
+      },
+      "reason": "The validity times are the conditions and confirmation window of a SAML assertion, so the item needs SAML."
+    },
+    "saml-07": {
+      "condition": {
+        "all_of": [
+          "saml"
+        ]
+      },
+      "reason": "The parser and message in this item are the ones that handle SAML messages, so the item needs SAML."
+    },
+    "saml-08": {
+      "condition": {
+        "all_of": [
+          "saml"
+        ]
+      },
+      "reason": "A SAML assertion can only be accepted or forwarded where the system handles SAML assertions."
+    },
+    "saml-09": {
+      "condition": {
+        "all_of": [
+          "saml"
+        ]
+      },
+      "reason": "RelayState is a SAML binding parameter, so the item needs SAML."
+    },
+    "saml-10": {
+      "condition": {
+        "all_of": [
+          "saml"
+        ]
+      },
+      "reason": "The item is about how attributes from a SAML assertion are used after sign-in, so it needs SAML."
+    }
+  }
+}

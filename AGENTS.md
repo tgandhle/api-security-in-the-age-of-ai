@@ -31,6 +31,8 @@ These do not change:
 | `assets/site.css`, `assets/course.js` | The only stylesheet, and the only script a static page loads in its own markup. When a reader asks to run a lab, `course.js` injects that lab's `labs/<name>.lab.js` bundle and the Pyodide loader from its CDN (see Decisions). |
 | `tools/build_checklist.py` | Regenerates the checklist from topic pages. `--check` exits 1 if stale. Both modes exit 1 if `data/severity-rubric-summary.json` and `CONVENTIONS.md` name different rubric versions. |
 | `data/severity-rubric-summary.json` | Authored, not generated. The short explanation of what a severity means that readers see on the checklist page. `tools/build_checklist.py` and `app/src/Checklist.jsx` both read it. The full rubric is in `CONVENTIONS.md`. |
+| `data/checklist-applicability.json` | Authored, not generated. For each checklist item, the facts about a system under which the item applies: `always`, or an `all_of` of fact ids and `any_of` groups. It also declares the 27 facts and the 9 implications between them. Model version 1, frozen. Nothing reads it yet except its check. See Decisions, 2026-10-07. |
+| `tools/check_applicability.py` | Checks that file: every checklist id on the topic pages has exactly one entry and no entry is stale, every condition follows the grammar and names declared facts only, no condition holds a fact an implication makes redundant, the implications have no cycle, every entry has a reason, and `model_version` is `"1"`. Prints the counts on success. Runs in both workflows. |
 | `tools/check_site.py` | Links, anchors, dashes, secrets, checklist freshness. Skips `react-poc/`. |
 | `tools/build_coverage.py` | Regenerates `coverage/index.html` and `content/coverage.json`. Which lessons cite an entry is read from the lesson pages, not written in the tool. `--check` exits 1 if either file is stale, if an entry is cited by no lesson and has no stated reason, or if a lesson cites an entry or mentions a topic the page says is not covered. |
 | `tools/check_a11y.py` | axe-core against every page, light and dark, desktop and mobile. Author tool. Skips cleanly if not installed. With `--app` it serves `app/dist` on 127.0.0.1 and checks the React build, which is what the hosted site serves; that mode exits 1 if `app/dist` is missing. In that mode it stores the matching theme before each page loads and emulates the same system setting, so each mode tests the theme a reader who chose it gets. A stored choice wins over the system setting on the build. `--browser firefox` or `--browser webkit` uses that engine in place of Chromium, which is the default. |
@@ -85,6 +87,7 @@ These apply to every change. If a task seems to require breaking one, stop and a
 - Deleting or renaming any file.
 - Changing the page template structure or the claim-label scheme.
 - Changing the severity rubric in `CONVENTIONS.md`. A change means every checklist item is rated again.
+- Adding, removing or rewording a fact or an implication in `data/checklist-applicability.json`, or changing its `model_version`. The model is frozen at version 1. Adding or correcting one item's entry is not a model change.
 - Any git history rewrite or force push.
 - Adding CI configuration.
 - Publishing claims about a spec you could not open and read.
@@ -94,6 +97,39 @@ These apply to every change. If a task seems to require breaking one, stop and a
 Recorded so a later session does not reopen them by accident. Change one only
 when the reason it gives has stopped being true, and say so in the commit.
 
+- **2026-10-07, each checklist item records when it applies, in an authored
+  data file with its own check.** A reviewer looking at one system does not
+  need all 325 items, and nothing recorded which ones a given system could
+  skip. `data/checklist-applicability.json` now gives each item a condition
+  over 27 yes or no facts about the system, such as "a browser calls the
+  API" or "the system runs an MCP server". A condition is `always`, or an
+  `all_of` whose members are facts or `any_of` groups: no negation and no
+  deeper nesting. Nine implications are declared (for example
+  `cookie_session` implies `browser_client`); a child answered Yes makes its
+  parent Yes and a parent answered No makes its child No, and nothing else
+  follows. Answers are Yes, No or Unknown, and only a condition that is
+  provably false may hide an item, so an unanswered question hides nothing.
+  The model is built to err toward showing an item that turns out not to
+  matter. Three things true of almost every API (resources owned by
+  different callers, fields or functions not every caller may use, requests
+  that change state) are deliberately not facts, so the authorization items
+  are `always`. The result is 117 items `always` and 208 conditional.
+  How it was reached: the rules and the vocabulary were calibrated in three
+  runs, each with two raters who did not see each other's work, against a
+  gate of 85% of items agreeing in behaviour. The runs scored 53 of 56, 51
+  of 56 and 30 of 35. `cross_origin_browser` was removed after run 2
+  because it asked about intent, and the CORS checks exist to find
+  behaviour nobody intended. The owner then added three precedence
+  sentences, which no rater saw, and froze the model. 41 items carry the
+  owner's rulings from calibration. The other 284 were assigned twice
+  independently; 278 agreed, and the 6 that differed took the weaker
+  condition. The owner reviewed the six, the items that had changed since
+  calibration and the 44 conditional Critical items, and changed nothing.
+  Limits: every rater and assigner was an instance of one language model,
+  so their agreement overstates what independent people would reach, and
+  the full specification with its eleven assignment rules is not in this
+  repository yet. This commit adds the data and the check only. Nothing on
+  the site reads the file, and no item is hidden from anyone.
 - **2026-10-06, Firefox and WebKit can be tested by hand, and are not a
   gate.** Owner decision. v1.0.0 was tested in Chromium only and says so.
   `tools/check_labs_browser.py` and `tools/check_a11y.py` take
@@ -416,6 +452,7 @@ Work on one module per task unless told otherwise.
    <li data-check="jwt-01" data-severity="Critical"><strong>Title</strong> <span>Detail sentence.</span></li>
    ```
    Severity is one of `Critical`, `High`, `Medium`, and is set with the severity rubric in `CONVENTIONS.md`, not by feel.
+   Every item also needs one entry in `data/checklist-applicability.json`, and an item that is removed loses its entry. `tools/check_applicability.py` fails until both are true.
 6. **Link the module** from `index.html`. Replace its `<span class="planned">` with a link.
 7. **Regenerate and verify:**
    ```sh
@@ -424,6 +461,7 @@ Work on one module per task unless told otherwise.
    python3 tools/extract_lessons.py
    python3 tools/build_coverage.py
    python3 tools/check_site.py
+   python3 tools/check_applicability.py
    python3 tools/render_site.py
    python3 tools/extract_lessons.py --check
    python3 tools/check_transcripts.py
@@ -446,6 +484,7 @@ Work on one module per task unless told otherwise.
 - [ ] `python3 tools/extract_pages.py --check` prints `content/pages.json matches the published pages`.
 - [ ] `python3 tools/build_search_index.py --check` prints `the search index matches content/`.
 - [ ] `python3 tools/build_coverage.py --check` prints `the coverage page matches the lesson pages`.
+- [ ] `python3 tools/check_applicability.py` prints the item, fact and implication counts and no problem.
 - [ ] `python3 tools/check_a11y.py` prints `no accessibility violations`, or your report says it was skipped and why.
 - [ ] `npm run build` in `app/` prints the lesson count you expect, and `python3 tools/check_a11y.py --app` prints `no accessibility violations`, or your report says it was skipped and why.
 - [ ] The lab runs, and the page shows its real output.

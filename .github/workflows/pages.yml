@@ -51,6 +51,7 @@ jobs:
           python3 tools/build_lab_bundles.py --check
           python3 tools/build_checklist.py --check
           python3 tools/build_coverage.py --check
+          python3 tools/check_applicability.py
 
       - name: Run every lab and compare it with its published transcript
         run: |

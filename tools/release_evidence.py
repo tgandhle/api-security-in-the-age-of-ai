@@ -49,6 +49,7 @@ CHECKS = [
     ("lab bundles are current", ["tools/build_lab_bundles.py", "--check"]),
     ("checklist is current", ["tools/build_checklist.py", "--check"]),
     ("coverage page is current", ["tools/build_coverage.py", "--check"]),
+    ("checklist applicability data is valid", ["tools/check_applicability.py"]),
     ("lab transcripts match a live run", ["tools/check_transcripts.py", "--no-skips"]),
     ("accessibility, static pages", ["tools/check_a11y.py", "--require"]),
     ("accessibility, built site", ["tools/check_a11y.py", "--app", "--require"]),
