@@ -68,6 +68,10 @@ Inside an activated environment use `python`, not `py -3`. The `py` command uses
 
 The labs are pure in-process Python with no shell or subprocess, and the only file access is the optional `--key-file` in `hmac_lab.py`. No lab gives the runtime an input whose result depends on how much stack the process has. One did until 2026-10-05: `contracts_lab.py` parsed 100000 levels of nesting, which raised `RecursionError` on some runtimes and parsed on others. Checked, not assumed: `tools/check_transcripts.py` runs every lab whose output is published and compares it to the page byte for byte. All 38 match on Windows (Python 3.14.6, `python` in an activated environment) and on Linux (Python 3.13.16 and 3.14.6, `python3`), all with `cryptography==50.0.1`. `tools/check_site.py` also produces identical output on both. Where that package is absent, the five labs that need it are reported as skipped rather than as passing.
 
+## Quality criteria
+
+[QUALITY.md](QUALITY.md) defines what this project means by enterprise-grade, as nine criteria, and records which of them it meets today. It is a published self-standard, not an external certification.
+
 ## Licence
 
 Copyright (c) 2026 tgandhle. All rights reserved. This repository is readable, not open source: see [LICENSE](LICENSE) for what that permits. Quoted specifications remain the property of their publishers and are cited on the page that quotes them.

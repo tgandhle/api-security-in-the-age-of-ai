@@ -31,6 +31,7 @@ These do not change:
 | `assets/site.css`, `assets/course.js` | The only stylesheet, and the only script a static page loads in its own markup. When a reader asks to run a lab, `course.js` injects that lab's `labs/<name>.lab.js` bundle and the Pyodide loader from its CDN (see Decisions). |
 | `tools/build_checklist.py` | Regenerates the checklist from topic pages. `--check` exits 1 if stale. Both modes exit 1 if `data/severity-rubric-summary.json` and `CONVENTIONS.md` name different rubric versions. |
 | `data/severity-rubric-summary.json` | Authored, not generated. The short explanation of what a severity means that readers see on the checklist page. `tools/build_checklist.py` and `app/src/Checklist.jsx` both read it. The full rubric is in `CONVENTIONS.md`. |
+| `QUALITY.md` | The nine criteria that define "enterprise-grade" for this project, and the current status of each. Change a status only in a commit that adds or links its evidence. Changing a criterion is a stop-and-ask item. The project does not call itself enterprise-grade anywhere until every row is Pass. |
 | `data/checklist-applicability.json` | Authored, not generated. For each checklist item, the facts about a system under which the item applies: `always`, or an `all_of` of fact ids and `any_of` groups. It also declares the 27 facts and the 9 implications between them. Model version 1, frozen. Nothing reads it yet except its check. See Decisions, 2026-10-07. |
 | `tools/check_applicability.py` | Checks that file: every checklist id on the topic pages has exactly one entry and no entry is stale, every condition follows the grammar and names declared facts only, no condition holds a fact an implication makes redundant, the implications have no cycle, every entry has a reason, and `model_version` is `"1"`. Prints the counts on success. Runs in both workflows. |
 | `tools/check_site.py` | Links, anchors, dashes, secrets, checklist freshness. Skips `react-poc/`. |
@@ -87,6 +88,7 @@ These apply to every change. If a task seems to require breaking one, stop and a
 - Deleting or renaming any file.
 - Changing the page template structure or the claim-label scheme.
 - Changing the severity rubric in `CONVENTIONS.md`. A change means every checklist item is rated again.
+- Changing a criterion in `QUALITY.md`, or describing the project as enterprise-grade while any of its criteria is not Pass.
 - Adding, removing or rewording a fact or an implication in `data/checklist-applicability.json`, or changing its `model_version`. The model is frozen at version 1. Adding or correcting one item's entry is not a model change.
 - Any git history rewrite or force push.
 - Adding CI configuration.
