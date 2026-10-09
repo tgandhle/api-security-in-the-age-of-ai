@@ -90,7 +90,7 @@ The static `checklist/index.html` continues to show all 325 items.
 
 **Acceptance.** At least one recorded manual pass over a representative lesson, the hosted checklist with the filter, and a runnable lab, using NVDA, keyboard-only navigation, and 200% zoom with reflow. The record gives the browser and operating system, the steps, every failure found, and what was done about each.
 
-**Status: Not met.** Accessibility is checked automatically with axe-core on every static page and the built site, in light and dark mode at desktop and mobile width. Automated rules are a floor, as `CONVENTIONS.md` says, and no manual pass has been recorded.
+**Status: Not met.** Accessibility is checked automatically with axe-core on every static page and the built site, in light and dark mode at desktop and mobile width. Automated rules are a floor, as `CONVENTIONS.md` says, and no manual pass has been recorded. The script is ready: `accessibility/README.md` sets out 40 steps (keyboard, NVDA, and zoom at 200% and 400%) over the webhooks lesson, its in-browser lab and the filtered checklist, and `accessibility/RECORD-TEMPLATE.md` is the record.
 
 ### 9. Evidence-bearing release
 
