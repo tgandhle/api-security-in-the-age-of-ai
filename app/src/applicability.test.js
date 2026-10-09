@@ -126,6 +126,34 @@ test("the real model: a2a-04 needs both a2a and webhook_receiver", () => {
   assert.equal(hidden(c, resolve({ a2a: NO }, facts).resolved), true);
 });
 
+test("model version 2: oidc does not imply jwt", () => {
+  assert.equal(data.model_version, "2");
+  assert.deepEqual(facts.find((f) => f.id === "oidc").implies, ["oauth"]);
+  assert.equal(facts.reduce((n, f) => n + f.implies.length, 0), 8);
+});
+
+test("oidc yes with jwt no is accepted, and still makes oauth yes", () => {
+  assert.deepEqual(contradictions({ oidc: YES, jwt: NO }, facts), []);
+  const { resolved } = resolve({ oidc: YES, jwt: NO }, facts);
+  assert.equal(resolved.oauth, YES);
+  assert.equal(hidden(data.items["oidc-02"].condition, resolved), false);
+  assert.equal(hidden(data.items["jwt-01"].condition, resolved), true);
+});
+
+test("jwt no no longer hides the OpenID Connect items", () => {
+  const { resolved } = resolve({ jwt: NO }, facts);
+  assert.equal(resolved.oidc, UNKNOWN);
+  for (const id of ["oidc-02", "oidc-03", "oidc-04", "oidc-05", "oidc-06", "oidc-07", "oidc-10"]) {
+    assert.equal(hidden(data.items[id].condition, resolved), false, id);
+  }
+});
+
+test("oidc yes no longer settles jwt", () => {
+  const { resolved } = resolve({ oidc: YES }, facts);
+  assert.equal(resolved.jwt, UNKNOWN);
+  assert.equal(hidden(data.items["jwt-01"].condition, resolved), false);
+});
+
 test("the real model: browser_client no hides cookie items through the implication", () => {
   const { resolved } = resolve({ browser_client: NO }, facts);
   assert.equal(resolved.cookie_session, NO);

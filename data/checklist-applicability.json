@@ -1,5 +1,5 @@
 {
-  "model_version": "1",
+  "model_version": "2",
   "facts": [
     {
       "id": "api_keys",
@@ -38,8 +38,7 @@
       "group": "Credentials and identity",
       "question": "Does the system sign people in with OpenID Connect, as a relying party or as a provider?",
       "implies": [
-        "oauth",
-        "jwt"
+        "oauth"
       ]
     },
     {

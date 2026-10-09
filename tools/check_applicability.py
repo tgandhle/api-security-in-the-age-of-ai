@@ -39,7 +39,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DATA = ROOT / "data" / "checklist-applicability.json"
 PAGES = sorted(ROOT.glob("topics/*/index.html")) + sorted(ROOT.glob("protocols/*/index.html"))
-MODEL_VERSION = "1"
+MODEL_VERSION = "2"
 
 
 def pairs_keeping_duplicates(pairs):

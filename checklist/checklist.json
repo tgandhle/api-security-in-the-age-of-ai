@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "data_version": "b64729e36cdb5d0a",
+  "data_version": "642938706a584bc0",
   "license": {
     "id": "CC-BY-4.0",
     "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -10,7 +10,7 @@
   "source": "https://github.com/tgandhle/api-security-in-the-age-of-ai",
   "site": "https://tgandhle.github.io/api-security-in-the-age-of-ai/",
   "rubric_version": "3.1",
-  "applicability_model_version": "1",
+  "applicability_model_version": "2",
   "counts": {
     "Critical": 68,
     "High": 165,
@@ -4816,8 +4816,7 @@
       "group": "Credentials and identity",
       "question": "Does the system sign people in with OpenID Connect, as a relying party or as a provider?",
       "implies": [
-        "oauth",
-        "jwt"
+        "oauth"
       ]
     },
     {

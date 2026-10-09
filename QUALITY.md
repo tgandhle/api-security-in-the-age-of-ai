@@ -49,7 +49,7 @@ When every row reads Pass, this section will say: **The project meets the enterp
 
 ### 3. Applicability filter shipped
 
-**Acceptance.** The hosted checklist implements the frozen applicability model (version 1, 27 facts, 9 implications):
+**Acceptance.** The hosted checklist implements the frozen applicability model (version 2, 27 facts, 8 implications):
 
 - an unanswered fact hides nothing;
 - a child answered Yes makes its parent Yes, a parent answered No makes its child No, and nothing else follows;
@@ -60,7 +60,7 @@ When every row reads Pass, this section will say: **The project meets the enterp
 
 The static `checklist/index.html` continues to show all 325 items.
 
-**Status: Pass.** `app/src/ApplicabilityFilter.jsx` on the hosted checklist, evaluated by `app/src/applicability.js`. Its tests (`app/src/applicability.test.js`) cover each rule above and run against all 325 conditions, and both workflows run them before the build. On the commit that added it, the browser evaluator gave the same hidden items as `tools/check_applicability.py` on 5,000 random answer sets, and axe-core found no violations on the checklist page with every question panel open, answers given, a refused answer shown and the set-aside list open, in light and dark at desktop and mobile width. The static `checklist/index.html` is unchanged.
+**Status: Pass.** `app/src/ApplicabilityFilter.jsx` on the hosted checklist, evaluated by `app/src/applicability.js`. Its tests (`app/src/applicability.test.js`) cover each rule above and run against all 325 conditions, and both workflows run them before the build. On the commit that added it, the browser evaluator gave the same hidden items as `tools/check_applicability.py` on 5,000 random answer sets, and axe-core found no violations on the checklist page with every question panel open, answers given, a refused answer shown and the set-aside list open, in light and dark at desktop and mobile width. The static `checklist/index.html` is unchanged. Version 1 of the model declared `oidc` implies `jwt`, which is not a guarantee; version 2 (2026-10-09) removes it. The removal only ever shows more: over every assignment of `oidc`, `jwt` and `oauth` valid under both versions, 14 evaluations go from false to unknown and none from shown to hidden (`AGENTS.md`, Decisions, 2026-10-09). The tests now assert that `oidc` Yes with `jwt` No is accepted and that `jwt` No no longer hides the OpenID Connect items.
 
 ### 4. Applicability rules in the repository
 

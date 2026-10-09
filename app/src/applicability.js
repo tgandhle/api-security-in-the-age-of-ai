@@ -1,4 +1,4 @@
-// The checklist applicability model, version 1. The rules are under
+// The checklist applicability model, version 2. The rules are under
 // "Checklist applicability" in CONVENTIONS.md; the facts, implications and
 // conditions are in data/checklist-applicability.json. This file only
 // evaluates them. It has no React and no DOM, so it can be tested with
