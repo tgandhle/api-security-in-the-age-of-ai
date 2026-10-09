@@ -19,7 +19,7 @@ Last updated 2026-10-09. Each status is as of the commit that last changed this 
 | 3 | Applicability filter shipped | Pass |
 | 4 | Applicability rules in the repository | Pass |
 | 5 | Stable checklist IDs and machine-readable checklist | Pass |
-| 6 | Repository governance | Not met |
+| 6 | Repository governance | Partial |
 | 7 | Review freshness enforced | Not met |
 | 8 | Manual accessibility review | Not met |
 | 9 | Evidence-bearing release | Not met |
@@ -78,7 +78,7 @@ The static `checklist/index.html` continues to show all 325 items.
 
 **Acceptance.** `SECURITY.md`, `CONTRIBUTING.md` and `CODEOWNERS` exist. `main` is protected by a GitHub ruleset that requires the publishing checks to pass, blocks force pushes and deletion, and requires signed commits.
 
-**Status: Not met.** None of the three files exist. When the owner checked on 2026-10-08, GitHub reported no ruleset on the repository. The owner has signed every commit pushed to `main` since v1.0.0, but nothing enforces it.
+**Status: Partial.** `SECURITY.md`, `CONTRIBUTING.md` and `.github/CODEOWNERS` exist. `SECURITY.md` sends vulnerabilities to GitHub private vulnerability reporting. `.github/workflows/pages.yml` now runs its checks on pull requests into `main`, so a ruleset can require them. Not yet done, both in GitHub settings: private vulnerability reporting switched on, and the ruleset on `main`.
 
 ### 7. Review freshness enforced
 
