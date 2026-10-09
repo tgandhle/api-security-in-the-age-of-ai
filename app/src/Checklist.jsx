@@ -40,6 +40,13 @@ export default function Checklist({ lessons, up }) {
         {summary.full_rubric.after}
       </p>
       <p className="prose meta">{summary.not_a_finding}</p>
+      <p className="prose meta">
+        For other tools: <a href="checklist.json">checklist.json</a> and{" "}
+        <a href="checklist.csv">checklist.csv</a>, with each item&rsquo;s
+        applicability condition. The checklist data is licensed{" "}
+        <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>;
+        the lessons are not.
+      </p>
       {/* Filled in the browser by ApplicabilityFilter.jsx. Empty here, so a
           reader with JavaScript off sees every item and no dead controls. */}
       <div id="applicability-mount" />

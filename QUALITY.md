@@ -8,7 +8,7 @@ The project may describe itself as enterprise-grade only while all nine criteria
 
 ## Current status
 
-**Not yet meeting all enterprise-quality criteria.** The project meets 3 of 9 criteria. Independent content review, the applicability filter, and repository governance are among those outstanding.
+**Not yet meeting all enterprise-quality criteria.** The project meets 4 of 9 criteria. Independent content review, repository governance, review freshness, manual accessibility review and an evidence-bearing release are outstanding.
 
 Last updated 2026-10-09. Each status is as of the commit that last changed this file.
 
@@ -18,7 +18,7 @@ Last updated 2026-10-09. Each status is as of the commit that last changed this 
 | 2 | Independent content review | Not met |
 | 3 | Applicability filter shipped | Pass |
 | 4 | Applicability rules in the repository | Pass |
-| 5 | Stable checklist IDs and machine-readable checklist | Not met |
+| 5 | Stable checklist IDs and machine-readable checklist | Pass |
 | 6 | Repository governance | Not met |
 | 7 | Review freshness enforced | Not met |
 | 8 | Manual accessibility review | Not met |
@@ -72,7 +72,7 @@ The static `checklist/index.html` continues to show all 325 items.
 
 **Acceptance.** Checklist IDs are never reused. Retired IDs are listed in a registry that a check enforces. The published checklist carries a schema version and a data version and can be downloaded as JSON and as CSV in a form other tools can import.
 
-**Status: Not met.** Three IDs have been retired (`cors-02`, `cors-07`, `a2a-05`) and `AGENTS.md` says they are not reused, but no registry or check enforces it. There is no checklist download.
+**Status: Pass.** `data/retired-checklist-ids.json` lists the three retired IDs (`a2a-05`, `cors-02`, `cors-07`). `tools/build_checklist.py`, which runs on every publish and in the release gate, fails if a retired ID is on a topic page, or if an ID that the committed `checklist/checklist.json` publishes leaves the pages without being retired; both failures were tested on the commit that added them. The same tool writes `checklist/checklist.json` and `checklist/checklist.csv` with a schema version, a data version that is a hash of the data, and each item's applicability condition. Both checklist pages link them. They are licensed CC BY 4.0 by `CHECKLIST-LICENSE.md` so they can be imported into other tools; the rest of the repository keeps the terms in `LICENSE`.
 
 ### 6. Repository governance
 

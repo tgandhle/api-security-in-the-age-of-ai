@@ -18,6 +18,14 @@ You may not, without prior written permission:
   - use them to deliver paid or unpaid training, or incorporate them into a
     product or service.
 
+One exception. The review checklist data files named in
+CHECKLIST-LICENSE.md (checklist/checklist.json, checklist/checklist.csv,
+data/checklist-applicability.json and data/retired-checklist-ids.json) are
+licensed under Creative Commons Attribution 4.0 International, as that file
+sets out. The restrictions above do not apply to those files. They still
+apply to everything else, including the lesson pages on which the checklist
+items also appear.
+
 The specifications, RFCs and standards cited throughout remain the property
 of their respective publishers and are quoted here under fair dealing for
 the purposes of criticism, review and instruction. Those quotations are

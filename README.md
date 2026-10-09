@@ -74,7 +74,7 @@ The labs are pure in-process Python with no shell or subprocess, and the only fi
 
 ## Licence
 
-Copyright (c) 2026 tgandhle. All rights reserved. This repository is readable, not open source: see [LICENSE](LICENSE) for what that permits. Quoted specifications remain the property of their publishers and are cited on the page that quotes them.
+Copyright (c) 2026 tgandhle. All rights reserved. This repository is readable, not open source: see [LICENSE](LICENSE) for what that permits. The exception is the review checklist data (`checklist/checklist.json`, `checklist/checklist.csv` and the two checklist files in `data/`), which is licensed CC BY 4.0 so it can be imported into other tools: see [CHECKLIST-LICENSE.md](CHECKLIST-LICENSE.md). Quoted specifications remain the property of their publishers and are cited on the page that quotes them.
 
 ## Working on the site
 

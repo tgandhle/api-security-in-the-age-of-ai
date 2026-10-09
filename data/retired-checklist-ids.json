@@ -1,0 +1,9 @@
+{
+  "schema_version": "1",
+  "note": "Checklist ids that were published and then withdrawn. An id listed here is never used again. tools/build_checklist.py fails if one appears on a topic page, or if an id leaves the published checklist without being listed here.",
+  "retired": [
+    { "id": "a2a-05", "retired": "2026-10-05", "reason": "Found to have no security effect in the severity audit. The lesson still teaches it." },
+    { "id": "cors-02", "retired": "2026-10-05", "reason": "Found to have no security effect in the severity audit. The lesson still teaches it." },
+    { "id": "cors-07", "retired": "2026-10-05", "reason": "Found to have no security effect in the severity audit. The lesson still teaches it." }
+  ]
+}

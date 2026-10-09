@@ -66,6 +66,10 @@ fs.writeFileSync(path.join(here, "dist", "assets", "theme.css"),
 // page follows the system by CSS alone. The "js" class lets the stylesheet
 // show controls that need a script only when one is running.
 const themeScript = `<script>(function(){var d=document.documentElement,t=null;try{t=localStorage.getItem("course-theme")}catch(e){}if(t==="light"||t==="dark")d.setAttribute("data-theme",t);d.classList.add("js")})()</script>`;
+// The machine-readable checklist, which the checklist page links to.
+const copiedChecklistData = copyInto("checklist", "checklist",
+  (name) => name === "checklist.json" || name === "checklist.csv");
+if (copiedChecklistData !== 2) throw new Error("checklist/checklist.json or checklist.csv is missing");
 const copiedLabs = copyInto("labs", "labs",
   (name) => name.endsWith(".py") || name.endsWith(".lab.js"));
 

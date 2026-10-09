@@ -6,9 +6,13 @@
 #   assets/search-index.js   tools/build_search_index.py --check
 #   labs/*.lab.js            tools/build_lab_bundles.py --check
 #   checklist/index.html     tools/build_checklist.py --check
+#   checklist/checklist.json tools/build_checklist.py --check
+#   checklist/checklist.csv  tools/build_checklist.py --check
 #   coverage/index.html      tools/build_coverage.py --check
 content/** linguist-generated=true
 checklist/index.html linguist-generated=true
+checklist/checklist.json linguist-generated=true
+checklist/checklist.csv linguist-generated=true
 coverage/index.html linguist-generated=true
 labs/*.lab.js linguist-generated=true
 assets/search-index.js linguist-generated=true
