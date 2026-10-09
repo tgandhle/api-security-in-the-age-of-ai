@@ -58,6 +58,9 @@ jobs:
           python3 tools/build_checklist.py --check
           python3 tools/build_coverage.py --check
           python3 tools/check_applicability.py
+          # Warning only: a stale review never blocks a publish. The release
+          # gate and freshness.yml run it with --strict.
+          python3 tools/check_review_dates.py
 
       - name: Run every lab and compare it with its published transcript
         run: |

@@ -103,6 +103,7 @@ python3 tools/build_lab_bundles.py --check  # the .lab.js copies still match the
 python3 tools/extract_pages.py --check   # content/pages.json matches the home, glossary and roadmap
 python3 tools/build_search_index.py --check  # assets/search-index.js matches content/
 python3 tools/check_applicability.py     # every checklist item has one valid applicability condition
+python3 tools/check_review_dates.py      # no lesson is past its review date (warns; --strict fails)
 python3 tools/check_transcripts.py       # runs every lab and compares its output to the page
 python3 tools/check_a11y.py              # axe-core, light and dark, desktop and mobile
 python3 tools/check_a11y.py --app        # the same against app/dist, after npm run build in app/
@@ -110,7 +111,7 @@ python3 tools/check_a11y.py --app        # the same against app/dist, after npm 
 python3 tools/check_labs_browser.py      # presses "Run this lab in your browser" on every lesson of app/dist
 ```
 
-All twelve exit 0 when the site is clean, and 1 with a named reason otherwise.
+All thirteen exit 0 when the site is clean, and 1 with a named reason otherwise.
 
 `check_labs_browser.py` is an author tool too, with the same Playwright requirement, and it needs network access to the CDN the page loads Python from. It expects every lab to run and match its transcript, except the labs `assets/course.js` lists as not offered in a browser.
 

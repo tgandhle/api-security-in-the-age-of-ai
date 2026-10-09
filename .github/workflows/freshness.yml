@@ -1,0 +1,44 @@
+# Fails when a lesson is past its review date, every day.
+#
+# tools/check_review_dates.py --strict compares each lesson's "Last reviewed"
+# date with the cadence in CONVENTIONS.md: 92 days, and 31 days for the MCP
+# and A2A lessons. pages.yml runs the same tool as a warning only, so a stale
+# lesson elsewhere never blocks an unrelated fix from publishing, and the
+# release gate runs it strictly. This workflow is what notices a lesson going
+# stale between commits: a failed run is the signal to review it.
+#
+# GitHub runs a schedule on the latest commit of the default branch, and
+# disables scheduled workflows in a public repository after 60 days with no
+# repository activity. By then the MCP and A2A lessons are already past their
+# 31-day limit, so this job will have been failing for weeks first.
+#
+# Standard library only. Every action is pinned to a commit, as in pages.yml.
+name: Review freshness
+
+on:
+  schedule:
+    # Daily at 06:17 UTC. Not on the hour, when GitHub says schedules are
+    # most often delayed.
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  freshness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - name: Every lesson is within its review limit
+        run: python3 tools/check_review_dates.py --strict

@@ -8,7 +8,7 @@ The project may describe itself as enterprise-grade only while all nine criteria
 
 ## Current status
 
-**Not yet meeting all enterprise-quality criteria.** The project meets 4 of 9 criteria. Independent content review, repository governance, review freshness, manual accessibility review and an evidence-bearing release are outstanding.
+**Not yet meeting all enterprise-quality criteria.** The project meets 5 of 9 criteria. Independent content review, the GitHub settings for repository governance, manual accessibility review and an evidence-bearing release are outstanding.
 
 Last updated 2026-10-09. Each status is as of the commit that last changed this file.
 
@@ -20,7 +20,7 @@ Last updated 2026-10-09. Each status is as of the commit that last changed this 
 | 4 | Applicability rules in the repository | Pass |
 | 5 | Stable checklist IDs and machine-readable checklist | Pass |
 | 6 | Repository governance | Partial |
-| 7 | Review freshness enforced | Not met |
+| 7 | Review freshness enforced | Pass |
 | 8 | Manual accessibility review | Not met |
 | 9 | Evidence-bearing release | Not met |
 
@@ -84,7 +84,7 @@ The static `checklist/index.html` continues to show all 325 items.
 
 **Acceptance.** An automated check enforces the review cadence in `CONVENTIONS.md`: a lesson's "Last reviewed" date may be at most 92 days old, and at most 31 days for the MCP and A2A lessons. A date check does not show that a cited specification is unchanged, so a new version of a pinned specification still requires a manual review of the lessons that cite it.
 
-**Status: Not met.** The dates are extracted into `content/` by `tools/extract_lessons.py`, but their age is not checked.
+**Status: Pass.** `tools/check_review_dates.py` checks every lesson against those limits. It warns in `.github/workflows/pages.yml`, so a stale lesson does not block an unrelated fix, and fails with `--strict` in the release gate (`tools/release_evidence.py`) and in `.github/workflows/freshness.yml`, which runs daily so a lesson is reported within a day of passing its limit. A missing, duplicated or future date fails in every mode.
 
 ### 8. Manual accessibility review
 
