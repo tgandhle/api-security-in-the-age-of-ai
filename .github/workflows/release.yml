@@ -92,6 +92,7 @@ jobs:
         working-directory: app
         run: |
           npm ci
+          npm test
           npm run build
 
       - name: Run every check and write the record

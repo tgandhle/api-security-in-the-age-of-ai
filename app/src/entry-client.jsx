@@ -62,6 +62,15 @@ if (mount) {
 // already applied: a stored choice by the inline script in <head>, and
 // otherwise the system setting by theme.css. The switch is created, not
 // hydrated, so it reads the theme in effect and there is nothing to mismatch.
+// The checklist filter is client only too, and loaded only on the checklist
+// page: it carries the applicability data, which no other page needs.
+const applicabilityMount = document.getElementById("applicability-mount");
+if (applicabilityMount) {
+  import("./ApplicabilityFilter.jsx").then(({ default: ApplicabilityFilter }) => {
+    createRoot(applicabilityMount).render(<ApplicabilityFilter />);
+  });
+}
+
 const themeMount = document.getElementById("theme-mount");
 if (themeMount) {
   createRoot(themeMount).render(<ThemeToggle />);

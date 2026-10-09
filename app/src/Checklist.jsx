@@ -40,9 +40,12 @@ export default function Checklist({ lessons, up }) {
         {summary.full_rubric.after}
       </p>
       <p className="prose meta">{summary.not_a_finding}</p>
+      {/* Filled in the browser by ApplicabilityFilter.jsx. Empty here, so a
+          reader with JavaScript off sees every item and no dead controls. */}
+      <div id="applicability-mount" />
       <ul className="checks">
         {items.map(({ check, slug, source }) => (
-          <li key={check.id}>
+          <li key={check.id} data-check={check.id}>
             <label>
               <input type="checkbox" />
               <span>

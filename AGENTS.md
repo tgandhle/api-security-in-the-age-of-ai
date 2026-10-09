@@ -32,7 +32,8 @@ These do not change:
 | `tools/build_checklist.py` | Regenerates the checklist from topic pages. `--check` exits 1 if stale. Both modes exit 1 if `data/severity-rubric-summary.json` and `CONVENTIONS.md` name different rubric versions. |
 | `data/severity-rubric-summary.json` | Authored, not generated. The short explanation of what a severity means that readers see on the checklist page. `tools/build_checklist.py` and `app/src/Checklist.jsx` both read it. The full rubric is in `CONVENTIONS.md`. |
 | `QUALITY.md` | The nine criteria that define "enterprise-grade" for this project, and the current status of each. Change a status only in a commit that adds or links its evidence. Changing a criterion is a stop-and-ask item. The project does not call itself enterprise-grade anywhere until every row is Pass. |
-| `data/checklist-applicability.json` | Authored, not generated. For each checklist item, the facts about a system under which the item applies: `always`, or an `all_of` of fact ids and `any_of` groups. It also declares the 27 facts and the 9 implications between them. Model version 1, frozen. Nothing reads it yet except its check. See Decisions, 2026-10-07. |
+| `data/checklist-applicability.json` | Authored, not generated. For each checklist item, the facts about a system under which the item applies: `always`, or an `all_of` of fact ids and `any_of` groups. It also declares the 27 facts and the 9 implications between them. Model version 1, frozen. Read by its check and by the filter on the hosted checklist. See Decisions, 2026-10-07 and 2026-10-09. |
+| `app/src/applicability.js`, `app/src/ApplicabilityFilter.jsx` | The filter on the hosted checklist. `applicability.js` evaluates the model and has no React or DOM; `npm test` in `app/` runs its tests (`app/src/applicability.test.js`, Node's built-in test runner, no added package), and both workflows run them before the build. `ApplicabilityFilter.jsx` is the form. The static `checklist/index.html` has no filter and shows every item. |
 | `tools/check_applicability.py` | Checks that file: every checklist id on the topic pages has exactly one entry and no entry is stale, every condition follows the grammar and names declared facts only, no condition holds a fact an implication makes redundant, the implications have no cycle, every entry has a reason, and `model_version` is `"1"`. Prints the counts on success. Runs in both workflows. |
 | `tools/check_site.py` | Links, anchors, dashes, secrets, checklist freshness. Skips `react-poc/`. |
 | `tools/build_coverage.py` | Regenerates `coverage/index.html` and `content/coverage.json`. Which lessons cite an entry is read from the lesson pages, not written in the tool. `--check` exits 1 if either file is stale, if an entry is cited by no lesson and has no stated reason, or if a lesson cites an entry or mentions a topic the page says is not covered. |
@@ -99,6 +100,22 @@ These apply to every change. If a task seems to require breaking one, stop and a
 Recorded so a later session does not reopen them by accident. Change one only
 when the reason it gives has stopped being true, and say so in the commit.
 
+- **2026-10-09, the hosted checklist has the applicability filter.** The
+  reader answers Yes, No or Not known to the 27 questions. An item is set
+  aside only when its condition is false under those answers and the
+  implications; an unanswered question hides nothing. An answer that breaks
+  an implication is not applied, and the page says which two answers
+  conflict. Every item set aside is listed under the form with the answer
+  that ruled it out and the item's reason. How it is built: the form is
+  created in the browser, not prerendered, so with JavaScript off the page
+  shows all 325 items and no controls. It is loaded only on the checklist
+  page, as its own chunk, because it carries the 76 KB data file. It reads
+  the item titles from the page rather than shipping them twice, and it
+  marks items with `hidden`, never removing them. Answers are kept in memory
+  and not saved, like the ticks. The evaluator is a separate module with
+  tests run by Node's own test runner, so no test package was added; the
+  workflows run `npm test` before the build. The static checklist page is
+  unchanged and still lists every item.
 - **2026-10-09, the applicability rules are in `CONVENTIONS.md`.** The
   entry below says the assignment rules were not in the repository. They
   now are, under "Checklist applicability", unchanged from version 1 as

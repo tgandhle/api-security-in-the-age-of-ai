@@ -106,10 +106,11 @@ python3 tools/check_applicability.py     # every checklist item has one valid ap
 python3 tools/check_transcripts.py       # runs every lab and compares its output to the page
 python3 tools/check_a11y.py              # axe-core, light and dark, desktop and mobile
 python3 tools/check_a11y.py --app        # the same against app/dist, after npm run build in app/
+(cd app && npm test)                     # the checklist filter's evaluator
 python3 tools/check_labs_browser.py      # presses "Run this lab in your browser" on every lesson of app/dist
 ```
 
-All eleven exit 0 when the site is clean, and 1 with a named reason otherwise.
+All twelve exit 0 when the site is clean, and 1 with a named reason otherwise.
 
 `check_labs_browser.py` is an author tool too, with the same Playwright requirement, and it needs network access to the CDN the page loads Python from. It expects every lab to run and match its transcript, except the labs `assets/course.js` lists as not offered in a browser.
 

@@ -8,7 +8,7 @@ The project may describe itself as enterprise-grade only while all nine criteria
 
 ## Current status
 
-**Not yet meeting all enterprise-quality criteria.** The project meets 2 of 9 criteria. Independent content review, the applicability filter, and repository governance are among those outstanding.
+**Not yet meeting all enterprise-quality criteria.** The project meets 3 of 9 criteria. Independent content review, the applicability filter, and repository governance are among those outstanding.
 
 Last updated 2026-10-09. Each status is as of the commit that last changed this file.
 
@@ -16,7 +16,7 @@ Last updated 2026-10-09. Each status is as of the commit that last changed this 
 |---|---|---|
 | 1 | Written criteria | Pass |
 | 2 | Independent content review | Not met |
-| 3 | Applicability filter shipped | Not met |
+| 3 | Applicability filter shipped | Pass |
 | 4 | Applicability rules in the repository | Pass |
 | 5 | Stable checklist IDs and machine-readable checklist | Not met |
 | 6 | Repository governance | Not met |
@@ -60,7 +60,7 @@ When every row reads Pass, this section will say: **The project meets the enterp
 
 The static `checklist/index.html` continues to show all 325 items.
 
-**Status: Not met.** The data and its check exist: `data/checklist-applicability.json` and `tools/check_applicability.py`, which runs on every publish. Nothing on the site reads the file yet.
+**Status: Pass.** `app/src/ApplicabilityFilter.jsx` on the hosted checklist, evaluated by `app/src/applicability.js`. Its tests (`app/src/applicability.test.js`) cover each rule above and run against all 325 conditions, and both workflows run them before the build. On the commit that added it, the browser evaluator gave the same hidden items as `tools/check_applicability.py` on 5,000 random answer sets, and axe-core found no violations on the checklist page with every question panel open, answers given, a refused answer shown and the set-aside list open, in light and dark at desktop and mobile width. The static `checklist/index.html` is unchanged.
 
 ### 4. Applicability rules in the repository
 
