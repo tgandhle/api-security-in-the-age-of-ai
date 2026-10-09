@@ -50,6 +50,7 @@ CHECKS = [
     ("checklist is current", ["tools/build_checklist.py", "--check"]),
     ("coverage page is current", ["tools/build_coverage.py", "--check"]),
     ("checklist applicability data is valid", ["tools/check_applicability.py"]),
+    ("review packets are current", ["tools/build_review_packets.py", "--check"]),
     ("every lesson is within its review limit", ["tools/check_review_dates.py", "--strict"]),
     ("lab transcripts match a live run", ["tools/check_transcripts.py", "--no-skips"]),
     ("accessibility, static pages", ["tools/check_a11y.py", "--require"]),

@@ -45,7 +45,7 @@ When every row reads Pass, this section will say: **The project meets the enterp
 
 **Acceptance.** Every published lesson is covered by at least one review by a human subject-matter expert who is independent of the author. One reviewer may cover several modules. A review log records, for each review: the reviewer, their relevant role or expertise, the modules reviewed, the date, the findings and what was decided about each, and the changes that resulted. Review by an AI model, including the models used to build this project, does not count.
 
-**Status: Not met.** No lesson has been reviewed by anyone other than the author. The author used AI assistance throughout. The severity audit and the applicability assignment were checked by several instances of one language model plus the author, which is recorded in `AGENTS.md` under Decisions and does not meet this criterion.
+**Status: Not met.** No lesson has been reviewed by anyone other than the author. The process is ready: `review/README.md` says what a reviewer confirms and how a review is recorded, and `review/packets/` splits the 38 lessons into five packets by expertise, generated from the pages and checked on every publish. The author used AI assistance throughout. The severity audit and the applicability assignment were checked by several instances of one language model plus the author, which is recorded in `AGENTS.md` under Decisions and does not meet this criterion.
 
 ### 3. Applicability filter shipped
 
