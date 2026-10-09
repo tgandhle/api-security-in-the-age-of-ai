@@ -646,3 +646,9 @@ dl.gloss>div:has(dt:target){border-color:var(--accent);box-shadow:inset 3px 0 0 
 .applicability-aside li{padding:.6rem 0;border-bottom:1px solid var(--hair)}
 .applicability-aside li:last-child{border-bottom:0}
 .applicability-status .button:disabled{cursor:default}
+
+/* Long unbroken strings (URLs in source lists, identifiers such as
+   require_pushed_authorization_requests) must wrap at narrow widths, or the
+   page scrolls sideways or clips them at 320 CSS pixels (WCAG 2.2, 1.4.10
+   Reflow). Text in tables and code keeps its own scrolling box. */
+main p, main li { overflow-wrap: anywhere; }
