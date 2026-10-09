@@ -94,6 +94,107 @@ There is no P3. Use the smallest set of preconditions that makes the attack work
 - Explicit-scope rule. When the item itself says exploitation occurs through an alternate, bypass, internal or non-entry-point path, keep that scope when counting preconditions. If reaching that path needs a position inside the deployment, count P7 once.
 - A third-party client that exceeds what a user granted needs that grant first (P4). An authenticated counterparty agent holds a partner position (P5).
 
+## Checklist applicability
+
+Version 1, frozen 2026-10-07. Every checklist item records the facts about a system under which the item applies, so a reviewer can set aside items that cannot apply to the system in front of them. The conditions, their reasons, the facts and the implications between them are in `data/checklist-applicability.json`, and are not repeated here. This section holds the rules for writing a condition. `tools/check_applicability.py` enforces the grammar, the declared facts and the redundancy rule; it cannot check that a condition is the right one, which is what the rules below are for.
+
+A new checklist item gets its condition from these rules before it is published, like its severity. Do not change a rule, a fact or an implication to fit one item: the model is frozen, and a change to it means every item is assigned again. If an item stays ambiguous under these rules, take the weaker condition; if no clearly weaker condition is safe, use `always`. Record the ambiguity in the commit message.
+
+### Terms
+
+- **Fact.** A yes or no statement about the architecture of the system under review, such as "a browser client calls the API". A fact is never a security control and never an attack. The facts are declared in `data/checklist-applicability.json`, with the question a reviewer answers for each.
+- **Answer.** What the reviewer says about a fact: Yes, No or Unknown. Every fact starts as Unknown.
+- **Condition.** What an item needs in order to apply, written in the grammar below.
+- **Assignment.** One answer for every fact.
+
+### What a fact means
+
+1. A fact is about the whole system under review. Yes means "present anywhere in scope". A system with one cookie-authenticated admin page has a cookie session.
+2. A fact describes what the system is or does, not how well it is defended. "A browser calls the API" is a fact. "CORS is configured" is a control and is not a fact.
+3. A fact must be answerable from a design document or by asking the team one question.
+4. Three things that are true of almost every API are deliberately not facts, and items that depend only on them are `always`: the API holds resources that belong to different users or tenants; it has fields or functions that not every caller may use; it has requests that change state. A mistaken No on any of these would hide the authorization items, which are among the most important on the list.
+
+### Implications
+
+Some facts guarantee others. `data/checklist-applicability.json` declares each one in the child's `implies` list. An implication is declared only when it is a guarantee, not when it is merely usual.
+
+Two rules follow from each declared implication, and only these two:
+
+- Child Yes makes parent Yes.
+- Parent No makes child No.
+
+Nothing follows from child No, and nothing follows from parent Yes. Implications chain: if A implies B and B implies C, then A implies C.
+
+**Resolving answers.** Start from the reviewer's answers. Apply the two rules until nothing changes. Any fact not settled by an answer or by a rule stays Unknown.
+
+**Contradictions.** An assignment in which a child is Yes and its parent is No is invalid. The interface must refuse it and say which two answers conflict. It must not pick one silently.
+
+**Writing conditions.** A condition names the most specific fact only. If an item needs a cookie session, the condition says `cookie_session` and does not add `browser_client`. The filter derives the rest.
+
+### Condition grammar
+
+A condition is exactly one of these two forms.
+
+```json
+"always"
+```
+
+```json
+{ "all_of": [ "fact_a", { "any_of": ["fact_b", "fact_c"] } ] }
+```
+
+- `all_of` is a list with at least one member.
+- Each member is a fact id or an `any_of` group. An `all_of` may hold more than one group.
+- An `any_of` group is a list of at least two fact ids. It contains facts only.
+- There is no negation, no nesting beyond this, and no other operator.
+
+A single required fact is written `{ "all_of": ["fact_a"] }`. A choice between facts with nothing else required is written `{ "all_of": [ { "any_of": ["fact_b", "fact_c"] } ] }`.
+
+Every item also carries a `reason`: one sentence saying why the condition is what it is. For `always` the reason says why no architecture fact can rule the item out.
+
+### Evaluation
+
+Evaluate a condition against the resolved answers. The result is true, false or unknown.
+
+| Form | False when | True when | Otherwise |
+|---|---|---|---|
+| a fact | its answer is No | its answer is Yes | unknown |
+| `any_of` | every member is false | at least one member is true | unknown |
+| `all_of` | at least one member is false | every member is true | unknown |
+| `always` | never | always | |
+
+**Only false hides an item.** True and unknown both leave it visible. An item is hidden only when the reviewer's own answers, with the implication rules, prove its condition cannot be met.
+
+Every hidden item stays reachable. With "show excluded" on, each one is listed with the answers that excluded it, for example "Not applicable because: webhook receiver = No".
+
+### Rules for assigning a condition to an item
+
+1. **Read the item as written.** Use its title and detail. Use the lesson to understand what the item means, not to add requirements it does not state.
+2. **Necessary, not typical.** Include a fact only if the item cannot make sense without it. Do not include a fact because it is usually present alongside. A webhook item needs a webhook receiver. It does not also need an internet-facing API or request signing.
+3. **Minimal.** State the smallest condition under which the item applies.
+4. **Most specific fact only, and nothing redundant.** In an `all_of`, do not list a fact that another listed fact implies, directly or through a chain. In an `any_of`, do not list a fact that implies another member, because the broader member already covers it. The test is the same in both places: if deleting a fact would not change the result under any valid assignment, it does not belong.
+5. **An item that applies in more than one setting** gets an `any_of` over those settings, so it stays visible if any of them is present.
+6. **An item with multiple independent parts applies whenever any part applies.** Work out the minimal condition for each part. If one of those conditions is logically weaker than all the others, use it. If they are incomparable, use a condition that preserves their logical union within the grammar. For example, "GraphQL with a cookie session, or gRPC" is `all_of` of two groups: `any_of [graphql, grpc]` and `any_of [cookie_session, grpc]`. If the union is unclear or materially more complex than that, use `always` under the doubt rule, so no applicable part can be hidden.
+7. **Process items.** An item about how a review, a test or an inventory is done applies to every review and is `always`, unless its own text limits it to something specific.
+8. **Protocol and source scope.** A protocol, standard or specification cited in an item's detail does not by itself make that protocol's fact necessary. Include the protocol fact only when the item's title or detail depends on a protocol-specific object, operation, role or behaviour, such that the item cannot be read coherently without that protocol.
+9. **Discovery rule.** Do not condition an item on an architecture fact that the item itself is intended to establish or verify. If performing the check can reveal that the fact is present, gate the item on the weakest prerequisite fact that must already be true for the check to make sense, or use `always` when there is no such fact. A fact is a discovery fact only when performing the checklist item can itself establish whether that fact is present. A control that merely becomes important when a fact is true is not a discovery item.
+10. **Independent-fact conjunction.** Two facts with no implication between them belong in the same `all_of` only when every applicable instance of the item requires both. If the item remains meaningful with either fact absent, do not conjoin them. Apply rule 6 where there are genuinely separate cases; otherwise use the weaker single condition under the doubt rules.
+11. **Do not generalize an item merely because its control principle would also be useful elsewhere.** Use the lesson to resolve what otherwise-generic nouns in the item refer to. A citation alone does not scope an item, but the item's actual technical subject does.
+
+**Precedence between the rules.**
+
+1. **Near-universal precedence.** The fourth point under "What a fact means" wins over protocol scoping. If an item's substantive security property is one of the three things deliberately treated as `always`, rule 11 cannot narrow it unless the item itself depends on a protocol-specific object or operation.
+2. **Protocol-subject precedence.** Rules 8 and 11 are read together: include a protocol fact when the protocol-specific object, role, behaviour or requirement is the actual subject of the item. A citation or lesson location alone is insufficient, but a requirement whose meaning changes outside that protocol is protocol-scoped.
+3. **Safety precedence over extra conjunctions.** Rule 10 does not require adding every fact that happens to be true in a valid instance. When a protocol fact already identifies the security subject, do not add a second independent fact merely to suppress irrelevant variants if a mistaken No on that second fact could hide the check. Conjoin only when the item's own applicability plainly depends on both architecture facts. This is the fail-visible principle applied to conjunctions.
+
+**When in doubt, in this order:**
+
+1. If unsure whether a fact is necessary, leave it out.
+2. If unsure whether the item has any condition at all, use `always`.
+3. When two defensible conditions differ only in how restrictive they are, the weaker one stands, unless the item's text clearly requires the stronger.
+
+These rules bias the model toward showing an item that did not need showing. That is intended.
+
 ## Rules
 - No secrets in examples. Use placeholders such as `<secret from vault>`. Labs generate keys at runtime or read a file.
 - Every code sample and lab is run before publishing, and the page shows the real output.

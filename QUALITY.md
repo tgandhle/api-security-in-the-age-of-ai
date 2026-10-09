@@ -8,16 +8,16 @@ The project may describe itself as enterprise-grade only while all nine criteria
 
 ## Current status
 
-**Not yet meeting all enterprise-quality criteria.** The project meets 1 of 9 criteria. Independent content review, the applicability filter, and repository governance are among those outstanding.
+**Not yet meeting all enterprise-quality criteria.** The project meets 2 of 9 criteria. Independent content review, the applicability filter, and repository governance are among those outstanding.
 
-Last updated 2026-10-09, at commit `7901ce3`.
+Last updated 2026-10-09. Each status is as of the commit that last changed this file.
 
 | # | Criterion | Status |
 |---|---|---|
 | 1 | Written criteria | Pass |
 | 2 | Independent content review | Not met |
 | 3 | Applicability filter shipped | Not met |
-| 4 | Applicability rules in the repository | Not met |
+| 4 | Applicability rules in the repository | Pass |
 | 5 | Stable checklist IDs and machine-readable checklist | Not met |
 | 6 | Repository governance | Not met |
 | 7 | Review freshness enforced | Not met |
@@ -66,7 +66,7 @@ The static `checklist/index.html` continues to show all 325 items.
 
 **Acceptance.** The frozen rules for assigning a condition to a checklist item are in `CONVENTIONS.md`. The vocabulary, the implications, the conditions and their reasons stay in `data/checklist-applicability.json` and are not written out a second time anywhere.
 
-**Status: Not met.** The rules exist only outside the repository. `AGENTS.md` says so.
+**Status: Pass.** "Checklist applicability" in `CONVENTIONS.md` holds the terms, the grammar, the evaluation, the eleven assignment rules, the precedence between them and the doubt rules. The facts and implications are declared only in `data/checklist-applicability.json`.
 
 ### 5. Stable checklist IDs and machine-readable checklist
 

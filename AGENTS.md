@@ -99,6 +99,14 @@ These apply to every change. If a task seems to require breaking one, stop and a
 Recorded so a later session does not reopen them by accident. Change one only
 when the reason it gives has stopped being true, and say so in the commit.
 
+- **2026-10-09, the applicability rules are in `CONVENTIONS.md`.** The
+  entry below says the assignment rules were not in the repository. They
+  now are, under "Checklist applicability", unchanged from version 1 as
+  frozen on 2026-10-07: the terms, what a fact means, implications, the
+  grammar, evaluation, the eleven rules, the three precedence sentences and
+  the doubt rules. The facts and implications are declared only in
+  `data/checklist-applicability.json`, so they cannot drift between two
+  copies. The calibration history stays in the entry below.
 - **2026-10-07, each checklist item records when it applies, in an authored
   data file with its own check.** A reviewer looking at one system does not
   need all 325 items, and nothing recorded which ones a given system could
@@ -454,7 +462,7 @@ Work on one module per task unless told otherwise.
    <li data-check="jwt-01" data-severity="Critical"><strong>Title</strong> <span>Detail sentence.</span></li>
    ```
    Severity is one of `Critical`, `High`, `Medium`, and is set with the severity rubric in `CONVENTIONS.md`, not by feel.
-   Every item also needs one entry in `data/checklist-applicability.json`, and an item that is removed loses its entry. `tools/check_applicability.py` fails until both are true.
+   Every item also needs one entry in `data/checklist-applicability.json`, with its condition chosen by the rules under "Checklist applicability" in `CONVENTIONS.md`, and an item that is removed loses its entry. `tools/check_applicability.py` fails until both are true.
 6. **Link the module** from `index.html`. Replace its `<span class="planned">` with a link.
 7. **Regenerate and verify:**
    ```sh
