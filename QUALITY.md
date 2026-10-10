@@ -8,7 +8,7 @@ The project may describe itself as enterprise-grade only while all nine criteria
 
 ## Current status
 
-**Not yet meeting all enterprise-quality criteria.** The project meets 5 of 9 criteria. Independent content review, the GitHub settings for repository governance, manual accessibility review and an evidence-bearing release are outstanding.
+**Not yet meeting all enterprise-quality criteria.** The project meets 6 of 9 criteria. Independent content review, manual accessibility review and an evidence-bearing release are outstanding.
 
 Last updated 2026-10-09. Each status is as of the commit that last changed this file.
 
@@ -19,7 +19,7 @@ Last updated 2026-10-09. Each status is as of the commit that last changed this 
 | 3 | Applicability filter shipped | Pass |
 | 4 | Applicability rules in the repository | Pass |
 | 5 | Stable checklist IDs and machine-readable checklist | Pass |
-| 6 | Repository governance | Partial |
+| 6 | Repository governance | Pass |
 | 7 | Review freshness enforced | Pass |
 | 8 | Manual accessibility review | Not met |
 | 9 | Evidence-bearing release | Not met |
@@ -78,7 +78,7 @@ The static `checklist/index.html` continues to show all 325 items.
 
 **Acceptance.** `SECURITY.md`, `CONTRIBUTING.md` and `CODEOWNERS` exist. `main` is protected by a GitHub ruleset that requires the publishing checks to pass, blocks force pushes and deletion, and requires signed commits.
 
-**Status: Partial.** `SECURITY.md`, `CONTRIBUTING.md` and `.github/CODEOWNERS` exist. `SECURITY.md` sends vulnerabilities to GitHub private vulnerability reporting. `.github/workflows/pages.yml` now runs its checks on pull requests into `main`, so a ruleset can require them. Not yet done, both in GitHub settings: private vulnerability reporting switched on, and the ruleset on `main`.
+**Status: Pass.** `SECURITY.md`, `CONTRIBUTING.md` and `.github/CODEOWNERS` exist, and private vulnerability reporting is switched on, so Security, Advisories offers "Report a vulnerability" as `SECURITY.md` says. Ruleset 24830310, named `main`, was created on 2026-10-09 with enforcement active, targets the default branch and has an empty bypass list (`current_user_can_bypass` is `never`). `GET /repos/tgandhle/api-security-in-the-age-of-ai/rules/branches/main` lists its five rules: `deletion` (deletion restricted), `non_fast_forward` (force pushes blocked), `required_signatures`, `pull_request` (0 approvals, so the one maintainer can merge; merge and squash only) and `required_status_checks` (the `build` job of `.github/workflows/pages.yml`, branch up to date). `.github/workflows/pages.yml` runs that job on pull requests into `main` without publishing. This status change was itself merged through a pull request under the ruleset.
 
 ### 7. Review freshness enforced
 
