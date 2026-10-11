@@ -23,7 +23,7 @@
       "attrs": {
         "class": "meta"
       },
-      "html": "\n<p class=\"meta\">Last reviewed 2026-10-02 &middot; <a class=\"jump\" href=\"#reference\">Jump to reference</a></p>"
+      "html": "\n<p class=\"meta\">Last reviewed 2026-10-10 &middot; <a class=\"jump\" href=\"#reference\">Jump to reference</a></p>"
     },
     {
       "tag": "div",
@@ -332,7 +332,7 @@
   "lesson_key": "mcp-server-authorization",
   "title": "MCP server authorization",
   "kicker": "Part 4: AI and agents &middot; Module 20",
-  "reviewed": "2026-10-02",
+  "reviewed": "2026-10-10",
   "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Lesson 21 of 38</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
   "lesson_number": 21,
   "lesson_total": 38,

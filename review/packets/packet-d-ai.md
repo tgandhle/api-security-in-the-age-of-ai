@@ -19,7 +19,7 @@ Scope: MCP authorization, agent-to-agent, prompt injection and output handling, 
 ## Module 20: MCP server authorization
 
 - Lesson: <https://tgandhle.github.io/api-security-in-the-age-of-ai/topics/mcp-server-authorization/index.html> (source: `topics/mcp-server-authorization/index.html`)
-- Last reviewed by the author: 2026-10-02
+- Last reviewed by the author: 2026-10-10
 - Lab: `labs/mcp_auth_lab.py`, run with `python3 labs/mcp_auth_lab.py`
 
 ### Claims attributed to a source (Standard)
