@@ -23,7 +23,7 @@
       "attrs": {
         "class": "meta"
       },
-      "html": "\n<p class=\"meta\">Last reviewed 2026-10-04 &middot; <a class=\"jump\" href=\"#reference\">Jump to reference</a></p>"
+      "html": "\n<p class=\"meta\">Last reviewed 2026-10-10 &middot; <a class=\"jump\" href=\"#reference\">Jump to reference</a></p>"
     },
     {
       "tag": "div",
@@ -344,7 +344,7 @@
   "lesson_key": "agent-to-agent",
   "title": "Agent-to-agent",
   "kicker": "Part 4: AI and agents &middot; Module 21",
-  "reviewed": "2026-10-04",
+  "reviewed": "2026-10-10",
   "lesson_status_html": "<section class=\"lesson-status\" aria-label=\"Lesson progress\"><div><strong>Lesson 22 of 38</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class=\"button\" type=\"button\" data-mark-complete aria-pressed=\"false\">Mark lesson complete</button></section>",
   "lesson_number": 22,
   "lesson_total": 38,
