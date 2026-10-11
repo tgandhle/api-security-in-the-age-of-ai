@@ -10,7 +10,7 @@ export default function Home({ blocks, lessons, up, stats }) {
   const rest = blocks.filter(
     (b) => !(b.attrs && b.attrs.class === "course-hero"));
   return (
-    <main id="main-content" className="home">
+    <main id="main-content" tabIndex={-1} className="home">
       {hero.map((block, i) => (
         <div key={"hero" + i} className="home-hero"
              dangerouslySetInnerHTML={{ __html: block.html }} />

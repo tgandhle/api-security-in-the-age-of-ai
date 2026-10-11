@@ -4,7 +4,7 @@
 export default function Lesson({ lesson, total }) {
   const blocks = lesson.record.blocks;
   return (
-    <main id="main-content">
+    <main id="main-content" tabIndex={-1}>
       {blocks.map((block, i) =>
         block.attrs && block.attrs.class === "lesson-status" ? (
           <LessonStatus key={i} number={lesson.lesson_number} total={total} />
