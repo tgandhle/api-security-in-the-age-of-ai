@@ -97,7 +97,7 @@ Review the title and detail for technical correctness. Severity and the applicab
 ## Module 21: Agent-to-agent
 
 - Lesson: <https://tgandhle.github.io/api-security-in-the-age-of-ai/topics/agent-to-agent/index.html> (source: `topics/agent-to-agent/index.html`)
-- Last reviewed by the author: 2026-10-04
+- Last reviewed by the author: 2026-10-10
 - Lab: `labs/a2a_lab.py`, run with `python3 labs/a2a_lab.py`
 
 ### Claims attributed to a source (Standard)
