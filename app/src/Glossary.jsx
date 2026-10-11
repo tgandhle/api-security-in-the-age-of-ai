@@ -1,6 +1,6 @@
 export default function Glossary({ intro, terms }) {
   return (
-    <main id="main-content">
+    <main id="main-content" tabIndex={-1}>
       <div dangerouslySetInnerHTML={{ __html: intro }} />
       <dl className="gloss">
         {terms.map((term) => (

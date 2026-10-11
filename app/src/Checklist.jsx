@@ -22,7 +22,7 @@ export default function Checklist({ lessons, up }) {
     (ORDER[a.check.severity] - ORDER[b.check.severity]) ||
     a.check.id.localeCompare(b.check.id));
   return (
-    <main id="main-content">
+    <main id="main-content" tabIndex={-1}>
       <h1>Review checklist</h1>
       <p className="prose meta">
         Generated from the reference section of each lesson. {items.length} items,

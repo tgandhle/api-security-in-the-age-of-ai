@@ -5,7 +5,7 @@ import coverage from "../../content/coverage.json";
 // pages, so nothing about coverage is written here.
 export default function Coverage() {
   return (
-    <main id="main-content"
+    <main id="main-content" tabIndex={-1}
           dangerouslySetInnerHTML={{ __html: coverage.html }} />
   );
 }

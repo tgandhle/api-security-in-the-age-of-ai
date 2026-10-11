@@ -135,6 +135,9 @@ a:hover{text-decoration-color:currentColor}
 
 a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,
 [tabindex]:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+/* The skip link focuses main (tabindex -1) so the next Tab and a screen
+   reader start in the content. main is not a control, so no ring. */
+main[tabindex="-1"]:focus{outline:none}
 
 .skip-link{position:absolute;left:-999px;top:0;z-index:100;padding:.55rem .9rem;border-radius:var(--r-sm);
   background:var(--accent);color:var(--accent-ink);font-weight:650;text-decoration:none}
