@@ -8,9 +8,9 @@ The project may describe itself as enterprise-grade only while all nine criteria
 
 ## Current status
 
-**Not yet meeting all enterprise-quality criteria.** The project meets 6 of 9 criteria. Independent content review, manual accessibility review and an evidence-bearing release are outstanding.
+**Not yet meeting all enterprise-quality criteria.** The project meets 7 of 9 criteria. Independent content review and an evidence-bearing release are outstanding.
 
-Last updated 2026-10-09. Each status is as of the commit that last changed this file.
+Last updated 2026-10-11. Each status is as of the commit that last changed this file.
 
 | # | Criterion | Status |
 |---|---|---|
@@ -21,7 +21,7 @@ Last updated 2026-10-09. Each status is as of the commit that last changed this 
 | 5 | Stable checklist IDs and machine-readable checklist | Pass |
 | 6 | Repository governance | Pass |
 | 7 | Review freshness enforced | Pass |
-| 8 | Manual accessibility review | Not met |
+| 8 | Manual accessibility review | Pass |
 | 9 | Evidence-bearing release | Not met |
 
 When every row reads Pass, this section will say: **The project meets the enterprise-quality criteria defined in `QUALITY.md`.**
@@ -90,7 +90,7 @@ The static `checklist/index.html` continues to show all 325 items.
 
 **Acceptance.** At least one recorded manual pass over a representative lesson, the hosted checklist with the filter, and a runnable lab, using NVDA, keyboard-only navigation, and 200% zoom with reflow. The record gives the browser and operating system, the steps, every failure found, and what was done about each.
 
-**Status: Not met.** Accessibility is checked automatically with axe-core on every static page and the built site, in light and dark mode at desktop and mobile width. Automated rules are a floor, as `CONVENTIONS.md` says, and no manual pass has been recorded. The script is ready: `accessibility/README.md` sets out 40 steps (keyboard, NVDA, and zoom at 200% and 400%) over the webhooks lesson, its in-browser lab and the filtered checklist, and `accessibility/RECORD-TEMPLATE.md` is the record.
+**Status: Pass.** `accessibility/log/2026-10-10-gandhle.md` records one manual pass of the 40 steps in `accessibility/README.md` (keyboard only, NVDA 2026.2, and zoom at 200% and 400%) over the webhooks lesson, its in-browser lab and the filtered checklist, by the author, in Chrome 154 (Guest window) on Windows 11 at 125% display scale, against site commit `6c74dde`. 39 steps passed. K1 failed: the skip link left focus on the page body because `main` could not take focus. It was fixed in `092e68f` (PR #4), and K1 passed when redone on `f454f1a`. The record gives the setup, every step, the failure and its disposition. It is one tester, one screen reader and one browser over three parts of the site, so it is not a conformance claim. Accessibility is also checked automatically with axe-core on every static page and the built site, in light and dark mode at desktop and mobile width.
 
 ### 9. Evidence-bearing release
 
