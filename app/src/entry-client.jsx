@@ -1,5 +1,7 @@
 import { createRoot, hydrateRoot } from "react-dom/client";
 import Search from "./Search.jsx";
+import AnalyticsPreferences from "./AnalyticsPreferences.jsx";
+import { createAnalytics } from "./analytics.js";
 import ThemeToggle from "./ThemeToggle.jsx";
 import Sidebar from "./Sidebar.jsx";
 import LessonNav from "./LessonNav.jsx";
@@ -75,3 +77,22 @@ const themeMount = document.getElementById("theme-mount");
 if (themeMount) {
   createRoot(themeMount).render(<ThemeToggle />);
 }
+
+// Only the hosted app loads this module. Reading downloaded pages stays local.
+const analytics = createAnalytics();
+const analyticsMount = document.createElement("div");
+const siteFooter = document.querySelector("footer");
+if (siteFooter) {
+  siteFooter.appendChild(analyticsMount);
+  createRoot(analyticsMount).render(<AnalyticsPreferences analytics={analytics} />);
+}
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("button");
+  const lesson = document.body.dataset.courseLesson;
+  if (!button || !lesson) return;
+  if (button.matches("[data-mark-complete]") &&
+      button.getAttribute("aria-pressed") === "true") {
+    analytics.track("lesson_complete", lesson);
+  }
+  if (button.matches(".lab-run button")) analytics.track("lab_start", lesson);
+});
