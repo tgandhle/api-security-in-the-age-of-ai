@@ -76,6 +76,27 @@ The labs are pure in-process Python with no shell or subprocess, and the only fi
 
 Copyright (c) 2026 tgandhle. All rights reserved. This repository is readable, not open source: see [LICENSE](LICENSE) for what that permits. The exception is the review checklist data (`checklist/checklist.json`, `checklist/checklist.csv` and the two checklist files in `data/`), which is licensed CC BY 4.0 so it can be imported into other tools: see [CHECKLIST-LICENSE.md](CHECKLIST-LICENSE.md). Quoted specifications remain the property of their publishers and are cited on the page that quotes them.
 
+## Website analytics
+
+The hosted site offers Google Analytics 4 after the reader chooses **Allow analytics**
+in **Analytics preferences** in the footer. Declining leaves the course usable.
+The choice is saved in this browser and can be changed in the same footer.
+Downloaded pages and local previews do not load analytics.
+
+The course property is `G-HYZ70HJ8M9`. It measures page views, `lab_start`
+(a request to run a lab, not proof it finished), and `lesson_complete`
+(when the completion button changes to completed). Only the lesson slug is
+included in course action events. The integration removes arbitrary query
+parameters and fragments from page locations, retains valid campaign source,
+medium and name labels, and disables advertising features. Search text, quiz
+answers, checklist answers and lab output are not sent by the course code.
+Google receives usage and device information and stores analytics cookies after
+permission. The footer links to Google's explanation of its data use.
+
+For the LinkedIn post, use the course homepage with
+`?utm_source=linkedin&utm_medium=organic_social&utm_campaign=course_launch`.
+Reports cover consenting visitors only. Verify collection in the course
+property's Realtime report after the change is deployed.
 ## Working on the site
 
 Plain HTML. Open `index.html` in any browser, or publish the folder with GitHub Pages. No build step is needed to view the site.
