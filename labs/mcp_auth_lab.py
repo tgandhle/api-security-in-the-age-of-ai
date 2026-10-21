@@ -205,7 +205,7 @@ class McpServer:
         # Correct: a separate token the MCP server obtains for itself, for
         # the upstream's audience, naming the user as the party it acts for.
         own = mint({"iss": SHARED_AS, "aud": UPSTREAM_API,
-                    "sub": self.resource, "act": {"sub": claims["sub"]},
+                    "sub": claims["sub"], "act": {"sub": self.resource},
                     "scope": "customers:read", "exp": NOW + 300},
                    self.key)
         return "upstream says: " + self.upstream.call(own)
@@ -239,8 +239,11 @@ class UpstreamApi:
         aud = claims.get("aud")
         if aud != self.audience:
             return "401 wrong audience"
-        caller = claims.get("sub")
-        on_behalf = claims.get("act", {}).get("sub", "nobody named")
+        # RFC 8693 section 4.1: sub is the party the token is about, and act
+        # names the current actor. With no act, the subject is the caller.
+        act = claims.get("act")
+        caller = act["sub"] if act else claims.get("sub")
+        on_behalf = claims["sub"] if act else "nobody named"
         return "200 served %s for %s" % (caller, on_behalf)
 
 
