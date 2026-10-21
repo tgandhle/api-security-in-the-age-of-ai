@@ -294,6 +294,11 @@
         "definition": "A header carrying a hash of the message body, defined by RFC 9530. RFC 9421 does not cover message content on its own, so a request body enters an HTTP message signature through a digest field such as this one, and then only if it is a covered component and the receiver recomputes it."
       },
       {
+        "id": "content-security-policy",
+        "term": "Content Security Policy",
+        "definition": "A response header, defined by the W3C specification of the same name, in which a page lists where it may load each kind of resource from. A browser that supports it refuses the rest. The <code>img-src</code> directive covers images, and falls back to <code>default-src</code> when it is absent."
+      },
+      {
         "id": "correlation-id",
         "term": "Correlation ID",
         "definition": "An identifier an application gives one request, writes into every event that request causes, and returns in an error response. The client can quote it and the operator can find the events and the detail, so the detail never has to be in the response."
