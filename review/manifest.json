@@ -1483,7 +1483,7 @@
             "23-B5": "Give each approval a lifetime measured in minutes.",
             "23-B6": "Record, for any session-wide approval, how many of an operation's fields it constrains.",
             "23-B7": "Log the approved parameters next to the executed parameters for the same action.",
-            "23-O1": "Require a second approver for actions above a threshold, accepting that this doubles the exposure to ASI09 rather than halving it.",
+            "23-O1": "Require a second approver for actions above a threshold, accepting that a second approver can be persuaded the same way as the first.",
             "23-O2": "Show the approver a diff against the last similar action, where the risk is a plausible-looking change rather than an implausible one.",
             "23-O3": "Carry the approval to the downstream service as a request signature, where the executing service is not the service that collected the approval."
           },
