@@ -38,7 +38,7 @@
 <tr><td>Who to suspend if the agent misbehaves</td><td class="yes">Only the user</td><td class="yes">The service, and every caller of it</td><td class="no">That agent</td></tr>
 <tr><td>What a stolen copy reaches</td><td class="yes">Everything the user can do</td><td class="yes">Everything the service can do</td><td class="no">One scope, one audience</td></tr>
 </tbody></table></div>
-<p class="prose">The service-credential row is the <a href="../../glossary/index.html#confused-deputy">confused deputy</a>, and it is the one that survives review most often, because it looks like good hygiene: the agent has its own identity and its own credential. It does. The problem is that the traveller has left the request, so <a href="../object-level-authorization/index.html">module 9</a>'s object check has nothing to compare the booking against.</p>
+<p class="prose">The service-credential row is the <a href="../../glossary/index.html#confused-deputy">confused deputy</a>, and it gets through review because it looks like good hygiene: the agent has its own identity and its own credential. It does. The problem is that the traveller has left the request, so <a href="../object-level-authorization/index.html">module 9</a>'s object check has nothing to compare the booking against.</p>
 
 <h2>2. Why it works</h2>
 <h3>Impersonation and delegation are different, and the specification says so</h3>
@@ -88,7 +88,7 @@
 <ol class="steps prose">
 <li><strong>Exchange, do not forward.</strong> A user token that leaves the service it was issued for is a credential with no stated holder. If the agent needs to call downstream, it exchanges.</li>
 <li><strong>Send <code>actor_token</code>.</strong> Delegation adds <code>actor_token</code>, sent with its <code>actor_token_type</code>, to an impersonation request, and it is the parameter that makes the log useful.</li>
-<li><strong>State <code>audience</code> and <code>scope</code> on every exchange,</strong> and refuse the request at the authorization server when they are missing. The default of copying the subject token's scope is the worst one available.</li>
+<li><strong>State <code>audience</code> and <code>scope</code> on every exchange,</strong> and refuse the request at the authorization server when they are missing. RFC 8693 does not say what a server does when scope is missing, and a server that copies the subject token's scope takes the worst option available.</li>
 <li><strong>Enforce <code>may_act</code>,</strong> matched on issuer and subject together, so the subject token decides which agents may act for it.</li>
 <li><strong>Cap the issued lifetime</strong> at what remains on the subject token, and shorter where the task is short.</li>
 <li><strong>Read the token the way section 4.1 requires:</strong> top-level claims plus the current actor, and nothing else in the chain.</li>
