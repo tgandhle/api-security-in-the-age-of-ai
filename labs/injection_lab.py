@@ -12,7 +12,9 @@ bytes were untrusted afterwards. Part B treats model output as a request
 from an untrusted caller, which is what it is. Part C is encoding by sink,
 with a real SQLite database for the SQL half. Part D is why filtering the
 input is not the control, with five bypasses of a keyword filter. Part E is
-the blast radius of a tool call the model was talked into making.
+the blast radius of a tool call the model was talked into making. Part F
+checks the values inside a call the table allows, because an argument with
+the right name can still carry a value of the wrong type or out of range.
 
 OWASP's own framing for Part B, from LLM10:2026 Improper Output Handling:
 "Treat the model as any other user, adopting a zero-trust approach, and
@@ -25,6 +27,7 @@ are all standard library.
 Exit codes: 0 all checks matched, 1 a check did not match.
 """
 import base64
+import datetime
 import html
 import re
 import secrets
@@ -122,6 +125,65 @@ def execute_allowed(output, role, table=None):
     if missing:
         return "refused: %s needs %s" % (name, ",".join(sorted(missing)))
     return "called %s(%s)" % (name, ",".join(sorted(output["args"])))
+
+
+# ------------------------------------ Part F: the values inside an allowed call
+
+def is_airport(value):
+    return type(value) is str and re.fullmatch(r"[A-Z]{3}", value) is not None
+
+
+def is_date(value):
+    if type(value) is not str or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+        return False
+    try:
+        datetime.date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
+def is_booking(value):
+    return type(value) is str and re.fullmatch(r"B-\d{1,8}", value) is not None
+
+
+def is_seat(value):
+    return (type(value) is str
+            and re.fullmatch(r"([1-9]|[1-3][0-9]|40)[A-F]", value) is not None)
+
+
+RULES = {
+    # tool name, then for each argument: the test, and what it says
+    "search_flights": {
+        "destination": (is_airport, "a three-letter airport code"),
+        "date": (is_date, "a calendar date written YYYY-MM-DD")},
+    "read_booking": {
+        "booking_id": (is_booking, "B- followed by up to eight digits")},
+    "hold_seat": {
+        "booking_id": (is_booking, "B- followed by up to eight digits"),
+        "seat": (is_seat, "a row from 1 to 40 and a letter from A to F")},
+}
+
+
+def execute_validated(output, role, table=None, rules=None):
+    """execute_allowed, then every value against its tool's rule.
+
+    An argument with no rule is refused, so a tool added to the table
+    without rules is refused too: deny by default, applied to values.
+    """
+    result = execute_allowed(output, role, table)
+    if result.startswith("refused"):
+        return result
+    rules = RULES if rules is None else rules
+    name = output["tool"]
+    for arg in sorted(output["args"]):
+        rule = rules.get(name, {}).get(arg)
+        if rule is None:
+            return "refused: %s has no rule for %s" % (name, arg)
+        test, says = rule
+        if not test(output["args"][arg]):
+            return "refused: %s must be %s" % (arg, says)
+    return result
 
 
 # ------------------------------------------------- Part C: encoding by sink
@@ -372,7 +434,55 @@ def main():
           str(len([n for n in reachable_viewer
                    if n not in ("read_booking", "search_flights")])))
 
-    failures = [r for r in RESULTS if r[2] != r[1]]
+    print()
+    print("Part F: the values inside a call the table allows.")
+    as_list = {"tool": "hold_seat",
+               "args": {"booking_id": "B-1", "seat": ["14C", "14D", "14E"]}}
+    as_object = {"tool": "hold_seat",
+                 "args": {"booking_id": {"any": True}, "seat": "14C"}}
+    as_number = {"tool": "search_flights",
+                 "args": {"destination": "LIS", "date": 20261009}}
+    check("a seat that is a list, names checked only",
+          "called hold_seat(booking_id,seat)",
+          execute_allowed(as_list, "agent"))
+    check("  and with values checked",
+          "refused: seat must be a row from 1 to 40 and a letter from A to F",
+          execute_validated(as_list, "agent"))
+    check("a booking id that is an object, names checked only",
+          "called hold_seat(booking_id,seat)",
+          execute_allowed(as_object, "agent"))
+    check("  and with values checked",
+          "refused: booking_id must be B- followed by up to eight digits",
+          execute_validated(as_object, "agent"))
+    check("a date that is a number, names checked only",
+          "called search_flights(date,destination)",
+          execute_allowed(as_number, "agent"))
+    check("  and with values checked",
+          "refused: date must be a calendar date written YYYY-MM-DD",
+          execute_validated(as_number, "agent"))
+    check("a seat out of range, with values checked",
+          "refused: seat must be a row from 1 to 40 and a letter from A to F",
+          execute_validated({"tool": "hold_seat",
+                             "args": {"booking_id": "B-1", "seat": "99Z"}},
+                            "agent"))
+    check("Part C's payload as a destination, with values checked",
+          "refused: destination must be a three-letter airport code",
+          execute_validated({"tool": "search_flights",
+                             "args": {"destination": PAYLOAD,
+                                      "date": "2026-10-09"}}, "agent"))
+    check("the output the task called for, with values checked",
+          "called search_flights(date,destination)",
+          execute_validated(benign, "agent"))
+    check("send_payment in the table, with no rules written for it",
+          "refused: send_payment has no rule for account",
+          execute_validated(injected, "agent", table=wide))
+    check("a well-formed call, whatever the reason, values checked",
+          "called hold_seat(booking_id,seat)",
+          execute_validated({"tool": "hold_seat",
+                             "args": {"booking_id": "B-1", "seat": "1A"}},
+                            "agent"))
+
+    failures =[r for r in RESULTS if r[2] != r[1]]
     print()
     if failures:
         print("%d check(s) did not match the expected outcome:" % len(failures))

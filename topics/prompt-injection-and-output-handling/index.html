@@ -141,7 +141,7 @@
 <li>A test that a document containing the delimiter cannot escape its fence.</li>
 <li>The tool table, with the role and the permitted arguments for each entry.</li>
 <li>A test that a tool absent from the table is refused when the model names it.</li>
-<li>A test that an allowed tool with an extra or out-of-range argument is refused.</li>
+<li>A test that an allowed tool is refused when it is given an extra argument, a value of the wrong type, or a value out of range.</li>
 <li>Evidence that the credential used for each tool is held by the application and never placed in the prompt.</li>
 <li>For each sink that receives model output, the encoding applied and where in the code it happens.</li>
 <li>A grep showing no SQL is built by interpolation from model output.</li>
@@ -227,6 +227,19 @@ Part E: the blast radius of a call the model was talked into.
 52. tools a viewer role reaches                              ['read_booking', 'search_flights']
 53.   writes a viewer can perform                            0
 
+Part F: the values inside a call the table allows.
+54. a seat that is a list, names checked only                called hold_seat(booking_id,seat)
+55.   and with values checked                                refused: seat must be a row from 1 to 40 and a letter from A to F
+56. a booking id that is an object, names checked only       called hold_seat(booking_id,seat)
+57.   and with values checked                                refused: booking_id must be B- followed by up to eight digits
+58. a date that is a number, names checked only              called search_flights(date,destination)
+59.   and with values checked                                refused: date must be a calendar date written YYYY-MM-DD
+60. a seat out of range, with values checked                 refused: seat must be a row from 1 to 40 and a letter from A to F
+61. Part C's payload as a destination, with values checked   refused: destination must be a three-letter airport code
+62. the output the task called for, with values checked      called search_flights(date,destination)
+63. send_payment in the table, with no rules written for it  refused: send_payment has no rule for account
+64. a well-formed call, whatever the reason, values checked  called hold_seat(booking_id,seat)
+
 all lab checks passed</code></pre>
 <div class="prose">
 <p>Checks 2 and 3 are the one measurement that makes provenance a property rather than a preference. The flat prompt contains the injected sentence and cannot tell you it was untrusted. The fenced one can, and the span it returns is the document exactly.</p>
@@ -234,6 +247,7 @@ all lab checks passed</code></pre>
 <p>Checks 13 and 14 are the module in two lines. The same model output, executed as given and then put through a deny-by-default table. <code>send_payment</code> is not refused because it was recognised as dangerous; it is refused because it is not in the table at all, which is the only form of this control that works against an output you did not anticipate.</p>
 <p>Checks 20 to 24 are real SQLite. Zero rows parameterized, three rows interpolated, and three rows in the table, so the interpolated query returned the whole table on a payload that was supposed to be a city name. Checks 25 to 32 then take that same payload through three encodings and get three different strings, none of which is the right one for another sink. The HTML-escaped one still carries a semicolon into a shell, and the shell-quoted one still carries its script tag into a page. If you have a function called <code>sanitize</code>, this is the part to read twice.</p>
 <p>Part D is where to spend your time if you are the person who has to answer for this in a review. The filter blocks the original and passes five rewrites. Normalising catches one. Checks 44 to 46 show that stripping format characters changed no verdict at all here, which is in the lab because I would otherwise be asserting it. And check 48 is the rewrite that shares no words with the blocked phrase, which no list of phrases reaches.</p>
+<p>Part F is the half of the table that gets left out. Checks 15 to 17 prove the argument names are right, and that is all they prove. Checks 54, 56 and 58 send a seat that is a list, a booking id that is an object and a date that is a number, and <code>execute_allowed</code>, which checks names only, calls all three. The same calls through <code>execute_validated</code>, which tests every value against a rule written for that tool, are refused in checks 55, 57 and 59. Check 60 is a value of the right type outside the range, and check 61 is Part C's payload offered as a destination, refused before it gets near a query. Check 62 is the task's own call, which still passes, so the rules are not simply refusing everything. Check 63 adds <code>send_payment</code> to the table without writing rules for it, and it is refused, because an argument with no rule is refused: deny by default, applied to values. Check 64 is the limit. A well-formed call to an allowed tool passes whatever the reason the model made it, which is the gap section 5 describes.</p>
 <p><strong>Try next:</strong></p>
 <ul>
 <li>Add the entry Part E gives <code>wide</code>, <code>"send_payment": {"roles": {"agent"}, "args": {"account", "amount"}}</code>, to <code>TOOLS</code> and rerun. Five checks fail: 14, 18, 19, 50 and 51. Checks 14 and 50 are the two that were standing between a poisoned document and a payment.</li>
@@ -306,7 +320,7 @@ all lab checks passed</code></pre>
 <p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 <details class="exercise-answers"><summary>Every option, and why</summary>
 <ul>
-<li data-option="a">Correct. Exit 1, one failure: check 16 goes from <code>refused: hold_seat does not take amount</code> to <code>called hold_seat(amount,booking_id,seat)</code>. The tool is allowed and the role is allowed, so an argument the tool was never meant to take goes straight through with the call. Check <code>inj-06</code> in the <a href="#reference">Reference</a> layer asks for argument names and values to be validated per tool, and this is the names half.</li>
+<li data-option="a">Correct. Exit 1, one failure: check 16 goes from <code>refused: hold_seat does not take amount</code> to <code>called hold_seat(amount,booking_id,seat)</code>. The tool is allowed and the role is allowed, so an argument the tool was never meant to take goes straight through with the call. Check <code>inj-06</code> in the <a href="#reference">Reference</a> layer asks for argument names and values to be validated per tool, and this is the names half. Part F of the lab is the values half.</li>
 <li data-option="b">That is check 17's output, for a call that leaves <code>seat</code> out. Check 16 sends <code>booking_id</code> and <code>seat</code>, so nothing is missing.</li>
 <li data-option="c">Nothing in the function removes an argument. It refuses or it calls, and the call it prints lists every argument the model sent, <code>amount</code> included.</li>
 <li data-option="d">The missing-argument check asks the opposite question: what the tool needs that the call lacks. An extra argument is invisible to it.</li>
@@ -323,7 +337,7 @@ all lab checks passed</code></pre>
 <label><input type="radio" name="inj-x3" value="a"> Check 3 becomes <code>0</code>. The fenced prompt can no longer prove which span was untrusted.</label>
 <label><input type="radio" name="inj-x3" value="b"> Checks 10 and 11 fail. The document escapes its fence.</label>
 <label><input type="radio" name="inj-x3" value="c"> The second line changes, because the nonce is no longer random per run.</label>
-<label><input type="radio" name="inj-x3" value="d" data-correct="true"> Nothing. All 53 checks pass.</label>
+<label><input type="radio" name="inj-x3" value="d" data-correct="true"> Nothing. All 64 checks pass.</label>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button>
 <p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
@@ -332,7 +346,7 @@ all lab checks passed</code></pre>
 <li data-option="a">Check 3 still prints <code>1</code>. The assembler and <code>recover_untrusted</code> are given the same nonce, so the span is found whatever the value is.</li>
 <li data-option="b">The document in checks 10 and 11 carries a closing fence for <code>FIXED</code>, not for <code>docs</code>, so it stays inside. Measured with the nonce set to <code>"FIXED"</code> instead: exit 1, one failure, check 11 goes from <code>yes</code> to <code>no</code>, and check 10 still prints <code>1</code>. Even then only one of the two moves.</li>
 <li data-option="c">That line is a plain <code>print</code> of fixed text. It still says <code>fence nonce: random per run, not printed</code>, which is now untrue, and no check reads it.</li>
-<li data-option="d">Correct. Exit 0, 67 of 67 lines identical. The lab's one escaping document was written for the fence <code>FIXED</code>, and no document in the lab was written for <code>docs</code>. Measured on a request the lab does not make, where checks 10 and 11 are given a second document that carries <code>&lt;&lt;&lt;/untrusted-docs&gt;&gt;&gt;</code> instead (not the lab's <code>escaping</code>, which checks 7 to 9 also use): as published, check 11 prints <code>yes</code> and the run exits 0; with the constant nonce, check 11 prints <code>no</code> and the run exits 1. Check 10 prints <code>1</code> both times. A constant fence passes every test until someone who has seen one prompt writes a document for it. That is why check <code>inj-05</code> in the <a href="#reference">Reference</a> layer says per request and not just a nonce.</li>
+<li data-option="d">Correct. Exit 0, 80 of 80 lines identical. The lab's one escaping document was written for the fence <code>FIXED</code>, and no document in the lab was written for <code>docs</code>. Measured on a request the lab does not make, where checks 10 and 11 are given a second document that carries <code>&lt;&lt;&lt;/untrusted-docs&gt;&gt;&gt;</code> instead (not the lab's <code>escaping</code>, which checks 7 to 9 also use): as published, check 11 prints <code>yes</code> and the run exits 0; with the constant nonce, check 11 prints <code>no</code> and the run exits 1. Check 10 prints <code>1</code> both times. A constant fence passes every test until someone who has seen one prompt writes a document for it. That is why check <code>inj-05</code> in the <a href="#reference">Reference</a> layer says per request and not just a nonce.</li>
 </ul>
 </details>
 </article>
