@@ -1441,6 +1441,7 @@
           "sources": [
             "https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/",
             "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/",
+            "https://modelcontextprotocol.io/specification/2026-07-28/client/sampling",
             "https://www.nist.gov/publications/adversarial-machine-learning-taxonomy-and-terminology-attacks-and-mitigations-0"
           ]
         },
