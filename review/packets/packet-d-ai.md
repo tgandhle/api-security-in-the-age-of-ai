@@ -9,7 +9,7 @@ Scope: MCP authorization, agent-to-agent, prompt injection and output handling, 
 |---|---|---|---|
 | 20 | MCP server authorization | 25 | 8 |
 | 21 | Agent-to-agent | 23 | 9 |
-| 22 | Prompt injection and output handling | 24 | 10 |
+| 22 | Prompt injection and output handling | 30 | 10 |
 | 23 | Agent authority and approvals | 18 | 9 |
 | 24 | Data in model context | 18 | 9 |
 | 25 | Supply chain, retrieval, and memory | 23 | 9 |
@@ -191,21 +191,27 @@ Confirm the cited source says this, at the strength stated: must, should or may.
 - **22-S9** "Treat the model as any other user, adopting a zero-trust approach, and apply proper input validation on responses coming from the model to backend functions." OWASP LLM10:2026, mitigation 1.
 - **22-S10** OWASP LLM10:2026 recommends encoding model output according to where it will be used (mitigation 4) and parameterized queries or prepared statements for all database operations involving it (mitigation 5). It lists shell execution, JavaScript or Markdown interpreted by the browser, SQL executed without parameterization, file paths built without sanitization and unescaped email templates among its examples.
 - **22-S11** Goal hijack through injected content is OWASP's ASI01 Agent Goal Hijack; the resulting misuse of a legitimate tool is ASI02 Tool Misuse and Exploitation. OWASP Top 10 for Agentic Applications for 2026.
-- **22-S12** The img-src directive "restricts the URLs from which image resources may be loaded", and falls back to default-src. Content Security Policy Level 3, sections 6.1.6 and 6.8.3.
-- **22-S13** "Content Security Policy can mitigate data exfiltration if used to create allowlists of servers with which a page is allowed to communicate." The same non-normative section says a policy that lacks default-src cannot mitigate exfiltration, and that "A policy's exfiltration mitigation ability depends upon the least-restrictive directive allowlist". Content Security Policy Level 3, section 8.6.
+- **22-S12** "For trust & safety and security, clients MUST consider tool annotations to be untrusted unless they come from trusted servers." MCP specification, revision 2026-07-28, Tools, Data Types.
+- **22-S13** Tool name uniqueness is scoped to a single server. Clients that aggregate tools from several servers MAY encounter naming collisions and the specification recommends (SHOULD) a disambiguation strategy such as prefixing tool names with a server identifier; it says (SHOULD NOT) not to rely on the server name from serverInfo for that. MCP specification, revision 2026-07-28, Tools, Tool Names.
+- **22-S14** A server's set of tools "MAY change over time", and a server that declared listChanged should send notifications/tools/list_changed when it does, to clients that have subscribed to tool list changes. MCP specification, revision 2026-07-28, Tools, Capabilities and List Changed Notification.
+- **22-S15** Clients should "Show tool inputs to the user before calling the server, to avoid malicious or accidental data exfiltration", and applications should "Provide UI that makes clear which tools are being exposed to the AI model". MCP specification, revision 2026-07-28, Tools, Security Considerations and User Interaction Model, both under SHOULD.
+- **22-S16** The img-src directive "restricts the URLs from which image resources may be loaded", and falls back to default-src. Content Security Policy Level 3, sections 6.1.6 and 6.8.3.
+- **22-S17** "Content Security Policy can mitigate data exfiltration if used to create allowlists of servers with which a page is allowed to communicate." The same non-normative section says a policy that lacks default-src cannot mitigate exfiltration, and that "A policy's exfiltration mitigation ability depends upon the least-restrictive directive allowlist". Content Security Policy Level 3, section 8.6.
 
 ### The project's defaults (Baseline)
 
 Confirm each is technically sound. These are the project's position, not a source's.
 
-- **22-B1** Fence untrusted content with a delimiter containing a per-request nonce, and keep a provenance map, so the untrusted bytes remain identifiable after assembly.
-- **22-B2** Dispatch tools from a deny-by-default table keyed on the exact name, then check the role, then the argument names, then the values.
-- **22-B3** Keep every tool credential in the application. A model that holds a token makes the table advisory.
-- **22-B4** Render model output so that images load only from listed hosts and other image URLs show as text, and escape raw HTML before rendering.
-- **22-B5** Choose the encoding at the sink, every time, and never route model output through a single sanitize function.
-- **22-B6** Keep the agent's scope to the narrowest the task needs, because that is the only control that bounds an injection you did not detect.
-- **22-B7** Log the provenance alongside the action, so an incident can ask which document was being read when a call was proposed.
-- **22-B8** Treat an input filter as defence in depth, never as coverage, and state the phrasings it covers rather than reporting it as handled.
+- **22-B1** Register tools under a server identifier you assign, pin a SHA-256 hash of each approved tool definition as a whole, and refuse a tool whose definition no longer matches until it is reviewed again.
+- **22-B2** Do not load a third-party MCP server into a session that holds a tool which writes, because one server's description can steer another server's tool.
+- **22-B3** Fence untrusted content with a delimiter containing a per-request nonce, and keep a provenance map, so the untrusted bytes remain identifiable after assembly.
+- **22-B4** Dispatch tools from a deny-by-default table keyed on the exact name, then check the role, then the argument names, then the values.
+- **22-B5** Keep every tool credential in the application. A model that holds a token makes the table advisory.
+- **22-B6** Render model output so that images load only from listed hosts and other image URLs show as text, and escape raw HTML before rendering.
+- **22-B7** Choose the encoding at the sink, every time, and never route model output through a single sanitize function.
+- **22-B8** Keep the agent's scope to the narrowest the task needs, because that is the only control that bounds an injection you did not detect.
+- **22-B9** Log the provenance alongside the action, so an incident can ask which document was being read when a call was proposed.
+- **22-B10** Treat an input filter as defence in depth, never as coverage, and state the phrasings it covers rather than reporting it as handled.
 
 ### Alternatives (Option)
 
@@ -219,6 +225,7 @@ Confirm each is technically sound where the page says it applies.
 
 - [OWASP GenAI LLM Top 10 2026](https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/): OWASP GenAI LLM Top 10 2026, version 2026, August 2026. The title page of the document reads "OWASP Top 10 for LLM Applications 2026". It still prints "[Publication date to be set]" above "August 4th, 2026", so the date given here is the one on OWASP's resource page. LLM01:2026 Prompt Injection: the definition, the direct and indirect distinction, the statement that no reliable prevention mechanism exists today, and mitigations 2, 4, 6, 7 and 11 quoted or cited above. LLM10:2026 Improper Output Handling: the definition, the examples of risk, and mitigations 1, 4 and 5. Improper Output Handling was LLM05 in the 2025 edition, and OWASP's per-risk web pages still show the 2025 text, so this page cites the 2026 document.
 - [OWASP Top 10 for Agentic Applications for 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/): OWASP Top 10 for Agentic Applications for 2026, version 2026, released 9 December 2025. ASI01 Agent Goal Hijack and ASI02 Tool Misuse and Exploitation.
+- [MCP specification, revision 2026-07-28: Tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools): MCP specification, revision 2026-07-28: Tools. User Interaction Model, Capabilities, List Changed Notification, Data Types (Tool, Tool Names), Security Considerations.
 - [MCP specification, revision 2026-07-28: Sampling](https://modelcontextprotocol.io/specification/2026-07-28/client/sampling): MCP specification, revision 2026-07-28: Sampling. Data Types (Messages), Cross-API Compatibility (Message Roles). The revision marks sampling as deprecated; it remains specified.
 - [Content Security Policy Level 3](https://www.w3.org/TR/2026/WD-CSP3-20260916/): Content Security Policy Level 3, W3C Working Draft, 16 September 2026. Section 6.1.6 img-src, section 6.8.3 Get fetch directive fallback list, and section 8.6 Exfiltration, which the specification marks as not normative. The section numbers are from the draft's table of contents; the quoted text was read from the specification's source repository (w3c/webappsec-csp) at commit b1bad63, the latest commit on 16 September 2026, the date of the draft.
 - [NIST AI 100-2e2025: Adversarial Machine Learning: A Taxonomy and Terminology of Attacks and Mitigations](https://www.nist.gov/publications/adversarial-machine-learning-taxonomy-and-terminology-attacks-and-mitigations-0): NIST AI 100-2e2025: Adversarial Machine Learning: A Taxonomy and Terminology of Attacks and Mitigations, March 2025, by Vassilev, Oprea, Fordyce, Anderson, Davies and Hamin. Cited only for the structure of its taxonomy, which separates section 3.3 "Direct Prompting Attacks and Mitigations" from section 3.4 "Indirect Prompt Injection Attacks and Mitigations". Nothing on this page is quoted from them.
