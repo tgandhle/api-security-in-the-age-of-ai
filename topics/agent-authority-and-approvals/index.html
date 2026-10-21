@@ -65,7 +65,7 @@
 
 <h3>What a blanket approval is worth</h3>
 <div class="prose">
-<p>Approval fatigue is real, and the usual response is a session-level approval: approve once, act many times. Part E measures one. Twelve operations, one approval, and the fields of any operation that the approval constrains: zero. Check 36 is the comparison, where a per-action approval constrains five.</p>
+<p>Approval fatigue is real: OWASP LLM01:2026 notes that it "degrades reviewer judgment at volume". The usual response is a session-level approval: approve once, act many times. Part E measures one. Twelve operations, one approval, and the fields of any operation that the approval constrains: zero. Check 36 is the comparison, where a per-action approval constrains five.</p>
 <p>Then check 37, which is the point. A payment for 40,000 slipped into that session executes under the blanket approval, because the blanket approval binds a session handle and nothing about the operation. Under a per-action approval the same call is refused, naming <code>amount</code> and <code>tool</code>.</p>
 <p>This is not an argument that blanket approvals are always wrong. It is an argument that their value is measurable, and the measurement is the number of fields they constrain. If that number is zero, the approval is a record that somebody was present, which may be what you want, but it is not a control over what happened.</p>
 </div>
@@ -374,7 +374,7 @@ all lab checks passed</code></pre>
 <li><span class="label base">Baseline</span>Give each approval a lifetime measured in minutes.</li>
 <li><span class="label base">Baseline</span>Record, for any session-wide approval, how many of an operation's fields it constrains.</li>
 <li><span class="label base">Baseline</span>Log the approved parameters next to the executed parameters for the same action.</li>
-<li><span class="label opt">Option</span>Require a second approver for actions above a threshold, accepting that this doubles the exposure to ASI09 rather than halving it.</li>
+<li><span class="label opt">Option</span>Require a second approver for actions above a threshold, accepting that a second approver can be persuaded the same way as the first.</li>
 <li><span class="label opt">Option</span>Show the approver a diff against the last similar action, where the risk is a plausible-looking change rather than an implausible one.</li>
 <li><span class="label opt">Option</span>Carry the approval to the downstream service as a request signature, where the executing service is not the service that collected the approval.</li>
 </ul>

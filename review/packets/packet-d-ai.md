@@ -289,7 +289,7 @@ Confirm each is technically sound. These are the project's position, not a sourc
 
 Confirm each is technically sound where the page says it applies.
 
-- **23-O1** Require a second approver for actions above a threshold, accepting that this doubles the exposure to ASI09 rather than halving it.
+- **23-O1** Require a second approver for actions above a threshold, accepting that a second approver can be persuaded the same way as the first.
 - **23-O2** Show the approver a diff against the last similar action, where the risk is a plausible-looking change rather than an implausible one.
 - **23-O3** Carry the approval to the downstream service as a request signature, where the executing service is not the service that collected the approval.
 
