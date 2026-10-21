@@ -43,7 +43,7 @@ Do not touch the mouse. Use `Tab`, `shift+Tab`, `Enter`, `Space` and the arrow k
 | K12 | Open the checklist. `Tab` to the filter. Open "Application shape" with `Enter`. | The group opens. |
 | K13 | In the first question, use the arrow keys to choose "No". | The choice moves with the arrows, the count under the filter changes, and items disappear from the list below. |
 | K14 | Choose "No" for "Is the API called from a web browser". Then choose "Yes" for "Does a browser authenticate to the system with a cookie". | The cookie answer is not applied, a message explains the conflict, and the radio stays on "Not known". |
-| K15 | `Tab` to "Clear answers" and press it. | All answers return to "Not known" and the count returns to 325 of 325. |
+| K15 | `Tab` to "Clear answers" and press it. | All answers return to "Not known" and the count returns to 328 of 328. |
 | K16 | Answer one question "No" again, then open "Items set aside". | The list of set-aside items opens and each says which answer ruled it out. |
 | K17 | Tick and untick one checklist item with `Space`. Reach the `checklist.json` and `checklist.csv` links. | Both work from the keyboard. |
 
@@ -66,7 +66,7 @@ Start NVDA, then open the lesson. Stay in browse mode unless a step says otherwi
 | S11 | Press `k` to move through links in the lesson body. | Every link's text says where it goes; none is just "here" or a bare address unless the address is the point. |
 | S12 | Open the checklist. Press `NVDA+downArrow` from the top for a minute, then stop. | The introduction and severity explanation read in a sensible order. |
 | S13 | Press `f` to reach the filter's first question. | NVDA reads the question as the group's label, then the choices "Yes", "No", "Not known" with the selected one. |
-| S14 | Answer "No" to the webhook question. | NVDA announces the new count ("Showing 316 of 325 items. 9 set aside.") without you moving to it. |
+| S14 | Answer "No" to the webhook question. | NVDA announces the new count ("Showing 319 of 328 items. 9 set aside.") without you moving to it. |
 | S15 | Repeat K14 (browser "No", then cookie "Yes"). | NVDA reads the conflict message straight away. |
 | S16 | Move to the cookie question after answering "No" to the browser question. | NVDA can reach and read the note under it, "Treated as No, from your answer to ...". |
 | S17 | Open "Items set aside" and read the first item. | Title, severity, id, the answer that ruled it out, and the reason are all read. |

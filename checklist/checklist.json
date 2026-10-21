@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "data_version": "642938706a584bc0",
+  "data_version": "ad3726e71a543ef1",
   "license": {
     "id": "CC-BY-4.0",
     "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -13,7 +13,7 @@
   "applicability_model_version": "2",
   "counts": {
     "Critical": 68,
-    "High": 165,
+    "High": 168,
     "Medium": 92
   },
   "items": [
@@ -2779,6 +2779,64 @@
           ]
         },
         "reason": "Logging provenance with the action needs a model-proposed action to log against."
+      }
+    },
+    {
+      "id": "inj-11",
+      "severity": "High",
+      "title": "Rendered model output cannot load images from unlisted hosts",
+      "detail": "The reader's browser fetches an image URL by itself, so a URL the model was talked into writing carries data out. Images load from listed hosts only, other image URLs show as text, and raw HTML is escaped.",
+      "lesson": "Prompt injection and output handling",
+      "lesson_path": "topics/prompt-injection-and-output-handling/index.html#reference",
+      "applicability": {
+        "condition": {
+          "all_of": [
+            "llm"
+          ]
+        },
+        "reason": "Rendering a model's answer for a person, and what that rendering fetches, needs a model producing the answer; a browser is not required, because other clients render images too."
+      }
+    },
+    {
+      "id": "inj-12",
+      "severity": "High",
+      "title": "Approved tool definitions are pinned, and a changed one is refused until reviewed again",
+      "detail": "Pin a hash of the whole definition, parameter descriptions included, so an instruction added after approval does not reach the model.",
+      "lesson": "Prompt injection and output handling",
+      "lesson_path": "topics/prompt-injection-and-output-handling/index.html#reference",
+      "applicability": {
+        "condition": {
+          "all_of": [
+            {
+              "any_of": [
+                "agent",
+                "mcp"
+              ]
+            }
+          ]
+        },
+        "reason": "Pinning tool definitions applies wherever a model is given tool definitions from a server: an agent, or an MCP client, which the model does not treat as implying an agent."
+      }
+    },
+    {
+      "id": "inj-13",
+      "severity": "High",
+      "title": "Tools from several servers are registered under an identifier the client assigns",
+      "detail": "Tool names are only unique within one server. Keyed by bare name, or by the name a server reports for itself, a call meant for one server can reach another.",
+      "lesson": "Prompt injection and output handling",
+      "lesson_path": "topics/prompt-injection-and-output-handling/index.html#reference",
+      "applicability": {
+        "condition": {
+          "all_of": [
+            {
+              "any_of": [
+                "agent",
+                "mcp"
+              ]
+            }
+          ]
+        },
+        "reason": "Tool name collisions arise where tools from more than one server are combined for a model: an agent, or an MCP client, which the model does not treat as implying an agent."
       }
     },
     {

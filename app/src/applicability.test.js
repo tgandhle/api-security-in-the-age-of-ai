@@ -80,13 +80,13 @@ test("only false hides, and an implied no hides", () => {
   assert.deepEqual(excludedBy(all("d"), r({ d: YES })), []);
 });
 
-test("with no answers, none of the 325 items is hidden", () => {
+test("with no answers, none of the 328 items is hidden", () => {
   const { resolved } = resolve({}, facts);
-  assert.equal(items.length, 325);
+  assert.equal(items.length, 328);
   for (const [id, item] of items) assert.equal(hidden(item.condition, resolved), false, id);
 });
 
-test("with every fact yes, none of the 325 items is hidden", () => {
+test("with every fact yes, none of the 328 items is hidden", () => {
   const answers = Object.fromEntries(facts.map((f) => [f.id, YES]));
   const { resolved } = resolve(answers, facts);
   for (const [id, item] of items) assert.equal(hidden(item.condition, resolved), false, id);
@@ -104,7 +104,7 @@ test("with every fact no, exactly the conditional items are hidden, each with a 
       assert.ok(excludedBy(item.condition, resolved).length > 0, id);
     }
   }
-  assert.equal(n, 208);
+  assert.equal(n, 211);
 });
 
 test("one fact answered no hides only items that need it, and names it", () => {

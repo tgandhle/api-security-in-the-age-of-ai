@@ -483,6 +483,9 @@ all lab checks passed</code></pre>
 <li data-check="inj-08" data-severity="Critical"><strong>Privileged operations require human approval</strong> <span>With the list of which operations written down, and the approval bound to the parameters that will execute.</span></li>
 <li data-check="inj-09" data-severity="High"><strong>Provenance is logged with the action</strong> <span>So an incident can ask which retrieved document was in the prompt when the call was proposed.</span></li>
 <li data-check="inj-10" data-severity="Medium"><strong>No input filter is reported as coverage</strong> <span>If one exists, the review records the phrasings it covers and that the list is not coverage.</span></li>
+<li data-check="inj-11" data-severity="High"><strong>Rendered model output cannot load images from unlisted hosts</strong> <span>The reader's browser fetches an image URL by itself, so a URL the model was talked into writing carries data out. Images load from listed hosts only, other image URLs show as text, and raw HTML is escaped.</span></li>
+<li data-check="inj-12" data-severity="High"><strong>Approved tool definitions are pinned, and a changed one is refused until reviewed again</strong> <span>Pin a hash of the whole definition, parameter descriptions included, so an instruction added after approval does not reach the model.</span></li>
+<li data-check="inj-13" data-severity="High"><strong>Tools from several servers are registered under an identifier the client assigns</strong> <span>Tool names are only unique within one server. Keyed by bare name, or by the name a server reports for itself, a call meant for one server can reach another.</span></li>
 </ul>
 
 <h2>Sources</h2>

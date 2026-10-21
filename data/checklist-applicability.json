@@ -1383,6 +1383,40 @@
       },
       "reason": "An input filter against prompt injection, and how it is reported, only matters where a model processes input."
     },
+    "inj-11": {
+      "condition": {
+        "all_of": [
+          "llm"
+        ]
+      },
+      "reason": "Rendering a model's answer for a person, and what that rendering fetches, needs a model producing the answer; a browser is not required, because other clients render images too."
+    },
+    "inj-12": {
+      "condition": {
+        "all_of": [
+          {
+            "any_of": [
+              "agent",
+              "mcp"
+            ]
+          }
+        ]
+      },
+      "reason": "Pinning tool definitions applies wherever a model is given tool definitions from a server: an agent, or an MCP client, which the model does not treat as implying an agent."
+    },
+    "inj-13": {
+      "condition": {
+        "all_of": [
+          {
+            "any_of": [
+              "agent",
+              "mcp"
+            ]
+          }
+        ]
+      },
+      "reason": "Tool name collisions arise where tools from more than one server are combined for a model: an agent, or an MCP client, which the model does not treat as implying an agent."
+    },
     "apv-01": {
       "condition": {
         "all_of": [
