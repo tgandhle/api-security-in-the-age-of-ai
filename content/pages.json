@@ -691,7 +691,7 @@
       {
         "id": "prompt-injection",
         "term": "Prompt injection",
-        "definition": "Content that alters a model's behaviour because instructions and data occupy the same sequence with nothing marking which is which. OWASP LLM01:2026 says \"no reliable prevention mechanism exists today\", so the controls that hold sit either side of the model."
+        "definition": "Content that alters a model's behaviour because instructions and data reach the model in the same input, and the model is not bound by the roles or markers that say which is which. OWASP LLM01:2026 says \"no reliable prevention mechanism exists today\", so the controls that hold sit either side of the model."
       },
       {
         "id": "proof-of-possession",
