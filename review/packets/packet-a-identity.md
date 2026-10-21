@@ -561,6 +561,7 @@ Confirm each is technically sound where the page says it applies.
 ### Sources as the page pins them
 
 - [RFC 8693: OAuth 2.0 Token Exchange](https://www.rfc-editor.org/rfc/rfc8693): RFC 8693: OAuth 2.0 Token Exchange, January 2020. Sections 1.1, 2.1, 2.2.1, 2.2.2, 3, 4.1, 4.4 and 5.
+- [RFC 7519: JSON Web Token (JWT)](https://www.rfc-editor.org/rfc/rfc7519): RFC 7519: JSON Web Token (JWT), May 2015. Updated by RFC 7797 and RFC 8725. Section 4.1.2, the sub claim and its uniqueness.
 - [RFC 6749: The OAuth 2.0 Authorization Framework](https://www.rfc-editor.org/rfc/rfc6749): RFC 6749: The OAuth 2.0 Authorization Framework, October 2012. Updated by RFC 8252, RFC 8996 and RFC 9700. Section 5.2, the token endpoint error response and its error codes.
 - [OWASP Top 10 for Agentic Applications for 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/): OWASP Top 10 for Agentic Applications for 2026, OWASP GenAI Security Project, version 2026, released 9 December 2025. ASI03 Identity & Privilege Abuse. The quotation in section 1 is from OWASP's announcement of the list, same date.
 

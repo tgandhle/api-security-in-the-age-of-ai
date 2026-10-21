@@ -379,6 +379,7 @@
           ],
           "sources": [
             "https://www.rfc-editor.org/rfc/rfc8693",
+            "https://www.rfc-editor.org/rfc/rfc7519",
             "https://www.rfc-editor.org/rfc/rfc6749",
             "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
           ]
