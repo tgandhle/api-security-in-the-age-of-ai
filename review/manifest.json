@@ -1445,7 +1445,10 @@
             "inj-07",
             "inj-08",
             "inj-09",
-            "inj-10"
+            "inj-10",
+            "inj-11",
+            "inj-12",
+            "inj-13"
           ],
           "sources": [
             "https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/",

@@ -9,7 +9,7 @@ Scope: MCP authorization, agent-to-agent, prompt injection and output handling, 
 |---|---|---|---|
 | 20 | MCP server authorization | 25 | 8 |
 | 21 | Agent-to-agent | 23 | 9 |
-| 22 | Prompt injection and output handling | 30 | 10 |
+| 22 | Prompt injection and output handling | 30 | 13 |
 | 23 | Agent authority and approvals | 18 | 9 |
 | 24 | Data in model context | 18 | 9 |
 | 25 | Supply chain, retrieval, and memory | 23 | 9 |
@@ -250,6 +250,9 @@ Review the title and detail for technical correctness. Severity and the applicab
 | inj-08 | Critical | `agent` | **Privileged operations require human approval** With the list of which operations written down, and the approval bound to the parameters that will execute. |
 | inj-09 | High | `agent` | **Provenance is logged with the action** So an incident can ask which retrieved document was in the prompt when the call was proposed. |
 | inj-10 | Medium | `llm` | **No input filter is reported as coverage** If one exists, the review records the phrasings it covers and that the list is not coverage. |
+| inj-11 | High | `llm` | **Rendered model output cannot load images from unlisted hosts** The reader's browser fetches an image URL by itself, so a URL the model was talked into writing carries data out. Images load from listed hosts only, other image URLs show as text, and raw HTML is escaped. |
+| inj-12 | High | `(agent OR mcp)` | **Approved tool definitions are pinned, and a changed one is refused until reviewed again** Pin a hash of the whole definition, parameter descriptions included, so an instruction added after approval does not reach the model. |
+| inj-13 | High | `(agent OR mcp)` | **Tools from several servers are registered under an identifier the client assigns** Tool names are only unique within one server. Keyed by bare name, or by the name a server reports for itself, a call meant for one server can reach another. |
 
 ## Module 23: Agent authority and approvals
 
