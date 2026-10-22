@@ -57,9 +57,9 @@
 <h3>Ranking hygiene is not a security control</h3>
 <div class="prose">
 <p>Part C puts a document in the index that was written to win, not to be read: terms from the query and from the real policy, repeated. It takes first place, above the real policy, with a raw cosine score of 0.62 against 0.53.</p>
-<p>The obvious fix is the information-retrieval one. Damp repeated terms, so a word appearing ten times counts for less than ten times once. Check 25 is the result: the scores move to 0.59 against 0.53, and check 24 says the stuffed document is still first. I expected it to drop and it does not, because that document has only eight distinct terms and four of them are query terms, so damping the repetition narrows the margin without changing the order.</p>
-<p>That is the useful finding in this module. Ranking adjustments are a quality measure, and an attacker who can write to your index will beat them, because they can see the ranking and iterate. Check 28 adds that tenant isolation did not help either: the stuffed document was uploaded into ExampleAir's own tenant, so pre-filtering keeps it.</p>
-<p>What works is checks 29 and 30: rank only documents of internal origin, and the real policy is first again. The control is about where a document came from, which is <strong>LLM05:2026 Data and Model Poisoning</strong>: "The data poisoning surface expands because organizations increasingly rely on external datasets, RAG pipelines, shared model repositories, and agentic workflows", with the mitigations starting at tracking dataset and model lineage and validating data integrity. LLM09:2026 lists the same attack from the retrieval side, as "Retrieval-Time Data Poisoning". <strong>LLM04:2026 Supply Chain</strong> covers third-party models, datasets and model artifacts, which this module does not teach (<a href="../model-supply-chain/index.html">module 32</a> does), but its first mitigation is about origin too: "Carefully vet data sources and suppliers" and "only use trusted suppliers".</p>
+<p>The obvious fix is the information-retrieval one. Damp repeated terms, so a word appearing ten times counts for less than ten times once. Check 25 is the result: the scores move to 0.59 against 0.53, and check 24 says the stuffed document is still first. It does not drop, because that document has only eight distinct terms and four of them are query terms, so damping the repetition narrows the margin without changing the order.</p>
+<p>That is the useful finding in this module. Ranking adjustments are a quality measure, and an attacker who can write to your index and see the results can keep rewriting a document until it ranks. In the lab, one stuffed document beat one damping scheme without any rewriting at all. Check 28 adds that tenant isolation did not help either: the stuffed document was uploaded into ExampleAir's own tenant, so pre-filtering keeps it.</p>
+<p>What works is checks 29 and 30: keep the tenant filter, rank only documents of internal origin, and the real policy is first again. The origin filter does not replace the tenant filter. Applied to the whole index, it returns ExampleBus's and ExampleRail's refund documents to an ExampleAir caller, which is the leak from Part A. The control is about where a document came from, which is <strong>LLM05:2026 Data and Model Poisoning</strong>: "The data poisoning surface expands because organizations increasingly rely on external datasets, RAG pipelines, shared model repositories, and agentic workflows", with the mitigations starting at tracking dataset and model lineage and validating data integrity. LLM09:2026 lists the same attack from the retrieval side, as "Retrieval-Time Data Poisoning". <strong>LLM04:2026 Supply Chain</strong> covers third-party models, datasets and model artifacts, which this module does not teach (<a href="../model-supply-chain/index.html">module 32</a> does), but its first mitigation is about origin too: "Carefully vet data sources and suppliers" and "only use trusted suppliers".</p>
 </div>
 
 <h3>Memory outlives the document</h3>
@@ -74,7 +74,7 @@
 <div class="diagram">
 <svg viewBox="0 0 1100 390" width="100%" style="min-width:920px" role="img">
 <title>Where a tenant filter goes, and what survives deleting a poisoned document</title>
-<desc>A shared index holds documents from three tenants and from three origins: internal, vendor and user-uploaded. One path ranks the whole corpus and then drops documents the caller may not read, which returns one result of the three requested and lets other tenants outrank the caller's own documents. The other path restricts the corpus to the caller's tenant first and then ranks, returning three of the caller's documents. Below, a stuffed document uploaded into the caller's own tenant takes first place under both raw and damped term weighting, and is only displaced by ranking documents of internal origin. Finally, a claim written to memory from that document survives its deletion unless the memory recorded where the claim came from.</desc>
+<desc>A shared index holds documents from three tenants and from three origins: internal, vendor and user-uploaded. One path ranks the whole corpus and then drops documents the caller may not read, which returns one result of the three requested and lets other tenants outrank the caller's own documents. The other path restricts the corpus to the caller's tenant first and then ranks, returning three of the caller's documents. Below, a stuffed document uploaded into the caller's own tenant takes first place under both raw and damped term weighting, and is only displaced by ranking the caller's own documents of internal origin. Finally, a claim written to memory from that document survives its deletion unless the memory recorded where the claim came from.</desc>
 
 <text class="lab" x="36" y="26">One index, three tenants, three origins.</text>
 <g class="s"><rect x="20" y="44" width="180" height="76" rx="8"/><text class="th" x="110" y="70" text-anchor="middle">Shared index</text><text class="ts" x="110" y="90" text-anchor="middle">8 documents</text><text class="ts" x="110" y="107" text-anchor="middle">3 from outside</text></g>
@@ -86,7 +86,7 @@
 
 <g class="r"><rect x="610" y="30" width="230" height="76" rx="8"/><text class="th" x="725" y="56" text-anchor="middle">Result count</text><text class="ts" x="725" y="76" text-anchor="middle">3 matches, 0 readable</text><text class="ts" x="725" y="93" text-anchor="middle">counted before the filter</text></g>
 <g class="r"><rect x="610" y="122" width="230" height="76" rx="8"/><text class="th" x="725" y="148" text-anchor="middle">Stuffed document</text><text class="ts" x="725" y="168" text-anchor="middle">first at 0.62, then 0.59</text><text class="ts" x="725" y="185" text-anchor="middle">damping did not displace it</text></g>
-<g class="h"><rect x="870" y="76" width="210" height="76" rx="8"/><text class="th" x="975" y="102" text-anchor="middle">Internal origin only</text><text class="ts" x="975" y="122" text-anchor="middle">the real policy ranks first</text><text class="ts" x="975" y="139" text-anchor="middle">origin, not ranking</text></g>
+<g class="h"><rect x="870" y="76" width="210" height="76" rx="8"/><text class="th" x="975" y="102" text-anchor="middle">Tenant, then origin</text><text class="ts" x="975" y="122" text-anchor="middle">the real policy ranks first</text><text class="ts" x="975" y="139" text-anchor="middle">origin, not ranking</text></g>
 <line class="arr" x1="840" y1="160" x2="866" y2="130"/>
 
 <rect class="zone" x="20" y="222" width="1060" height="78" rx="12"/>
@@ -105,7 +105,7 @@
 <li><strong>Compute every number after the filter.</strong> Totals, facets, suggestions and anything else derived from the corpus.</li>
 <li><strong>Tag every document with its origin</strong> at ingestion, and classify it, which is OWASP's "Track provenance for every embedding (source, ingestion time, trust tier, pipeline version)".</li>
 <li><strong>Decide which origins may answer which questions,</strong> and keep untrusted origins out of the corpus for decisions that matter.</li>
-<li><strong>Validate at ingestion,</strong> because that is the last point where you still know where a document came from.</li>
+<li><strong>Validate at ingestion,</strong> because that is where you see first-hand which route a document arrived by. Every later control relies on the origin recorded there.</li>
 <li><strong>Treat ranking adjustments as quality, not security.</strong> They narrow margins. Someone who can write to your index iterates against them.</li>
 <li><strong>Record provenance on every memory write,</strong> with the source document and its origin.</li>
 <li><strong>Make deletion reach memory.</strong> If a document is removed, find what was written from it.</li>
@@ -196,7 +196,7 @@ Part C: a document written to win the ranking.
 26.   so damping narrowed the margin but did not change the order yes
 27. the tenant filter, applied first, with the stuffed document ['S1', 'A1', 'A2']
 28.   so isolation did not help here                         yes
-29. ranking over documents of internal origin only           ['A1', 'B1', 'R2']
+29. the tenant filter, then internal origin only             ['A1', 'A2']
 30.   what ranks first then                                  A1
 
 Part D: what the agent wrote down afterwards.
@@ -224,12 +224,12 @@ all lab checks passed</code></pre>
 <div class="prose">
 <p>Checks 5 to 11 are the module's first point, and the thing to notice is that post-filtering fails in both directions at once. The caller receives one document instead of three, which tells them something was removed, and two of their own documents never appeared because other tenants' content outranked them. Pre-filtering fixes both, because the documents the caller may not read were never candidates.</p>
 <p>Checks 12 to 17 are worth running against your own search. Three matches in the index, zero readable, and a nonsense query also returning zero. If your interface shows a total, a facet count or a suggestion computed before the filter, those two cases look different to a caller who is allowed to ask.</p>
-<p>Checks 22 to 26 are where I was wrong and the lab corrected me. I expected damping repeated terms to drop the stuffed document below the real policy. It does not: the margin narrows from 0.08 to 0.06 (0.081 to 0.055 before rounding; the two-decimal scores above subtract to 0.09 and 0.06) and the order is unchanged, because that document has only eight distinct terms and four of them are query terms. Checks 29 and 30 show what does work, and it is not a ranking change: restrict the corpus to documents of internal origin and the real policy is first again.</p>
+<p>Checks 22 to 26 test the obvious fix, damping repeated terms, and it fails. The stuffed document stays above the real policy: the margin narrows from 0.08 to 0.06 (0.081 to 0.055 before rounding; the two-decimal scores above subtract to 0.09 and 0.06) and the order is unchanged, because that document has only eight distinct terms and four of them are query terms. Checks 29 and 30 show what does work, and it is not a ranking change: restrict the caller's own documents to those of internal origin and the real policy is first again.</p>
 <p>Check 28 is the one to take to a design discussion about tenant isolation. The stuffed document was uploaded into ExampleAir's own tenant, so pre-filtering keeps it. Isolation answers "whose documents can I see" and says nothing about "who wrote the ones I can".</p>
 <p>Checks 38 to 40 close it. The poisoned document is deleted and its claim is still in memory with no source attached. The store that kept provenance still holds the claim too, and still will not use it.</p>
 <p><strong>Try next:</strong></p>
 <ul>
-<li>Change <code>filter_then_search</code> to search the whole corpus and rerun. Four checks fail, and they are the ones that make the index multi-tenant.</li>
+<li>Change <code>filter_then_search</code> to search the whole corpus and rerun. Five checks fail (8, 10, 11, 27 and 29), and they are the ones that make the index multi-tenant.</li>
 <li>Add a second stuffed document to <code>poisoned</code> and tune it against the damped ranking. The run exits 1 as soon as it is there, because the lab's counts and rankings no longer match: 14 checks fail when its text is the query itself. Checks 23 to 25 are the ones to watch. Time how long it takes to beat.</li>
 <li>Change the default <code>trusted_origins</code> in <code>Memory.usable</code> to include <code>vendor</code>. Nothing changes, because neither memory was written from a vendor document. Add a third write, from <code>A3</code>, and the run exits 1: five checks fail (31, 32, 33, 34, 36), and check 32 goes from <code>1</code> to <code>2</code>. Then decide whether your vendor's documents should inform a decision.</li>
 <li>Add a document with an origin your organisation actually has, such as a scraped public page, and work out which of the five parts changes. The run exits 1, and the checks it lists are the answer.</li>
@@ -317,18 +317,18 @@ all lab checks passed</code></pre>
 </div>
 <pre><code>trusted_only = [d for d in poisoned if d[0] != "S1"]</code></pre>
 <fieldset><legend>What does the run print differently?</legend>
-<label><input type="radio" name="ret-x3" value="a" data-correct="true"> Nothing. All 47 checks pass.</label>
-<label><input type="radio" name="ret-x3" value="b"> Check 29 becomes <code>['S1', 'A1', 'B1']</code>.</label>
-<label><input type="radio" name="ret-x3" value="c"> Check 29 changes, because <code>A3</code> and <code>B2</code> are now candidates.</label>
+<label><input type="radio" name="ret-x3" value="a"> Nothing. All 47 checks pass.</label>
+<label><input type="radio" name="ret-x3" value="b"> Check 29 becomes <code>['S1', 'A1', 'A2']</code>.</label>
+<label><input type="radio" name="ret-x3" value="c" data-correct="true"> Check 29 becomes <code>['A1', 'A2', 'A3']</code>, because <code>A3</code> is now a candidate.</label>
 <label><input type="radio" name="ret-x3" value="d"> Check 45 becomes <code>['A3', 'B2']</code>.</label>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button>
 <p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 <details class="exercise-answers"><summary>Every option, and why</summary>
 <ul>
-<li data-option="a">Correct. Exit 0, 61 of 61 lines identical. The lab has one bad document, so naming it removes it, and check 29 still prints <code>['A1', 'B1', 'R2']</code>. Measured on a run the lab does not make, with a second stuffed document, <code>S2</code>, already in the index, carrying the same text and the same <code>user-uploaded</code> origin as <code>S1</code>: as published, check 29 prints <code>['A1', 'B1', 'R2']</code> and check 30 prints <code>A1</code>. With this edit, check 29 prints <code>['S2', 'A1', 'B1']</code> and check 30 prints <code>S2</code>. A blocklist stops the document you already found. Check <code>ret-03</code> in the <a href="#reference">Reference</a> layer excludes untrusted origins, which also stops the next upload.</li>
-<li data-option="b">That is the ranking with <code>S1</code> still a candidate. This edit removes <code>S1</code> by name, so it cannot rank.</li>
-<li data-option="c">They are candidates now, and they rank fifth and seventh for this query, so the top three does not move. The whole corpus ranks as <code>['A1', 'B1', 'R2', 'R1', 'B2', 'A2', 'A3']</code>. That the output is the same is what makes this edit easy to approve.</li>
+<li data-option="a">The output changes. Removing <code>S1</code> by name also stops removing every other document that is not internal, and <code>A3</code>, the seat map document the vendor supplied, belongs to ExampleAir, so the tenant filter keeps it.</li>
+<li data-option="b">That is the ranking with <code>S1</code> still a candidate, the same as check 27. This edit removes <code>S1</code> by name, so it cannot rank.</li>
+<li data-option="c">Correct. Exit 1, one failure: check 29 prints <code>['A1', 'A2', 'A3']</code>. With the tenant filter applied first, ExampleAir has three documents left once <code>S1</code> is gone, and <code>A3</code> is the one from the vendor. The real policy is still first, so check 30 still prints <code>A1</code>. Measured on a run the lab does not make, with a second stuffed document, <code>S2</code>, already in the index, carrying the same text and the same <code>user-uploaded</code> origin as <code>S1</code>: as published, check 29 prints <code>['A1', 'A2']</code> and check 30 prints <code>A1</code>. With this edit, check 29 prints <code>['S2', 'A1', 'A2']</code> and check 30 prints <code>S2</code>. A blocklist stops the document you already found. Check <code>ret-03</code> in the <a href="#reference">Reference</a> layer excludes untrusted origins, which also stops the next upload.</li>
 <li data-option="d">Check 45 is computed from <code>poisoned</code>, not from <code>trusted_only</code>, so it still prints <code>['A3', 'B2', 'S1']</code>.</li>
 </ul>
 </details>
