@@ -57,8 +57,8 @@
 
 <h3>Redaction is a pattern problem, and patterns have both error types</h3>
 <div class="prose">
-<p>Every team that logs prompts eventually writes a redactor, and the first one matches sixteen digits. Part C of the lab runs that against a line containing an order number and a card number, both sixteen digits, and it blanks both. One false positive out of one order number is a bad rate, and the support engineer reading that log now cannot answer the question they opened it for.</p>
-<p>Adding a <a href="../../glossary/index.html#luhn-check">Luhn check</a> fixes that, because a card number is not just sixteen digits, it is sixteen digits with a property you can test. Check 20 keeps the order number and check 21 still removes the card. The Luhn algorithm is a dozen lines and it is in the lab in full.</p>
+<p>The obvious first redactor matches any run of sixteen digits. Part C of the lab runs that against a line containing an order number and a card number, both sixteen digits, and it blanks both. One false positive out of one order number is a bad rate, and the support engineer reading that log now cannot answer the question they opened it for.</p>
+<p>Adding a <a href="../../glossary/index.html#luhn-check">Luhn check</a> fixes that, because a card number is not just a run of digits: its last digit is a check digit you can test. Check 20 keeps the order number and check 21 still removes the card. The Luhn algorithm is a dozen lines and it is in the lab in full.</p>
 <p>Then the error in the other direction. Checks 24 to 26 write the same card in groups of four, as a human would. The naive pattern does not match it at all. The separator-tolerant pattern does. Both failure modes are ordinary, both are found by testing the redactor against the formats your data actually arrives in, and neither is found by reading the regex.</p>
 </div>
 
@@ -66,7 +66,7 @@
 <div class="prose">
 <p>A model answers using what it was given, so a prompt containing a card number can produce a response containing a card number. Part E is <a href="../property-and-function-authorization/index.html">module 10</a>'s response filter, unchanged: the fields a caller may read are an allowlist per role, applied to the response before it is returned.</p>
 <p>Checks 39 and 40 are the same model answer filtered for two roles, and they differ. Check 41 is the role nobody configured, which gets nothing rather than everything, because the allowlist is <a href="../../glossary/index.html#deny-by-default">deny-by-default</a>.</p>
-<p>This control is necessary and it is second best. Check 43 and 44 are the comparison that matters: the model was given the card in the leaky prompt and was not given it in the allowlisted one. A field that never entered the context cannot come back out of it.</p>
+<p>This control is necessary and it is second best. Checks 43 and 44 are the comparison that matters: the model was given the card in the leaky prompt and was not given it in the allowlisted one. A field that never entered the context cannot come back out of it.</p>
 </div>
 
 <h3>The whole system</h3>
@@ -391,7 +391,7 @@ all lab checks passed</code></pre>
 <h2>Sources</h2>
 <ul class="prose">
 <li><a href="https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/">OWASP GenAI LLM Top 10 2026</a>, version 2026, August 2026. The title page of the document reads "OWASP Top 10 for LLM Applications 2026". It still prints "[Publication date to be set]" above "August 4th, 2026", so the date given here is the one on OWASP's resource page. LLM02:2026 Sensitive Information Disclosure: the list of protected information and the Tier 1 mitigations quoted above. LLM08:2026 Hidden Context Exposure, which was LLM07 System Prompt Leakage in the 2025 edition: the definition, the statements that hidden context should not be considered a secret or solely relied upon as a security boundary, and the prevention measures quoted above.</li>
-<li><a href="https://genai.owasp.org/llmrisk/llm022025-sensitive-information-disclosure/">OWASP LLM02:2025 Sensitive Information Disclosure</a>, from the OWASP Top 10 for LLM Applications 2025, dated 17 November 2024 on the OWASP resource page. Cited only for the "Tokenization and Redaction" heading in the Option row above, which the 2026 edition does not carry.</li>
+<li><a href="https://genai.owasp.org/llmrisk/llm022025-sensitive-information-disclosure/">OWASP LLM02:2025 Sensitive Information Disclosure</a>, from the OWASP Top 10 for LLM Applications 2025, dated 17 November 2024 on the OWASP resource page. Cited for two things only: the "Tokenization and Redaction" heading in the Option row above, which the 2026 edition does not carry, and the number and name the hidden context entry had in that edition, LLM07:2025 System Prompt Leakage.</li>
 <li><a href="https://api-security.owasp.org/editions/2023/en/0xa3-broken-object-property-level-authorization/">OWASP API Security Top 10 2023, API3:2023 Broken Object Property Level Authorization</a>. For the response filtering rule reused here from module 10.</li>
 </ul>
 </main>
