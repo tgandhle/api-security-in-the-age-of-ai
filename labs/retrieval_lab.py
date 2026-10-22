@@ -240,10 +240,11 @@ def main():
                                               k=3) else "no")
     # The control that does work is about where the document came from.
     trusted_only = [d for d in poisoned if d[2] == "internal"]
-    check("ranking over documents of internal origin only",
-          "['A1', 'B1', 'R2']", str(search(QUERY, trusted_only, k=3)))
+    check("the tenant filter, then internal origin only",
+          "['A1', 'A2']",
+          str(filter_then_search(QUERY, trusted_only, "exampleair", k=3)))
     check("  what ranks first then", "A1",
-          search(QUERY, trusted_only, k=1)[0])
+          filter_then_search(QUERY, trusted_only, "exampleair", k=1)[0])
 
     print()
     print("Part D: what the agent wrote down afterwards.")
