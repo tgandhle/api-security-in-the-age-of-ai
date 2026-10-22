@@ -114,7 +114,7 @@
 <tr><td>Credential delivery</td><td>Out of band, never in the task conversation</td><td>The documented flow says the credential is obtained outside the protocol. A request to deliver it in the conversation is the finding.</td></tr>
 <tr><td>Webhook URLs you receive</td><td>Allowlisted host, resolved address checked, HTTPS only</td><td>An allowlist alone checks a name. An address check alone lets any host through. You need both.</td></tr>
 <tr><td>Webhook URLs you supply</td><td>A dedicated endpoint that verifies every POST</td><td>The URL will be known to the counterparty and to anything that logs it. Treat it as public.</td></tr>
-<tr><td>The <code>token</code> field</td><td>Per task, checked on arrival</td><td>Without it a valid notification for one task is a valid notification for any task on that webhook.</td></tr>
+<tr><td>The <code>token</code> field</td><td>Per task, checked on arrival</td><td>Section 13.2 says clients should use a unique, single-purpose token for each push notification configuration. Check 46 refuses a correctly signed notification that carries another task's token.</td></tr>
 <tr><td>Card exposure</td><td>Public card minimal, detail behind an authenticated extended card</td><td>The documentation recommends this for sensitive content, and the public card is read by anyone who finds the domain.</td></tr>
 </tbody></table></div>
 
