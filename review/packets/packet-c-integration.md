@@ -11,7 +11,7 @@ Scope: Gateways, SSRF and unsafe consumption of APIs, webhooks, versioning, Grap
 | 14 | SSRF and unsafe consumption of APIs | 16 | 8 |
 | 16 | Webhooks | 16 | 8 |
 | 18 | Versioning and deprecation | 18 | 10 |
-| 33 | GraphQL, gRPC, WebSocket and server-sent events | 40 | 10 |
+| 33 | GraphQL, gRPC, WebSocket and server-sent events | 40 | 13 |
 
 ## Module 12: Gateway enforcement
 
@@ -372,3 +372,6 @@ Review the title and detail for technical correctness. Severity and the applicab
 | prot-08 | Critical | `websocket` | **The WebSocket handshake checks Origin against an allowlist and authenticates** The match is exact, a missing or lookalike origin gets 403, the socket is served over wss only, and the session cookie is SameSite. |
 | prot-09 | Critical | `websocket` | **Every WebSocket message is authorized, and a revoked session loses its sockets** Object and function checks run per message. The session is re-checked per message or on a stated interval, and logout closes open connections. |
 | prot-10 | Medium | `(graphql OR grpc OR websocket)` | **Monitoring reads the protocol's own outcome** Alerts use grpc-status, GraphQL errors and per-message events, not the HTTP status, and each service logs refusals with the caller and the operation. |
+| prot-11 | Critical | `sse` | **Every server-sent event and every replay is authorized, and a revoked session loses its streams** Each event is checked against the stream's caller before it is sent, a resume from Last-Event-ID replays only the caller's events, and logout ends the user's streams and the reconnect is refused. |
+| prot-12 | High | `sse` | **Server-sent event values cannot end a line** Each value is encoded so that it holds no CR or LF, for example as JSON on one data line, and no caller's text is written into an event, id or retry line. |
+| prot-13 | High | `sse` | **One caller cannot hold more server-sent event streams open than a limit** The server counts a caller's open streams and refuses the next one above the maximum, for example with 429. |

@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "data_version": "f4cacf72eacb0883",
+  "data_version": "a02977a8159b979d",
   "license": {
     "id": "CC-BY-4.0",
     "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -10,10 +10,10 @@
   "source": "https://github.com/tgandhle/api-security-in-the-age-of-ai",
   "site": "https://tgandhle.github.io/api-security-in-the-age-of-ai/",
   "rubric_version": "3.1",
-  "applicability_model_version": "2",
+  "applicability_model_version": "3",
   "counts": {
-    "Critical": 68,
-    "High": 168,
+    "Critical": 69,
+    "High": 170,
     "Medium": 92
   },
   "items": [
@@ -392,6 +392,22 @@
           ]
         },
         "reason": "Per-message checks and closing sockets on logout only make sense where the system accepts WebSocket connections."
+      }
+    },
+    {
+      "id": "prot-11",
+      "severity": "Critical",
+      "title": "Every server-sent event and every replay is authorized, and a revoked session loses its streams",
+      "detail": "Each event is checked against the stream's caller before it is sent, a resume from Last-Event-ID replays only the caller's events, and logout ends the user's streams and the reconnect is refused.",
+      "lesson": "GraphQL, gRPC, WebSocket and server-sent events",
+      "lesson_path": "topics/graphql-grpc-and-websocket/index.html#reference",
+      "applicability": {
+        "condition": {
+          "all_of": [
+            "sse"
+          ]
+        },
+        "reason": "Per-event checks, replays after Last-Event-ID and ending streams at logout only make sense where the system serves event streams."
       }
     },
     {
@@ -1983,6 +1999,38 @@
           ]
         },
         "reason": "The detail is about gRPC deadlines and about gRPC and WebSocket message limits, so it applies when either protocol is served."
+      }
+    },
+    {
+      "id": "prot-12",
+      "severity": "High",
+      "title": "Server-sent event values cannot end a line",
+      "detail": "Each value is encoded so that it holds no CR or LF, for example as JSON on one data line, and no caller's text is written into an event, id or retry line.",
+      "lesson": "GraphQL, gRPC, WebSocket and server-sent events",
+      "lesson_path": "topics/graphql-grpc-and-websocket/index.html#reference",
+      "applicability": {
+        "condition": {
+          "all_of": [
+            "sse"
+          ]
+        },
+        "reason": "The item is about the line format of an event stream."
+      }
+    },
+    {
+      "id": "prot-13",
+      "severity": "High",
+      "title": "One caller cannot hold more server-sent event streams open than a limit",
+      "detail": "The server counts a caller's open streams and refuses the next one above the maximum, for example with 429.",
+      "lesson": "GraphQL, gRPC, WebSocket and server-sent events",
+      "lesson_path": "topics/graphql-grpc-and-websocket/index.html#reference",
+      "applicability": {
+        "condition": {
+          "all_of": [
+            "sse"
+          ]
+        },
+        "reason": "The item limits open event streams, which exist only where the system serves them."
       }
     },
     {
@@ -4965,6 +5013,12 @@
       "id": "websocket",
       "group": "API protocols",
       "question": "Does the system accept WebSocket connections?",
+      "implies": []
+    },
+    {
+      "id": "sse",
+      "group": "API protocols",
+      "question": "Does the system serve server-sent event streams, responses of type text/event-stream?",
       "implies": []
     },
     {

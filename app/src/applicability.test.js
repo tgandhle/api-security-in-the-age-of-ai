@@ -80,13 +80,13 @@ test("only false hides, and an implied no hides", () => {
   assert.deepEqual(excludedBy(all("d"), r({ d: YES })), []);
 });
 
-test("with no answers, none of the 328 items is hidden", () => {
+test("with no answers, none of the 331 items is hidden", () => {
   const { resolved } = resolve({}, facts);
-  assert.equal(items.length, 328);
+  assert.equal(items.length, 331);
   for (const [id, item] of items) assert.equal(hidden(item.condition, resolved), false, id);
 });
 
-test("with every fact yes, none of the 328 items is hidden", () => {
+test("with every fact yes, none of the 331 items is hidden", () => {
   const answers = Object.fromEntries(facts.map((f) => [f.id, YES]));
   const { resolved } = resolve(answers, facts);
   for (const [id, item] of items) assert.equal(hidden(item.condition, resolved), false, id);
@@ -104,7 +104,7 @@ test("with every fact no, exactly the conditional items are hidden, each with a 
       assert.ok(excludedBy(item.condition, resolved).length > 0, id);
     }
   }
-  assert.equal(n, 211);
+  assert.equal(n, 214);
 });
 
 test("one fact answered no hides only items that need it, and names it", () => {
@@ -126,10 +126,19 @@ test("the real model: a2a-04 needs both a2a and webhook_receiver", () => {
   assert.equal(hidden(c, resolve({ a2a: NO }, facts).resolved), true);
 });
 
-test("model version 2: oidc does not imply jwt", () => {
-  assert.equal(data.model_version, "2");
+test("model version 3: oidc does not imply jwt", () => {
+  assert.equal(data.model_version, "3");
   assert.deepEqual(facts.find((f) => f.id === "oidc").implies, ["oauth"]);
   assert.equal(facts.reduce((n, f) => n + f.implies.length, 0), 8);
+});
+
+test("model version 3: sse implies nothing, and sse no hides only the three server-sent events items", () => {
+  assert.equal(facts.length, 28);
+  assert.deepEqual(facts.find((f) => f.id === "sse").implies, []);
+  assert.ok(facts.every((f) => !f.implies.includes("sse")));
+  const { resolved } = resolve({ sse: NO }, facts);
+  const gone = items.filter(([, item]) => hidden(item.condition, resolved)).map(([id]) => id);
+  assert.deepEqual(gone.sort(), ["prot-11", "prot-12", "prot-13"]);
 });
 
 test("oidc yes with jwt no is accepted, and still makes oauth yes", () => {

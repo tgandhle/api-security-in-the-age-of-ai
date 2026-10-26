@@ -479,6 +479,30 @@ all 88 lab checks passed</code></pre>
 </ul>
 </details>
 </article>
+
+<article class="exercise" data-exercise data-exercise-id="prot-x5" data-covers="prot-11">
+<h3>5. The stream goes quiet instead of ending</h3>
+<div class="prose">
+<p>In <code>SseServer.push</code>, a stream whose session has gone, or whose maximum age has passed, is ended with <code>stream.open = False</code>. Someone decides it is enough to stop sending events to it, and replaces that line with:</p>
+</div>
+<pre><code>pass</code></pre>
+<fieldset><legend>Which checks change?</legend>
+<label><input type="radio" name="prot-x5" value="a"> Check 85 only. No event reaches the stream, so nothing else is different.</label>
+<label><input type="radio" name="prot-x5" value="b" data-correct="true"> Checks 85 and 86.</label>
+<label><input type="radio" name="prot-x5" value="c"> None. No event reaches a revoked session either way.</label>
+<label><input type="radio" name="prot-x5" value="d"> Checks 84, 85 and 86.</label>
+</fieldset>
+<button class="button secondary" type="button" data-check-answer>Check answer</button>
+<p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
+<details class="exercise-answers"><summary>Every option, and why</summary>
+<ul>
+<li data-option="a">Check 85 does change. Check 86 uses the same line for its maximum age, so it changes as well.</li>
+<li data-option="b">Correct. Exit 1, two failures. Check 85 prints <code>([], False, 200, 'OPEN')</code>: no event is sent, but the stream never ends, so the browser never reconnects and never meets the 401. The 200 is the status from when the stream opened. Check 86 prints <code>(1, 200)</code>: at t=3600 the stream is still open, so there is no reconnect and the maximum age bounds nothing. The logged-out session keeps a connection, and the server keeps its state, for as long as the client likes. Check <code>prot-11</code> in the <a href="#reference">Reference</a> layer asks that logout end the stream and that the reconnect be refused.</li>
+<li data-option="c">The events stay away, which is why the change looks harmless. What the checks also look at is whether the stream ended and what the reconnect got, and both change.</li>
+<li data-option="d">Check 84 has no session check and no maximum age, so the line is never reached there, and it still prints the event that arrives after logout.</li>
+</ul>
+</details>
+</article>
 </section>
 
 <p class="course-next"><strong>Course progress:</strong> return to the <a href="../../index.html#course">course dashboard</a> to see your progress.</p>
@@ -541,6 +565,9 @@ all 88 lab checks passed</code></pre>
 <li data-check="prot-08" data-severity="Critical"><strong>The WebSocket handshake checks Origin against an allowlist and authenticates</strong> <span>The match is exact, a missing or lookalike origin gets 403, the socket is served over wss only, and the session cookie is SameSite.</span></li>
 <li data-check="prot-09" data-severity="Critical"><strong>Every WebSocket message is authorized, and a revoked session loses its sockets</strong> <span>Object and function checks run per message. The session is re-checked per message or on a stated interval, and logout closes open connections.</span></li>
 <li data-check="prot-10" data-severity="Medium"><strong>Monitoring reads the protocol's own outcome</strong> <span>Alerts use grpc-status, GraphQL errors and per-message events, not the HTTP status, and each service logs refusals with the caller and the operation.</span></li>
+<li data-check="prot-11" data-severity="Critical"><strong>Every server-sent event and every replay is authorized, and a revoked session loses its streams</strong> <span>Each event is checked against the stream's caller before it is sent, a resume from Last-Event-ID replays only the caller's events, and logout ends the user's streams and the reconnect is refused.</span></li>
+<li data-check="prot-12" data-severity="High"><strong>Server-sent event values cannot end a line</strong> <span>Each value is encoded so that it holds no CR or LF, for example as JSON on one data line, and no caller's text is written into an event, id or retry line.</span></li>
+<li data-check="prot-13" data-severity="High"><strong>One caller cannot hold more server-sent event streams open than a limit</strong> <span>The server counts a caller's open streams and refuses the next one above the maximum, for example with 429.</span></li>
 </ul>
 
 <h2>Sources</h2>

@@ -1270,7 +1270,10 @@
             "prot-07",
             "prot-08",
             "prot-09",
-            "prot-10"
+            "prot-10",
+            "prot-11",
+            "prot-12",
+            "prot-13"
           ],
           "sources": [
             "https://spec.graphql.org/September2025/",
