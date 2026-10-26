@@ -19,14 +19,14 @@
 <div class="wrap"><table>
 <thead><tr><th>Entry</th><th>Lessons that cite it</th></tr></thead>
 <tbody>
-<tr><td>API1:2023 Broken Object Level Authorization</td><td><a href="../topics/object-level-authorization/index.html">Module 9, Object-level authorization</a>; <a href="../topics/graphql-grpc-and-websocket/index.html">Module 33, GraphQL, gRPC and WebSocket APIs</a></td></tr>
-<tr><td>API2:2023 Broken Authentication</td><td><a href="../topics/authentication-endpoints/index.html">Module 27, Attacks on authentication endpoints</a>; <a href="../topics/graphql-grpc-and-websocket/index.html">Module 33, GraphQL, gRPC and WebSocket APIs</a></td></tr>
+<tr><td>API1:2023 Broken Object Level Authorization</td><td><a href="../topics/object-level-authorization/index.html">Module 9, Object-level authorization</a>; <a href="../topics/graphql-grpc-and-websocket/index.html">Module 33, GraphQL, gRPC, WebSocket and server-sent events</a></td></tr>
+<tr><td>API2:2023 Broken Authentication</td><td><a href="../topics/authentication-endpoints/index.html">Module 27, Attacks on authentication endpoints</a>; <a href="../topics/graphql-grpc-and-websocket/index.html">Module 33, GraphQL, gRPC, WebSocket and server-sent events</a></td></tr>
 <tr><td>API3:2023 Broken Object Property Level Authorization</td><td><a href="../topics/property-and-function-authorization/index.html">Module 10, Property and function authorization</a>; <a href="../topics/data-in-model-context/index.html">Module 24, Data in model context</a></td></tr>
-<tr><td>API4:2023 Unrestricted Resource Consumption</td><td><a href="../topics/request-and-response-contracts/index.html">Module 13, Request and response contracts</a>; <a href="../topics/rate-limiting-and-cost/index.html">Module 15, Rate limiting and cost controls</a>; <a href="../topics/graphql-grpc-and-websocket/index.html">Module 33, GraphQL, gRPC and WebSocket APIs</a></td></tr>
-<tr><td>API5:2023 Broken Function Level Authorization</td><td><a href="../topics/property-and-function-authorization/index.html">Module 10, Property and function authorization</a>; <a href="../topics/graphql-grpc-and-websocket/index.html">Module 33, GraphQL, gRPC and WebSocket APIs</a></td></tr>
+<tr><td>API4:2023 Unrestricted Resource Consumption</td><td><a href="../topics/request-and-response-contracts/index.html">Module 13, Request and response contracts</a>; <a href="../topics/rate-limiting-and-cost/index.html">Module 15, Rate limiting and cost controls</a>; <a href="../topics/graphql-grpc-and-websocket/index.html">Module 33, GraphQL, gRPC, WebSocket and server-sent events</a></td></tr>
+<tr><td>API5:2023 Broken Function Level Authorization</td><td><a href="../topics/property-and-function-authorization/index.html">Module 10, Property and function authorization</a>; <a href="../topics/graphql-grpc-and-websocket/index.html">Module 33, GraphQL, gRPC, WebSocket and server-sent events</a></td></tr>
 <tr><td>API6:2023 Unrestricted Access to Sensitive Business Flows</td><td><a href="../topics/business-flows-and-idempotency/index.html">Module 11, Business flows and idempotency</a>; <a href="../topics/logging-and-detection/index.html">Module 30, Logging, detection and response</a></td></tr>
 <tr><td>API7:2023 Server Side Request Forgery</td><td><a href="../topics/ssrf-and-unsafe-consumption/index.html">Module 14, SSRF and unsafe consumption of APIs</a></td></tr>
-<tr><td>API8:2023 Security Misconfiguration</td><td><a href="../topics/security-misconfiguration/index.html">Module 29, Security misconfiguration</a>; <a href="../topics/graphql-grpc-and-websocket/index.html">Module 33, GraphQL, gRPC and WebSocket APIs</a></td></tr>
+<tr><td>API8:2023 Security Misconfiguration</td><td><a href="../topics/security-misconfiguration/index.html">Module 29, Security misconfiguration</a>; <a href="../topics/graphql-grpc-and-websocket/index.html">Module 33, GraphQL, gRPC, WebSocket and server-sent events</a></td></tr>
 <tr><td>API9:2023 Improper Inventory Management</td><td><a href="../topics/gateway-enforcement/index.html">Module 12, Gateway enforcement</a>; <a href="../topics/versioning-and-deprecation/index.html">Module 18, Versioning and deprecation</a>; <a href="../topics/security-misconfiguration/index.html">Module 29, Security misconfiguration</a>; <a href="../topics/security-testing/index.html">Module 34, Testing API security</a></td></tr>
 <tr><td>API10:2023 Unsafe Consumption of APIs</td><td><a href="../topics/ssrf-and-unsafe-consumption/index.html">Module 14, SSRF and unsafe consumption of APIs</a></td></tr>
 </tbody></table></div>
@@ -71,7 +71,8 @@
 <h2 id="not-covered">What the course does not cover</h2>
 <ul class="prose">
 <li>The entries marked above as not covered or partly covered.</li>
-<li>GraphQL, gRPC and WebSocket beyond module 33. That module shows where the controls of earlier modules stop applying under each protocol. It leaves out GraphQL subscriptions, gRPC-Web, attacks on HTTP/2 itself, and injection through these protocols as a subject of its own.</li>
+<li>GraphQL, gRPC, WebSocket and server-sent events beyond module 33. That module shows where the controls of earlier modules stop applying under each protocol. It leaves out GraphQL subscriptions, gRPC-Web, attacks on HTTP/2 itself, and injection through these protocols as a subject of its own.</li>
+<li>MQTT and other publish and subscribe protocols that run through a broker of their own rather than over HTTP. They are mostly found between devices and their back ends, not in the web, enterprise and agent APIs this course is about.</li>
 <li>Testing tools. Module 34 teaches a method for testing an API's security and what a clean result proves. It recommends no scanner or other tool.</li>
 </ul>
 </section>

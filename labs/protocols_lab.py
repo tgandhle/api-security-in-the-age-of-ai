@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Module 33 lab: GraphQL, gRPC and WebSocket APIs.
+"""Module 33 lab: GraphQL, gRPC, WebSocket and server-sent events.
 
 Every other lab in the course uses one HTTP request per operation with a JSON
-body. This lab changes the protocol three times and shows, each time, a
+body. This lab changes the protocol four times and shows, each time, a
 control from an earlier module that stops applying by default, the attack
 that follows, and the protocol-specific control.
 
@@ -20,9 +20,16 @@ that follows, and the protocol-specific control.
           victim's cookie; a message asks for another customer's booking;
           a revoked session keeps working; a flood of messages passes a
           handshake limit; oversized, fragmented and compressed frames.
+  Part D  Server-sent events. A CORS policy that reflects the origin lets
+          another site read the stream; a token in the stream URL lands in
+          the access log; a chat message with line breaks becomes a forged
+          event and a forged event id; a resume with Last-Event-ID replays
+          another customer's events; a stream outlives the session; one
+          customer holds 500 streams open.
 
-Nothing here opens a socket, and no GraphQL, gRPC or WebSocket library is
-used. Each protocol is a small model in plain Python.
+Nothing here opens a socket, and no GraphQL, gRPC, WebSocket or
+server-sent events library is used. Each protocol is a small model in plain
+Python.
 
 Deliberate simplifications:
 
@@ -47,6 +54,13 @@ Deliberate simplifications:
     where "site" is the last two labels of the host. Module 28's lab models
     cookies properly. A page on another origin cannot read the ticket
     endpoint's reply; the lab states that as a rule and does not model CORS.
+  * Server-sent events: a stream is a string the server appends to and the
+    page reads, with no connection and no clock. The page parses it with the
+    browser's rules from the HTML Standard, section 9.2.6, except the retry
+    field and the byte order mark, which the lab never sends. The CORS check
+    is reduced to the two response headers it reads, and no preflight is
+    sent. The browser attaches the cookie by host, as in Part C. Every event
+    id is the next number in one log that all customers share.
   * Passwords, session ids, tokens and tickets are random per run and are
     never printed.
 
@@ -787,6 +801,198 @@ class WsServer:
 
 
 # ===========================================================================
+# Part D model: server-sent events
+# ===========================================================================
+
+SSE_PATH = "/events"
+SSE_URL = "https://" + WS_HOST + SSE_PATH
+LINE_END = re.compile(r"\r\n|\n|\r")     # HTML 9.2.5: CRLF, LF or CR ends a line
+
+
+def origin_of(url):
+    scheme, _, rest = url.partition("://")
+    return scheme + "://" + rest.partition("/")[0]
+
+
+def parse_event_stream(text, last_id=""):
+    """What a browser's EventSource does with a stream (HTML 9.2.6). Returns
+    the events dispatched, as (type, data), and the last event ID string. A
+    line that is not ended yet is not processed, and an event that is not
+    followed by a blank line is not dispatched."""
+    events, data, kind, id_buffer = [], "", "", last_id
+    for line in LINE_END.split(text)[:-1]:
+        if line == "":
+            last_id = id_buffer
+            if data:
+                events.append((kind or "message", data[:-1] if data.endswith("\n") else data))
+            data, kind = "", ""
+            continue
+        if line.startswith(":"):
+            continue
+        field, colon, value = line.partition(":")
+        if colon and value.startswith(" "):
+            value = value[1:]
+        if field == "event":
+            kind = value
+        elif field == "data":
+            data += value + "\n"
+        elif field == "id" and "\0" not in value:
+            id_buffer = value
+    return events, last_id
+
+
+class Stream:
+    def __init__(self, sid, customer, now):
+        self.sid, self.customer, self.opened_at = sid, customer, now
+        self.open, self.text, self.cursor = True, "", 0    # cursor: events already sent
+
+
+class SseServer:
+    DEFAULTS = {
+        "cors": None,                  # None | "reflect" | tuple of allowed origins
+        "auth": "cookie",              # cookie | token (in the URL) | ticket (one use, in the URL)
+        "encode": "raw",               # raw | strip_lf | json: how a chat message becomes data
+        "replay": "all",               # all | caller: what a reconnect with Last-Event-ID gets
+        "recheck": False,              # check the session before each event is sent
+        "max_streams": None,           # open streams per customer
+        "max_age": None,               # seconds a stream may stay open
+    }
+
+    def __init__(self, **config):
+        self.config = dict(self.DEFAULTS, **config)
+        self.sessions, self.tickets, self.tokens = {}, {}, {}
+        self.access_log, self.log, self.streams = [], [], []
+
+    def sign_in(self, customer_id):
+        sid = secrets.token_hex(16)
+        self.sessions[sid] = customer_id
+        self.tokens[secrets.token_hex(16)] = customer_id    # a long-lived API token as well
+        return sid
+
+    def token_of(self, customer_id):
+        return next(t for t, c in self.tokens.items() if c == customer_id)
+
+    def issue_ticket(self, sid):
+        if sid not in self.sessions:
+            return None
+        ticket = secrets.token_hex(16)
+        self.tickets[ticket] = sid
+        return ticket
+
+    def publish(self, audience, kind, payload):
+        """Every event gets the next number as its id, whoever it is for."""
+        self.log.append((len(self.log) + 1, tuple(audience), kind, payload))
+
+    def encode(self, event_id, kind, payload):
+        if self.config["encode"] == "json":
+            payload = json.dumps(payload)           # escapes CR and LF as \\r and \\n
+        elif self.config["encode"] == "strip_lf":
+            payload = payload.replace("\n", " ")
+        return "id: %d\nevent: %s\ndata: %s\n\n" % (event_id, kind, payload)
+
+    def caller(self, url, headers):
+        path, _, query = url.partition(SSE_PATH)[2].partition("?")
+        name, _, value = query.partition("=")
+        auth = self.config["auth"]
+        if auth == "cookie":
+            sid = headers.get("Cookie", "").partition("sid=")[2]
+            return sid, self.sessions.get(sid)
+        if auth == "token" and name == "access_token":
+            return None, self.tokens.get(value)
+        if auth == "ticket" and name == "ticket":
+            sid = self.tickets.pop(value, None)
+            return sid, self.sessions.get(sid)
+        return None, None
+
+    def get(self, url, headers, now=0):
+        """GET /events. Returns status, response headers and the stream."""
+        cfg = self.config
+        self.access_log.append("GET " + url.partition(WS_HOST)[2])
+        sid, customer = self.caller(url, headers)
+        cors = {}
+        origin = headers.get("Origin")
+        if origin and (cfg["cors"] == "reflect" or (cfg["cors"] and origin in cfg["cors"])):
+            cors = {"Access-Control-Allow-Origin": origin, "Access-Control-Allow-Credentials": "true"}
+        if customer is None:
+            return 401, cors, None
+        if cfg["max_streams"] is not None and sum(
+                s.open and s.customer == customer for s in self.streams) >= cfg["max_streams"]:
+            return 429, cors, None
+        stream = Stream(sid, customer, now)
+        self.streams.append(stream)
+        after = headers.get("Last-Event-ID")
+        if after is not None:
+            for event in self.log:
+                if event[0] > int(after) and (cfg["replay"] == "all" or customer in event[1]):
+                    stream.text += self.encode(event[0], event[2], event[3])
+        stream.cursor = len(self.log)
+        return 200, dict(cors, **{"Content-Type": "text/event-stream"}), stream
+
+    def push(self, now=0):
+        """Send each open stream the events published since its last push."""
+        cfg = self.config
+        for stream in self.streams:
+            if not stream.open:
+                continue
+            if (cfg["recheck"] and stream.sid not in self.sessions) or (
+                    cfg["max_age"] is not None and now - stream.opened_at >= cfg["max_age"]):
+                stream.open = False                 # the response body ends here
+                continue
+            for event in self.log[stream.cursor:]:
+                if stream.customer in event[1]:
+                    stream.text += self.encode(event[0], event[2], event[3])
+            stream.cursor = len(self.log)
+
+
+class EventSourcePage:
+    """A page's new EventSource(url, {withCredentials}) in the browser.
+    HTML 9.2.2: the request is a potential-CORS request, so a cross-origin
+    stream is read only when the CORS check passes (Fetch 4.4). The cookie
+    goes with a cross-origin request only when withCredentials is true. The
+    constructor takes no headers: a credential that is not a cookie has to
+    go in the URL."""
+
+    def __init__(self, browser, page_origin, url, with_credentials=False):
+        self.browser, self.page_origin, self.url = browser, page_origin, url
+        self.with_credentials, self.last_id = with_credentials, ""
+        self.state, self.events, self.server_status = "CONNECTING", [], None
+
+    def connect(self, server, now=0):
+        cross = origin_of(self.url) != self.page_origin
+        headers = {"Accept": "text/event-stream"}
+        if cross:
+            headers["Origin"] = self.page_origin
+        if WS_HOST in self.browser.jar and (not cross or self.with_credentials):
+            headers["Cookie"] = "sid=" + self.browser.jar[WS_HOST][0]
+        if self.last_id:
+            headers["Last-Event-ID"] = self.last_id
+        status, response, self.stream = server.get(self.url, headers, now)
+        self.server_status = status
+        if cross and (response.get("Access-Control-Allow-Origin") != self.page_origin or (
+                self.with_credentials and response.get("Access-Control-Allow-Credentials") != "true")):
+            self.state, self.stream = "network error", None   # the page reads nothing
+            return self.state
+        if status != 200 or response.get("Content-Type") != "text/event-stream":
+            self.state, self.stream = "CLOSED", None          # failed: no reconnecting
+            return self.state
+        self.state = "OPEN"
+        return self.read()
+
+    def read(self):
+        events, self.last_id = parse_event_stream(self.stream.text, self.last_id)
+        self.events += events
+        self.stream.text = ""
+        return self.state
+
+    def reconnect_if_ended(self, server, now=0):
+        """HTML 9.2.2: when the body ends without a network error, the
+        browser reestablishes the connection, sending Last-Event-ID."""
+        if self.stream is not None and not self.stream.open:
+            return self.connect(server, now)
+        return self.state
+
+
+# ===========================================================================
 # The run
 # ===========================================================================
 
@@ -1160,6 +1366,143 @@ def main():
     differs = captured[1] != payload or not any(key)     # an all-zero key masks nothing
     record("a captured masked frame, unmasked with the key it carries, is the message",
            True, differs and mask(captured[1], captured[0]) == payload)
+
+    # ---------------- Part D: server-sent events --------------------------
+    section("Part D: Server-sent events. One GET, then a response that does not end.")
+
+    def sse_setup(**config):
+        server = SseServer(**config)
+        browser = Browser()
+        browser.set_cookie(WS_HOST, server.sign_in("c-ana"), "None")
+        server.sign_in("c-ben")
+        server.publish(["c-ana"], "booking", "BK1001 gate B12")
+        server.publish(["c-ben"], "booking", "BK2001 seat 14C")
+        return server, browser
+
+    def page(browser, origin=APP_ORIGIN, url=SSE_URL, credentials=True):
+        return EventSourcePage(browser, origin, url, credentials)
+
+    server, browser = sse_setup(cors="reflect")
+    other = page(browser, evil)
+    other.connect(server)
+    server.publish(["c-ana"], "booking", "BK1001 boarding")
+    server.push()
+    other.read()
+    record("a page on another site opens Ana's stream, Origin reflected: what it reads",
+           [("booking", "BK1001 boarding")], other.events)
+    server, browser = sse_setup(cors=(APP_ORIGIN,))
+    pages = [page(browser, o) for o in (evil, APP_ORIGIN + ".evil.example", APP_ORIGIN)]
+    for each in pages:
+        each.connect(server)
+    record("  with an exact allowlist: other site, lookalike, the app (server, browser)",
+           [(200, "network error"), (200, "network error"), (200, "OPEN")],
+           [(each.server_status, each.state) for each in pages])
+    other = page(browser, evil, credentials=False)
+    other.connect(server)
+    record("  the other site without withCredentials: server status, what the page sees",
+           (401, "network error"), (other.server_status, other.state))
+
+    server, browser = sse_setup(auth="token", cors=(APP_ORIGIN,))
+    page(browser, url=SSE_URL + "?access_token=" + server.token_of("c-ana")).connect(server)
+    line = server.access_log[-1]
+    replayed = server.get("https://" + WS_HOST + line.partition(" ")[2], {})[0]
+    record("the token in the stream URL: in the access log, the logged URL replayed",
+           (True, 200), (server.token_of("c-ana") in line, replayed))
+    server, browser = sse_setup(auth="ticket", cors=(APP_ORIGIN,))
+    ticket = server.issue_ticket(browser.jar[WS_HOST][0])
+    app = page(browser, url=SSE_URL + "?ticket=" + ticket)
+    app.connect(server)
+    line = server.access_log[-1]
+    replayed = server.get("https://" + WS_HOST + line.partition(" ")[2], {})[0]
+    record("  a one-use ticket instead: app's status, ticket in the log, logged URL replayed",
+           (200, True, 401), (app.server_status, ticket in line, replayed))
+
+    group = ["c-ana", "c-ben", "c-cai", "c-dee"]
+    forged = "id: 9999{0}event: cancelled{0}data: BK3001"
+    lf_chat = "see you at the gate\n\n" + forged.format("\n")
+    cr_chat = "see you at the gate\r\r" + forged.format("\r")
+
+    def chat_to(encode, text):
+        server, browser = sse_setup(encode=encode, replay="caller", cors=(APP_ORIGIN,))
+        ana = page(browser)
+        ana.connect(server)
+        server.publish(group, "chat", text)          # Ben's message to the group booking
+        server.push()
+        ana.read()
+        return server, ana
+
+    server, ana = chat_to("raw", lf_chat)
+    record("Ben posts a chat message to the group booking: the events Ana's page gets",
+           [("chat", "see you at the gate"), ("cancelled", "BK3001")], ana.events)
+    server.publish(["c-ana"], "booking", "BK1001 gate B14")
+    server.publish(["c-ana"], "booking", "BK1001 boarding")
+    server.streams[-1].open = False                  # the connection drops before they arrive
+    ana.events = []
+    ana.reconnect_if_ended(server)
+    record("  Ana's last event ID, then what her reconnect replays of 2 missed events",
+           ("9999", []), (ana.last_id, ana.events))
+    record("  line feeds stripped from the message: event types, LF message, CR message",
+           (["chat"], ["chat", "cancelled"]),
+           tuple([kind for kind, _ in chat_to("strip_lf", text)[1].events]
+                 for text in (lf_chat, cr_chat)))
+    server, ana = chat_to("json", cr_chat)
+    intact = (len(ana.events), json.loads(ana.events[0][1]) == cr_chat)
+    server.publish(["c-ana"], "booking", "BK1001 gate B14")
+    server.publish(["c-ana"], "booking", "BK1001 boarding")
+    server.streams[-1].open = False
+    ana.events = []
+    ana.reconnect_if_ended(server)
+    record("  the message JSON-encoded on one data line: events, text intact, replayed",
+           (1, True, 2), intact + (len(ana.events),))
+
+    def ben_resumes(replay):
+        server, _ = sse_setup(replay=replay)
+        ben = next(s for s, c in server.sessions.items() if c == "c-ben")
+        status, _, stream = server.get(SSE_URL, {"Cookie": "sid=" + ben, "Last-Event-ID": "0"})
+        return parse_event_stream(stream.text)[0]
+
+    record("Ben's client sends Last-Event-ID: 0, replay not filtered: what it gets",
+           [("booking", "BK1001 gate B12"), ("booking", "BK2001 seat 14C")], ben_resumes("all"))
+    record("  with the replay filtered to the caller", [("booking", "BK2001 seat 14C")],
+           ben_resumes("caller"))
+
+    def ana_stream(**config):
+        server, browser = sse_setup(cors=(APP_ORIGIN,), replay="caller", **config)
+        ana = page(browser)
+        ana.connect(server)
+        del server.sessions[browser.jar[WS_HOST][0]]     # Ana logs out at t = 100
+        server.publish(["c-ana"], "booking", "BK1001 gate change")
+        return server, ana
+
+    server, ana = ana_stream()
+    server.push(now=160)
+    ana.read()
+    record("Ana logs out at t=100. At t=160, stream checked only when it opened",
+           ([("booking", "BK1001 gate change")], "OPEN"), (ana.events, ana.state))
+    server, ana = ana_stream(recheck=True)
+    server.push(now=160)
+    ana.read()
+    ended = not server.streams[-1].open
+    ana.reconnect_if_ended(server, 160)
+    record("  session checked before each event: events, stream ended, reconnect, state",
+           ([], True, 401, "CLOSED"), (ana.events, ended, ana.server_status, ana.state))
+    server, ana = ana_stream(max_age=3600)
+    server.push(now=160)
+    ana.read()
+    delivered = len(ana.events)
+    server.push(now=3600)
+    ana.reconnect_if_ended(server, 3600)
+    record("  a maximum stream age of 3600 s instead: events at t=160, reconnect at t=3600",
+           (1, 401), (delivered, ana.server_status))
+
+    def open_streams(**config):
+        server, browser = sse_setup(**config)
+        sid = browser.jar[WS_HOST][0]
+        codes = [server.get(SSE_URL, {"Cookie": "sid=" + sid})[0] for _ in range(500)]
+        return codes.count(200), codes.count(429)
+
+    record("one customer opens 500 streams: open, refused", (500, 0), open_streams())
+    record("  with at most 5 open streams per customer", (5, 495), open_streams(max_streams=5))
 
     width = max(len(label) for label, _, _ in RESULTS if label is not None)
     for label, expected, actual in RESULTS:

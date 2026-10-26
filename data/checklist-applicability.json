@@ -1,5 +1,5 @@
 {
-  "model_version": "2",
+  "model_version": "3",
   "facts": [
     {
       "id": "api_keys",
@@ -129,6 +129,12 @@
       "id": "websocket",
       "group": "API protocols",
       "question": "Does the system accept WebSocket connections?",
+      "implies": []
+    },
+    {
+      "id": "sse",
+      "group": "API protocols",
+      "question": "Does the system serve server-sent event streams, responses of type text/event-stream?",
       "implies": []
     },
     {
@@ -2098,6 +2104,30 @@
         ]
       },
       "reason": "Outcomes carried outside the HTTP status exist only in these three protocols."
+    },
+    "prot-11": {
+      "condition": {
+        "all_of": [
+          "sse"
+        ]
+      },
+      "reason": "Per-event checks, replays after Last-Event-ID and ending streams at logout only make sense where the system serves event streams."
+    },
+    "prot-12": {
+      "condition": {
+        "all_of": [
+          "sse"
+        ]
+      },
+      "reason": "The item is about the line format of an event stream."
+    },
+    "prot-13": {
+      "condition": {
+        "all_of": [
+          "sse"
+        ]
+      },
+      "reason": "The item limits open event streams, which exist only where the system serves them."
     },
     "test-01": {
       "condition": "always",
