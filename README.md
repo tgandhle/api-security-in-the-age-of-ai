@@ -39,7 +39,7 @@ Work through the published modules in order. Each lesson includes an attack exam
 | 30 | [Logging, detection and response](topics/logging-and-detection/index.html) | [`detection_lab.py`](labs/detection_lab.py) |
 | 31 | [Agent code execution and containment](topics/agent-containment/index.html) | [`containment_lab.py`](labs/containment_lab.py) |
 | 32 | [Model and artifact supply chain](topics/model-supply-chain/index.html) | [`model_supply_chain_lab.py`](labs/model_supply_chain_lab.py) |
-| 33 | [GraphQL, gRPC and WebSocket APIs](topics/graphql-grpc-and-websocket/index.html) | [`protocols_lab.py`](labs/protocols_lab.py) |
+| 33 | [GraphQL, gRPC, WebSocket and server-sent events](topics/graphql-grpc-and-websocket/index.html) | [`protocols_lab.py`](labs/protocols_lab.py) |
 | 34 | [Testing API security](topics/security-testing/index.html) | [`security_testing_lab.py`](labs/security_testing_lab.py) |
 | 35 | [OpenID Connect and ID tokens](topics/openid-connect/index.html) | [`oidc_lab.py`](labs/oidc_lab.py) |
 | 36 | [Client authentication, PAR and high-assurance OAuth](topics/advanced-oauth/index.html) | [`advanced_oauth_lab.py`](labs/advanced_oauth_lab.py) |

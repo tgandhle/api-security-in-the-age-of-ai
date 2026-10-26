@@ -203,7 +203,7 @@
       "slug": "graphql-grpc-and-websocket",
       "lesson_number": 34,
       "module": 33,
-      "title": "GraphQL, gRPC and WebSocket APIs"
+      "title": "GraphQL, gRPC, WebSocket and server-sent events"
     },
     {
       "slug": "security-testing",

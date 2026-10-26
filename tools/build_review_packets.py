@@ -49,7 +49,7 @@ PACKETS = [
      "response contracts, rate limiting, CORS, browser sessions and CSRF, misconfiguration.",
      [0, 9, 10, 11, 13, 15, 17, 28, 29]),
     ("c-integration", "Integration and protocols",
-     "Gateways, SSRF and unsafe consumption of APIs, webhooks, versioning, GraphQL, gRPC and WebSocket.",
+     "Gateways, SSRF and unsafe consumption of APIs, webhooks, versioning, GraphQL, gRPC, WebSocket and server-sent events.",
      [12, 14, 16, 18, 33]),
     ("d-ai", "AI, agents, MCP and A2A",
      "MCP authorization, agent-to-agent, prompt injection and output handling, agent authority and "

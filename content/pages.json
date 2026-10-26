@@ -884,6 +884,11 @@
         "definition": "An optional gRPC service that tells a client which methods a server exports and what their messages look like. Debugging tools use it to build requests. It tells an attacker the same things, and the OWASP gRPC Security Cheat Sheet recommends disabling it in production."
       },
       {
+        "id": "server-sent-events",
+        "term": "Server-sent events",
+        "definition": "A way for a server to push events to a web page over one HTTP response that stays open, as lines of text in the <code>text/event-stream</code> format the HTML Standard defines. A page reads them with <code>EventSource</code>, which reconnects by itself when the response ends and tells the server the id of the last event it saw. Abbreviated SSE."
+      },
+      {
         "id": "service-provider",
         "term": "Service provider",
         "definition": "The party in SAML that relies on an identity provider to authenticate its users: the application the user signs in to. Abbreviated SP. It is the audience of the assertion, as a relying party is the audience of an ID token."

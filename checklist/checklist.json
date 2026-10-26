@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "data_version": "ad3726e71a543ef1",
+  "data_version": "f4cacf72eacb0883",
   "license": {
     "id": "CC-BY-4.0",
     "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -335,7 +335,7 @@
       "severity": "Critical",
       "title": "Every GraphQL resolver that returns protected data checks the caller",
       "detail": "The check is on the type, so it runs for a root field and for every nested path, and a test names each path to another customer's object.",
-      "lesson": "GraphQL, gRPC and WebSocket APIs",
+      "lesson": "GraphQL, gRPC, WebSocket and server-sent events",
       "lesson_path": "topics/graphql-grpc-and-websocket/index.html#reference",
       "applicability": {
         "condition": {
@@ -351,7 +351,7 @@
       "severity": "Critical",
       "title": "Every gRPC method has an authorization rule, and a method without one is refused",
       "detail": "An interceptor enforces it for unary and streaming methods, the edge forwards listed method paths only, and handlers check the object.",
-      "lesson": "GraphQL, gRPC and WebSocket APIs",
+      "lesson": "GraphQL, gRPC, WebSocket and server-sent events",
       "lesson_path": "topics/graphql-grpc-and-websocket/index.html#reference",
       "applicability": {
         "condition": {
@@ -367,7 +367,7 @@
       "severity": "Critical",
       "title": "The WebSocket handshake checks Origin against an allowlist and authenticates",
       "detail": "The match is exact, a missing or lookalike origin gets 403, the socket is served over wss only, and the session cookie is SameSite.",
-      "lesson": "GraphQL, gRPC and WebSocket APIs",
+      "lesson": "GraphQL, gRPC, WebSocket and server-sent events",
       "lesson_path": "topics/graphql-grpc-and-websocket/index.html#reference",
       "applicability": {
         "condition": {
@@ -383,7 +383,7 @@
       "severity": "Critical",
       "title": "Every WebSocket message is authorized, and a revoked session loses its sockets",
       "detail": "Object and function checks run per message. The session is re-checked per message or on a stated interval, and logout closes open connections.",
-      "lesson": "GraphQL, gRPC and WebSocket APIs",
+      "lesson": "GraphQL, gRPC, WebSocket and server-sent events",
       "lesson_path": "topics/graphql-grpc-and-websocket/index.html#reference",
       "applicability": {
         "condition": {
@@ -1915,7 +1915,7 @@
       "severity": "High",
       "title": "Limits count operations, not HTTP requests",
       "detail": "Aliased fields, batch entries, stream messages and socket messages are counted where they run, and a sensitive field such as login is limited per request and per account.",
-      "lesson": "GraphQL, gRPC and WebSocket APIs",
+      "lesson": "GraphQL, gRPC, WebSocket and server-sent events",
       "lesson_path": "topics/graphql-grpc-and-websocket/index.html#reference",
       "applicability": {
         "condition": {
@@ -1937,7 +1937,7 @@
       "severity": "High",
       "title": "GraphQL documents are bounded before execution",
       "detail": "Batch size, depth, list page size and estimated cost each have a limit that refuses the document with no resolver called, and a timeout backs them up.",
-      "lesson": "GraphQL, gRPC and WebSocket APIs",
+      "lesson": "GraphQL, gRPC, WebSocket and server-sent events",
       "lesson_path": "topics/graphql-grpc-and-websocket/index.html#reference",
       "applicability": {
         "condition": {
@@ -1953,7 +1953,7 @@
       "severity": "High",
       "title": "GraphQL mutations are accepted only by POST with application/json",
       "detail": "A mutation by GET returns 405 and another request media type returns 415, and the CSRF controls for a cookie session are still in place.",
-      "lesson": "GraphQL, gRPC and WebSocket APIs",
+      "lesson": "GraphQL, gRPC, WebSocket and server-sent events",
       "lesson_path": "topics/graphql-grpc-and-websocket/index.html#reference",
       "applicability": {
         "condition": {
@@ -1969,7 +1969,7 @@
       "severity": "High",
       "title": "Calls have deadlines and messages have size limits that run before the data is held",
       "detail": "The gRPC server enforces a maximum deadline and handlers stop on cancellation. gRPC and WebSocket messages have size, count and decoded-size limits.",
-      "lesson": "GraphQL, gRPC and WebSocket APIs",
+      "lesson": "GraphQL, gRPC, WebSocket and server-sent events",
       "lesson_path": "topics/graphql-grpc-and-websocket/index.html#reference",
       "applicability": {
         "condition": {
@@ -4044,7 +4044,7 @@
       "severity": "Medium",
       "title": "Introspection, reflection and field suggestions are off unless the API is published",
       "detail": "Errors are generic, and no finding is closed on the grounds that an operation's name is hidden.",
-      "lesson": "GraphQL, gRPC and WebSocket APIs",
+      "lesson": "GraphQL, gRPC, WebSocket and server-sent events",
       "lesson_path": "topics/graphql-grpc-and-websocket/index.html#reference",
       "applicability": {
         "condition": {
@@ -4065,7 +4065,7 @@
       "severity": "Medium",
       "title": "Monitoring reads the protocol's own outcome",
       "detail": "Alerts use grpc-status, GraphQL errors and per-message events, not the HTTP status, and each service logs refusals with the caller and the operation.",
-      "lesson": "GraphQL, gRPC and WebSocket APIs",
+      "lesson": "GraphQL, gRPC, WebSocket and server-sent events",
       "lesson_path": "topics/graphql-grpc-and-websocket/index.html#reference",
       "applicability": {
         "condition": {

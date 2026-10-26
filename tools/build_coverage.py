@@ -207,7 +207,8 @@ def render(data):
 <h2 id="not-covered">What the course does not cover</h2>
 <ul class="prose">
 <li>The entries marked above as not covered or partly covered.</li>
-<li>GraphQL, gRPC and WebSocket beyond module 33. That module shows where the controls of earlier modules stop applying under each protocol. It leaves out GraphQL subscriptions, gRPC-Web, attacks on HTTP/2 itself, and injection through these protocols as a subject of its own.</li>
+<li>GraphQL, gRPC, WebSocket and server-sent events beyond module 33. That module shows where the controls of earlier modules stop applying under each protocol. It leaves out GraphQL subscriptions, gRPC-Web, attacks on HTTP/2 itself, and injection through these protocols as a subject of its own.</li>
+<li>MQTT and other publish and subscribe protocols that run through a broker of their own rather than over HTTP. They are mostly found between devices and their back ends, not in the web, enterprise and agent APIs this course is about.</li>
 <li>Testing tools. Module 34 teaches a method for testing an API's security and what a clean result proves. It recommends no scanner or other tool.</li>
 </ul>
 </section>
