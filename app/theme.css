@@ -201,7 +201,7 @@ th{background:var(--surface-2);color:var(--ink-soft);font-size:12.5px;font-weigh
 tbody tr:last-child td{border-bottom:0}
 tbody tr:hover td{background:var(--accent-soft)}
 td:first-child{color:var(--ink)}
-.yes,.no{font-weight:650;white-space:nowrap}
+.yes,.no{font-weight:650}
 .yes{color:var(--r-stroke)}
 .no{color:var(--h-stroke)}
 .yes::before,.no::before{content:"";display:inline-block;width:7px;height:7px;margin-right:7px;border-radius:2px;
