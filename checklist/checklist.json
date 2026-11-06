@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "data_version": "c989eac45c315b6e",
+  "data_version": "c562eabb4f82b0cc",
   "license": {
     "id": "CC-BY-4.0",
     "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -4011,7 +4011,7 @@
       "id": "rev-04",
       "severity": "Medium",
       "title": "Findings are ordered worst first and grouped by origin",
-      "detail": "Several findings in one area are usually one finding about that area.",
+      "detail": "Several findings in one area may share a cause, which the report raises as a question for the team.",
       "lesson": "Design review",
       "lesson_path": "topics/design-review/index.html#reference",
       "applicability": {

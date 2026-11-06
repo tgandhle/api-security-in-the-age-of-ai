@@ -57,7 +57,7 @@ Review the title and detail for technical correctness. Severity and the applicab
 | rev-01 | Medium | `always` | **Missing information blocks a rule rather than passing it** A checklist that passes when it does not know will reliably report that the system is fine. |
 | rev-02 | Medium | `always` | **Unanswered questions are reported with the severity their rule carries** Not downgraded for uncertainty, which would make the review quieter the less it knows. |
 | rev-03 | Medium | `always` | **The report states coverage: fully assessed, partly assessed, blocked, clean** A reader assumes anything unmentioned was assessed and fine. A module with any unanswered rule is never reported as clean. |
-| rev-04 | Medium | `always` | **Findings are ordered worst first and grouped by origin** Several findings in one area are usually one finding about that area. |
+| rev-04 | Medium | `always` | **Findings are ordered worst first and grouped by origin** Several findings in one area may share a cause, which the report raises as a question for the team. |
 | rev-05 | Medium | `always` | **Each open item is marked as a setting or a decision** The decisions are the ones still open next quarter. Name them on day one. |
 | rev-06 | Medium | `always` | **The rule table and the review date are version controlled** So the next review of the same system is a diff rather than a repeat. |
 
