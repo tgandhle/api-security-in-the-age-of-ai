@@ -31,7 +31,7 @@
 <thead><tr><th>What the review can say</th><th>What it means</th><th>What it is worth</th></tr></thead>
 <tbody>
 <tr><td>The design states something, and it is wrong</td><td class="yes">A finding, with a severity and a check id</td><td>Actionable now</td></tr>
-<tr><td>The design states something, and it is right</td><td class="no">Assessed and clean</td><td>Worth recording, so nobody re-reviews it</td></tr>
+<tr><td>The design states something, and it is right</td><td class="no">The rule passes. Its module is clean only if every rule in it was answered and passed</td><td>Worth recording, so nobody re-reviews it</td></tr>
 <tr><td>The design does not say</td><td class="yes">An unanswered question, not a pass</td><td>A conversation, and often the worst item on the list</td></tr>
 </tbody></table></div>
 <p class="prose">The third row is what this module is really about. In a summary, an unanswered question and a passed check look identical, and the difference is the whole value of the review.</p>
@@ -69,13 +69,13 @@
 <div class="diagram">
 <svg viewBox="0 0 1100 392" width="100%" style="min-width:920px" role="img">
 <title>How a design review separates findings, clean results and unanswered questions</title>
-<desc>Twenty-three checklist rules are run against a design document that answers twenty of twenty-four questions. Each rule takes one of three paths. Where the design answers and the answer is wrong, the rule becomes a finding with a severity. Where the design answers and the answer is right, the module is recorded as assessed and clean. Where the design is silent, the rule cannot be evaluated at all and becomes an unanswered question carrying the severity it would have had. The counts are fourteen findings, four modules clean, and four unanswered questions, giving eighteen open items. A note records that eight of the eleven findings rated critical or high come from Part 4, that six configuration changes remove two of the three criticals, and that six of the eight findings left each need a design decision.</desc>
+<desc>Twenty-three checklist rules are run against a design document that answers twenty of twenty-four questions. Each rule takes one of three paths. Where the design answers and the answer is wrong, the rule becomes a finding with a severity. Where the design answers and the answer is right, the rule passes. A module is recorded as clean only when every rule in it was evaluated and passed, so a module with one silent rule is partly assessed, not clean. Where the design is silent, the rule cannot be evaluated at all and becomes an unanswered question carrying the severity it would have had. The counts are fourteen findings, four modules clean, and four unanswered questions, giving eighteen open items. A note records that eight of the eleven findings rated critical or high come from Part 4, that six configuration changes remove two of the three criticals, and that six of the eight findings left each need a design decision.</desc>
 
 <text class="lab" x="36" y="26">23 rules, one design document, three possible outcomes per rule.</text>
 <g class="s"><rect x="20" y="46" width="200" height="86" rx="8"/><text class="th" x="120" y="72" text-anchor="middle">The design document</text><text class="ts" x="120" y="94" text-anchor="middle">24 questions asked</text><text class="ts" x="120" y="112" text-anchor="middle">20 answered, 4 silent</text></g>
 
 <g class="r"><rect x="280" y="42" width="300" height="76" rx="8"/><text class="th" x="430" y="68" text-anchor="middle">Answered, and wrong</text><text class="ts" x="430" y="90" text-anchor="middle">14 findings: 3 critical, 8 high, 3 medium</text><text class="ts" x="430" y="107" text-anchor="middle">ordered worst first</text></g>
-<g class="h"><rect x="280" y="130" width="300" height="60" rx="8"/><text class="th" x="430" y="154" text-anchor="middle">Answered, and right</text><text class="ts" x="430" y="176" text-anchor="middle">4 modules assessed and clean</text></g>
+<g class="h"><rect x="280" y="130" width="300" height="60" rx="8"/><text class="th" x="430" y="154" text-anchor="middle">Answered, and right</text><text class="ts" x="430" y="176" text-anchor="middle">rule passes; 4 modules fully clean</text></g>
 <g class="r"><rect x="280" y="202" width="300" height="76" rx="8"/><text class="th" x="430" y="228" text-anchor="middle">Not answered at all</text><text class="ts" x="430" y="250" text-anchor="middle">4 questions, carrying the severity</text><text class="ts" x="430" y="267" text-anchor="middle">they would have had</text></g>
 <line class="arr" x1="220" y1="74" x2="276" y2="80"/>
 <line class="arr" x1="220" y1="89" x2="276" y2="160"/>
