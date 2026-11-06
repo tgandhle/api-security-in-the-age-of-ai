@@ -28,7 +28,7 @@ Confirm each is technically sound. These are the project's position, not a sourc
 - **26-B5** Order findings worst first and then by check id, so two reviews of the same system are comparable.
 - **26-B6** Group findings by their origin, and report the grouping when it is itself a finding.
 - **26-B7** Mark each open item as needing a setting or needing a decision.
-- **26-B8** Put the coverage statement at the top: concluded, clean, blocked.
+- **26-B8** Put the coverage statement at the top: fully assessed, partly assessed, blocked, clean.
 - **26-B9** Keep the rule table in version control next to the system, so the next review is a diff.
 
 ### Alternatives (Option)
@@ -56,8 +56,8 @@ Review the title and detail for technical correctness. Severity and the applicab
 |---|---|---|---|
 | rev-01 | Medium | `always` | **Missing information blocks a rule rather than passing it** A checklist that passes when it does not know will reliably report that the system is fine. |
 | rev-02 | Medium | `always` | **Unanswered questions are reported with the severity their rule carries** Not downgraded for uncertainty, which would make the review quieter the less it knows. |
-| rev-03 | Medium | `always` | **The report states coverage: concluded, clean, blocked** A reader assumes anything unmentioned was assessed and fine. |
-| rev-04 | Medium | `always` | **Findings are ordered worst first and grouped by origin** Several findings in one area are usually one finding about that area. |
+| rev-03 | Medium | `always` | **The report states coverage: fully assessed, partly assessed, blocked, clean** A reader assumes anything unmentioned was assessed and fine. A module with any unanswered rule is never reported as clean. |
+| rev-04 | Medium | `always` | **Findings are ordered worst first and grouped by origin** Several findings in one area may share a cause, which the report raises as a question for the team. |
 | rev-05 | Medium | `always` | **Each open item is marked as a setting or a decision** The decisions are the ones still open next quarter. Name them on day one. |
 | rev-06 | Medium | `always` | **The rule table and the review date are version controlled** So the next review of the same system is a diff rather than a repeat. |
 

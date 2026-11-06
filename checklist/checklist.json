@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "data_version": "a02977a8159b979d",
+  "data_version": "c562eabb4f82b0cc",
   "license": {
     "id": "CC-BY-4.0",
     "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -3998,8 +3998,8 @@
     {
       "id": "rev-03",
       "severity": "Medium",
-      "title": "The report states coverage: concluded, clean, blocked",
-      "detail": "A reader assumes anything unmentioned was assessed and fine.",
+      "title": "The report states coverage: fully assessed, partly assessed, blocked, clean",
+      "detail": "A reader assumes anything unmentioned was assessed and fine. A module with any unanswered rule is never reported as clean.",
       "lesson": "Design review",
       "lesson_path": "topics/design-review/index.html#reference",
       "applicability": {
@@ -4011,7 +4011,7 @@
       "id": "rev-04",
       "severity": "Medium",
       "title": "Findings are ordered worst first and grouped by origin",
-      "detail": "Several findings in one area are usually one finding about that area.",
+      "detail": "Several findings in one area may share a cause, which the report raises as a question for the team.",
       "lesson": "Design review",
       "lesson_path": "topics/design-review/index.html#reference",
       "applicability": {
