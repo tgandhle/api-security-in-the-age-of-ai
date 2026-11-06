@@ -106,6 +106,17 @@ These apply to every change. If a task seems to require breaking one, stop and a
 Recorded so a later session does not reopen them by accident. Change one only
 when the reason it gives has stopped being true, and say so in the commit.
 
+- **2026-11-06, the course is openly licensed: MIT for code, CC BY 4.0 for
+  everything else.** Owner decision, replacing "all rights reserved".
+  `LICENSE` is the MIT text, so GitHub reports the code licence;
+  `LICENSE-CONTENT.md` names which paths are code and gives the CC BY 4.0
+  attribution. CC BY rather than BY-SA or NonCommercial, for the same reason
+  the checklist data was CC BY: reuse, including inside companies, should not
+  depend on reading "commercial" or on relicensing adaptations.
+  `CHECKLIST-LICENSE.md` stays for the checklist's attribution line and data
+  version. Quoted specifications are not relicensed. Licences already granted
+  cannot be withdrawn from copies people have, so treat this as permanent.
+  Outside pull requests are still not accepted; that is a separate decision.
 - **2026-10-25, applicability model version 3 adds the fact `sse`.** Owner
   decision. Module 33 now teaches server-sent events and has three checklist
   items for them (`prot-11` to `prot-13`). No existing fact fits: an event
@@ -165,8 +176,9 @@ when the reason it gives has stopped being true, and say so in the commit.
   workflow is: push a branch, open a pull request, wait for `build`, merge
   with a merge commit or a squash, never a rebase. The ruleset and the
   reporting switch are GitHub settings that only the owner can change.
-  Outside pull requests are not accepted, because the licence gives no
-  terms on which to accept one; problems come in as issues.
+  Outside pull requests are not accepted; problems come in as issues.
+  (The licence reason first given here no longer applies: see the
+  2026-11-06 licence decision.)
 - **2026-10-09, the checklist data is published for other tools, under its
   own licence.** Owner decision. `checklist/checklist.json` and
   `checklist/checklist.csv` are generated with the checklist page, so teams

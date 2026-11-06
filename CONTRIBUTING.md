@@ -10,9 +10,7 @@ For a security vulnerability, do not open an issue. Follow [SECURITY.md](SECURIT
 
 ## Pull requests
 
-Pull requests from outside contributors are not accepted at present. The repository is published to be read, not as open source (see [LICENSE](LICENSE)), and it has no terms under which a contribution could be accepted. Open an issue instead, and the maintainer will make the change and credit you in the commit if you wish.
-
-The review checklist data is the exception to the licence, not to this rule: it is licensed CC BY 4.0 for reuse ([CHECKLIST-LICENSE.md](CHECKLIST-LICENSE.md)), but changes to it are still made here by the maintainer.
+Pull requests from outside contributors are not accepted at present. The course is openly licensed (MIT for code, CC BY 4.0 for content: see [LICENSE-CONTENT.md](LICENSE-CONTENT.md)), so you may fork and adapt it, but changes to this repository are made by the maintainer. Open an issue instead, and the maintainer will make the change and credit you in the commit if you wish.
 
 ## Reviewing the course
 

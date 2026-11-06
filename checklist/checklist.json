@@ -4,7 +4,7 @@
   "license": {
     "id": "CC-BY-4.0",
     "url": "https://creativecommons.org/licenses/by/4.0/",
-    "notice": "The review checklist data in this file is licensed under the Creative Commons Attribution 4.0 International licence. See CHECKLIST-LICENSE.md in the repository. The lessons, glossary and other course material are not covered by this licence.",
+    "notice": "The review checklist data in this file is licensed under the Creative Commons Attribution 4.0 International licence. See CHECKLIST-LICENSE.md in the repository. The lessons and other written course material are also CC BY 4.0, and the code is MIT: see LICENSE-CONTENT.md.",
     "attribution": "Review checklist from API Security in the Age of AI, copyright (c) 2026 tgandhle, https://github.com/tgandhle/api-security-in-the-age-of-ai, licensed CC BY 4.0."
   },
   "source": "https://github.com/tgandhle/api-security-in-the-age-of-ai",

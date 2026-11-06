@@ -21,8 +21,8 @@ Use this, or an equivalent that carries the same information:
 
 If you changed the data, say so. The `data_version` in `checklist/checklist.json` and in each row of `checklist/checklist.csv` identifies the version you started from.
 
-## What this licence does not cover
+## The rest of the repository
 
-Only the files listed above. The lessons, labs, glossary, roadmap, coverage page, site code and every other file in this repository stay under the terms in `LICENSE`, which reserve all rights. The checklist items also appear in the reference section of each lesson; the lesson pages themselves are not licensed by this file.
+The lessons and the rest of the written material are also licensed CC BY 4.0, and the code is licensed MIT: see [`LICENSE-CONTENT.md`](LICENSE-CONTENT.md) for which files are which. This file exists for the checklist data's own attribution line and data version.
 
 The checklist data is provided as is, without warranty of any kind, as section 5 of the licence states. It is teaching and review material, not a complete or certified security standard.
