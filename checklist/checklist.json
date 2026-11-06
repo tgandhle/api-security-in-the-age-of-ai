@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "data_version": "a02977a8159b979d",
+  "data_version": "c989eac45c315b6e",
   "license": {
     "id": "CC-BY-4.0",
     "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -3998,8 +3998,8 @@
     {
       "id": "rev-03",
       "severity": "Medium",
-      "title": "The report states coverage: concluded, clean, blocked",
-      "detail": "A reader assumes anything unmentioned was assessed and fine.",
+      "title": "The report states coverage: fully assessed, partly assessed, blocked, clean",
+      "detail": "A reader assumes anything unmentioned was assessed and fine. A module with any unanswered rule is never reported as clean.",
       "lesson": "Design review",
       "lesson_path": "topics/design-review/index.html#reference",
       "applicability": {

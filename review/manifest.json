@@ -1758,7 +1758,7 @@
             "26-B5": "Order findings worst first and then by check id, so two reviews of the same system are comparable.",
             "26-B6": "Group findings by their origin, and report the grouping when it is itself a finding.",
             "26-B7": "Mark each open item as needing a setting or needing a decision.",
-            "26-B8": "Put the coverage statement at the top: concluded, clean, blocked.",
+            "26-B8": "Put the coverage statement at the top: fully assessed, partly assessed, blocked, clean.",
             "26-B9": "Keep the rule table in version control next to the system, so the next review is a diff.",
             "26-O1": "Carry a fourth outcome, \"not applicable\", where a rule genuinely does not apply, and require a reason for each one.",
             "26-O2": "Run the harness in the build against a machine-readable description of the system, so a design change that removes an answer fails the build.",

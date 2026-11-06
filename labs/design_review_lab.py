@@ -177,14 +177,17 @@ def by_severity(findings):
 
 
 def coverage(design):
-    """Which modules this review reached a conclusion about, and which not."""
-    assessed, blocked = set(), set()
+    """Each module in exactly one list: every rule evaluated, some evaluated
+    and some blocked, or none evaluated. A partly assessed module is never
+    reported as fully assessed, so it can never be reported as clean."""
+    evaluated, blocked = set(), set()
     for check_id, severity, module, fact, test, text in RULES:
         if missing_fact(design, check_id, fact) is not None:
             blocked.add(module)
         else:
-            assessed.add(module)
-    return sorted(assessed), sorted(blocked - assessed)
+            evaluated.add(module)
+    return (sorted(evaluated - blocked), sorted(evaluated & blocked),
+            sorted(blocked - evaluated))
 
 
 RESULTS = []
@@ -293,11 +296,11 @@ def main():
 
     print()
     print("Part E: what this review did and did not cover.")
-    assessed, blocked = coverage(DESIGN)
-    check("modules the review reached a conclusion about", "16",
-          str(len(assessed)))
+    assessed, partial, blocked = coverage(DESIGN)
+    check("modules fully assessed", "15", str(len(assessed)))
     check("modules blocked on a missing answer", "3", str(len(blocked)))
     check("  which ones", "[8, 12, 13]", str(blocked))
+    check("modules partly assessed, named", "[25]", str(partial))
     modules_with_findings = sorted({f[2] for f in findings})
     check("modules with at least one finding", "12",
           str(len(modules_with_findings)))

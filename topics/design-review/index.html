@@ -60,9 +60,9 @@
 
 <h3>State what the review did not cover</h3>
 <div class="prose">
-<p>Part E is the paragraph that belongs at the top of every review and is almost always missing. This review reached a conclusion about 16 modules, found issues in 12, assessed 4 as clean, and was blocked on 3 by missing information.</p>
-<p>Naming the clean ones matters as much as naming the findings, because otherwise the next reviewer repeats the work. Naming the blocked ones matters more, because that list is what the review is waiting on, and it is the part a reader will assume was fine.</p>
-<p>Check 37 assembles the first line: eighteen open items, four of them unanswerable from the document provided. A reader who sees only that sentence still knows what to do next.</p>
+<p>Part E is the paragraph that belongs at the top of every review and is almost always missing. This review fully assessed 15 modules, partly assessed 1, and was blocked on 3 by missing information. It found issues in 12 and assessed 4 as clean.</p>
+<p>Naming the clean ones matters as much as naming the findings, because otherwise the next reviewer repeats the work. Naming the blocked ones matters more, because that list is what the review is waiting on, and it is the part a reader will assume was fine. Name the partly assessed ones too. Module 25 has findings and one unanswered rule, and if its answered rules had passed, a two-list report would have called it clean.</p>
+<p>Check 38 assembles the first line: eighteen open items, four of them unanswerable from the document provided. A reader who sees only that sentence still knows what to do next.</p>
 </div>
 
 <h3>The whole system</h3>
@@ -87,7 +87,7 @@
 
 <rect class="zone" x="20" y="300" width="1060" height="72" rx="12"/>
 <text class="ts" x="550" y="328" text-anchor="middle">The first line of the report: 18 open items, 4 unanswerable from the document provided.</text>
-<text class="ts" x="550" y="352" text-anchor="middle">Reached a conclusion about 16 modules, found issues in 12, assessed 4 clean, blocked on 3. A reader who sees only this knows what to do next.</text>
+<text class="ts" x="550" y="352" text-anchor="middle">Fully assessed 15 modules, partly assessed 1, blocked on 3, issues in 12, 4 clean. A reader who sees only this knows what to do next.</text>
 </svg>
 <div class="legend"><span class="lg-s">Input and summary</span><span class="lg-r">Open</span><span class="lg-h">Closed, or closable</span></div>
 </div>
@@ -100,7 +100,7 @@
 <li><strong>Give an unanswered question the severity it would have carried,</strong> so it sorts alongside the findings rather than beneath them.</li>
 <li><strong>Order findings worst first,</strong> and group them by where they came from, because the grouping is often a bigger finding than any single item.</li>
 <li><strong>Separate what a setting fixes from what a decision fixes,</strong> and say which of the two each remaining item needs.</li>
-<li><strong>State the coverage:</strong> what you concluded about, what was clean, and what you could not assess.</li>
+<li><strong>State the coverage:</strong> what you assessed fully, what you assessed only in part, what was clean, and what you could not assess.</li>
 <li><strong>Keep the harness,</strong> so the next review of the same system is a diff rather than a repeat.</li>
 </ol>
 
@@ -193,12 +193,13 @@ Part D: the remediation a team does first, and what is left.
 31.   is ret-01 among them                                   no
 
 Part E: what this review did and did not cover.
-32. modules the review reached a conclusion about            16
+32. modules fully assessed                                   15
 33. modules blocked on a missing answer                      3
 34.   which ones                                             [8, 12, 13]
-35. modules with at least one finding                        12
-36. modules assessed and clean                               [1, 9, 10, 16]
-37.   so the report's first line is                          18 open items, 4 unanswerable
+35. modules partly assessed, named                           [25]
+36. modules with at least one finding                        12
+37. modules assessed and clean                               [1, 9, 10, 16]
+38.   so the report's first line is                          18 open items, 4 unanswerable
 
 all lab checks passed</code></pre>
 <div class="prose">
@@ -206,7 +207,7 @@ all lab checks passed</code></pre>
 <p>Checks 15 and 16 are the sentence worth writing. Eight of the eleven findings rated Critical or High come from Part 4 and three from the rest of the course, which says the agent layer was built without anybody applying the rules the service already follows. That is one finding about a process, and it is more useful than eight findings about settings.</p>
 <p>Checks 17 to 23 are the module's argument. Fourteen findings is an accurate number and a misleading report. Eighteen open items, four of them unanswerable from the document, is the honest one, and the difference is four rules, three of them High, that nobody can evaluate because the design does not say.</p>
 <p>Checks 24 to 30 split the work. Six configuration changes remove six findings, two of them Critical. Of the eight left, six need a decision rather than an edit: agent card trust, approval binding, token passthrough, idempotency, a shared rate limit store and version retirement. Check 27 names the one Critical still open, the outbound allowlist, which a first week ordered by effort did not reach. Check 28 is the quiet one: the four unanswered questions are untouched by all six fixes.</p>
-<p>Check 36 names the modules that came out clean. That line is worth as much as the findings, because without it the next reviewer starts from zero.</p>
+<p>Check 35 names the one module the review only partly assessed, and check 37 names the modules that came out clean. That line is worth as much as the findings, because without it the next reviewer starts from zero.</p>
 <p><strong>Try next:</strong></p>
 <ul>
 <li>Make the harness treat unknowns as passes: in <code>review</code>, delete the line that appends the rule to <code>unanswered</code>, keep the <code>if</code> test and the <code>continue</code>, and rerun. Ten checks fail, four questions vanish, and the findings count does not move.</li>
@@ -257,7 +258,7 @@ all lab checks passed</code></pre>
 <details class="exercise-answers"><summary>Every option, and why</summary>
 <ul>
 <li data-option="a">That is a different edit: keep the test and the <code>continue</code>, and delete only the <code>append</code>. Measured, that one fails ten checks and check 6 stays at <code>14</code>. Here the test is gone too, so each rule is evaluated.</li>
-<li data-option="b">Correct. Exit 1, 18 checks fail. Check 6 goes from <code>14</code> to <code>18</code>, check 8 from <code>8</code> to <code>11</code>, check 9 from <code>3</code> to <code>4</code>, and check 17 from <code>4</code> to <code>0</code>. The four blocked rules are all written as <code>not d[...]</code>, and a missing value is falsy, so each one fires. Check 23 still prints <code>18</code>, and check 37 goes from <code>18 open items, 4 unanswerable</code> to <code>18 open items, 0 unanswerable</code>. The total is the same and the report is wrong: four questions for the team became four claims the document does not support, three of them High. Check <code>rev-01</code> in the <a href="#reference">Reference</a> layer says missing information blocks a rule. Without the block, the outcome depends on how each test happens to be written.</li>
+<li data-option="b">Correct. Exit 1, 18 checks fail. Check 6 goes from <code>14</code> to <code>18</code>, check 8 from <code>8</code> to <code>11</code>, check 9 from <code>3</code> to <code>4</code>, and check 17 from <code>4</code> to <code>0</code>. The four blocked rules are all written as <code>not d[...]</code>, and a missing value is falsy, so each one fires. Check 23 still prints <code>18</code>, and check 38 goes from <code>18 open items, 4 unanswerable</code> to <code>18 open items, 0 unanswerable</code>. The total is the same and the report is wrong: four questions for the team became four claims the document does not support, three of them High. Check <code>rev-01</code> in the <a href="#reference">Reference</a> layer says missing information blocks a rule. Without the block, the outcome depends on how each test happens to be written.</li>
 <li data-option="c">No test raises. <code>not None</code> is <code>True</code> in Python, so the four tests return a result and the run finishes with exit code 1 and a list of 18 mismatches.</li>
 <li data-option="d">The deleted lines are the only place <code>unanswered</code> is filled. Check 17 prints <code>0</code> and check 18 prints <code>[]</code>.</li>
 </ul>
@@ -274,7 +275,7 @@ all lab checks passed</code></pre>
 <label><input type="radio" name="rev-x2" value="a"> Only check 18. It lists the four ids in a different order.</label>
 <label><input type="radio" name="rev-x2" value="b"> Check 20, severity of the worst one, becomes <code>Medium</code>.</label>
 <label><input type="radio" name="rev-x2" value="c" data-correct="true"> Checks 18 and 19 both change.</label>
-<label><input type="radio" name="rev-x2" value="d"> Nothing. All 37 checks pass.</label>
+<label><input type="radio" name="rev-x2" value="d"> Nothing. All 38 checks pass.</label>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button>
 <p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
@@ -313,25 +314,25 @@ all lab checks passed</code></pre>
 </article>
 
 <article class="exercise" data-exercise data-exercise-id="rev-x4" data-covers="rev-03">
-<h3>4. A module with one silent rule counts as blocked</h3>
+<h3>4. A partly assessed module is counted as fully assessed</h3>
 <div class="prose">
-<p>In <code>coverage</code>, stop removing the assessed modules from the blocked ones, so the last line reads:</p>
+<p>In <code>coverage</code>, stop removing the blocked modules from the evaluated ones in the first list, so the last line starts:</p>
 </div>
-<pre><code>return sorted(assessed), sorted(blocked)</code></pre>
+<pre><code>return (sorted(evaluated),</code></pre>
 <fieldset><legend>Which checks change?</legend>
-<label><input type="radio" name="rev-x4" value="a" data-correct="true"> Checks 33 and 34. A fourth module appears in the blocked list.</label>
-<label><input type="radio" name="rev-x4" value="b"> Check 32. The modules the review reached a conclusion about drop from <code>16</code> to <code>15</code>.</label>
-<label><input type="radio" name="rev-x4" value="c"> None. A module is either assessed or blocked, so the subtraction removed nothing.</label>
-<label><input type="radio" name="rev-x4" value="d"> Checks 32, 33 and 34. One module moves from one list to the other.</label>
+<label><input type="radio" name="rev-x4" value="a" data-correct="true"> Only check 32. Module 25 is now in two lists.</label>
+<label><input type="radio" name="rev-x4" value="b"> Checks 32 and 35. Module 25 moves from the partly assessed list to the fully assessed one.</label>
+<label><input type="radio" name="rev-x4" value="c"> Checks 32 and 37. Module 25 is now reported as clean.</label>
+<label><input type="radio" name="rev-x4" value="d"> None. A module is either evaluated or blocked, so the subtraction removed nothing.</label>
 </fieldset>
 <button class="button secondary" type="button" data-check-answer>Check answer</button>
 <p class="quiz-feedback" data-quiz-feedback aria-live="polite"></p>
 <details class="exercise-answers"><summary>Every option, and why</summary>
 <ul>
-<li data-option="a">Correct. Exit 1, two failures. Check 33 goes from <code>3</code> to <code>4</code>, and check 34 from <code>[8, 12, 13]</code> to <code>[8, 12, 13, 25]</code>. Module 25 holds three rules. The design answers two of them, <code>ret-01</code> and <code>ret-05</code>, and is silent on the third, <code>ret-08</code>. Check 32 still prints <code>16</code>, so that module is now reported both as concluded and as blocked, and the two counts add up to 20 for the 19 modules the rule table covers. Check <code>rev-03</code> in the <a href="#reference">Reference</a> layer asks the report to state concluded, clean and blocked, and a reader can only use those numbers if each module lands in one of them.</li>
-<li data-option="b">The edit does not touch the assessed set, so check 32 still prints <code>16</code>. Subtracting the other way as well, so the line reads <code>return sorted(assessed - blocked), sorted(blocked)</code>, is a different edit. Measured, that one fails three checks, 32, 33 and 34.</li>
-<li data-option="c">One module is in both sets. Module 25 has two answered rules and one silent rule, and the subtraction is what kept it out of the blocked list.</li>
-<li data-option="d">Nothing moves. The module is added to the blocked list and stays in the assessed one, which is why check 32 does not change.</li>
+<li data-option="a">Correct. Exit 1, one failure. Check 32 goes from <code>15</code> to <code>16</code>. Module 25 holds three rules. The design answers two of them, <code>ret-01</code> and <code>ret-05</code>, and is silent on the third, <code>ret-08</code>. Check 35 still prints <code>[25]</code>, so the module is now reported both as fully assessed and as partly assessed, and the lists add up to 20 for the 19 modules the rule table covers. Check <code>rev-03</code> in the <a href="#reference">Reference</a> layer asks the report to state its coverage, and a reader can only use those numbers if each module lands in exactly one list.</li>
+<li data-option="b">The edit does not touch the second list, so check 35 still prints <code>[25]</code>. Nothing moves; module 25 is added to the first list as well.</li>
+<li data-option="c">Check 37 still prints <code>[1, 9, 10, 16]</code>, because module 25 has two findings and a module with findings is never clean. That is luck, not design. Measured with this edit and with <code>ret-01</code> and <code>ret-05</code> passing, module 25 has no findings and check 37 prints <code>[1, 9, 10, 16, 25]</code>: a module with an unanswered High rule, reported clean.</li>
+<li data-option="d">One module is in both sets. Module 25 has two answered rules and one silent rule, and the subtraction is what kept it out of the first list.</li>
 </ul>
 </details>
 </article>
@@ -349,7 +350,7 @@ all lab checks passed</code></pre>
 <li><span class="label base">Baseline</span>Order findings worst first and then by check id, so two reviews of the same system are comparable.</li>
 <li><span class="label base">Baseline</span>Group findings by their origin, and report the grouping when it is itself a finding.</li>
 <li><span class="label base">Baseline</span>Mark each open item as needing a setting or needing a decision.</li>
-<li><span class="label base">Baseline</span>Put the coverage statement at the top: concluded, clean, blocked.</li>
+<li><span class="label base">Baseline</span>Put the coverage statement at the top: fully assessed, partly assessed, blocked, clean.</li>
 <li><span class="label base">Baseline</span>Keep the rule table in version control next to the system, so the next review is a diff.</li>
 <li><span class="label opt">Option</span>Carry a fourth outcome, "not applicable", where a rule genuinely does not apply, and require a reason for each one.</li>
 <li><span class="label opt">Option</span>Run the harness in the build against a machine-readable description of the system, so a design change that removes an answer fails the build.</li>
@@ -361,7 +362,7 @@ all lab checks passed</code></pre>
 <ul class="checks">
 <li data-check="rev-01" data-severity="Medium"><strong>Missing information blocks a rule rather than passing it</strong> <span>A checklist that passes when it does not know will reliably report that the system is fine.</span></li>
 <li data-check="rev-02" data-severity="Medium"><strong>Unanswered questions are reported with the severity their rule carries</strong> <span>Not downgraded for uncertainty, which would make the review quieter the less it knows.</span></li>
-<li data-check="rev-03" data-severity="Medium"><strong>The report states coverage: concluded, clean, blocked</strong> <span>A reader assumes anything unmentioned was assessed and fine.</span></li>
+<li data-check="rev-03" data-severity="Medium"><strong>The report states coverage: fully assessed, partly assessed, blocked, clean</strong> <span>A reader assumes anything unmentioned was assessed and fine. A module with any unanswered rule is never reported as clean.</span></li>
 <li data-check="rev-04" data-severity="Medium"><strong>Findings are ordered worst first and grouped by origin</strong> <span>Several findings in one area are usually one finding about that area.</span></li>
 <li data-check="rev-05" data-severity="Medium"><strong>Each open item is marked as a setting or a decision</strong> <span>The decisions are the ones still open next quarter. Name them on day one.</span></li>
 <li data-check="rev-06" data-severity="Medium"><strong>The rule table and the review date are version controlled</strong> <span>So the next review of the same system is a diff rather than a repeat.</span></li>
