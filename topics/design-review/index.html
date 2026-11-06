@@ -16,7 +16,7 @@
 
 <div class="prose">
 <p><strong>Objective.</strong> After this module you can run a design review against the course checklist, separate findings from questions the design does not answer, order what you found so the first line of the report is the right one, and say what your review did not cover.</p>
-<p><strong>Before you start.</strong> Every other module in this course demonstrated one thing going wrong. This one is the job. The lab is a harness you can point at a description of your own system, and the rule table in it is the deliverable.</p>
+<p><strong>Before you start.</strong> Every other module in this course demonstrated one thing going wrong. This one is the job. The lab is a harness you can point at a description of your own system, written in the values its <code>ALLOWED</code> table lists, and the rule table in it is the deliverable. What it produces is a starting list for a reviewer, not a completed security review.</p>
 </div>
 <section class="lesson-status" aria-label="Lesson progress"><div><strong>Lesson 27 of 38</strong><span>Complete the lesson and quick check, then record your progress.</span></div><button class="button" type="button" data-mark-complete aria-pressed="false">Mark lesson complete</button></section>
 
@@ -147,7 +147,7 @@
 <pre><code>Windows                           macOS and Linux
 py -3 labs/design_review_lab.py   python3 labs/design_review_lab.py</code></pre>
 <div class="prose">
-<p>On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>. The <code>DESIGN</code> dict at the top is the system under review and the <code>RULES</code> table below it is the checklist. Replace the first with a description of your own system and the harness reviews it, though the expected values in <code>main</code> are still ExampleAir's. Nothing opens a socket.</p>
+<p>On Windows, use <code>py -3</code> wherever this page shows <code>python3</code>. The <code>DESIGN</code> dict at the top is the system under review and the <code>RULES</code> table below it is the checklist. Replace the first with a description of your own system, using the values the <code>ALLOWED</code> table lists for each fact, and the harness reviews it, though the expected values in <code>main</code> are still ExampleAir's. A value outside that table blocks its rule instead of passing it: <code>"no"</code> for a true-or-false fact, or a free-text answer, lands in Part C as invalid, with the rule's severity. Nothing opens a socket.</p>
 </div>
 <pre><code>$ python3 labs/design_review_lab.py
 system under review: ExampleAir assistant platform
@@ -212,8 +212,8 @@ all lab checks passed</code></pre>
 <ul>
 <li>Make the harness treat unknowns as passes: in <code>review</code>, delete the line that appends the rule to <code>unanswered</code>, keep the <code>if</code> test and the <code>continue</code>, and rerun. Ten checks fail, four questions vanish, and the findings count does not move.</li>
 <li>Remove the severity ordering from the findings: in <code>review</code>, change the sort key of the findings list to <code>f[0]</code> alone, and rerun. Three checks fail, 10, 11 and 13: the findings are no longer ordered worst first, and the report opens with <code>a2a-01</code>, a High finding, where it opened with <code>ctx-01</code>. Check 12 does not move, because <code>ver-01</code>, a Medium, sorts last under either key.</li>
-<li>Replace <code>DESIGN</code> with a description of a system you work on, keeping the <code>name</code> key and setting each key you cannot fill to <code>UNKNOWN</code>. Those keys are your review's Part C. <code>ver-01</code> reads two keys, <code>versions_reachable</code> and <code>versions_documented</code>, and is blocked when either is <code>UNKNOWN</code>. The run exits 1, because the expected values are ExampleAir's: read the printed column, not the verdict.</li>
-<li>Add a rule for something this course does not cover but your organisation requires. Decide what severity it carries and why. The run exits 1 whatever you add, because the expected counts are for 23 rules: leave its fact out of <code>DESIGN</code> and the rule appears in Part C.</li>
+<li>Replace <code>DESIGN</code> with a description of a system you work on, keeping the <code>name</code> key and setting each key you cannot fill to <code>UNKNOWN</code>. Those keys are your review's Part C. Set every other key to a value <code>ALLOWED</code> lists for it: anything else is reported in Part C as invalid rather than missing, and its rule is blocked, not guessed at. <code>ver-01</code> reads two keys, <code>versions_reachable</code> and <code>versions_documented</code>, and is blocked when either is <code>UNKNOWN</code> or is not a whole number of zero or more. The run exits 1, because the expected values are ExampleAir's: read the printed column, not the verdict.</li>
+<li>Add a rule for something this course does not cover but your organisation requires. Decide what severity it carries and why. The run exits 1 whatever you add, because the expected counts are for 23 rules: leave its fact out of <code>DESIGN</code> and the rule appears in Part C. When you add the fact, add its allowed values to <code>ALLOWED</code> as well; until you do, the rule is blocked as invalid.</li>
 <li>Run the harness twice, three months apart, and diff the two outputs. That diff is the only honest progress report.</li>
 </ul>
 </div>

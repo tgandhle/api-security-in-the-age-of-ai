@@ -17,8 +17,11 @@ applies the remediation a team would realistically do first and measures
 what is left. Part E is the review's own coverage, which is the paragraph
 that belongs at the top of the report.
 
-The rule table below is the lab. Point it at a dict describing your own
-system and it will do the same thing.
+The rule table below is the lab. To review your own system, describe it in
+DESIGN using the values ALLOWED lists for each fact. A value outside its list
+is not guessed at: the rule is blocked and reported in Part C as invalid,
+with the severity it carries, the same as a fact the design leaves out. The
+output is a starting list for a reviewer, not a completed security review.
 
 Needs nothing beyond Python 3.
 
@@ -141,16 +144,69 @@ RULES = [
 
 RANK = {"Critical": 0, "High": 1, "Medium": 2}
 
+# The values each fact may take: bool for true or false, int for a count of
+# zero or more, or the set of words the rules are written for. A value
+# outside this table is invalid, and a rule that reads it is blocked rather
+# than evaluated, because a rule that guessed at "no" or "not checked" would
+# pass it. A fact with no entry here is invalid too: add one with its rule.
+ALLOWED = {
+    "key_storage": {"secrets-manager", "environment", "config-file",
+                    "source-code"},
+    "token_audience_checked": bool,
+    "credential_inventory": bool,
+    "object_check": {"after-load", "before-load", "none"},
+    "response_fields": {"declared-list", "whole-object"},
+    "idempotency": {"none", "idempotency-key"},
+    "services_authenticate_themselves": bool,
+    "limits_before_parser": bool,
+    "egress_allowlist": bool,
+    "rate_limit_store": {"per-instance", "shared"},
+    "webhook_verification": {"none", "signature", "signature+timestamp"},
+    "versions_reachable": int,
+    "versions_documented": int,
+    "agent_calls_downstream": {"passthrough", "token-exchange"},
+    "mcp_audience_validation": bool,
+    "a2a_card_trust": {"fetched-key", "pinned-key", "none"},
+    "tool_dispatch": {"deny-by-default", "allow-by-default"},
+    "model_holds_credential": bool,
+    "approval_binds": {"proposal-id", "parameters"},
+    "system_prompt_has_credential": bool,
+    "prompt_context": {"whole-record", "allowlist"},
+    "retrieval_filter": {"pre", "post"},
+    "memory_provenance": bool,
+    "retrieval_logging": bool,
+}
+
 # Rules whose test reads a second fact. Such a rule is blocked when either
-# fact is missing, so no test ever runs on an answer the design did not give.
+# fact is missing or invalid, so no test ever runs on an answer the design
+# did not give or the rules cannot read.
 ALSO_NEEDS = {"ver-01": ("versions_documented",)}
 
 
+def problem(design, name):
+    """Why a rule cannot use this fact: "missing", "invalid", or None."""
+    value = design.get(name, UNKNOWN)
+    if value is UNKNOWN:
+        return "missing"
+    kind = ALLOWED.get(name)
+    if kind is bool:
+        usable = isinstance(value, bool)
+    elif kind is int:
+        usable = (isinstance(value, int) and not isinstance(value, bool)
+                  and value >= 0)
+    elif isinstance(kind, set):
+        usable = isinstance(value, str) and value in kind
+    else:
+        usable = False
+    return None if usable else "invalid"
+
+
 def missing_fact(design, check_id, fact):
-    """The first fact this rule reads that the design leaves out, or None."""
+    """The first fact this rule reads that it cannot use, and why, or None."""
     for name in (fact,) + ALSO_NEEDS.get(check_id, ()):
-        if design.get(name, UNKNOWN) is UNKNOWN:
-            return name
+        reason = problem(design, name)
+        if reason is not None:
+            return name, reason
     return None
 
 
@@ -160,7 +216,7 @@ def review(design):
     for check_id, severity, module, fact, test, text in RULES:
         gap = missing_fact(design, check_id, fact)
         if gap is not None:
-            unanswered.append((check_id, severity, module, gap, text))
+            unanswered.append((check_id, severity, module, gap[0], text, gap[1]))
             continue
         if test(design):
             findings.append((check_id, severity, module, text))
