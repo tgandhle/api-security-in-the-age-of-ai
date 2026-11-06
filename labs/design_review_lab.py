@@ -98,7 +98,7 @@ RULES = [
      lambda d: d["rate_limit_store"] != "shared",
      "Rate limit counters are not held in a store every instance shares"),
     ("hook-01", "High", 16, "webhook_verification",
-     lambda d: "timestamp" not in str(d["webhook_verification"]),
+     lambda d: d["webhook_verification"] != "signature+timestamp",
      "The webhook signature does not cover the timestamp"),
     ("ver-01", "Medium", 18, "versions_reachable",
      lambda d: d["versions_reachable"] > d["versions_documented"],
